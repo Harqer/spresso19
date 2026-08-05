@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { tryOnFlow } from "./flows/tryOnOrchestrationFlow.js";
+import { extractViTPose } from "./actions/vitposeAction.js";
 import { mockInventory, activeOrders, getProductById } from "./inventory.ts";
 import {
   getApifyCategoryFeed,
@@ -432,6 +434,31 @@ router.post("/api/vitpose/orchestrate-fit", async (req, res) => {
       preferredCategory
     );
     res.json(result);
+  } catch (err: any) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Genkit Native Action Endpoint for ViTPose
+router.post("/api/genkit/vitpose-action", async (req, res) => {
+  try {
+    const { userImageBase64 } = req.body;
+    const poseData = await extractViTPose({ userImageBase64: userImageBase64 || "" });
+    res.json({ success: true, ...poseData });
+  } catch (err: any) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Genkit Native Flow Endpoint for Try-On & Veo 360 Spin Orchestration
+router.post("/api/genkit/try-on-flow", async (req, res) => {
+  try {
+    const { userImageBase64, garmentImageUrl } = req.body;
+    const flowResult = await tryOnFlow({
+      userImageBase64: userImageBase64 || "",
+      garmentImageUrl: garmentImageUrl || ""
+    });
+    res.json({ success: true, ...flowResult });
   } catch (err: any) {
     res.json({ success: false, error: err.message });
   }
