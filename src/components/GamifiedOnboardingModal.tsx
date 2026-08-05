@@ -281,7 +281,7 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
                 {/* Scanning Bounding Box Overlay */}
                 <div className="absolute inset-4 border-2 border-[#a9d291] rounded-xl pointer-events-none flex flex-col justify-between p-2">
                   <div className="flex justify-between text-[10px] font-mono text-[#a9d291] bg-black/70 px-2.5 py-1 rounded max-w-max border border-[#a9d291]/30">
-                    <span>LIVE_OBJECT_DETECT_V2.4</span>
+                    <span>SIMULATED_TUTORIAL_DEMO · V2.4</span>
                   </div>
                   {isScanning && (
                     <motion.div
