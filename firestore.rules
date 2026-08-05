@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Logs collection for Crashlytics / error tracking
+    match /logs/{logId} {
+      allow create: if isValidId(logId) &&
+        request.resource.data.level is string &&
+        request.resource.data.message is string &&
+        request.resource.data.message.size() <= 2000;
+      allow read: if isSignedIn();
+    }
+
+    // User profile documents
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // User specific orders
+    match /users/{userId}/orders/{orderId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+        request.resource.data.totalAmount is number &&
+        request.resource.data.status is string;
+      allow update: if isOwner(userId);
+    }
+
+    // Chat messages
+    match /chats/{chatId} {
+      allow read, write: if true; // Allows public chat & simulation sessions
+    }
+  }
+}

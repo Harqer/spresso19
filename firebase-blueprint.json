@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "E-Commerce Order item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["AUTHORIZED", "PROCESSING", "FULFILLED", "CANCELLED"] },
+        "deviceSource": { "type": "string", "enum": ["WEB", "MOBILE_IOS", "MOBILE_ANDROID", "META_SMART_GLASSES"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "totalAmount", "status"]
+    },
+    "LogEvent": {
+      "title": "LogEvent",
+      "description": "Structured system or crash log event for Crashlytics tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "level": { "type": "string", "enum": ["info", "warn", "error", "fatal"] },
+        "message": { "type": "string", "maxLength": 2000 },
+        "stack": { "type": "string", "maxLength": 5000 },
+        "component": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["level", "message", "timestamp"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Chat turn message including streamed thoughts and user prompt",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["user", "model", "system"] },
+        "content": { "type": "string", "maxLength": 10000 },
+        "thoughts": { "type": "string", "maxLength": 10000 },
+        "imageUrl": { "type": "string", "maxLength": 500 },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "role", "content", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "User specific orders"
+    },
+    "/logs/{logId}": {
+      "schema": { "$ref": "#/entities/LogEvent" },
+      "description": "System logs and crash reports"
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Chat messages and streaming AI logs"
+    }
+  }
+}

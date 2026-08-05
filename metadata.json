@@ -1,0 +1,6 @@
+{
+  "name": "Spresso",
+  "description": "AI Shopping Assistant with visual camera search, product recommendations, and instant checkout.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
