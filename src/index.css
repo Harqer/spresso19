@@ -4,6 +4,13 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --font-sans: 'Albert Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-headline: 'Instrument Serif', Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
 /* Jetpack Compose / Material 3 Dynamic Light & Dark Theme Tokens */
 :root {
   --color-brand-primary: #446732;
@@ -55,11 +62,16 @@ body {
 }
 
 @layer base {
-  * {
+  body {
     font-family: 'Albert Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.65;
+    letter-spacing: 0.01em;
   }
-  h1, h2, h3, h4, .font-serif, .editorial-heading {
+  h1, h2, h3, h4, h5, h6, .font-serif, .font-headline, .editorial-heading {
     font-family: 'Instrument Serif', Georgia, Cambria, "Times New Roman", Times, serif !important;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
   }
   code, pre, .font-mono {
     font-family: 'JetBrains Mono', monospace !important;
