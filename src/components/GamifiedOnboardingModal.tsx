@@ -10,20 +10,33 @@ interface GamifiedOnboardingModalProps {
 }
 
 const STYLE_VIBES = [
-  { id: "streetwear", label: "Streetwear Drops", icon: "checkroom", color: "from-amber-500 to-orange-600" },
-  { id: "luxury", label: "Minimalist Luxury", icon: "diamond", color: "from-emerald-600 to-teal-700" },
-  { id: "tech", label: "Tech & Gadgets", icon: "devices", color: "from-blue-600 to-indigo-700" },
   { id: "gourmet", label: "Organic Gourmet", icon: "restaurant", color: "from-green-600 to-emerald-800" },
-  { id: "vintage", label: "Vintage & Thrift", icon: "history_edu", color: "from-purple-600 to-pink-700" },
+  { id: "coffee", label: "Artisan Coffee & Espresso", icon: "coffee", color: "from-amber-700 to-stone-800" },
+  { id: "fresh", label: "Fresh Produce & Pantry", icon: "eco", color: "from-emerald-500 to-green-700" },
+  { id: "snacks", label: "Snacks & Confectionery", icon: "cookie", color: "from-[#e07a5f] to-amber-600" },
+  { id: "streetwear", label: "Streetwear Drops", icon: "checkroom", color: "from-amber-500 to-orange-600" },
+  { id: "luxury", label: "Minimalist Luxury", icon: "diamond", color: "from-teal-600 to-cyan-700" },
+  { id: "tech", label: "Tech & Gadgets", icon: "devices", color: "from-blue-600 to-indigo-700" },
+  { id: "quick_meals", label: "Quick Meals & Deli", icon: "fastfood", color: "from-red-500 to-rose-700" },
 ];
 
-const SCAN_SAMPLE_ITEM = {
-  name: "Spresso Gen-AI Cyber Jacket",
-  brand: "Spresso Studio",
-  confidence: "99.4%",
-  category: "Outerwear",
-  price: "$189.00",
-  image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600&auto=format&fit=crop"
+const SCAN_SAMPLE_ITEMS = {
+  fashion: {
+    name: "Spresso Gen-AI Cyber Jacket",
+    brand: "Spresso Studio",
+    confidence: "99.4%",
+    category: "Outerwear",
+    price: "$189.00",
+    image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600&auto=format&fit=crop"
+  },
+  food: {
+    name: "Organic Single-Origin Espresso Beans",
+    brand: "Spresso Craft Roast",
+    confidence: "98.9%",
+    category: "Gourmet Coffee",
+    price: "$18.50",
+    image: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=600&auto=format&fit=crop"
+  }
 };
 
 export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = ({
@@ -32,7 +45,8 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
   onComplete,
 }) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
-  const [selectedVibes, setSelectedVibes] = useState<string[]>(["streetwear", "tech"]);
+  const [selectedVibes, setSelectedVibes] = useState<string[]>(["gourmet", "coffee", "streetwear"]);
+  const [scanCategory, setScanCategory] = useState<"fashion" | "food">("food");
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scanComplete, setScanComplete] = useState<boolean>(false);
   const [radiusMiles, setRadiusMiles] = useState<number>(25);
@@ -209,36 +223,70 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="space-y-5 text-center"
+              className="space-y-4 text-center"
             >
               <div className="w-14 h-14 mx-auto rounded-2xl bg-[#e8efe0] dark:bg-[#1d2218] text-[#446732] dark:text-[#a9d291] flex items-center justify-center shadow-inner border border-[#a9d291]/30">
                 <MaterialIcon icon="center_focus_strong" size={32} />
               </div>
 
               <div>
-                <h3 className="text-xl font-black font-headline">Test AI Smart Vision</h3>
+                <h3 className="text-xl font-black font-headline">On-The-Go Object Detection</h3>
                 <p className="text-xs text-[#43483e] dark:text-[#c3c8bb] mt-1 max-w-sm mx-auto">
-                  Tap "Scan & Match" to test Spresso AI's live visual search and price comparison engine!
+                  Out in the city or in-store? Point your camera at any food, coffee, or product to object-detect & buy instantly!
                 </p>
               </div>
 
+              {/* Category Selector for Scanning Test */}
+              <div className="flex items-center justify-center space-x-2 p-1 bg-white dark:bg-[#191d16] border border-[#dfe4d7] dark:border-[#43483e] rounded-xl max-w-xs mx-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScanCategory("food");
+                    setScanComplete(false);
+                  }}
+                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 cursor-pointer ${
+                    scanCategory === "food"
+                      ? "bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#191d16] shadow-xs"
+                      : "text-[#43483e] dark:text-[#c3c8bb] hover:text-[#191d16] dark:hover:text-white"
+                  }`}
+                >
+                  <MaterialIcon icon="coffee" size={16} />
+                  <span>Coffee & Food</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScanCategory("fashion");
+                    setScanComplete(false);
+                  }}
+                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 cursor-pointer ${
+                    scanCategory === "fashion"
+                      ? "bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#191d16] shadow-xs"
+                      : "text-[#43483e] dark:text-[#c3c8bb] hover:text-[#191d16] dark:hover:text-white"
+                  }`}
+                >
+                  <MaterialIcon icon="checkroom" size={16} />
+                  <span>Apparel & Gear</span>
+                </button>
+              </div>
+
               {/* Simulated Camera Viewfinder */}
-              <div className="relative w-full h-52 rounded-2xl overflow-hidden border-2 border-dashed border-[#446732]/40 bg-stone-900 group flex items-center justify-center shadow-lg">
+              <div className="relative w-full h-56 rounded-2xl overflow-hidden border-2 border-dashed border-[#446732]/40 bg-stone-900 group flex items-center justify-center shadow-lg">
                 <img
-                  src={SCAN_SAMPLE_ITEM.image}
+                  src={SCAN_SAMPLE_ITEMS[scanCategory].image}
                   alt="Sample Product"
                   className="w-full h-full object-cover opacity-80"
                 />
 
                 {/* Scanning Bounding Box Overlay */}
                 <div className="absolute inset-4 border-2 border-[#a9d291] rounded-xl pointer-events-none flex flex-col justify-between p-2">
-                  <div className="flex justify-between text-[10px] font-mono text-[#a9d291] bg-black/60 px-2 py-0.5 rounded max-w-max">
-                    <span>LIVE_VISION_HUD_V2.4</span>
+                  <div className="flex justify-between text-[10px] font-mono text-[#a9d291] bg-black/70 px-2.5 py-1 rounded max-w-max border border-[#a9d291]/30">
+                    <span>LIVE_OBJECT_DETECT_V2.4</span>
                   </div>
                   {isScanning && (
                     <motion.div
                       className="w-full h-1 bg-[#a9d291] shadow-[0_0_15px_#a9d291]"
-                      animate={{ y: [0, 160, 0] }}
+                      animate={{ y: [0, 170, 0] }}
                       transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
                     />
                   )}
@@ -250,7 +298,7 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
                     className="absolute z-10 px-5 py-2.5 bg-[#446732] hover:bg-[#385428] text-white font-bold text-xs rounded-full shadow-2xl border border-[#a9d291]/50 cursor-pointer flex items-center space-x-2 animate-pulse"
                   >
                     <MaterialIcon icon="center_focus_strong" size={18} />
-                    <span>Tap to Scan Item (+150 XP)</span>
+                    <span>Scan & Detect Item (+150 XP)</span>
                   </button>
                 )}
 
@@ -258,20 +306,29 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="absolute inset-x-3 bottom-3 bg-black/85 backdrop-blur-md border border-[#a9d291]/60 p-3 rounded-xl text-left text-white flex items-center justify-between"
+                    className="absolute inset-x-3 bottom-3 bg-black/90 backdrop-blur-md border border-[#a9d291]/60 p-3 rounded-xl text-left text-white flex items-center justify-between"
                   >
-                    <div className="space-y-0.5">
+                    <div className="space-y-0.5 max-w-[65%]">
                       <div className="flex items-center space-x-1 text-[10px] text-[#a9d291] font-mono font-bold">
                         <MaterialIcon icon="verified" size={12} />
-                        <span>MATCH CONFIDENCE {SCAN_SAMPLE_ITEM.confidence}</span>
+                        <span>CONFIDENCE {SCAN_SAMPLE_ITEMS[scanCategory].confidence}</span>
                       </div>
-                      <p className="text-xs font-bold truncate">{SCAN_SAMPLE_ITEM.name}</p>
-                      <p className="text-[11px] text-stone-300 font-mono">{SCAN_SAMPLE_ITEM.price} · Best Online Price</p>
+                      <p className="text-xs font-bold truncate">{SCAN_SAMPLE_ITEMS[scanCategory].name}</p>
+                      <p className="text-[11px] text-stone-300 font-mono">{SCAN_SAMPLE_ITEMS[scanCategory].price} · Instantly Purchasable</p>
                     </div>
 
-                    <span className="px-2.5 py-1 bg-[#a9d291] text-stone-950 font-black text-[10px] rounded-md shrink-0">
-                      MATCHED
-                    </span>
+                    <div className="flex flex-col items-end space-y-1">
+                      <span className="px-2 py-0.5 bg-[#a9d291] text-stone-950 font-black text-[9px] rounded uppercase">
+                        FOUND
+                      </span>
+                      <button
+                        onClick={() => triggerXpGain(50)}
+                        className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-[10px] rounded-lg shadow cursor-pointer flex items-center space-x-1"
+                      >
+                        <MaterialIcon icon="shopping_bag" size={12} />
+                        <span>Buy Now</span>
+                      </button>
+                    </div>
                   </motion.div>
                 )}
               </div>
