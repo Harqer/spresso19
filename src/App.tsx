@@ -261,7 +261,7 @@ export default function App() {
             {/* Theme Toggle Button (Light / Dark Mode - Jetpack Compose M3 standard) */}
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-xl bg-white dark:bg-[#0d1813] border border-[#386633]/30 dark:border-[#1e382b] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] text-[#386633] dark:text-[#ff6b00] transition cursor-pointer flex items-center justify-center shadow-xs"
+              className="p-2.5 rounded-xl bg-white dark:bg-[#0d1813] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] text-[#386633] dark:text-[#ff6b00] transition cursor-pointer flex items-center justify-center shadow-xs"
               title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
               aria-label="Toggle Theme Mode"
             >
