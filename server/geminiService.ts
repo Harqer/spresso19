@@ -1000,72 +1000,11 @@ Return JSON in this format:
     }
   }
 
-  if (!resultData) {
-    resultData = {
-      brandCreativeDNA: {
-        brandArchetype: "Luxury Innovation",
-        shapes: ["Architectural", "Geometric", "Organic Bevels"],
-        materials: ["Space-Grade Titanium", "Optic Glass", "Full-Grain Leather"],
-        colorPhilosophy: "Obsidian & Champagne Warm Neutral",
-        lightingPhilosophy: "5500K Directional Sun with Soft Ambient Shadows",
-        photographyStyle: "Vogue Editorial Photography",
-        motionLanguage: "Controlled 360 Smooth Orbital Sweep",
-        emotionalFeeling: "Elevated Desire & Quiet Confidence",
-        customerIdentity: "Discerning High-End Aesthetic Enthusiasts",
-        competitiveReferences: ["Leica", "Bang & Olufsen", "Bottega Veneta"],
-        brandRecognizability: "Precision joinery and silhouette",
-        bannedVisualElements: ["Generic AI gradients", "Plastic reflections", "Synthetic avatar skin"]
-      },
-      creativeDirectorStrategy: {
-        masterTheme: "Architectural Precision & World-Class Craft",
-        narrativeDirection: `Framing ${targetName} by ${targetBrand} as an iconic hero piece.`,
-        campaignTitle: `${targetBrand} Creative Campaign 2026`
-      },
-      productUniverseConcepts: {
-        heroImage: `Hero shot of ${targetName} resting on Carrara marble in soft directional sunlight.`,
-        lifestyleScene: "Contemporary sunlit living architectural space with soft linen textures.",
-        materialMacroShot: "Extreme macro detail highlighting surface grain and engraved brand hallmark.",
-        detailVisualization: "Subtle explode view showing internal precision engineering.",
-        environment360: "Architectural gallery plinth with studio reflection controls.",
-        motionConcept: "360-degree continuous orbital camera float."
-      },
-      render3DStudioAngles: {
-        frontView: "Symmetrical front elevation with studio rim lighting.",
-        angle45View: "Three-quarter perspective highlighting depth and tactile material.",
-        sideView: "Architectural side profile.",
-        backView: "Rear craftsmanship detail.",
-        bottomView: "Base distribution and serial engraving.",
-        materialCloseUp: "Macro lens close-up of grain texture."
-      },
-      virtualTryOnSpecs: {
-        preservedTraits: ["Person identity", "Face structure", "Skin texture", "Body proportions", "Hair", "Natural expression"],
-        replacedElements: ["Garment", "Accessories", "Materials", "Colorways"],
-        fabricPhysicsAnalysis: "Realistic folds, accurate drape weight, true-to-life shadows.",
-        vogueEditorialRating: 99
-      },
-      motion360Spec: {
-        cameraOrbitPath: "360-degree smooth bezier arc",
-        lightingSequence: "Key 5500K sunlight with soft directional fill"
-      },
-      commerceOptimization: {
-        conversionCopy: `Discover ${targetName} by ${targetBrand} - crafted for discerning style.`,
-        merchandisingTags: ["Brand Intelligence", "Vogue Editorial", "360 Experience"],
-        expectedCTRBoost: "+35%"
-      },
-      pipelineExecutionGraph: [
-        { step: 1, agent: "Brand Intelligence Agent", status: "COMPLETED", output: "Brand Creative DNA Document Generated" },
-        { step: 2, agent: "Creative Director Agent", status: "COMPLETED", output: "Master Campaign Strategy Defined" },
-        { step: 3, agent: "Visual Concept Agent", status: "COMPLETED", output: "5 Product Universe Scenes Synthesized" },
-        { step: 4, agent: "3D Product Rendering Agent", status: "COMPLETED", output: "Multi-Angle Studio 360 Grid Raytraced" },
-        { step: 5, agent: "Virtual Try-On Agent", status: "COMPLETED", output: "Vogue Editorial Fitting & Fabric Physics Verified" },
-        { step: 6, agent: "Motion / 360 Agent", status: "COMPLETED", output: "360 Orbital Motion Keyframes Anchored" },
-        { step: 7, agent: "Commerce Optimization Agent", status: "COMPLETED", output: "High-Converting Merchandising Assets Ready" },
-        { step: 8, "agent": "Final Campaign Assets", status: "COMPLETED", output: "Brand Campaign Package Ready" }
-      ]
-    };
+  if (resultData) {
+    return { success: true, targetName, targetBrand, genkit: resultData };
   }
 
-  return { success: true, targetName, targetBrand, genkit: resultData };
+  throw new Error("Genkit Creative Director agent failed to generate live output from Gemini models.");
 }
 
 export async function getBargainChefRecipe(body: any) {
@@ -1147,26 +1086,7 @@ INSTRUCTIONS:
     }
   }
 
-  // Fallback realistic deal recipe
-  return {
-    title: "Bargain Honey Garlic Chicken & Roasted Peas",
-    description: "A comforting, high-protein meal built around weekly chicken thigh sales and fresh local produce.",
-    servings: 4,
-    estimatedCost: 11.45,
-    localStore: userLocation ? `Local Stores near ${userLocation}` : "Target & Local Grocers",
-    ingredients: [
-      { name: "Boneless Chicken Thighs", quantity: "1.5 lbs", onSale: true, estimatedPrice: 4.99, category: "Meat & Seafood", farmOrBrand: "Trader Joe's Deal" },
-      { name: "Garlic Cloves", quantity: "4 cloves", onSale: false, estimatedPrice: 0.89, category: "Produce", farmOrBrand: "Kunisaki Farms" },
-      { name: "Sugar Snap Peas", quantity: "1 lb", onSale: true, estimatedPrice: 2.29, category: "Produce", farmOrBrand: "Helmbolt Orchards" },
-      { name: "Raw Clover Honey", quantity: "3 tbsp", onSale: false, estimatedPrice: 3.28, category: "Pantry", farmOrBrand: "Local Hive" }
-    ],
-    steps: [
-      "Season chicken thighs generously with sea salt and cracked black pepper.",
-      "Sear chicken in a hot skillet over medium-high heat for 6-8 minutes per side until golden brown.",
-      "Add minced garlic cloves, sugar snap peas, and glaze with honey. Simmer for 3 minutes until caramelized.",
-      "Garnish with fresh herbs and serve hot for 4 servings under $12."
-    ]
-  };
+  throw new Error("Bargain Chef AI failed to generate live recipe and local market deals from Gemini.");
 }
 
 export async function generateAIWeatherOutfit(body: any) {
@@ -1232,39 +1152,7 @@ Ensure only valid item IDs from the list are returned in selectedItemIds.`;
     }
   }
 
-  // Fallback intelligent selection
-  const selectedIds: string[] = [];
-  const tops = items.filter((i: any) => i.category === "TOP" || i.category === "DRESS");
-  const bottoms = items.filter((i: any) => i.category === "BOTTOM");
-  const outer = items.filter((i: any) => i.category === "SWEATER_OUTERWEAR");
-  const shoes = items.filter((i: any) => i.category === "SHOES" || i.category === "ACCESSORY");
-
-  if (tops.length > 0) selectedIds.push(tops[Math.floor(Math.random() * tops.length)].id);
-  if (bottoms.length > 0) selectedIds.push(bottoms[Math.floor(Math.random() * bottoms.length)].id);
-  if (weatherCondition === "COLD_WINTER" && outer.length > 0) {
-    selectedIds.push(outer[Math.floor(Math.random() * outer.length)].id);
-  }
-  if (shoes.length > 0) selectedIds.push(shoes[Math.floor(Math.random() * shoes.length)].id);
-
-  if (selectedIds.length === 0 && items.length > 0) {
-    selectedIds.push(items[0].id);
-  }
-
-  return {
-    title: weatherCondition === "COLD_WINTER"
-      ? "Cozy Layered Winter Outfit"
-      : weatherCondition === "HOT_SUMMER"
-      ? "Breezy Summer Sunshine Look"
-      : "Balanced Spring Breezy Ensemble",
-    temperatureText,
-    selectedItemIds: selectedIds,
-    stylingAdvice: weatherCondition === "COLD_WINTER"
-      ? `Selected warm, insulating pieces from your gallery suitable for ${temperatureText}. Heavy layering keeps you comfortable.`
-      : weatherCondition === "HOT_SUMMER"
-      ? `Selected lightweight, breathable items from your gallery for ${temperatureText}. Stay cool with soft fabrics.`
-      : `Selected easy layerable pieces from your wardrobe for ${temperatureText}. Ideal for mild temperatures throughout the day.`,
-    weatherMatchScore: 94
-  };
+  throw new Error("AI Wardrobe Stylist failed to generate live weather outfit recommendations from Gemini.");
 }
 
 
