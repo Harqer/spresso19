@@ -396,7 +396,7 @@ export const CreatorGenAIAgentsChat: React.FC<CreatorGenAIAgentsChatProps> = ({
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h2 className="text-xl font-serif font-bold text-[#18211e]">Spresso Genkit Creative Studio</h2>
+                <h2 className="text-xl font-serif font-bold text-[#18211e] dark:text-[#e1e4d9]">Spresso Genkit Creative Studio</h2>
                 <span className="px-2.5 py-0.5 bg-[#386633] text-white text-[10px] font-mono font-bold rounded-full">
                   AI Video & Image Hub
                 </span>

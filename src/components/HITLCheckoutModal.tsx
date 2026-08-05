@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { HITLPayload } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
+import { M3ExpressiveCircularProgress } from "./M3ExpressiveCircularProgress";
 
 interface HITLCheckoutModalProps {
   payload: HITLPayload | null;
@@ -228,13 +229,13 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
               type="button"
               onClick={handleSimulateBiometric}
               disabled={isBiometricAuthenticating}
-              className="w-full py-2.5 bg-white hover:bg-[#f0f7f0] border border-[#386633] text-[#386633] font-bold text-xs rounded-xl transition cursor-pointer flex items-center justify-center space-x-2 shadow-2xs disabled:opacity-50"
+              className="w-full py-3 bg-white hover:bg-[#f0f7f0] border border-[#386633] text-[#386633] font-bold text-xs rounded-xl transition cursor-pointer flex items-center justify-center space-x-2 shadow-2xs disabled:opacity-50"
             >
               {isBiometricAuthenticating ? (
-                <>
-                  <MaterialIcon icon="fingerprint" size={18} className="animate-pulse text-[#386633]" />
-                  <span>Scanning Touch ID / Face ID...</span>
-                </>
+                <div className="flex items-center space-x-2 py-0.5">
+                  <M3ExpressiveCircularProgress size={24} icon="fingerprint" />
+                  <span>Scanning Passkey / Biometric Hash...</span>
+                </div>
               ) : (
                 <>
                   <MaterialIcon icon="fingerprint" size={18} />
@@ -259,7 +260,10 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
           className="w-full py-3.5 bg-[#386633] hover:bg-[#2c5227] text-white font-bold text-sm rounded-xl transition shadow-xs flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
         >
           {isSubmitting ? (
-            <MaterialIcon icon="sync" size={20} className="animate-spin text-white" />
+            <div className="flex items-center space-x-2">
+              <M3ExpressiveCircularProgress size={22} colorClass="stroke-white" />
+              <span>Processing Settlement Order...</span>
+            </div>
           ) : (
             <>
               <MaterialIcon icon="shopping_bag" size={20} />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
+import { M3ExpressiveCircularProgress } from "./M3ExpressiveCircularProgress";
 
 interface LiveCookingAssistantModalProps {
   isOpen: boolean;
@@ -360,11 +361,16 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
                 </div>
               </div>
 
-              {/* Minimal Connecting Spinner */}
+              {/* Expressive M3 Progressive Connecting Indicator */}
               {isConnecting && (
-                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-2 text-white z-30">
-                  <div className="w-8 h-8 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
-                  <span className="text-xs text-slate-300 font-light">Connecting live agent...</span>
+                <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center p-4 text-white z-30">
+                  <M3ExpressiveCircularProgress
+                    size={64}
+                    icon="videocam"
+                    colorClass="stroke-emerald-400"
+                    label="Connecting Live Agent..."
+                    sublabel={statusText || "Establishing WebRTC & Audio Channel"}
+                  />
                 </div>
               )}
             </>

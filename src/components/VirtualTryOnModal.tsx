@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { ProductItem, HITLPayload } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
+import { ElevatedQuickActionFab } from "./ElevatedQuickActionFab";
+import { M3ExpressiveCircularProgress } from "./M3ExpressiveCircularProgress";
 
 interface VirtualTryOnModalProps {
   product: ProductItem | null;
@@ -402,11 +404,15 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     <span>{selectedBg.name}</span>
                   </div>
 
-                  {/* Processing Overlay */}
+                  {/* Expressive M3 Progressive Processing Overlay */}
                   {isProcessing && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-[#18211e]">
-                      <MaterialIcon icon="refresh" size={32} className="animate-spin text-[#386633]" />
-                      <span className="text-xs font-medium mt-2">Fitting Garment...</span>
+                    <div className="absolute inset-0 bg-white/90 dark:bg-[#191d16]/90 backdrop-blur-md flex flex-col items-center justify-center p-4 text-[#18211e] dark:text-[#e1e4d9] z-30">
+                      <M3ExpressiveCircularProgress
+                        size={64}
+                        icon={selectedMediaType === "video" ? "videocam" : "photo_camera"}
+                        label={`Generating ${selectedMediaType === "video" ? "3D Video Runway" : "Image"} Try-On...`}
+                        sublabel="ViTPose FP16 Keypoint Mesh & Lighting Pipeline"
+                      />
                     </div>
                   )}
                 </div>
@@ -546,6 +552,14 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
             </div>
           </>
         )}
+
+        {/* Elevated Jetpack Compose Floating Action Button Widget */}
+        <ElevatedQuickActionFab
+          product={product}
+          onSelectTryOn={() => runTryOnAnalysis()}
+          onOpenLens={onOpenLens}
+          positionClassName="bottom-6 right-6 z-50"
+        />
       </div>
     </div>
   );

@@ -63,6 +63,8 @@ const getTransparentImageSrc = (src: string): Promise<string> => {
 
 export const SpressoLogo: React.FC<SpressoLogoProps> = ({
   size = "md",
+  variant = "full",
+  theme,
   imageUrl,
   className = "",
   imgClassName = "",
@@ -95,7 +97,15 @@ export const SpressoLogo: React.FC<SpressoLogoProps> = ({
     xl: "h-16",
   };
 
+  const textSizeClasses = {
+    sm: "text-lg",
+    md: "text-xl",
+    lg: "text-2xl",
+    xl: "text-3xl",
+  };
+
   const currentHeight = heightClasses[size] || heightClasses.md;
+  const currentTextSize = textSizeClasses[size] || textSizeClasses.md;
   const finalSrc = transparentSrc || logoSrc;
 
   const imageStyle: React.CSSProperties = {
@@ -108,10 +118,17 @@ export const SpressoLogo: React.FC<SpressoLogoProps> = ({
   const heightClass = hasCustomHeight ? "" : currentHeight;
   const widthClass = width ? "" : "w-auto";
 
+  // Compute text color classes based on theme prop and Tailwind dark mode
+  const textColorClass = theme === "dark"
+    ? "text-white"
+    : theme === "light"
+    ? "text-[#191d16]"
+    : "text-[#191d16] dark:text-[#f8fafc]";
+
   return (
     <div className={`inline-flex items-center space-x-2 select-none ${className}`}>
       {showTextLeft && (
-        <span className="font-extrabold text-xl tracking-tight text-[#18211e] font-sans lowercase">
+        <span className={`font-extrabold ${currentTextSize} tracking-tight ${textColorClass} font-sans lowercase drop-shadow-2xs transition-colors duration-200`}>
           {text}
         </span>
       )}
@@ -119,7 +136,7 @@ export const SpressoLogo: React.FC<SpressoLogoProps> = ({
         src={finalSrc}
         alt="Spresso Logo"
         style={imageStyle}
-        className={`${heightClass} ${widthClass} object-contain border-none ${imgClassName}`}
+        className={`${heightClass} ${widthClass} object-contain border-none dark:brightness-110 dark:contrast-110 transition-all ${imgClassName}`}
       />
     </div>
   );

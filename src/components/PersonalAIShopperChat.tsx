@@ -331,21 +331,21 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
     return parts.map((part, i) => {
       if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
         return (
-          <strong key={i} className="font-bold text-[#18211e] tracking-[0.015em]">
+          <strong key={i} className="font-bold text-[#191d16] dark:text-[#e1e4d9] tracking-[0.015em]">
             {part.slice(2, -2)}
           </strong>
         );
       }
       if (part.startsWith("==") && part.endsWith("==") && part.length >= 4) {
         return (
-          <mark key={i} className="bg-[#386633]/15 text-[#2c5227] px-1.5 py-0.5 rounded font-semibold">
+          <mark key={i} className="bg-[#446732]/15 dark:bg-[#a9d291]/20 text-[#2d4f1c] dark:text-[#c5efab] px-1.5 py-0.5 rounded font-semibold">
             {part.slice(2, -2)}
           </mark>
         );
       }
       if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
         return (
-          <code key={i} className="font-mono text-[12px] bg-[#e8f3e8] text-[#2c5227] px-1.5 py-0.5 rounded border border-[#cde0cc]">
+          <code key={i} className="font-mono text-[12px] bg-[#f2f5ea] dark:bg-[#282b24] text-[#2d4f1c] dark:text-[#c5efab] px-1.5 py-0.5 rounded border border-[#dfe4d7] dark:border-[#43483e]">
             {part.slice(1, -1)}
           </code>
         );
@@ -370,7 +370,7 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
           if (trimmed.startsWith("#")) {
             const headingText = trimmed.replace(/^#+\s*/, "");
             return (
-              <h3 key={bIdx} className="font-serif text-[19px] sm:text-[21px] font-normal leading-snug text-[#18211e] tracking-tight mt-3 mb-1 border-b border-[#e2e2e2]/40 pb-1">
+              <h3 key={bIdx} className="font-serif text-[19px] sm:text-[21px] font-normal leading-snug text-[#191d16] dark:text-[#e1e4d9] tracking-tight mt-3 mb-1 border-b border-[#dfe4d7] dark:border-[#43483e] pb-1">
                 {headingText}
               </h3>
             );
@@ -389,8 +389,8 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
                   return (
                     <div key={lIdx} className="flex items-start space-x-2.5 text-[13.5px] sm:text-[14px] leading-relaxed tracking-[0.012em]">
-                      {isBullet && <span className="w-1.5 h-1.5 rounded-full bg-[#386633] mt-2 shrink-0" />}
-                      {isNumbered && <span className="text-[12px] font-bold text-[#386633] shrink-0 font-mono mt-0.5">{lineTrimmed.match(/^\d+\./)?.[0]}</span>}
+                      {isBullet && <span className="w-1.5 h-1.5 rounded-full bg-[#446732] dark:bg-[#a9d291] mt-2 shrink-0" />}
+                      {isNumbered && <span className="text-[12px] font-bold text-[#446732] dark:text-[#a9d291] shrink-0 font-mono mt-0.5">{lineTrimmed.match(/^\d+\./)?.[0]}</span>}
                       <div className="flex-1">{renderInlineFormatting(cleanLine)}</div>
                     </div>
                   );
@@ -402,7 +402,7 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
           // Single standalone bold title heading check (e.g., **Visual Contrast**)
           if (trimmed.startsWith("**") && trimmed.endsWith("**") && !trimmed.slice(2, -2).includes("\n") && trimmed.length < 80) {
             return (
-              <h4 key={bIdx} className="font-serif text-[18px] sm:text-[20px] font-normal text-[#18211e] tracking-tight mt-2.5 mb-1">
+              <h4 key={bIdx} className="font-serif text-[18px] sm:text-[20px] font-normal text-[#191d16] dark:text-[#e1e4d9] tracking-tight mt-2.5 mb-1">
                 {trimmed.slice(2, -2)}
               </h4>
             );
@@ -410,7 +410,7 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
           // Regular paragraph with inline formatting
           return (
-            <p key={bIdx} className="text-[13.5px] sm:text-[14px] leading-[1.75] tracking-[0.012em] text-[#1a1c1c]">
+            <p key={bIdx} className="text-[13.5px] sm:text-[14px] leading-[1.75] tracking-[0.012em] text-[#191d16] dark:text-[#e1e4d9]">
               {lines.map((line, lIdx) => (
                 <React.Fragment key={lIdx}>
                   {renderInlineFormatting(line)}
@@ -838,7 +838,7 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
             {/* Content sitting in front of background logo */}
             <div className="relative z-10 space-y-2 max-w-md px-4">
-              <h1 className="text-2xl md:text-3xl font-serif font-bold text-[#18211e] tracking-tight drop-shadow-2xs">
+              <h1 className="text-2xl md:text-3xl font-serif font-bold text-[#191d16] dark:text-[#e1e4d9] tracking-tight drop-shadow-2xs">
                 {greetingContext.timeGreetingHeader}
               </h1>
             </div>
@@ -850,21 +850,21 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                 {/* Card 1: Hot Brand Drops */}
                 <button
                   onClick={() => handleSendMessage(`Find hot new Nike, Jordan, and sneaker drops at local stores within ${searchRadius} miles of ${locationName || userLocation || "me"}`)}
-                  className="p-3.5 bg-white hover:bg-[#f6f9f6] border border-[#e2e2e2] hover:border-[#386633]/60 rounded-2xl transition transform active:scale-[0.99] text-left cursor-pointer shadow-2xs group flex flex-col justify-between space-y-2 relative overflow-hidden"
+                  className="p-3.5 bg-white dark:bg-[#191d16] hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] border border-[#dfe4d7] dark:border-[#43483e] hover:border-[#446732] dark:hover:border-[#a9d291] rounded-2xl transition transform active:scale-[0.99] text-left cursor-pointer shadow-2xs group flex flex-col justify-between space-y-2 relative overflow-hidden"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold">
+                    <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold">
                       <MaterialIcon icon="local_fire_department" size={18} />
                     </div>
-                    <span className="text-[10px] font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-md font-mono uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-950/60 px-2 py-0.5 rounded-md font-mono uppercase tracking-wider">
                       Hot Drop
                     </span>
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#18211e] font-serif group-hover:text-[#386633] transition">
+                    <h4 className="text-xs font-bold text-[#191d16] dark:text-[#e1e4d9] font-serif group-hover:text-[#446732] dark:group-hover:text-[#a9d291] transition">
                       Nike & Brand Drops
                     </h4>
-                    <p className="text-[11px] text-[#556258] leading-tight mt-0.5">
+                    <p className="text-[11px] text-[#43483e] dark:text-[#c3c8bb] leading-tight mt-0.5">
                       {locationName || userLocation ? `Releases within ${searchRadius} miles of ${locationName || userLocation}` : "Check local sneaker releases & store stock drops"}
                     </p>
                   </div>
@@ -873,21 +873,21 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                 {/* Card 2: Local Store Deals */}
                 <button
                   onClick={() => handleSendMessage(`Compare top product sales, discounts and 20%+ off clearance deals at stores within ${searchRadius} miles of ${locationName || userLocation || "my area"} to find the best savings`)}
-                  className="p-3.5 bg-white hover:bg-[#f6f9f6] border border-[#e2e2e2] hover:border-[#386633]/60 rounded-2xl transition transform active:scale-[0.99] text-left cursor-pointer shadow-2xs group flex flex-col justify-between space-y-2 relative overflow-hidden"
+                  className="p-3.5 bg-white dark:bg-[#191d16] hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] border border-[#dfe4d7] dark:border-[#43483e] hover:border-[#446732] dark:hover:border-[#a9d291] rounded-2xl transition transform active:scale-[0.99] text-left cursor-pointer shadow-2xs group flex flex-col justify-between space-y-2 relative overflow-hidden"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-700 flex items-center justify-center font-bold">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold">
                       <MaterialIcon icon="sell" size={18} />
                     </div>
-                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md font-mono uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md font-mono uppercase tracking-wider">
                       20%+ Off
                     </span>
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#18211e] font-serif group-hover:text-[#386633] transition">
+                    <h4 className="text-xs font-bold text-[#191d16] dark:text-[#e1e4d9] font-serif group-hover:text-[#446732] dark:group-hover:text-[#a9d291] transition">
                       Area Store & Outlet Deals
                     </h4>
-                    <p className="text-[11px] text-[#556258] leading-tight mt-0.5">
+                    <p className="text-[11px] text-[#43483e] dark:text-[#c3c8bb] leading-tight mt-0.5">
                       {locationName || userLocation ? `Compare store deals across ${searchRadius} mi radius` : "Discover top local & outlet sales"}
                     </p>
                   </div>
@@ -896,21 +896,21 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                 {/* Card 3: Fresh Grocery & Market Steals */}
                 <button
                   onClick={() => handleSendMessage(`Find on-sale organic grocery items, fresh produce, and supermarket specials within a ${searchRadius}-mile radius of ${locationName || userLocation || "me"}`)}
-                  className="p-3.5 bg-white hover:bg-[#f6f9f6] border border-[#e2e2e2] hover:border-[#386633]/60 rounded-2xl transition transform active:scale-[0.99] text-left cursor-pointer shadow-2xs group flex flex-col justify-between space-y-2 relative overflow-hidden"
+                  className="p-3.5 bg-white dark:bg-[#191d16] hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] border border-[#dfe4d7] dark:border-[#43483e] hover:border-[#446732] dark:hover:border-[#a9d291] rounded-2xl transition transform active:scale-[0.99] text-left cursor-pointer shadow-2xs group flex flex-col justify-between space-y-2 relative overflow-hidden"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-700 flex items-center justify-center font-bold">
+                    <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-700 dark:text-teal-400 flex items-center justify-center font-bold">
                       <MaterialIcon icon="shopping_cart" size={18} />
                     </div>
-                    <span className="text-[10px] font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded-md font-mono uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-teal-800 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/60 px-2 py-0.5 rounded-md font-mono uppercase tracking-wider">
                       Market Steals
                     </span>
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#18211e] font-serif group-hover:text-[#386633] transition">
+                    <h4 className="text-xs font-bold text-[#191d16] dark:text-[#e1e4d9] font-serif group-hover:text-[#446732] dark:group-hover:text-[#a9d291] transition">
                       Fresh Grocery Deals
                     </h4>
-                    <p className="text-[11px] text-[#556258] leading-tight mt-0.5">
+                    <p className="text-[11px] text-[#43483e] dark:text-[#c3c8bb] leading-tight mt-0.5">
                       {locationName || userLocation ? `Supermarket deals within ${searchRadius} mi` : "Weekly grocery specials & local produce sales"}
                     </p>
                   </div>
@@ -919,21 +919,21 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                 {/* Card 4: Trending Tech & Style */}
                 <button
                   onClick={() => handleSendMessage(`Recommend trending tech accessories, audio gear and seasonal style available within ${searchRadius} miles of ${locationName || userLocation || "me"}`)}
-                  className="p-3.5 bg-white hover:bg-[#f6f9f6] border border-[#e2e2e2] hover:border-[#386633]/60 rounded-2xl transition transform active:scale-[0.99] text-left cursor-pointer shadow-2xs group flex flex-col justify-between space-y-2 relative overflow-hidden"
+                  className="p-3.5 bg-white dark:bg-[#191d16] hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] border border-[#dfe4d7] dark:border-[#43483e] hover:border-[#446732] dark:hover:border-[#a9d291] rounded-2xl transition transform active:scale-[0.99] text-left cursor-pointer shadow-2xs group flex flex-col justify-between space-y-2 relative overflow-hidden"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-700 flex items-center justify-center font-bold">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-bold">
                       <MaterialIcon icon="auto_awesome" size={18} />
                     </div>
-                    <span className="text-[10px] font-bold text-indigo-800 bg-indigo-100 px-2 py-0.5 rounded-md font-mono uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-indigo-800 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-950/60 px-2 py-0.5 rounded-md font-mono uppercase tracking-wider">
                       Trending
                     </span>
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-[#18211e] font-serif group-hover:text-[#386633] transition">
+                    <h4 className="text-xs font-bold text-[#191d16] dark:text-[#e1e4d9] font-serif group-hover:text-[#446732] dark:group-hover:text-[#a9d291] transition">
                       Trending Tech & Style
                     </h4>
-                    <p className="text-[11px] text-[#556258] leading-tight mt-0.5">
+                    <p className="text-[11px] text-[#43483e] dark:text-[#c3c8bb] leading-tight mt-0.5">
                       {locationName || userLocation ? `Popular style & gear in ${searchRadius} mi area` : "Popular fashion picks & audio accessories near you"}
                     </p>
                   </div>
@@ -950,8 +950,8 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
               <div className={`max-w-[88%] space-y-2 ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                 {/* AI Clean Customer Loading Indicator */}
                 {msg.sender === "ai" && isTyping && !msg.text && (
-                  <div className="flex items-center space-x-2 text-xs text-[#386633] font-medium py-1.5 px-3 bg-emerald-50/80 rounded-xl border border-emerald-200/60 w-fit mb-1">
-                    <MaterialIcon icon="auto_awesome" size={15} className="animate-spin text-emerald-600" />
+                  <div className="flex items-center space-x-2 text-xs text-[#446732] dark:text-[#a9d291] font-medium py-1.5 px-3 bg-[#f2f5ea] dark:bg-[#1d211a] rounded-full border border-[#dfe4d7] dark:border-[#43483e] w-fit mb-1">
+                    <MaterialIcon icon="auto_awesome" size={15} className="animate-spin text-[#446732] dark:text-[#a9d291]" />
                     <span>Finding recommendations...</span>
                   </div>
                 )}
@@ -959,35 +959,35 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                 <div
                   className={`px-6 py-5 rounded-2xl transition-all ${
                     msg.sender === "user"
-                      ? "bg-white border border-[#e2e2e2] text-[#18211e] rounded-tr-none shadow-xs font-medium text-[13.5px] leading-relaxed tracking-[0.012em]"
-                      : "bg-white/95 border border-[#e2e2e2]/80 text-[#1a1c1c] rounded-tl-none shadow-xs ai-message-gradient"
+                      ? "bg-white dark:bg-[#191d16] border border-[#dfe4d7] dark:border-[#43483e] text-[#191d16] dark:text-[#e1e4d9] rounded-tr-none shadow-xs font-medium text-[13.5px] leading-relaxed tracking-[0.012em]"
+                      : "bg-white/95 dark:bg-[#191d16]/95 border border-[#dfe4d7] dark:border-[#43483e] text-[#191d16] dark:text-[#e1e4d9] rounded-tl-none shadow-xs"
                   }`}
                 >
                   {msg.imageUrl && (
-                    <img src={msg.imageUrl} alt="Attached query" className="w-52 h-38 object-cover rounded-xl mb-3 border border-[#e2e2e2]" />
+                    <img src={msg.imageUrl} alt="Attached query" className="w-52 h-38 object-cover rounded-xl mb-3 border border-[#dfe4d7] dark:border-[#43483e]" />
                   )}
 
                   {msg.text ? (
                     <div>{formatMessageText(msg.text)}</div>
                   ) : (
                     isTyping && msg.sender === "ai" && (
-                      <div className="flex items-center space-x-1.5 py-1 text-[#386633]">
-                        <span className="w-2 h-2 bg-emerald-600 rounded-full animate-ping"></span>
-                        <span className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse"></span>
+                      <div className="flex items-center space-x-1.5 py-1 text-[#446732] dark:text-[#a9d291]">
+                        <span className="w-2 h-2 bg-[#446732] dark:bg-[#a9d291] rounded-full animate-ping"></span>
+                        <span className="w-2 h-2 bg-[#446732] dark:bg-[#a9d291] rounded-full animate-pulse"></span>
                       </div>
                     )
                   )}
 
                   {/* Interactive Location Set Prompt Card when location is requested */}
                   {msg.sender === "ai" && !userLocation && !userLatLng && (msg.text.toLowerCase().includes("location") || msg.text.toLowerCase().includes("city") || msg.text.toLowerCase().includes("zip code") || msg.text.toLowerCase().includes("near you") || msg.text.toLowerCase().includes("stores near")) && (
-                    <div className="mt-3 p-3 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center justify-between space-x-3 shadow-xs">
-                      <div className="flex items-center space-x-2 text-xs text-emerald-950 font-medium">
-                        <MaterialIcon icon="my_location" size={18} className="text-emerald-700 animate-pulse" />
+                    <div className="mt-3 p-3 bg-[#f2f5ea] dark:bg-[#1d211a] border border-[#dfe4d7] dark:border-[#43483e] rounded-xl flex items-center justify-between space-x-3 shadow-xs">
+                      <div className="flex items-center space-x-2 text-xs text-[#191d16] dark:text-[#e1e4d9] font-medium">
+                        <MaterialIcon icon="my_location" size={18} className="text-[#446732] dark:text-[#a9d291] animate-pulse" />
                         <span>Share your location or ZIP to view nearby stores & stock</span>
                       </div>
                       <button
                         onClick={() => onRequestLocationPermission && onRequestLocationPermission()}
-                        className="px-3 py-1.5 bg-[#386633] hover:bg-[#2c5227] text-white text-xs font-semibold rounded-lg transition cursor-pointer flex items-center space-x-1 flex-shrink-0 shadow-xs"
+                        className="px-3 py-1.5 bg-[#446732] dark:bg-[#a9d291] hover:bg-[#2d4f1c] dark:hover:bg-[#c5efab] text-white dark:text-[#173807] text-xs font-semibold rounded-full transition cursor-pointer flex items-center space-x-1 flex-shrink-0 shadow-xs"
                       >
                         <span>Set Location</span>
                         <MaterialIcon icon="arrow_forward" size={14} />
@@ -1012,17 +1012,17 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
               {/* Grounded with Google Search Live Citation Badge */}
               {msg.sender === "ai" && ((msg.groundingSources && msg.groundingSources.length > 0) || (msg.searchQueries && msg.searchQueries.length > 0)) && (
-                <div className="mt-2.5 bg-[#f8faf8] border border-[#d8ebd7] rounded-xl p-2.5 space-y-1.5 text-xs">
-                  <div className="flex items-center space-x-1.5 text-[#386633] font-bold text-[11px] tracking-wide uppercase">
+                <div className="mt-2.5 bg-[#f2f5ea] dark:bg-[#1d211a] border border-[#dfe4d7] dark:border-[#43483e] rounded-xl p-2.5 space-y-1.5 text-xs">
+                  <div className="flex items-center space-x-1.5 text-[#446732] dark:text-[#a9d291] font-bold text-[11px] tracking-wide uppercase">
                     <MaterialIcon icon="travel_explore" size={14} />
                     <span>Grounded with Google Live Search</span>
                   </div>
 
                   {msg.searchQueries && msg.searchQueries.length > 0 && (
                     <div className="flex flex-wrap gap-1 items-center">
-                      <span className="text-[10px] text-[#5e635f] font-medium">Queries:</span>
+                      <span className="text-[10px] text-[#43483e] dark:text-[#c3c8bb] font-medium">Queries:</span>
                       {msg.searchQueries.map((q, qIdx) => (
-                        <span key={qIdx} className="bg-white border border-[#e2e2e2] text-[#18211e] px-2 py-0.5 rounded-md text-[10px] font-mono">
+                        <span key={qIdx} className="bg-white dark:bg-[#191d16] border border-[#dfe4d7] dark:border-[#43483e] text-[#191d16] dark:text-[#e1e4d9] px-2 py-0.5 rounded-md text-[10px] font-mono">
                           "{q}"
                         </span>
                       ))}
@@ -1037,12 +1037,12 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                           href={src.uri}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center space-x-1 bg-white hover:bg-[#e8f3e8] border border-[#d8ebd7] hover:border-[#386633] px-2.5 py-1 rounded-lg text-[11px] text-[#386633] font-medium transition group"
+                          className="inline-flex items-center space-x-1 bg-white dark:bg-[#191d16] hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] border border-[#dfe4d7] dark:border-[#43483e] hover:border-[#446732] dark:hover:border-[#a9d291] px-2.5 py-1 rounded-lg text-[11px] text-[#446732] dark:text-[#a9d291] font-medium transition group"
                           title={src.title}
                         >
-                          <MaterialIcon icon="link" size={12} className="text-[#386633]" />
+                          <MaterialIcon icon="link" size={12} className="text-[#446732] dark:text-[#a9d291]" />
                           <span className="truncate max-w-[180px]">{src.title}</span>
-                          <MaterialIcon icon="open_in_new" size={11} className="text-[#5e635f]" />
+                          <MaterialIcon icon="open_in_new" size={11} className="text-[#43483e] dark:text-[#c3c8bb]" />
                         </a>
                       ))}
                     </div>
@@ -1052,17 +1052,17 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
               {/* Message Action Bar for AI replies */}
               {msg.sender === "ai" && (
-                <div className="flex gap-3 px-1 text-[#747878] text-xs">
+                <div className="flex gap-3 px-1 text-[#43483e] dark:text-[#c3c8bb] text-xs">
                   <button
                     onClick={() => navigator.clipboard.writeText(msg.text)}
-                    className="hover:text-[#18211e] transition cursor-pointer p-1 rounded hover:bg-[#eeeeee]"
+                    className="hover:text-[#191d16] dark:hover:text-[#e1e4d9] transition cursor-pointer p-1 rounded hover:bg-[#f2f5ea] dark:hover:bg-[#282b24]"
                     title="Copy response"
                   >
                     <MaterialIcon icon="content_copy" size={15} />
                   </button>
                   <button
                     onClick={() => handleSendMessage("Refresh recommendations")}
-                    className="hover:text-[#18211e] transition cursor-pointer p-1 rounded hover:bg-[#eeeeee]"
+                    className="hover:text-[#191d16] dark:hover:text-[#e1e4d9] transition cursor-pointer p-1 rounded hover:bg-[#f2f5ea] dark:hover:bg-[#282b24]"
                     title="Refresh"
                   >
                     <MaterialIcon icon="refresh" size={15} />
@@ -1082,23 +1082,23 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
                   if (isGroceryList) {
                     return (
-                      <div className="space-y-3 mt-3 pt-2 border-t border-[#e2e2e2]/60">
+                      <div className="space-y-3 mt-3 pt-2 border-t border-[#dfe4d7] dark:border-[#43483e]">
                         {/* World Peas Grocery List Banner */}
-                        <div className="bg-emerald-50/80 border border-emerald-200/90 rounded-2xl p-3 flex items-center justify-between">
+                        <div className="bg-[#f2f5ea] dark:bg-[#1d211a] border border-[#dfe4d7] dark:border-[#43483e] rounded-2xl p-3 flex items-center justify-between">
                           <div className="flex items-center space-x-2.5">
-                            <div className="w-7 h-7 rounded-full bg-[#386633] text-white flex items-center justify-center font-serif text-xs font-bold shadow-xs">
+                            <div className="w-7 h-7 rounded-full bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] flex items-center justify-center font-serif text-xs font-bold shadow-xs">
                               WP
                             </div>
                             <div>
-                              <h4 className="text-xs font-serif font-bold text-[#386633] tracking-tight">World Peas Grocery List</h4>
-                              <p className="text-[10px] text-neutral-600">Fresh produce & aisle items matched for your query</p>
+                              <h4 className="text-xs font-serif font-bold text-[#446732] dark:text-[#a9d291] tracking-tight">World Peas Grocery List</h4>
+                              <p className="text-[10px] text-[#43483e] dark:text-[#c3c8bb]">Fresh produce & aisle items matched for your query</p>
                             </div>
                           </div>
 
                           {onSelectTab && (
                             <button
                               onClick={() => onSelectTab("grocery")}
-                              className="px-3 py-1 bg-[#386633] hover:bg-[#2c5227] text-white text-[10px] font-medium rounded-full transition flex items-center space-x-1 cursor-pointer shadow-xs"
+                              className="px-3 py-1 bg-[#446732] dark:bg-[#a9d291] hover:bg-[#2d4f1c] dark:hover:bg-[#c5efab] text-white dark:text-[#173807] text-[10px] font-medium rounded-full transition flex items-center space-x-1 cursor-pointer shadow-xs"
                             >
                               <span>View Grocery Tab</span>
                               <MaterialIcon icon="arrow_forward" size={12} />
@@ -1115,10 +1115,10 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                             return (
                               <div
                                 key={product.id}
-                                className="bg-white border border-neutral-100 rounded-2xl p-3 flex items-center justify-between space-x-3 shadow-xs hover:border-neutral-200 transition"
+                                className="bg-white dark:bg-[#191d16] border border-[#dfe4d7] dark:border-[#43483e] rounded-2xl p-3 flex items-center justify-between space-x-3 shadow-xs hover:border-[#446732] dark:hover:border-[#a9d291] transition"
                               >
                                 {/* Left Food Image */}
-                                <div className="w-14 h-14 rounded-xl bg-neutral-50 flex items-center justify-center p-1 flex-shrink-0 overflow-hidden border border-neutral-100">
+                                <div className="w-14 h-14 rounded-xl bg-[#f2f5ea] dark:bg-[#282b24] flex items-center justify-center p-1 flex-shrink-0 overflow-hidden border border-[#dfe4d7] dark:border-[#43483e]">
                                   <img
                                     src={product.image}
                                     alt={product.name}
@@ -1128,15 +1128,15 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
                                 {/* Center Details */}
                                 <div className="flex-1 min-w-0 space-y-0.5">
-                                  <h3 className="text-xs font-semibold text-neutral-900 truncate leading-snug">
+                                  <h3 className="text-xs font-semibold text-[#191d16] dark:text-[#e1e4d9] truncate leading-snug">
                                     {product.name}
                                   </h3>
-                                  <p className="text-xs font-semibold text-[#386633] leading-tight">
+                                  <p className="text-xs font-semibold text-[#446732] dark:text-[#a9d291] leading-tight">
                                     ${product.price.toFixed(2)} {product.price < 5 ? "each" : ""}
                                   </p>
-                                  <div className="text-[10px] text-neutral-500 font-normal flex items-center space-x-0.5">
+                                  <div className="text-[10px] text-[#43483e] dark:text-[#c3c8bb] font-normal flex items-center space-x-0.5">
                                     <span>{product.brand || "Kunisaki Farms"}</span>
-                                    <span className="text-neutral-400">→</span>
+                                    <span className="opacity-60">→</span>
                                   </div>
                                 </div>
 
@@ -1144,13 +1144,13 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                                 <div className="flex flex-col items-end justify-between h-14 py-0.5 flex-shrink-0">
                                   <button
                                     onClick={() => toggleLike(product.id)}
-                                    className="text-neutral-400 hover:text-red-500 transition cursor-pointer p-0.5"
+                                    className="text-[#43483e] dark:text-[#c3c8bb] hover:text-red-500 transition cursor-pointer p-0.5"
                                     title="Favorite"
                                   >
                                     <MaterialIcon
                                       icon={isFav ? "favorite" : "favorite_border"}
                                       size={16}
-                                      className={isFav ? "text-red-500" : "text-neutral-400"}
+                                      className={isFav ? "text-red-500" : "text-[#43483e] dark:text-[#c3c8bb]"}
                                     />
                                   </button>
 
@@ -1181,8 +1181,8 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                                     }}
                                     className={`w-7 h-7 rounded-full flex items-center justify-center transition shadow-xs cursor-pointer ${
                                       isAdded
-                                        ? "bg-emerald-700 text-white scale-105"
-                                        : "bg-[#386633] hover:bg-[#2c5227] text-white"
+                                        ? "bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] scale-105"
+                                        : "bg-[#191d16] dark:bg-[#a9d291] text-white dark:text-[#173807] hover:bg-[#282b24] dark:hover:bg-[#c5efab]"
                                     }`}
                                     title="Add to basket & grocery list"
                                   >
@@ -1198,21 +1198,21 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                   }
 
                   return (
-                    <div className="space-y-2 mt-3 pt-2 border-t border-[#e2e2e2]/60">
+                    <div className="space-y-2 mt-3 pt-2 border-t border-[#dfe4d7] dark:border-[#43483e]">
                       {/* View mode toggle bar */}
                       <div className="flex items-center justify-between pb-1">
-                        <div className="flex items-center space-x-1.5 text-[11px] font-mono font-bold text-[#18211e]">
-                          <MaterialIcon icon="shopping_bag" size={14} className="text-[#386633]" />
+                        <div className="flex items-center space-x-1.5 text-[11px] font-mono font-bold text-[#191d16] dark:text-[#e1e4d9]">
+                          <MaterialIcon icon="shopping_bag" size={14} className="text-[#446732] dark:text-[#a9d291]" />
                           <span>RECOMMENDED ITEMS ({msg.recommendedProducts.length})</span>
                         </div>
 
-                        <div className="flex items-center space-x-1 bg-[#f3f3f4] p-1 rounded-lg border border-[#e2e2e2]">
+                        <div className="flex items-center space-x-1 bg-[#f2f5ea] dark:bg-[#282b24] p-1 rounded-lg border border-[#dfe4d7] dark:border-[#43483e]">
                           <button
                             onClick={() => setProductViewModes(prev => ({ ...prev, [msg.id]: "horizontal" }))}
                             className={`p-1.5 rounded-md text-[10px] transition flex items-center justify-center cursor-pointer ${
                               (productViewModes[msg.id] || "horizontal") === "horizontal"
-                                ? "bg-white text-[#18211e] shadow-xs"
-                                : "text-[#747878] hover:text-[#18211e]"
+                                ? "bg-white dark:bg-[#191d16] text-[#191d16] dark:text-[#e1e4d9] shadow-xs"
+                                : "text-[#43483e] dark:text-[#c3c8bb] hover:text-[#191d16] dark:hover:text-[#e1e4d9]"
                             }`}
                             title="Horizontal Carousel View"
                             aria-label="Horizontal Carousel View"
@@ -1224,8 +1224,8 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                             onClick={() => setProductViewModes(prev => ({ ...prev, [msg.id]: "vertical" }))}
                             className={`p-1.5 rounded-md text-[10px] transition flex items-center justify-center cursor-pointer ${
                               productViewModes[msg.id] === "vertical"
-                                ? "bg-white text-[#18211e] shadow-xs"
-                                : "text-[#747878] hover:text-[#18211e]"
+                                ? "bg-white dark:bg-[#191d16] text-[#191d16] dark:text-[#e1e4d9] shadow-xs"
+                                : "text-[#43483e] dark:text-[#c3c8bb] hover:text-[#191d16] dark:hover:text-[#e1e4d9]"
                             }`}
                             title="Vertical List View"
                             aria-label="Vertical List View"
@@ -1245,11 +1245,11 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                             {msg.recommendedProducts.map(product => (
                               <div
                                 key={product.id}
-                                className="w-[250px] sm:w-[270px] flex-shrink-0 snap-start bg-white p-3 rounded-2xl border border-[#e2e2e2] hover:border-[#18211e] transition shadow-sm space-y-2.5 flex flex-col justify-between group/card relative"
+                                className="w-[250px] sm:w-[270px] flex-shrink-0 snap-start bg-white dark:bg-[#191d16] p-3 rounded-2xl border border-[#dfe4d7] dark:border-[#43483e] hover:border-[#446732] dark:hover:border-[#a9d291] transition shadow-xs space-y-2.5 flex flex-col justify-between group/card relative"
                               >
                                 <div className="space-y-2">
                                   {/* Image Container */}
-                                  <div className="relative aspect-video rounded-xl overflow-hidden bg-[#f3f3f4]">
+                                  <div className="relative aspect-video rounded-xl overflow-hidden bg-[#f2f5ea] dark:bg-[#282b24]">
                                     <img
                                       src={product.image}
                                       alt={product.name}
@@ -1261,18 +1261,18 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                                       }
                                     />
                                     
-                                    <span className="absolute top-2 right-2 px-2 py-0.5 bg-white/90 backdrop-blur-md rounded-md text-[10px] font-bold text-[#18211e] border border-[#e2e2e2] font-mono shadow-sm">
+                                    <span className="absolute top-2 right-2 px-2 py-0.5 bg-white/90 dark:bg-[#191d16]/90 backdrop-blur-md rounded-md text-[10px] font-bold text-[#191d16] dark:text-[#e1e4d9] border border-[#dfe4d7] dark:border-[#43483e] font-mono shadow-xs">
                                       ${product.price}
                                     </span>
 
                                     {/* Floating Controls on Right Side */}
-                                    <div className="absolute bottom-2 right-2 flex items-center space-x-1 bg-white/90 backdrop-blur-md p-1 rounded-lg border border-[#e2e2e2] shadow-sm">
+                                    <div className="absolute bottom-2 right-2 flex items-center space-x-1 bg-white/90 dark:bg-[#191d16]/90 backdrop-blur-md p-1 rounded-lg border border-[#dfe4d7] dark:border-[#43483e] shadow-xs">
                                       <button
                                         onClick={() =>
                                           setActive360ProductId(prev => (prev === product.id ? null : product.id))
                                         }
-                                        className={`p-1 rounded hover:bg-[#f3f3f4] transition cursor-pointer ${
-                                          active360ProductId === product.id ? "text-[#386633] bg-[#e8f3e8]" : "text-[#747878]"
+                                        className={`p-1 rounded hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] transition cursor-pointer ${
+                                          active360ProductId === product.id ? "text-[#446732] dark:text-[#a9d291] bg-[#f2f5ea] dark:bg-[#282b24]" : "text-[#43483e] dark:text-[#c3c8bb]"
                                         }`}
                                         title="360° Product View"
                                       >
@@ -1281,7 +1281,7 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
                                       <button
                                         onClick={() => toggleLike(product.id)}
-                                        className={`p-1 rounded hover:bg-[#f3f3f4] transition cursor-pointer ${likedProductIds[product.id] ? "text-red-500" : "text-[#747878]"}`}
+                                        className={`p-1 rounded hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] transition cursor-pointer ${likedProductIds[product.id] ? "text-red-500" : "text-[#43483e] dark:text-[#c3c8bb]"}`}
                                         title="Like"
                                       >
                                         <MaterialIcon icon={likedProductIds[product.id] ? "favorite" : "favorite_border"} size={14} />
@@ -1289,7 +1289,7 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
                                       <button
                                         onClick={() => toggleBookmark(product.id)}
-                                        className={`p-1 rounded hover:bg-[#f3f3f4] transition cursor-pointer ${bookmarkedProductIds[product.id] ? "text-[#386633]" : "text-[#747878]"}`}
+                                        className={`p-1 rounded hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] transition cursor-pointer ${bookmarkedProductIds[product.id] ? "text-[#446732] dark:text-[#a9d291]" : "text-[#43483e] dark:text-[#c3c8bb]"}`}
                                         title="Bookmark"
                                       >
                                         <MaterialIcon icon={bookmarkedProductIds[product.id] ? "bookmark" : "bookmark_border"} size={14} />
@@ -1297,17 +1297,17 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
                                       <button
                                         onClick={() => handleShareProduct(product)}
-                                        className="p-1 text-[#747878] hover:text-[#18211e] hover:bg-[#f3f3f4] rounded transition cursor-pointer"
+                                        className="p-1 text-[#43483e] dark:text-[#c3c8bb] hover:text-[#191d16] dark:hover:text-[#e1e4d9] hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] rounded transition cursor-pointer"
                                         title="Share Product"
                                       >
-                                        <MaterialIcon icon={copiedShareId === product.id ? "check" : "share"} size={14} className={copiedShareId === product.id ? "text-emerald-600" : ""} />
+                                        <MaterialIcon icon={copiedShareId === product.id ? "check" : "share"} size={14} className={copiedShareId === product.id ? "text-emerald-600 dark:text-emerald-400" : ""} />
                                       </button>
                                     </div>
 
                                     {/* 360 Rotation Control Overlay when Active */}
                                     {active360ProductId === product.id && (
-                                      <div className="absolute inset-x-1 bottom-1 bg-white/95 backdrop-blur-md border border-[#d8ebd7] rounded-lg p-1.5 space-y-0.5 shadow-md z-10 animate-fadeIn">
-                                        <div className="flex justify-between items-center text-[9px] font-mono text-[#386633] font-bold">
+                                      <div className="absolute inset-x-1 bottom-1 bg-white/95 dark:bg-[#191d16]/95 backdrop-blur-md border border-[#dfe4d7] dark:border-[#43483e] rounded-lg p-1.5 space-y-0.5 shadow-md z-10 animate-fadeIn">
+                                        <div className="flex justify-between items-center text-[9px] font-mono text-[#446732] dark:text-[#a9d291] font-bold">
                                           <span className="flex items-center space-x-0.5">
                                             <MaterialIcon icon="360" size={12} />
                                             <span>360° Rotate</span>
@@ -1323,7 +1323,7 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                                             const val = Number(e.target.value);
                                             setRotationAngles(prev => ({ ...prev, [product.id]: val }));
                                           }}
-                                          className="w-full accent-[#386633] cursor-pointer h-1"
+                                          className="w-full accent-[#446732] dark:accent-[#a9d291] cursor-pointer h-1"
                                         />
                                       </div>
                                     )}
@@ -1332,26 +1332,26 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                                   {/* Info */}
                                   <div>
                                     <div className="flex items-center justify-between">
-                                      <span className="text-[10px] font-bold font-mono text-[#386633] uppercase">{product.brand}</span>
+                                      <span className="text-[10px] font-bold font-mono text-[#446732] dark:text-[#a9d291] uppercase">{product.brand}</span>
                                       <div className="flex items-center space-x-0.5 text-amber-500 font-bold text-[10px]">
                                         <MaterialIcon icon="star" size={12} />
                                         <span>{product.rating ? product.rating.toFixed(1) : "4.9"}</span>
                                       </div>
                                     </div>
-                                    <h5 className="text-xs font-bold text-[#18211e] line-clamp-1 mt-0.5">{product.name}</h5>
-                                    <p className="text-[10px] text-[#5e5e63] mt-0.5 line-clamp-2 leading-relaxed">{product.description}</p>
+                                    <h5 className="text-xs font-bold text-[#191d16] dark:text-[#e1e4d9] line-clamp-1 mt-0.5">{product.name}</h5>
+                                    <p className="text-[10px] text-[#43483e] dark:text-[#c3c8bb] mt-0.5 line-clamp-2 leading-relaxed">{product.description}</p>
                                   </div>
                                 </div>
 
-                                <div className="space-y-1.5 pt-2 border-t border-[#f3f3f4]">
+                                <div className="space-y-1.5 pt-2 border-t border-[#dfe4d7] dark:border-[#43483e]">
                                   <div className="flex items-center space-x-1.5">
                                     <button
                                       onClick={() => onSelectTryOn(product)}
-                                      className="p-2 bg-[#f3f3f4] hover:bg-[#e8f3e8] text-[#18211e] font-bold text-[10px] rounded-lg border border-[#c4c7c7] transition flex items-center justify-center cursor-pointer"
+                                      className="p-2 bg-[#f2f5ea] dark:bg-[#282b24] hover:bg-[#e2e8d7] dark:hover:bg-[#383d33] text-[#191d16] dark:text-[#e1e4d9] font-bold text-[10px] rounded-lg border border-[#dfe4d7] dark:border-[#43483e] transition flex items-center justify-center cursor-pointer"
                                       title="Virtual Try On"
                                       aria-label="Virtual Try On"
                                     >
-                                      <MaterialIcon icon="styler" size={15} className="text-[#386633]" />
+                                      <MaterialIcon icon="styler" size={15} className="text-[#446732] dark:text-[#a9d291]" />
                                     </button>
 
                                     <button
@@ -1364,8 +1364,8 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                                       }}
                                       className={`p-2 font-bold text-[10px] rounded-lg border transition flex items-center justify-center cursor-pointer ${
                                         addedToCartId === product.id
-                                          ? "bg-emerald-600 text-white border-emerald-600"
-                                          : "bg-white hover:bg-[#f3f3f4] text-[#18211e] border-[#c4c7c7]"
+                                          ? "bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] border-[#446732] dark:border-[#a9d291]"
+                                          : "bg-white dark:bg-[#191d16] hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] text-[#191d16] dark:text-[#e1e4d9] border-[#dfe4d7] dark:border-[#43483e]"
                                       }`}
                                       title="Add to Cart"
                                       aria-label="Add to Cart"
@@ -1375,7 +1375,7 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
                                     <button
                                       onClick={() => triggerCheckout(product)}
-                                      className="flex-1 p-2 bg-[#18211e] hover:bg-[#323d38] text-white font-bold text-[10px] rounded-lg transition shadow flex items-center justify-center cursor-pointer"
+                                      className="flex-1 p-2 bg-[#191d16] dark:bg-[#a9d291] hover:bg-[#282b24] dark:hover:bg-[#c5efab] text-white dark:text-[#173807] font-bold text-[10px] rounded-lg transition shadow-xs flex items-center justify-center cursor-pointer"
                                       title={`Buy Now ($${product.price})`}
                                       aria-label={`Buy Now ($${product.price})`}
                                     >
@@ -1395,7 +1395,7 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                                   const el = document.getElementById(`carousel-${msg.id}`);
                                   if (el) el.scrollBy({ left: -260, behavior: "smooth" });
                                 }}
-                                className="absolute -left-3 top-1/2 -translate-y-1/2 p-2.5 bg-white text-[#386633] hover:bg-[#386633] hover:text-white rounded-full shadow-md border border-[#d8ebd7] transition cursor-pointer z-10 flex items-center justify-center"
+                                className="absolute -left-3 top-1/2 -translate-y-1/2 p-2.5 bg-white dark:bg-[#191d16] text-[#446732] dark:text-[#a9d291] hover:bg-[#446732] dark:hover:bg-[#a9d291] hover:text-white dark:hover:text-[#173807] rounded-full shadow-md border border-[#dfe4d7] dark:border-[#43483e] transition cursor-pointer z-10 flex items-center justify-center"
                                 title="Swipe Left"
                                 aria-label="Swipe Left"
                               >
@@ -1406,7 +1406,7 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                                   const el = document.getElementById(`carousel-${msg.id}`);
                                   if (el) el.scrollBy({ left: 260, behavior: "smooth" });
                                 }}
-                                className="absolute -right-3 top-1/2 -translate-y-1/2 p-2.5 bg-white text-[#386633] hover:bg-[#386633] hover:text-white rounded-full shadow-md border border-[#d8ebd7] transition cursor-pointer z-10 flex items-center justify-center"
+                                className="absolute -right-3 top-1/2 -translate-y-1/2 p-2.5 bg-white dark:bg-[#191d16] text-[#446732] dark:text-[#a9d291] hover:bg-[#446732] dark:hover:bg-[#a9d291] hover:text-white dark:hover:text-[#173807] rounded-full shadow-md border border-[#dfe4d7] dark:border-[#43483e] transition cursor-pointer z-10 flex items-center justify-center"
                                 title="Swipe Right"
                                 aria-label="Swipe Right"
                               >
@@ -1421,12 +1421,12 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                           {msg.recommendedProducts.map(product => (
                             <div
                               key={product.id}
-                              className="bg-white p-3.5 rounded-2xl border border-[#e2e2e2] hover:border-[#386633] transition shadow-sm flex flex-col sm:flex-row gap-3 items-stretch group/card"
+                              className="bg-white dark:bg-[#191d16] p-3.5 rounded-2xl border border-[#dfe4d7] dark:border-[#43483e] hover:border-[#446732] dark:hover:border-[#a9d291] transition shadow-xs flex flex-col sm:flex-row gap-3 items-stretch group/card"
                             >
                               {/* Image */}
-                              <div className="relative w-full sm:w-36 h-32 sm:h-auto rounded-xl overflow-hidden bg-[#f3f3f4] flex-shrink-0">
+                              <div className="relative w-full sm:w-36 h-32 sm:h-auto rounded-xl overflow-hidden bg-[#f2f5ea] dark:bg-[#282b24] flex-shrink-0">
                                 <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover/card:scale-105 transition duration-300" />
-                                <span className="absolute top-2 right-2 px-2 py-0.5 bg-white/90 backdrop-blur-md rounded-md text-[10px] font-bold text-[#18211e] border border-[#e2e2e2] font-mono shadow-sm">
+                                <span className="absolute top-2 right-2 px-2 py-0.5 bg-white/90 dark:bg-[#191d16]/90 backdrop-blur-md rounded-md text-[10px] font-bold text-[#191d16] dark:text-[#e1e4d9] border border-[#dfe4d7] dark:border-[#43483e] font-mono shadow-xs">
                                   ${product.price}
                                 </span>
                               </div>
@@ -1435,7 +1435,7 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                               <div className="flex-1 flex flex-col justify-between space-y-2">
                                 <div>
                                   <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-bold font-mono text-[#386633] uppercase">{product.brand}</span>
+                                    <span className="text-[10px] font-bold font-mono text-[#446732] dark:text-[#a9d291] uppercase">{product.brand}</span>
                                     <div className="flex items-center space-x-1">
                                       <div className="flex items-center space-x-0.5 text-amber-500 font-bold text-[10px] mr-2">
                                         <MaterialIcon icon="star" size={12} />
@@ -1443,37 +1443,37 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                                       </div>
                                       <button
                                         onClick={() => toggleLike(product.id)}
-                                        className={`p-1 rounded hover:bg-[#f3f3f4] transition cursor-pointer ${likedProductIds[product.id] ? "text-red-500" : "text-[#747878]"}`}
+                                        className={`p-1 rounded hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] transition cursor-pointer ${likedProductIds[product.id] ? "text-red-500" : "text-[#43483e] dark:text-[#c3c8bb]"}`}
                                       >
                                         <MaterialIcon icon={likedProductIds[product.id] ? "favorite" : "favorite_border"} size={14} />
                                       </button>
                                       <button
                                         onClick={() => toggleBookmark(product.id)}
-                                        className={`p-1 rounded hover:bg-[#f3f3f4] transition cursor-pointer ${bookmarkedProductIds[product.id] ? "text-[#386633]" : "text-[#747878]"}`}
+                                        className={`p-1 rounded hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] transition cursor-pointer ${bookmarkedProductIds[product.id] ? "text-[#446732] dark:text-[#a9d291]" : "text-[#43483e] dark:text-[#c3c8bb]"}`}
                                       >
                                         <MaterialIcon icon={bookmarkedProductIds[product.id] ? "bookmark" : "bookmark_border"} size={14} />
                                       </button>
                                       <button
                                         onClick={() => handleShareProduct(product)}
-                                        className="p-1 text-[#747878] hover:text-[#18211e] hover:bg-[#f3f3f4] rounded transition cursor-pointer"
+                                        className="p-1 text-[#43483e] dark:text-[#c3c8bb] hover:text-[#191d16] dark:hover:text-[#e1e4d9] hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] rounded transition cursor-pointer"
                                       >
                                         <MaterialIcon icon={copiedShareId === product.id ? "check" : "share"} size={14} />
                                       </button>
                                     </div>
                                   </div>
 
-                                  <h5 className="text-xs font-bold text-[#18211e] mt-0.5">{product.name}</h5>
-                                  <p className="text-[11px] text-[#5e5e63] mt-1 leading-relaxed">{product.description}</p>
+                                  <h5 className="text-xs font-bold text-[#191d16] dark:text-[#e1e4d9] mt-0.5">{product.name}</h5>
+                                  <p className="text-[11px] text-[#43483e] dark:text-[#c3c8bb] mt-1 leading-relaxed">{product.description}</p>
                                 </div>
 
-                                <div className="flex items-center space-x-2 pt-2 border-t border-[#f3f3f4]">
+                                <div className="flex items-center space-x-2 pt-2 border-t border-[#dfe4d7] dark:border-[#43483e]">
                                   <button
                                     onClick={() => onSelectTryOn(product)}
-                                    className="p-2 bg-[#f3f3f4] hover:bg-[#e8f3e8] text-[#18211e] font-bold text-[10px] rounded-lg border border-[#c4c7c7] transition flex items-center justify-center cursor-pointer"
+                                    className="p-2 bg-[#f2f5ea] dark:bg-[#282b24] hover:bg-[#e2e8d7] dark:hover:bg-[#383d33] text-[#191d16] dark:text-[#e1e4d9] font-bold text-[10px] rounded-lg border border-[#dfe4d7] dark:border-[#43483e] transition flex items-center justify-center cursor-pointer"
                                     title="Virtual Try On"
                                     aria-label="Virtual Try On"
                                   >
-                                    <MaterialIcon icon="styler" size={15} className="text-[#386633]" />
+                                    <MaterialIcon icon="styler" size={15} className="text-[#446732] dark:text-[#a9d291]" />
                                   </button>
 
                                   <button
@@ -1486,8 +1486,8 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                                     }}
                                     className={`px-3 py-1.5 font-bold text-[10px] rounded-lg border transition flex items-center justify-center cursor-pointer ${
                                       addedToCartId === product.id
-                                        ? "bg-emerald-600 text-white border-emerald-600"
-                                        : "bg-white hover:bg-[#f3f3f4] text-[#18211e] border-[#c4c7c7]"
+                                        ? "bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] border-[#446732] dark:border-[#a9d291]"
+                                        : "bg-white dark:bg-[#191d16] hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] text-[#191d16] dark:text-[#e1e4d9] border-[#dfe4d7] dark:border-[#43483e]"
                                     }`}
                                   >
                                     <MaterialIcon icon={addedToCartId === product.id ? "check" : "add_shopping_cart"} size={13} className="mr-1" />
@@ -1496,7 +1496,7 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
                                   <button
                                     onClick={() => triggerCheckout(product)}
-                                    className="px-4 py-1.5 bg-[#18211e] hover:bg-[#323d38] text-white font-bold text-[10px] rounded-lg transition shadow flex items-center justify-center space-x-1 cursor-pointer ml-auto"
+                                    className="px-4 py-1.5 bg-[#191d16] dark:bg-[#a9d291] hover:bg-[#282b24] dark:hover:bg-[#c5efab] text-white dark:text-[#173807] font-bold text-[10px] rounded-lg transition shadow-xs flex items-center justify-center space-x-1 cursor-pointer ml-auto"
                                   >
                                     <MaterialIcon icon="shopping_bag" size={13} />
                                     <span>Buy (${product.price})</span>

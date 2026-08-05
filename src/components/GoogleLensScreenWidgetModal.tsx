@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { cropImageSnippet } from "../utils/imageCropper";
+import { ElevatedQuickActionFab } from "./ElevatedQuickActionFab";
 import html2canvas from "html2canvas";
 
 interface GoogleLensScreenWidgetModalProps {
@@ -544,6 +545,30 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
             </button>
           </div>
         </div>
+
+        {/* Jetpack Compose Material 3 Elevated Floating Action Button Widget */}
+        <ElevatedQuickActionFab
+          product={{
+            id: ("id" in currentItem && currentItem.id) ? String(currentItem.id) : `lens-${selectedRegionId}-${Date.now()}`,
+            name: currentItem.label,
+            brand: currentItem.source || "Google Lens Identified Item",
+            price: parseFloat((currentItem.price || "$14.99").replace(/[^0-9.]/g, "")) || 14.99,
+            currency: "USD",
+            category: currentItem.category || "Gourmet",
+            description: currentItem.description || currentItem.label,
+            image: currentItem.thumbnail || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
+            stock: 12,
+            sku: `LENS-${("id" in currentItem && currentItem.id) ? currentItem.id : selectedRegionId}`,
+            rating: 4.9,
+            virtualTryOnEligible: true,
+            mcpServerId: "mcp_spresso_store"
+          }}
+          onSelectTryOn={(prod) => {
+            if (onSelectTryOn) onSelectTryOn(prod);
+            onClose();
+          }}
+          positionClassName="bottom-8 right-8 z-50"
+        />
 
       </div>
     </div>

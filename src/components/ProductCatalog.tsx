@@ -47,6 +47,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
   const [accessibilityModalProduct, setAccessibilityModalProduct] = useState<ProductItem | null>(null);
   const [genkitModalProduct, setGenkitModalProduct] = useState<ProductItem | null>(null);
+  const [elevatedCardId, setElevatedCardId] = useState<string | null>(null);
   const [spin360Product, setSpin360Product] = useState<ProductItem | null>(null);
   const [spin360Angle, setSpin360Angle] = useState<number>(0);
   const [isAutoSpinning, setIsAutoSpinning] = useState<boolean>(true);
@@ -251,117 +252,173 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {personalizedProducts.map(product => {
-          const origPrice = product.originalPrice || Math.round(product.price * 1.15);
-          const discountPct = Math.round(((origPrice - product.price) / origPrice) * 100);
+            const origPrice = product.originalPrice || Math.round(product.price * 1.15);
+            const discountPct = Math.round(((origPrice - product.price) / origPrice) * 100);
+            const isElevated = elevatedCardId === product.id;
 
-          return (
-            <div
-              key={product.id}
-              className="bg-white rounded-3xl border border-[#d8ebd7] hover:border-[#386633] transition-all duration-300 overflow-hidden shadow-xs flex flex-col justify-between group"
-            >
-              <div>
-                {/* Image Header */}
-                <div className="relative aspect-square overflow-hidden bg-[#f2f8f2] rounded-2xl group/img">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-
-                  {/* Bookmark/Save to Wardrobe Button */}
-                  <button
-                    type="button"
-                    onClick={() => toggleBookmark(product)}
-                    className={`absolute bottom-3 left-3 p-2 rounded-full backdrop-blur-md transition cursor-pointer shadow-md border ${
-                      bookmarkedIds[product.id]
-                        ? "bg-[#386633] text-white border-[#386633]"
-                        : "bg-white/90 text-[#386633] border-[#d8ebd7] hover:bg-white hover:scale-105"
-                    }`}
-                    title={bookmarkedIds[product.id] ? "Saved in Wardrobe (Click to remove)" : "Save to Wardrobe"}
+            return (
+              <div
+                key={product.id}
+                className={`bg-white dark:bg-[#0d1813] rounded-3xl border transition-all duration-300 flex flex-col justify-between group overflow-hidden ${
+                  isElevated
+                    ? "-translate-y-2.5 z-20 shadow-2xl dark:shadow-[0_25px_55px_rgba(0,0,0,0.95)] ring-2 ring-[#ff5e1a] dark:ring-[#ff6b00] border-transparent"
+                    : "border-[#d8ebd7] dark:border-[#1e382b] hover:border-[#386633] dark:hover:border-[#ff6b00] shadow-sm dark:shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:-translate-y-2 hover:shadow-2xl dark:hover:shadow-[0_20px_45px_rgba(0,0,0,0.85)] hover:z-10"
+                }`}
+              >
+                <div>
+                  {/* Image Header with Tap-to-Elevate Handler */}
+                  <div 
+                    onClick={() => setElevatedCardId(isElevated ? null : product.id)}
+                    className="relative aspect-square overflow-hidden bg-[#f2f8f2] dark:bg-[#12221b] rounded-2xl group/img cursor-pointer"
                   >
-                    <MaterialIcon icon={bookmarkedIds[product.id] ? "bookmark" : "bookmark_add"} size={16} />
-                  </button>
-                  {product.matchScore && (
-                    <span className="absolute top-3 left-3 px-2.5 py-1 bg-[#386633] text-white text-[10px] font-mono font-bold rounded-full shadow-md flex items-center space-x-1">
-                      <MaterialIcon icon="auto_awesome" size={12} />
-                      <span>{product.matchScore}% Match</span>
-                    </span>
-                  )}
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
 
-                  {/* Google Lens Identification Button */}
-                  <button
-                    type="button"
-                    onClick={() => onOpenLens && onOpenLens(product)}
-                    className="absolute top-3 right-3 px-2.5 py-1 bg-stone-900/80 hover:bg-orange-600 text-white backdrop-blur-md border border-white/20 text-[10px] font-mono font-bold rounded-full shadow-md flex items-center space-x-1 transition cursor-pointer hover:scale-105"
-                    title="Tap to identify object with Google Lens & view cost listing"
-                  >
-                    <MaterialIcon icon="center_focus_strong" size={13} className="text-orange-400" />
-                    <span>Lens Cost & Info</span>
-                  </button>
-
-                  {/* 360° Button on the Right Side of the Product Image */}
-                  <button
-                    onClick={() => {
-                      setSpin360Product(product);
-                      setSpin360Angle(0);
-                      setIsAutoSpinning(true);
-                      setTiltX(0);
-                      setTiltY(0);
-                      setActive360AngleIdx(0);
-                    }}
-                    className="absolute bottom-3 right-3 px-2.5 py-1.5 rounded-full border bg-white/90 text-[#18211e] border-[#d8ebd7] hover:bg-[#e8f3e8] hover:scale-105 backdrop-blur-md transition cursor-pointer flex items-center space-x-1 shadow-sm font-mono text-[10px] font-bold"
-                    title="Open 3D Parallax 360° Cinematic Spin"
-                  >
-                    <MaterialIcon icon="360" size={16} className="text-[#386633]" />
-                    <span>360° Spin</span>
-                  </button>
-                </div>
-
-                {/* Info Body */}
-                <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono uppercase font-bold text-[#5e635f] tracking-wider">
-                        {product.brand}
-                      </span>
-                      <div className="flex items-center space-x-1 text-amber-600 text-xs font-bold">
-                        <MaterialIcon icon="star" size={14} filled className="text-amber-500" />
-                        <span>{product.rating}</span>
-                      </div>
+                    {/* Elevated Badge Indicator */}
+                    <div className="absolute top-3 left-3 flex flex-col space-y-1 z-10">
+                      {product.matchScore && (
+                        <span className="px-2.5 py-1 bg-[#386633] dark:bg-[#2e7d32] text-white text-[10px] font-mono font-bold rounded-full shadow-md flex items-center space-x-1">
+                          <MaterialIcon icon="auto_awesome" size={12} />
+                          <span>{product.matchScore}% Match</span>
+                        </span>
+                      )}
+                      {isElevated && (
+                        <span className="px-2.5 py-0.5 bg-[#ff5e1a] dark:bg-[#ff6b00] text-white text-[9px] font-mono font-bold rounded-full shadow-lg flex items-center space-x-1 animate-pulse">
+                          <MaterialIcon icon="unfold_more" size={11} />
+                          <span>Elevated View</span>
+                        </span>
+                      )}
                     </div>
 
-                    <h3 className="font-bold text-sm text-[#18211e]">{product.name}</h3>
-                    <p className="text-xs text-[#5e635f] line-clamp-2 leading-relaxed">
-                      {product.description}
-                    </p>
+                    {/* Bookmark/Save to Wardrobe Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleBookmark(product);
+                      }}
+                      className={`absolute bottom-3 left-3 p-2 rounded-full backdrop-blur-md transition cursor-pointer shadow-md border ${
+                        bookmarkedIds[product.id]
+                          ? "bg-[#386633] dark:bg-[#2e7d32] text-white border-[#386633]"
+                          : "bg-white/90 dark:bg-[#0d1813]/90 text-[#386633] dark:text-[#81c784] border-[#d8ebd7] dark:border-[#1e382b] hover:bg-white dark:hover:bg-[#132a1e] hover:scale-105"
+                      }`}
+                      title={bookmarkedIds[product.id] ? "Saved in Wardrobe (Click to remove)" : "Save to Wardrobe"}
+                    >
+                      <MaterialIcon icon={bookmarkedIds[product.id] ? "bookmark" : "bookmark_add"} size={16} />
+                    </button>
 
-                    {/* AI Personalization Reason Tag */}
-                    {product.personalizationReason && (
-                      <div className="p-2.5 bg-[#f2f8f2] rounded-xl border border-[#d8ebd7] text-[11px] text-[#2d4d29] space-y-0.5">
-                        <div className="flex items-center space-x-1 font-bold text-[#386633]">
-                          <MaterialIcon icon="psychology" size={14} />
-                          <span>Why For You:</span>
-                        </div>
-                        <p className="leading-snug text-[#48524d]">{product.personalizationReason}</p>
-                      </div>
-                    )}
+                    {/* Google Lens Identification Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenLens && onOpenLens(product);
+                      }}
+                      className="absolute top-3 right-3 px-2.5 py-1 bg-stone-900/80 hover:bg-orange-600 text-white backdrop-blur-md border border-white/20 text-[10px] font-mono font-bold rounded-full shadow-md flex items-center space-x-1 transition cursor-pointer hover:scale-105"
+                      title="Tap to identify object with Google Lens & view cost listing"
+                    >
+                      <MaterialIcon icon="center_focus_strong" size={13} className="text-orange-400" />
+                      <span>Lens Cost</span>
+                    </button>
+
+                    {/* 360° Button on the Right Side of the Product Image */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSpin360Product(product);
+                        setSpin360Angle(0);
+                        setIsAutoSpinning(true);
+                        setTiltX(0);
+                        setTiltY(0);
+                        setActive360AngleIdx(0);
+                      }}
+                      className="absolute bottom-3 right-3 px-2.5 py-1.5 rounded-full border bg-white/90 dark:bg-[#0d1813]/90 text-[#18211e] dark:text-[#f8fafc] border-[#d8ebd7] dark:border-[#1e382b] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] hover:scale-105 backdrop-blur-md transition cursor-pointer flex items-center space-x-1 shadow-sm font-mono text-[10px] font-bold"
+                      title="Open 3D Parallax 360° Cinematic Spin"
+                    >
+                      <MaterialIcon icon="360" size={16} className="text-[#386633] dark:text-[#81c784]" />
+                      <span>360° Spin</span>
+                    </button>
                   </div>
 
+                  {/* Info Body with Click to Elevate Card & Description */}
+                  <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                    <div 
+                      onClick={() => setElevatedCardId(isElevated ? null : product.id)}
+                      className="space-y-2 cursor-pointer group/text"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono uppercase font-bold text-[#5e635f] dark:text-[#94a3b8] tracking-wider">
+                          {product.brand}
+                        </span>
+                        <div className="flex items-center space-x-1 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                          <MaterialIcon icon="star" size={14} filled className="text-amber-500" />
+                          <span>{product.rating}</span>
+                        </div>
+                      </div>
+
+                      <h3 className="font-bold text-sm text-[#18211e] dark:text-[#f8fafc] group-hover/text:text-[#ff5e1a] dark:group-hover/text:text-[#ff6b00] transition-colors flex items-center justify-between">
+                        <span>{product.name}</span>
+                        <MaterialIcon icon={isElevated ? "expand_less" : "expand_more"} size={18} className="text-[#5e635f] dark:text-[#94a3b8]" />
+                      </h3>
+
+                      <p className={`text-xs text-[#5e635f] dark:text-[#94a3b8] leading-relaxed transition-all ${isElevated ? "" : "line-clamp-2"}`}>
+                        {product.description}
+                      </p>
+
+                      {/* Elevated Detailed Selection Drawer */}
+                      {isElevated && (
+                        <div className="p-3 bg-[#f2f8f2] dark:bg-[#12221b] rounded-2xl border border-[#d8ebd7] dark:border-[#1e382b] space-y-2 text-xs animate-in fade-in slide-in-from-top-1 duration-200">
+                          <div className="flex items-center justify-between text-[11px] text-[#2d4d29] dark:text-[#81c784] font-semibold border-b border-[#d8ebd7] dark:border-[#1e382b] pb-1.5">
+                            <span className="flex items-center space-x-1">
+                              <MaterialIcon icon="inventory_2" size={14} />
+                              <span>In Stock ({product.stock || 12} units left)</span>
+                            </span>
+                            <span className="font-mono text-[#ff5e1a] dark:text-[#ff6b00] font-bold">SKU: {product.sku || product.id}</span>
+                          </div>
+                          
+                          <div className="text-[11px] text-[#48524d] dark:text-[#cbd5e1] leading-snug space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-[#18211e] dark:text-[#f8fafc]">Material & Fit:</span>
+                              <span>Eco-Certified Premium Fabric</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-[#18211e] dark:text-[#f8fafc]">Shipping:</span>
+                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Arrives Today</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* AI Personalization Reason Tag */}
+                      {product.personalizationReason && (
+                        <div className="p-2.5 bg-[#f2f8f2] dark:bg-[#12221b] rounded-xl border border-[#d8ebd7] dark:border-[#1e382b] text-[11px] text-[#2d4d29] dark:text-[#81c784] space-y-0.5">
+                          <div className="flex items-center space-x-1 font-bold text-[#386633] dark:text-[#81c784]">
+                            <MaterialIcon icon="psychology" size={14} />
+                            <span>Why For You:</span>
+                          </div>
+                          <p className="leading-snug text-[#48524d] dark:text-[#cbd5e1]">{product.personalizationReason}</p>
+                        </div>
+                      )}
+                    </div>
+
                   {/* Pricing & Actions Row */}
-                  <div className="pt-3 border-t border-[#f2f8f2] space-y-3">
+                  <div className="pt-3 border-t border-[#f2f8f2] dark:border-[#1e382b] space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-[10px] text-[#5e635f] block font-mono">Spresso AI Price</span>
+                        <span className="text-[10px] text-[#5e635f] dark:text-[#94a3b8] block font-mono">Spresso AI Price</span>
                         <div className="flex items-baseline space-x-2">
-                          <span className="text-lg font-bold text-[#386633] font-mono">
+                          <span className="text-lg font-bold text-[#386633] dark:text-[#81c784] font-mono">
                             ${product.price.toFixed(2)}
                           </span>
                           {origPrice > product.price && (
                             <>
-                              <span className="text-xs text-[#8c918e] line-through font-mono">
+                              <span className="text-xs text-[#8c918e] dark:text-[#64748b] line-through font-mono">
                                 ${origPrice.toFixed(2)}
                               </span>
-                              <span className="px-1.5 py-0.5 bg-emerald-100 text-[#386633] text-[9px] font-bold font-mono rounded">
+                              <span className="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-950/80 text-[#386633] dark:text-emerald-400 text-[9px] font-bold font-mono rounded">
                                 SAVE {discountPct}%
                               </span>
                             </>
@@ -373,17 +430,17 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                         {/* Brand Studio Button */}
                         <button
                           onClick={() => setGenkitModalProduct(product)}
-                          className="px-2.5 py-2 rounded-xl bg-stone-100 hover:bg-[#386633] text-[#18211e] hover:text-white border border-[#d8ebd7] text-xs font-bold transition cursor-pointer flex items-center space-x-1 shadow-xs"
+                          className="px-2.5 py-2 rounded-xl bg-stone-100 dark:bg-[#132a1e] hover:bg-[#386633] text-[#18211e] dark:text-[#f8fafc] hover:text-white border border-[#d8ebd7] dark:border-[#1e382b] text-xs font-bold transition cursor-pointer flex items-center space-x-1 shadow-xs"
                           title="Brand Creative & Product Ideation Studio"
                         >
-                          <MaterialIcon icon="auto_awesome" size={16} className="text-[#386633] group-hover:text-white" />
+                          <MaterialIcon icon="auto_awesome" size={16} className="text-[#386633] dark:text-[#81c784]" />
                           <span className="hidden md:inline font-mono">Studio</span>
                         </button>
 
                         {/* Virtual Try-On & Animation Button */}
                         <button
                           onClick={() => onSelectTryOn(product)}
-                          className="px-3 py-2 rounded-xl bg-[#e8f3e8] hover:bg-[#386633] text-[#386633] hover:text-white border border-[#386633]/30 text-xs font-bold transition cursor-pointer flex items-center space-x-1.5 shadow-xs"
+                          className="px-3 py-2 rounded-xl bg-[#e8f3e8] dark:bg-[#12221b] hover:bg-[#386633] dark:hover:bg-[#2e7d32] text-[#386633] dark:text-[#81c784] hover:text-white border border-[#386633]/30 dark:border-[#1e382b] text-xs font-bold transition cursor-pointer flex items-center space-x-1.5 shadow-xs"
                           title="Virtual Avatar Try-On & Animation"
                         >
                           <MaterialIcon icon="animation" size={18} />
@@ -401,8 +458,8 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                           }}
                           className={`p-2.5 rounded-xl border transition cursor-pointer ${
                             addedToCartId === product.id
-                              ? "bg-[#386633] text-white border-[#386633]"
-                              : "bg-white hover:bg-[#e8f3e8] text-[#18211e] border-[#b0d4af]"
+                              ? "bg-[#386633] dark:bg-[#2e7d32] text-white border-[#386633]"
+                              : "bg-white dark:bg-[#0d1813] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] text-[#18211e] dark:text-[#f8fafc] border-[#b0d4af] dark:border-[#1e382b]"
                           }`}
                           title="Add to Cart"
                         >
@@ -412,7 +469,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                         {/* Buy Now Button */}
                         <button
                           onClick={() => handleCheckout(product)}
-                          className="p-2.5 rounded-xl bg-[#386633] hover:bg-[#2c5227] text-white transition shadow-xs cursor-pointer"
+                          className="p-2.5 rounded-xl bg-[#386633] dark:bg-[#2e7d32] hover:bg-[#2c5227] dark:hover:bg-[#388e3c] text-white transition shadow-xs cursor-pointer"
                           title="Buy Item"
                         >
                           <MaterialIcon icon="shopping_bag" size={18} />

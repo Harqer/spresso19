@@ -78,19 +78,19 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#fafcf9] flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-[#fafcf9] dark:bg-[#11140e] text-[#191d16] dark:text-[#e1e4d9] flex items-center justify-center p-4 overflow-y-auto">
       {/* Decorative background gradients */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#d8ebd7]/40 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#386633]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#d8ebd7]/40 dark:bg-[#386633]/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#386633]/10 dark:bg-[#a9d291]/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative w-full max-w-md bg-white border border-[#386633]/20 rounded-3xl p-8 shadow-xl">
+      <div className="relative w-full max-w-md bg-white dark:bg-[#191d16] border border-[#386633]/20 dark:border-[#43483e] rounded-3xl p-8 shadow-xl">
         {/* Logo & Welcome Header */}
         <div className="flex flex-col items-center text-center space-y-3 mb-6">
           <SpressoLogo variant="full" showTextLeft={true} size="lg" />
-          <h2 className="text-xl font-bold text-[#18211e] tracking-tight">
+          <h2 className="text-xl font-bold text-[#18211e] dark:text-[#e1e4d9] tracking-tight">
             {mode === "signin" ? "Sign in to access Spresso" : "Create your account"}
           </h2>
-          <p className="text-xs text-[#52645b]">
+          <p className="text-xs text-[#52645b] dark:text-[#c3c8bb]">
             Your personal AI shopper, wardrobe, & catalog require authentication.
           </p>
         </div>

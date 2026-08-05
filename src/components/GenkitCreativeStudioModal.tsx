@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ProductItem } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
+import { M3ExpressiveCircularProgress } from "./M3ExpressiveCircularProgress";
 
 interface GenkitCreativeStudioModalProps {
   product: ProductItem | null;
@@ -127,10 +128,14 @@ export const GenkitCreativeStudioModal: React.FC<GenkitCreativeStudioModalProps>
         {/* Body Content */}
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
           {isLoading ? (
-            <div className="p-16 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full border-4 border-[#386633] border-t-transparent animate-spin mx-auto"></div>
-              <p className="font-bold text-sm text-[#18211e]">Synthesizing Brand Campaign Assets...</p>
-              <p className="text-xs text-[#5e635f]">Analyzing Brand DNA and Editorial Style Guidelines</p>
+            <div className="py-20 flex flex-col items-center justify-center">
+              <M3ExpressiveCircularProgress
+                size={72}
+                icon="auto_awesome"
+                label="Synthesizing Brand Campaign Assets..."
+                sublabel="Analyzing Brand DNA, 3D Mesh Geometry, and Editorial Style Guidelines"
+                variant="card"
+              />
             </div>
           ) : pipelineData ? (
             <>

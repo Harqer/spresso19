@@ -9,6 +9,7 @@ import { HITLCheckoutModal } from "./components/HITLCheckoutModal";
 import { OrdersTracker } from "./components/OrdersTracker";
 import { GroceryListView } from "./components/GroceryListView";
 import { CreatorGenAIAgentsChat } from "./components/CreatorGenAIAgentsChat";
+import { NavigableListDetailPaneScaffold } from "./components/NavigableListDetailPaneScaffold";
 import { CartDrawer } from "./components/CartDrawer";
 import { LocationPermissionModal } from "./components/LocationPermissionModal";
 import { ProductDetailsModal } from "./components/ProductDetailsModal";
@@ -26,54 +27,25 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [pendingChatQuery, setPendingChatQuery] = useState<{ query: string; image?: string | null } | null>(null);
 
-  // Dynamic Light / Dark / System Theme State (Jetpack Compose Material 3 standard: Light, Dark, System default)
-  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>(() => {
-    const saved = localStorage.getItem("spresso_theme_mode");
-    if (saved === "light" || saved === "dark" || saved === "system") return saved;
-    return "system";
+  // Dynamic Light / Dark Theme State (Jetpack Compose Material 3 standard: Light / Dark)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem("spresso_theme");
+    return (saved === "light" || saved === "dark") ? saved : "dark";
   });
 
   useEffect(() => {
-    const applyTheme = () => {
-      let isDark = false;
-      if (themeMode === "dark") {
-        isDark = true;
-      } else if (themeMode === "light") {
-        isDark = false;
-      } else {
-        // System default (MODE_NIGHT_FOLLOW_SYSTEM)
-        isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      }
-
-      if (isDark) {
-        document.documentElement.classList.add("dark");
-        document.body.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-        document.body.classList.remove("dark");
-      }
-    };
-
-    applyTheme();
-    localStorage.setItem("spresso_theme_mode", themeMode);
-
-    // Listen to system theme changes if set to system
-    if (themeMode === "system") {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      const listener = () => applyTheme();
-      if (mediaQuery.addEventListener) {
-        mediaQuery.addEventListener("change", listener);
-        return () => mediaQuery.removeEventListener("change", listener);
-      }
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+      document.body.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.body.classList.remove("dark");
     }
-  }, [themeMode]);
+    localStorage.setItem("spresso_theme", theme);
+  }, [theme]);
 
-  const cycleThemeMode = () => {
-    setThemeMode(prev => {
-      if (prev === "system") return "light";
-      if (prev === "light") return "dark";
-      return "system";
-    });
+  const toggleTheme = () => {
+    setTheme(prev => (prev === "dark" ? "light" : "dark"));
   };
 
   const handleAskAI = (query: string, image?: string | null) => {
@@ -250,6 +222,7 @@ export default function App() {
     { id: "chat", label: "Chat", icon: "forum" },
     { id: "creator", label: "Market & Brand Studio", icon: "deployed_code_account" },
     { id: "products", label: "For You", icon: "recommend" },
+    { id: "scaffold", label: "Adaptive Layouts", icon: "view_quilt" },
     { id: "wardrobe", label: "Wardrobe", icon: "checkroom" },
     { id: "orders", label: "Order History", icon: "receipt_long", count: orders.length },
     { id: "grocery", label: "Grocery List", icon: "local_grocery_store" }
@@ -272,15 +245,15 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafcf9] dark:bg-[#070d0a] text-[#18211e] dark:text-[#f8fafc] font-sans selection:bg-[#ff5e1a] selection:text-white transition-colors duration-300">
+    <div className="min-h-screen bg-[#fafcf9] dark:bg-[#11140f] text-[#191d16] dark:text-[#e1e4d9] font-sans selection:bg-[#ff5e1a] selection:text-white transition-colors duration-300">
       {/* Top AppBar */}
-      <header className="fixed top-0 w-full z-30 bg-white/90 dark:bg-[#0d1813]/90 backdrop-blur-md border-b border-[#d8ebd7] dark:border-[#1e382b] transition-colors duration-300">
+      <header className="fixed top-0 w-full z-30 bg-white/90 dark:bg-[#191d16]/90 backdrop-blur-md border-b border-[#dfe4d7] dark:border-[#43483e] transition-colors duration-300">
         <div className="flex justify-between items-center px-4 md:px-6 h-16 w-full max-w-7xl mx-auto">
           <div className="flex items-center space-x-3">
             {/* Mobile Menu Open Toggle Button */}
             <button
               onClick={() => setMobileMenuOpen(prev => !prev)}
-              className="md:hidden p-2 text-[#386633] dark:text-[#81c784] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] rounded-xl transition cursor-pointer flex items-center justify-center"
+              className="md:hidden p-2 text-[#446732] dark:text-[#a9d291] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] rounded-xl transition cursor-pointer flex items-center justify-center"
               title="Toggle Navigation Menu"
               aria-label="Toggle Navigation Menu"
             >
@@ -289,27 +262,15 @@ export default function App() {
           </div>
 
           <div className="flex items-center space-x-2">
-            {/* Theme Toggle Button (Jetpack Compose Material 3 standard: Light, Dark, System default) */}
+            {/* Theme Toggle Button (Jetpack Compose Material 3 standard: Light / Dark) */}
             <button
-              onClick={cycleThemeMode}
-              className="p-2.5 rounded-xl bg-white dark:bg-[#0d1813] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] text-[#386633] dark:text-[#ff6b00] transition cursor-pointer flex items-center justify-center shadow-xs"
-              title={`Theme: ${
-                themeMode === 'system'
-                  ? 'System Default (Click for Light)'
-                  : themeMode === 'light'
-                  ? 'Light Mode (Click for Dark)'
-                  : 'Dark Mode (Click for System Default)'
-              }`}
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl bg-white dark:bg-[#191d16] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] text-[#446732] dark:text-[#a9d291] transition cursor-pointer flex items-center justify-center shadow-xs border border-[#dfe4d7] dark:border-[#43483e]"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label="Toggle Theme Mode"
             >
               <MaterialIcon
-                icon={
-                  themeMode === 'system'
-                    ? "brightness_auto"
-                    : themeMode === 'light'
-                    ? "light_mode"
-                    : "dark_mode"
-                }
+                icon={theme === 'dark' ? "light_mode" : "dark_mode"}
                 size={20}
               />
             </button>
@@ -318,12 +279,12 @@ export default function App() {
               onClick={() => setLocationModalOpen(prev => !prev)}
               className={`rounded-xl border transition cursor-pointer flex items-center space-x-1.5 px-3 py-1.5 shadow-xs ${
                 userLocation
-                  ? "bg-white dark:bg-[#12221b] border-[#386633]/40 dark:border-[#1e382b] hover:bg-[#e8f3e8] dark:hover:bg-[#1a3327] text-[#18211e] dark:text-[#f8fafc]"
-                  : "bg-[#e8f3e8] dark:bg-[#132a1e] border-[#386633]/60 dark:border-[#388e3c]/60 hover:bg-[#386633] dark:hover:bg-[#2e7d32] hover:text-white text-[#386633] dark:text-[#81c784] font-bold"
+                  ? "bg-white dark:bg-[#191d16] border-[#446732]/40 dark:border-[#43483e] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] text-[#191d16] dark:text-[#e1e4d9]"
+                  : "bg-[#c5efab] dark:bg-[#2d4f1c] border-[#446732]/60 dark:border-[#a9d291]/60 hover:bg-[#446732] dark:hover:bg-[#a9d291] hover:text-white dark:hover:text-[#173807] text-[#173807] dark:text-[#c5efab] font-bold"
               }`}
               title={userLocation ? `Click to adjust location & ${searchRadius}-mile search radius` : "Set location and search radius"}
             >
-              <MaterialIcon icon="location_on" size={18} className="text-[#386633] dark:text-[#81c784] shrink-0" />
+              <MaterialIcon icon="location_on" size={18} className="text-[#446732] dark:text-[#a9d291] shrink-0" />
               <div className="flex items-center space-x-1 text-xs font-semibold">
                 <span className="max-w-[120px] truncate">
                   {(() => {
@@ -335,7 +296,7 @@ export default function App() {
                     return userLocation;
                   })()}
                 </span>
-                <span className="text-[11px] font-bold text-[#386633] dark:text-[#81c784] bg-[#e8f3e8] dark:bg-[#183324] px-1.5 py-0.5 rounded-md border border-[#d8ebd7] dark:border-[#1e382b] font-mono">
+                <span className="text-[11px] font-bold text-[#446732] dark:text-[#a9d291] bg-[#e8f3e8] dark:bg-[#2d4f1c] px-1.5 py-0.5 rounded-md border border-[#dfe4d7] dark:border-[#43483e] font-mono">
                   {searchRadius}m
                 </span>
               </div>
@@ -343,11 +304,11 @@ export default function App() {
 
             <button
               onClick={() => setCartDrawerOpen(true)}
-              className="relative p-2.5 rounded-xl bg-white dark:bg-[#0d1813] border border-[#386633]/30 dark:border-[#1e382b] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] text-[#18211e] dark:text-[#f8fafc] transition cursor-pointer flex items-center justify-center shadow-xs"
+              className="relative p-2.5 rounded-xl bg-white dark:bg-[#191d16] border border-[#446732]/30 dark:border-[#43483e] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] text-[#191d16] dark:text-[#e1e4d9] transition cursor-pointer flex items-center justify-center shadow-xs"
               title="Shopping Cart"
               aria-label="Shopping Cart"
             >
-              <MaterialIcon icon="shopping_bag" size={20} className="text-[#386633] dark:text-[#81c784]" />
+              <MaterialIcon icon="shopping_bag" size={20} className="text-[#446732] dark:text-[#a9d291]" />
               {totalCartCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-[#ff5e1a] dark:bg-[#ff6b00] text-white font-mono text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs">
                   {totalCartCount}
@@ -358,15 +319,15 @@ export default function App() {
             {user && (
               <div className="flex items-center space-x-2 pl-1">
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="User" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full border border-[#386633]/30 dark:border-[#1e382b] object-cover" />
+                  <img src={user.photoURL} alt="User" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full border border-[#446732]/30 dark:border-[#43483e] object-cover" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-[#386633] dark:bg-[#2e7d32] text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">
+                  <div className="w-8 h-8 rounded-full bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] font-mono text-xs font-bold flex items-center justify-center shadow-xs">
                     {(user.displayName || user.email || "U").charAt(0).toUpperCase()}
                   </div>
                 )}
                 <button
                   onClick={() => logoutUser()}
-                  className="p-1.5 text-[#52645b] dark:text-[#94a3b8] hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition cursor-pointer flex items-center justify-center"
+                  className="p-1.5 text-[#43483e] dark:text-[#c3c8bb] hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition cursor-pointer flex items-center justify-center"
                   title="Sign Out"
                   aria-label="Sign Out"
                 >
@@ -388,18 +349,18 @@ export default function App() {
 
       {/* Navigation Drawer Sidebar */}
       <aside
-        className={`h-full fixed left-0 top-0 bg-white dark:bg-[#0d1813] border-r border-[#d8ebd7] dark:border-[#1e382b] transition-all duration-300 flex flex-col p-3 pt-3 space-y-3 ${
+        className={`h-full fixed left-0 top-0 bg-white dark:bg-[#191d16] border-r border-[#dfe4d7] dark:border-[#43483e] transition-all duration-300 flex flex-col p-3 pt-3 space-y-3 ${
           mobileMenuOpen ? "translate-x-0 w-64 shadow-2xl z-50" : "-translate-x-full md:translate-x-0 z-40"
         } ${sidebarOpen ? "md:w-64" : "md:w-16"}`}
       >
         {/* Sidebar Header with Spresso Logo & Toggle/Close Icon */}
-        <div className="flex items-center justify-between pb-2 border-b border-[#d8ebd7] dark:border-[#1e382b] min-h-14">
+        <div className="flex items-center justify-between pb-2 border-b border-[#dfe4d7] dark:border-[#43483e] min-h-14">
           {/* Mobile View Header: Full Logo + Close Button */}
           <div className="flex md:hidden items-center justify-between w-full">
             <SpressoLogo variant="full" showTextLeft={true} width={80} height={48} />
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="p-1.5 text-[#386633] dark:text-[#81c784] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] rounded-xl transition cursor-pointer"
+              className="p-1.5 text-[#446732] dark:text-[#a9d291] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] rounded-xl transition cursor-pointer"
               title="Close Menu"
               aria-label="Close Menu"
             >
@@ -414,7 +375,7 @@ export default function App() {
                 <SpressoLogo variant="full" showTextLeft={true} width={80} height={48} />
                 <button
                   onClick={() => setSidebarOpen(false)}
-                  className="p-1.5 text-[#386633] dark:text-[#81c784] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] rounded-xl transition cursor-pointer"
+                  className="p-1.5 text-[#446732] dark:text-[#a9d291] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] rounded-xl transition cursor-pointer"
                   title="Collapse Sidebar"
                   aria-label="Collapse Sidebar"
                 >
@@ -424,7 +385,7 @@ export default function App() {
             ) : (
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="w-full flex items-center justify-center p-1 text-[#386633] dark:text-[#81c784] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] rounded-xl transition cursor-pointer"
+                className="w-full flex items-center justify-center p-1 text-[#446732] dark:text-[#a9d291] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] rounded-xl transition cursor-pointer"
                 title="Expand Sidebar"
                 aria-label="Expand Sidebar"
               >
@@ -448,20 +409,20 @@ export default function App() {
                   sidebarOpen ? "justify-between px-3" : "md:justify-center px-3 md:px-0"
                 } py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   isActive
-                    ? "bg-[#386633] dark:bg-[#2e7d32] text-white font-bold shadow-xs"
-                    : "text-[#2d3a33] dark:text-[#94a3b8] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] hover:text-[#386633] dark:hover:text-[#81c784]"
+                    ? "bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] font-bold shadow-xs"
+                    : "text-[#191d16] dark:text-[#c3c8bb] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] hover:text-[#446732] dark:hover:text-[#a9d291]"
                 }`}
                 title={item.label}
               >
                 <div className="flex items-center space-x-3">
-                  <MaterialIcon icon={item.icon} size={20} className={isActive ? "text-white" : "text-[#386633] dark:text-[#81c784]"} />
+                  <MaterialIcon icon={item.icon} size={20} className={isActive ? "text-white dark:text-[#173807]" : "text-[#446732] dark:text-[#a9d291]"} />
                   <span className={`block ${sidebarOpen ? "md:block" : "md:hidden"}`}>{item.label}</span>
                 </div>
 
                 {item.count !== undefined && item.count > 0 && (
                   <span
                     className={`px-1.5 py-0.5 text-[10px] font-mono rounded-full font-bold ${
-                      isActive ? "bg-[#ff5e1a] dark:bg-[#ff6b00] text-white" : "bg-[#386633] dark:bg-[#2e7d32] text-white"
+                      isActive ? "bg-[#ff5e1a] dark:bg-[#ff6b00] text-white" : "bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807]"
                     } ${sidebarOpen ? "md:inline-block" : "md:hidden"}`}
                   >
                     {item.count}
@@ -473,26 +434,26 @@ export default function App() {
         </nav>
 
         {/* User Profile Footer */}
-        <div className="mt-auto pt-3 border-t border-[#d8ebd7] dark:border-[#1e382b]">
+        <div className="mt-auto pt-3 border-t border-[#dfe4d7] dark:border-[#43483e]">
           {user ? (
-            <div className={`flex items-center justify-between ${sidebarOpen ? "p-2 bg-[#f2f8f2] dark:bg-[#12221b]" : "md:justify-center p-2 bg-transparent"} rounded-2xl`}>
+            <div className={`flex items-center justify-between ${sidebarOpen ? "p-2 bg-[#f2f5ea] dark:bg-[#1d211a]" : "md:justify-center p-2 bg-transparent"} rounded-2xl`}>
               <div className="flex items-center space-x-2.5 overflow-hidden">
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="User Avatar" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[#2c5227]/20 dark:border-[#1e382b]" />
+                  <img src={user.photoURL} alt="User Avatar" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[#2d4f1c]/20 dark:border-[#43483e]" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-[#386633] dark:bg-[#2e7d32] text-white font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 shadow-xs">
+                  <div className="w-8 h-8 rounded-full bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 shadow-xs">
                     {(user.displayName || user.email || "S").charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className={`overflow-hidden min-w-0 ${sidebarOpen ? "md:block" : "md:hidden"}`}>
-                  <p className="text-xs font-bold text-[#18211e] dark:text-[#f8fafc] truncate">{user.displayName || "Spresso Shopper"}</p>
-                  <p className="text-[10px] text-[#5e635f] dark:text-[#94a3b8] truncate">{user.email}</p>
+                  <p className="text-xs font-bold text-[#191d16] dark:text-[#e1e4d9] truncate">{user.displayName || "Spresso Shopper"}</p>
+                  <p className="text-[10px] text-[#43483e] dark:text-[#c3c8bb] truncate">{user.email}</p>
                 </div>
               </div>
               <button
                 onClick={() => logoutUser()}
                 title="Sign Out"
-                className={`p-1.5 text-[#5e635f] dark:text-[#94a3b8] hover:text-[#a84a32] dark:hover:text-red-400 hover:bg-[#eaf4e9] dark:hover:bg-red-950/40 rounded-lg transition-colors flex-shrink-0 ml-1 ${sidebarOpen ? "md:block" : "md:hidden"}`}
+                className={`p-1.5 text-[#43483e] dark:text-[#c3c8bb] hover:text-[#a84a32] dark:hover:text-red-400 hover:bg-[#eaf4e9] dark:hover:bg-red-950/40 rounded-lg transition-colors flex-shrink-0 ml-1 ${sidebarOpen ? "md:block" : "md:hidden"}`}
               >
                 <MaterialIcon icon="logout" size={18} />
               </button>
@@ -500,7 +461,7 @@ export default function App() {
           ) : (
             <button
               onClick={() => loginWithGoogle()}
-              className={`w-full flex items-center ${sidebarOpen ? "justify-center space-x-2 px-3 py-2" : "md:justify-center p-2"} bg-[#386633] dark:bg-[#2e7d32] text-white rounded-2xl text-xs font-semibold hover:bg-[#2c5227] dark:hover:bg-[#388e3c] transition-all shadow-xs`}
+              className={`w-full flex items-center ${sidebarOpen ? "justify-center space-x-2 px-3 py-2" : "md:justify-center p-2"} bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] rounded-2xl text-xs font-semibold hover:bg-[#2d4f1c] dark:hover:bg-[#c5efab] transition-all shadow-xs`}
             >
               <MaterialIcon icon="login" size={18} />
               <span className={`block ${sidebarOpen ? "md:block" : "md:hidden"}`}>Sign in with Google</span>
@@ -552,6 +513,16 @@ export default function App() {
               deviceMode="WEB"
               onAskAI={handleAskAI}
               onOpenLens={handleOpenLens}
+            />
+          )}
+
+          {activeTab === "scaffold" && (
+            <NavigableListDetailPaneScaffold
+              products={products}
+              orders={orders}
+              onSelectTryOn={handleSelectTryOn}
+              onAddToCart={handleAddToCart}
+              onAskAI={handleAskAI}
             />
           )}
 

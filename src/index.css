@@ -6,36 +6,36 @@
 
 /* Jetpack Compose / Material 3 Dynamic Light & Dark Theme Tokens */
 :root {
-  --color-brand-primary: #386633;
-  --color-brand-hover: #2c5227;
-  --color-brand-light: #e8f3e8;
-  --color-brand-soft: #f2f8f2;
+  --color-brand-primary: #446732;
+  --color-brand-hover: #2d4f1c;
+  --color-brand-light: #c5efab;
+  --color-brand-soft: #f2f5ea;
   --color-accent-orange: #ff5e1a;
   --color-accent-orange-hover: #e04e0d;
-  --bg-main: #fafcf9;
+  --bg-main: #f8faf0;
   --bg-surface: #ffffff;
-  --bg-surface-elevated: #f4f9f4;
-  --border-color: #d8ebd7;
-  --text-primary: #18211e;
-  --text-secondary: #52645b;
+  --bg-surface-elevated: #edefe5;
+  --border-color: #dfe4d7;
+  --text-primary: #191d16;
+  --text-secondary: #43483e;
   --text-active-tab: #ffffff;
 }
 
 .dark {
-  /* Dynamic Black with Deep Emerald Green (Synchronous Obsidian Green) */
-  --color-brand-primary: #2e7d32;
-  --color-brand-hover: #388e3c;
-  --color-brand-light: #132a1e;
-  --color-brand-soft: #0e2017;
+  /* Jetpack Compose Material 3 Dark Theme Colors */
+  --color-brand-primary: #a9d291;
+  --color-brand-hover: #c5efab;
+  --color-brand-light: #2d4f1c;
+  --color-brand-soft: #1d211a;
   --color-accent-orange: #ff6b00;
   --color-accent-orange-hover: #ff8533;
-  --bg-main: #070d0a;
-  --bg-surface: #0d1813;
-  --bg-surface-elevated: #12221b;
-  --border-color: #1e382b;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-active-tab: #ffffff;
+  --bg-main: #11140f;
+  --bg-surface: #191d16;
+  --bg-surface-elevated: #282b24;
+  --border-color: #43483e;
+  --text-primary: #e1e4d9;
+  --text-secondary: #c3c8bb;
+  --text-active-tab: #173807;
 }
 
 body {
@@ -121,6 +121,56 @@ body {
 
 .ai-message-gradient {
   background: var(--bg-surface);
+}
+
+/* Animated Rainbow Border for AI Responding State in Chat Input Bar */
+@keyframes rainbowGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.rainbow-border-container {
+  position: relative;
+  border-radius: 9999px;
+  padding: 2.5px;
+  background: linear-gradient(
+    90deg,
+    #ff0055,
+    #ff7a00,
+    #ffdd00,
+    #00e676,
+    #00b0ff,
+    #aa00ff,
+    #ff0055
+  );
+  background-size: 300% 300%;
+  animation: rainbowGlow 2.5s linear infinite;
+  box-shadow: 0 4px 15px rgba(255, 0, 85, 0.25), 0 2px 8px rgba(0, 176, 255, 0.2);
+}
+
+.rainbow-border-container-box {
+  position: relative;
+  border-radius: 1rem;
+  padding: 2.5px;
+  background: linear-gradient(
+    90deg,
+    #ff0055,
+    #ff7a00,
+    #ffdd00,
+    #00e676,
+    #00b0ff,
+    #aa00ff,
+    #ff0055
+  );
+  background-size: 300% 300%;
+  animation: rainbowGlow 2.5s linear infinite;
 }
 
 .fade-in {
