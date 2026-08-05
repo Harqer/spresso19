@@ -18,6 +18,8 @@ import { GamifiedOnboardingModal } from "./components/GamifiedOnboardingModal";
 import { SpressoLogo } from "./components/SpressoLogo";
 import { MaterialIcon } from "./components/MaterialIcon";
 import { AuthScreen } from "./components/AuthScreen";
+import { DynamicThemePickerModal } from "./components/DynamicThemePickerModal";
+import { applyDynamicThemeToDocument } from "./lib/dynamicColorEngine";
 import { testConnection, auth, loginWithGoogle, loginAnonymously, logoutUser, db as firestoreDb } from "./lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -28,11 +30,29 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [pendingChatQuery, setPendingChatQuery] = useState<{ query: string; image?: string | null } | null>(null);
 
-  // Dynamic Light / Dark Theme State (Jetpack Compose Material 3 standard: Light / Dark)
+  // Dynamic Light / Dark Theme & Material You Seed State
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem("spresso_theme");
     return (saved === "light" || saved === "dark") ? saved : "dark";
   });
+
+  const [seedHex, setSeedHex] = useState<string>(() => {
+    const saved = localStorage.getItem("spresso_seed_hex");
+    if (!saved || saved.toLowerCase() === "#446732") {
+      return "#1e2229"; // migrate old green seed to charcoal slate
+    }
+    return saved;
+  });
+
+  const [secondarySeedHex, setSecondarySeedHex] = useState<string | undefined>(() => {
+    const saved = localStorage.getItem("spresso_sec_seed_hex");
+    if (!saved || saved.toLowerCase() === "#55624c") {
+      return "#84cc16"; // migrate old green secondary seed to lime green
+    }
+    return saved;
+  });
+
+  const [dynamicThemeModalOpen, setDynamicThemeModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (theme === "dark") {
@@ -43,7 +63,14 @@ export default function App() {
       document.body.classList.remove("dark");
     }
     localStorage.setItem("spresso_theme", theme);
-  }, [theme]);
+    localStorage.setItem("spresso_seed_hex", seedHex);
+    if (secondarySeedHex) {
+      localStorage.setItem("spresso_sec_seed_hex", secondarySeedHex);
+    }
+
+    // Apply Material You Dynamic Scheme & Tokens with Charcoal source & Lime Green secondary
+    applyDynamicThemeToDocument(seedHex, theme, secondarySeedHex);
+  }, [theme, seedHex, secondarySeedHex]);
 
   const toggleTheme = () => {
     setTheme(prev => (prev === "dark" ? "light" : "dark"));
@@ -232,7 +259,7 @@ export default function App() {
 
   const navItems = [
     { id: "chat", label: "Chat", icon: "forum" },
-    { id: "creator", label: "Market & Brand Studio", icon: "deployed_code_account" },
+    { id: "creator", label: "Creator", icon: "deployed_code_account" },
     { id: "products", label: "For You", icon: "recommend" },
     { id: "scaffold", label: "Adaptive Layouts", icon: "view_quilt" },
     { id: "wardrobe", label: "Wardrobe", icon: "checkroom" },
@@ -257,15 +284,15 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafcf9] dark:bg-[#11140f] text-[#191d16] dark:text-[#e1e4d9] font-sans selection:bg-[#ff5e1a] selection:text-white transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--md-sys-color-background)] text-[var(--md-sys-color-on-background)] font-sans selection:bg-[#ff5e1a] selection:text-white transition-colors duration-300">
       {/* Top AppBar */}
-      <header className="fixed top-0 w-full z-30 bg-white/90 dark:bg-[#191d16]/90 backdrop-blur-md border-b border-[#dfe4d7] dark:border-[#43483e] transition-colors duration-300">
+      <header className="fixed top-0 w-full z-30 bg-[var(--md-sys-color-surface-container-lowest)]/90 backdrop-blur-md border-b border-[var(--md-sys-color-outline-variant)] transition-colors duration-300">
         <div className="flex justify-between items-center px-4 md:px-6 h-16 w-full max-w-7xl mx-auto">
           <div className="flex items-center space-x-3">
             {/* Mobile Menu Open Toggle Button */}
             <button
               onClick={() => setMobileMenuOpen(prev => !prev)}
-              className="md:hidden p-2 text-[#446732] dark:text-[#a9d291] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] rounded-xl transition cursor-pointer flex items-center justify-center"
+              className="md:hidden p-2 text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container)] rounded-xl transition cursor-pointer flex items-center justify-center"
               title="Toggle Navigation Menu"
               aria-label="Toggle Navigation Menu"
             >
@@ -277,7 +304,7 @@ export default function App() {
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-xl hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] text-[#446732] dark:text-[#a9d291] transition cursor-pointer flex items-center justify-center"
+              className="p-2.5 rounded-xl hover:bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-primary)] transition cursor-pointer flex items-center justify-center"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label="Toggle Theme Mode"
             >
@@ -290,24 +317,24 @@ export default function App() {
             {/* Location & Search Radius Icon Button */}
             <button
               onClick={() => setLocationModalOpen(prev => !prev)}
-              className="relative p-2.5 rounded-xl hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] text-[#446732] dark:text-[#a9d291] transition cursor-pointer flex items-center justify-center"
+              className="relative p-2.5 rounded-xl hover:bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-primary)] transition cursor-pointer flex items-center justify-center"
               title={userLocation ? `Location: ${userLocation} (${searchRadius} mi)` : "Set location and search radius"}
               aria-label="Set Location and Radius"
             >
               <MaterialIcon icon="location_on" size={20} />
               {userLocation && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#446732] dark:bg-[#a9d291]" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[var(--md-sys-color-primary)]" />
               )}
             </button>
 
             {/* Shopping Cart Button */}
             <button
               onClick={() => setCartDrawerOpen(true)}
-              className="relative p-2.5 rounded-xl bg-white dark:bg-[#191d16] border border-[#446732]/30 dark:border-[#43483e] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] text-[#191d16] dark:text-[#e1e4d9] transition cursor-pointer flex items-center justify-center shadow-xs"
+              className="relative p-2.5 rounded-xl bg-[var(--md-sys-color-surface-container-lowest)] border border-[var(--md-sys-color-outline-variant)] hover:bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-on-surface)] transition cursor-pointer flex items-center justify-center shadow-xs"
               title="Shopping Cart"
               aria-label="Shopping Cart"
             >
-              <MaterialIcon icon="shopping_bag" size={20} className="text-[#446732] dark:text-[#a9d291]" />
+              <MaterialIcon icon="shopping_bag" size={20} className="text-[var(--md-sys-color-primary)]" />
               {totalCartCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-[#ff5e1a] dark:bg-[#ff6b00] text-white font-mono text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs">
                   {totalCartCount}
@@ -328,18 +355,18 @@ export default function App() {
 
       {/* Navigation Drawer Sidebar */}
       <aside
-        className={`h-full fixed left-0 top-0 bg-white dark:bg-[#191d16] border-r border-[#dfe4d7] dark:border-[#43483e] transition-all duration-300 flex flex-col p-3 pt-3 space-y-3 ${
+        className={`h-full fixed left-0 top-0 bg-[var(--md-sys-color-surface-container-low)] border-r border-[var(--md-sys-color-outline-variant)] transition-all duration-300 flex flex-col p-3 pt-3 space-y-3 ${
           mobileMenuOpen ? "translate-x-0 w-64 shadow-2xl z-50" : "-translate-x-full md:translate-x-0 z-40"
         } ${sidebarOpen ? "md:w-64" : "md:w-16"}`}
       >
         {/* Sidebar Header with Spresso Logo & Toggle/Close Icon */}
-        <div className="flex items-center justify-between pb-2 border-b border-[#dfe4d7] dark:border-[#43483e] min-h-14">
+        <div className="flex items-center justify-between pb-2 border-b border-[var(--md-sys-color-outline-variant)] min-h-14">
           {/* Mobile View Header: Full Logo + Close Button */}
           <div className="flex md:hidden items-center justify-between w-full">
             <SpressoLogo variant="full" showTextLeft={true} width={80} height={48} />
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="p-1.5 text-[#446732] dark:text-[#a9d291] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] rounded-xl transition cursor-pointer"
+              className="p-1.5 text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container)] rounded-xl transition cursor-pointer"
               title="Close Menu"
               aria-label="Close Menu"
             >
@@ -354,7 +381,7 @@ export default function App() {
                 <SpressoLogo variant="full" showTextLeft={true} width={80} height={48} />
                 <button
                   onClick={() => setSidebarOpen(false)}
-                  className="p-1.5 text-[#446732] dark:text-[#a9d291] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] rounded-xl transition cursor-pointer"
+                  className="p-1.5 text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container)] rounded-xl transition cursor-pointer"
                   title="Collapse Sidebar"
                   aria-label="Collapse Sidebar"
                 >
@@ -364,7 +391,7 @@ export default function App() {
             ) : (
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="w-full flex items-center justify-center p-1 text-[#446732] dark:text-[#a9d291] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] rounded-xl transition cursor-pointer"
+                className="w-full flex items-center justify-center p-1 text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container)] rounded-xl transition cursor-pointer"
                 title="Expand Sidebar"
                 aria-label="Expand Sidebar"
               >
@@ -388,20 +415,20 @@ export default function App() {
                   sidebarOpen ? "justify-between px-3" : "md:justify-center px-3 md:px-0"
                 } py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   isActive
-                    ? "bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] font-bold shadow-xs"
-                    : "text-[#191d16] dark:text-[#c3c8bb] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] hover:text-[#446732] dark:hover:text-[#a9d291]"
+                    ? "bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] font-bold shadow-xs"
+                    : "text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container)] hover:text-[var(--md-sys-color-on-surface)]"
                 }`}
                 title={item.label}
               >
                 <div className="flex items-center space-x-3">
-                  <MaterialIcon icon={item.icon} size={20} className={isActive ? "text-white dark:text-[#173807]" : "text-[#446732] dark:text-[#a9d291]"} />
+                  <MaterialIcon icon={item.icon} size={20} className={isActive ? "text-[var(--md-sys-color-on-primary)]" : "text-[var(--md-sys-color-primary)]"} />
                   <span className={`block ${sidebarOpen ? "md:block" : "md:hidden"}`}>{item.label}</span>
                 </div>
 
                 {item.count !== undefined && item.count > 0 && (
                   <span
                     className={`px-1.5 py-0.5 text-[10px] font-mono rounded-full font-bold ${
-                      isActive ? "bg-[#ff5e1a] dark:bg-[#ff6b00] text-white" : "bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807]"
+                      isActive ? "bg-[#ff5e1a] dark:bg-[#ff6b00] text-white" : "bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)]"
                     } ${sidebarOpen ? "md:inline-block" : "md:hidden"}`}
                   >
                     {item.count}
@@ -413,26 +440,26 @@ export default function App() {
         </nav>
 
         {/* User Profile Footer */}
-        <div className="mt-auto pt-3 border-t border-[#dfe4d7] dark:border-[#43483e]">
+        <div className="mt-auto pt-3 border-t border-[var(--md-sys-color-outline-variant)]">
           {user ? (
-            <div className={`flex items-center justify-between ${sidebarOpen ? "p-2 bg-[#f2f5ea] dark:bg-[#1d211a]" : "md:justify-center p-2 bg-transparent"} rounded-2xl`}>
+            <div className={`flex items-center justify-between ${sidebarOpen ? "p-2 bg-[var(--md-sys-color-surface-container)]" : "md:justify-center p-2 bg-transparent"} rounded-2xl`}>
               <div className="flex items-center space-x-2.5 overflow-hidden">
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="User Avatar" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[#2d4f1c]/20 dark:border-[#43483e]" />
+                  <img src={user.photoURL} alt="User Avatar" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[var(--md-sys-color-outline-variant)]" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 shadow-xs">
+                  <div className="w-8 h-8 rounded-full bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 shadow-xs">
                     {(user.displayName || user.email || "S").charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className={`overflow-hidden min-w-0 ${sidebarOpen ? "md:block" : "md:hidden"}`}>
-                  <p className="text-xs font-bold text-[#191d16] dark:text-[#e1e4d9] truncate">{user.displayName || "Spresso Shopper"}</p>
-                  <p className="text-[10px] text-[#43483e] dark:text-[#c3c8bb] truncate">{user.email}</p>
+                  <p className="text-xs font-bold text-[var(--md-sys-color-on-surface)] truncate">{user.displayName || "Spresso Shopper"}</p>
+                  <p className="text-[10px] text-[var(--md-sys-color-on-surface-variant)] truncate">{user.email}</p>
                 </div>
               </div>
               <button
                 onClick={() => logoutUser()}
                 title="Sign Out"
-                className={`p-1.5 text-[#43483e] dark:text-[#c3c8bb] hover:text-[#a84a32] dark:hover:text-red-400 hover:bg-[#eaf4e9] dark:hover:bg-red-950/40 rounded-lg transition-colors flex-shrink-0 ml-1 ${sidebarOpen ? "md:block" : "md:hidden"}`}
+                className={`p-1.5 text-[var(--md-sys-color-on-surface-variant)] hover:text-red-400 hover:bg-red-950/20 rounded-lg transition-colors flex-shrink-0 ml-1 ${sidebarOpen ? "md:block" : "md:hidden"}`}
               >
                 <MaterialIcon icon="logout" size={18} />
               </button>
@@ -440,7 +467,7 @@ export default function App() {
           ) : (
             <button
               onClick={() => loginWithGoogle()}
-              className={`w-full flex items-center ${sidebarOpen ? "justify-center space-x-2 px-3 py-2" : "md:justify-center p-2"} bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] rounded-2xl text-xs font-semibold hover:bg-[#2d4f1c] dark:hover:bg-[#c5efab] transition-all shadow-xs`}
+              className={`w-full flex items-center ${sidebarOpen ? "justify-center space-x-2 px-3 py-2" : "md:justify-center p-2"} bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] rounded-2xl text-xs font-semibold hover:opacity-90 transition-all shadow-xs`}
             >
               <MaterialIcon icon="login" size={18} />
               <span className={`block ${sidebarOpen ? "md:block" : "md:hidden"}`}>Sign in with Google</span>
@@ -699,6 +726,20 @@ export default function App() {
             setLocationModalOpen(true);
           }
         }}
+      />
+
+      {/* Material You Dynamic Theme Builder Modal */}
+      <DynamicThemePickerModal
+        isOpen={dynamicThemeModalOpen}
+        onClose={() => setDynamicThemeModalOpen(false)}
+        currentSeedHex={seedHex}
+        currentSecondaryHex={secondarySeedHex}
+        onSelectSeedHex={(hex, secHex) => {
+          setSeedHex(hex);
+          setSecondarySeedHex(secHex);
+        }}
+        mode={theme}
+        onToggleMode={toggleTheme}
       />
     </div>
   );

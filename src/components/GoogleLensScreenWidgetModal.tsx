@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { cropImageSnippet } from "../utils/imageCropper";
 import { ElevatedQuickActionFab } from "./ElevatedQuickActionFab";
+import { LocationDetailsView, LocationData } from "./LocationDetailsView";
 import html2canvas from "html2canvas";
 
 interface GoogleLensScreenWidgetModalProps {
@@ -23,8 +24,9 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
   const [isCapturingScreen, setIsCapturingScreen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [activeCategoryTab, setActiveCategoryTab] = useState<"all" | "gourmet" | "shopping" | "web">("all");
-  const [detectedRegions, setDetectedRegions] = useState<Array<{ id: number; label: string; price?: string; source?: string; thumbnail?: string; category?: string; description?: string }>>([]);
+  const [detectedRegions, setDetectedRegions] = useState<Array<{ id: number; label: string; price?: string; source?: string; thumbnail?: string; category?: string; description?: string; isLocation?: boolean }>>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<number>(0);
+  const [showLocationDetails, setShowLocationDetails] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -404,10 +406,18 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                   }
                   onClose();
                 }}
-                className="px-8 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-full transition shadow-xl shadow-orange-500/30 cursor-pointer flex items-center space-x-2 transform hover:scale-105"
+                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-full transition shadow-xl shadow-orange-500/30 cursor-pointer flex items-center space-x-2 transform hover:scale-105"
               >
                 <span>Book Now ({currentItem.price})</span>
                 <MaterialIcon icon="arrow_forward" size={16} />
+              </button>
+
+              <button
+                onClick={() => setShowLocationDetails(true)}
+                className="px-5 py-3 bg-white/15 hover:bg-white/25 border border-white/25 text-white font-bold text-xs uppercase tracking-wider rounded-full transition cursor-pointer flex items-center space-x-2 backdrop-blur-md shadow-md"
+              >
+                <MaterialIcon icon="reviews" size={16} className="text-amber-400" />
+                <span>Location Reviews & Ratings</span>
               </button>
             </div>
           </div>
@@ -569,6 +579,80 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
           }}
           positionClassName="bottom-8 right-8 z-50"
         />
+
+        {/* Location Details & Reviews Modal Overlay matching requested Figma layout */}
+        {showLocationDetails && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn overflow-y-auto">
+            <div className="w-full max-w-lg my-auto">
+              <LocationDetailsView
+                data={{
+                  title: currentItem.label || "The Grand Plaza Bistro & Patio",
+                  subtitle: `${currentItem.source || "Artisan Italian Dining"} • Verified Location`,
+                  heroImage: currentItem.thumbnail || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80",
+                  distanceInfo: "12 mins from hotel (0.8 mi away)",
+                  sectionTitle: "Featured Highlights & Customer Reviews",
+                  sectionMeta: "Within 5 miles • $$-$$$ • Open 11:00 AM - 10:00 PM",
+                  categories: ["Popular", "Dining", "Reviews", "Amenities"],
+                  reviewsCountText: "View 231 reviews & recommendations",
+                  items: [
+                    {
+                      id: "loc-lens-1",
+                      title: "Truffle Tagliatelle & Wine Pair",
+                      category: "Signature Dish",
+                      priceLevel: "$$",
+                      distance: "0.8 miles away",
+                      rating: 5,
+                      image: currentItem.thumbnail || "https://images.unsplash.com/photo-1621996346565-e3d5d6281288?w=400&auto=format&fit=crop",
+                      snippet: "Authentic handmade egg pasta spun with black winter truffle butter and aged parmesan."
+                    },
+                    {
+                      id: "loc-lens-2",
+                      title: "Garden Patio Dining Area",
+                      category: "Outdoor Seating",
+                      priceLevel: "$$$",
+                      distance: "0.8 miles away",
+                      rating: 5,
+                      image: "https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=400&auto=format&fit=crop",
+                      snippet: "Romantic string lights, lush greenery, and heated pergola for evening dining."
+                    },
+                    {
+                      id: "loc-lens-3",
+                      title: "Wood-Fired Neapolitan Pizza",
+                      category: "Popular Review",
+                      priceLevel: "$$",
+                      distance: "0.8 miles away",
+                      rating: 5,
+                      image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&auto=format&fit=crop",
+                      snippet: "Crispy leopard-spotted crust with fresh buffalo mozzarella and San Marzano tomatoes."
+                    }
+                  ]
+                }}
+                onClose={() => setShowLocationDetails(false)}
+                onSelectReviewItem={(item) => {
+                  if (onSelectTryOn) {
+                    onSelectTryOn({
+                      id: item.id,
+                      name: item.title,
+                      brand: currentItem.label,
+                      price: 24.99,
+                      currency: "USD",
+                      category: item.category,
+                      description: item.snippet,
+                      image: item.image,
+                      stock: 10,
+                      sku: `SKU-LOC-${item.id}`,
+                      rating: item.rating,
+                      virtualTryOnEligible: true,
+                      mcpServerId: "spresso-mcp-retail"
+                    });
+                  }
+                  setShowLocationDetails(false);
+                  onClose();
+                }}
+              />
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

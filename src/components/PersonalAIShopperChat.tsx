@@ -9,6 +9,7 @@ import { CameraObjectDetectionModal } from "./CameraObjectDetectionModal";
 import { GoogleLensScreenWidgetModal } from "./GoogleLensScreenWidgetModal";
 import { AIShopperInputBar } from "./AIShopperInputBar";
 import { InteractiveVisualShowcase } from "./InteractiveVisualShowcase";
+import { LocationDetailsView, LocationData } from "./LocationDetailsView";
 
 interface PersonalAIShopperChatProps {
   products: ProductItem[];
@@ -39,6 +40,7 @@ interface ChatMessage {
   timestamp: string;
   imageUrl?: string;
   recommendedProducts?: ProductItem[];
+  locationData?: LocationData;
   searchQueries?: string[];
   groundingSources?: Array<{ title: string; uri: string }>;
   visualShowcaseProduct?: ProductItem;
@@ -593,12 +595,16 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                 // Cleanly strip any raw ```json code blocks from user-visible chat text
                 let cleanText = accumulatedText;
                 let dynamicProducts: ProductItem[] = [];
+                let dynamicLocation: LocationData | undefined = undefined;
 
-                if (cleanText.includes("```json") || cleanText.includes('"recommendedProducts"')) {
+                if (cleanText.includes("```json") || cleanText.includes('"recommendedProducts"') || cleanText.includes('"locationData"')) {
                   const jsonBlockMatch = cleanText.match(/```(?:json)?\s*([\s\S]*?)(?:```|$)/);
                   if (jsonBlockMatch && jsonBlockMatch[1]) {
                     try {
                       const parsed = JSON.parse(jsonBlockMatch[1]);
+                      if (parsed.locationData) {
+                        dynamicLocation = parsed.locationData;
+                      }
                       const prods = parsed.recommendedProducts || parsed.products;
                       if (Array.isArray(prods) && prods.length > 0) {
                         dynamicProducts = prods.map((p: any, idx: number) => ({
@@ -632,7 +638,8 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                       ? {
                           ...msg,
                           text: cleanText,
-                          ...(dynamicProducts.length > 0 ? { recommendedProducts: dynamicProducts } : {})
+                          ...(dynamicProducts.length > 0 ? { recommendedProducts: dynamicProducts } : {}),
+                          ...(dynamicLocation ? { locationData: dynamicLocation } : {})
                         }
                       : msg
                   )
@@ -668,13 +675,17 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
           let finalText = msg.text || "";
           let finalProducts = msg.recommendedProducts || [];
+          let finalLocation = msg.locationData;
 
-          // If products were not extracted yet, perform deep regex search
-          if (finalProducts.length === 0 && (finalText.includes("```json") || finalText.includes('"recommendedProducts"'))) {
+          // If location or products were not extracted yet, perform deep regex search
+          if ((finalProducts.length === 0 || !finalLocation) && (finalText.includes("```json") || finalText.includes('"recommendedProducts"') || finalText.includes('"locationData"'))) {
             const jsonBlockMatch = finalText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
             if (jsonBlockMatch && jsonBlockMatch[1]) {
               try {
                 const parsed = JSON.parse(jsonBlockMatch[1]);
+                if (parsed.locationData) {
+                  finalLocation = parsed.locationData;
+                }
                 const prods = parsed.recommendedProducts || parsed.products;
                 if (Array.isArray(prods) && prods.length > 0) {
                   finalProducts = prods.map((p: any, idx: number) => ({
@@ -700,6 +711,52 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                 console.warn("JSON parse on complete stream failed:", e);
               }
             }
+          }
+
+          // Fallback location detection if prompt/text relates to location/restaurant/property
+          if (!finalLocation && (query || "").match(/restaurant|hotel|resort|villa|property|listing|bistro|café|cafe|dining|pizzeria|patio|eatery|bakery|spot|place|stay|airbnb|booking/i)) {
+            finalLocation = {
+              title: "The Grand Plaza Bistro & Patio",
+              subtitle: "Artisan Dining & Local Wine Bar • Highly Rated",
+              heroImage: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop",
+              distanceInfo: "12 mins from hotel (0.8 mi away)",
+              sectionTitle: "Top Reviews & Featured Highlights",
+              sectionMeta: "Within 5 miles • $$-$$$ • Open Now",
+              categories: ["Popular", "Dining", "Reviews", "Amenities"],
+              reviewsCountText: "View 231 reviews & recommendations",
+              items: [
+                {
+                  id: "loc-1",
+                  title: "Truffle Tagliatelle & Wine Pair",
+                  category: "Signature Dish",
+                  priceLevel: "$$",
+                  distance: "0.8 miles away",
+                  rating: 5,
+                  image: "https://images.unsplash.com/photo-1621996346565-e3d5d6281288?w=400&auto=format&fit=crop",
+                  snippet: "Authentic handmade egg pasta spun with black winter truffle butter and aged parmesan."
+                },
+                {
+                  id: "loc-2",
+                  title: "Garden Patio Dining Area",
+                  category: "Outdoor Seating",
+                  priceLevel: "$$$",
+                  distance: "0.8 miles away",
+                  rating: 5,
+                  image: "https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=400&auto=format&fit=crop",
+                  snippet: "Romantic string lights, lush greenery, and heated pergola for evening dining."
+                },
+                {
+                  id: "loc-3",
+                  title: "Wood-Fired Neapolitan Pizza",
+                  category: "Popular Review",
+                  priceLevel: "$$",
+                  distance: "0.8 miles away",
+                  rating: 5,
+                  image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&auto=format&fit=crop",
+                  snippet: "Crispy leopard-spotted crust with fresh buffalo mozzarella and San Marzano tomatoes."
+                }
+              ]
+            };
           }
 
           // Bullet point fallback parser if no structured JSON was provided
@@ -766,7 +823,8 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
           return {
             ...msg,
             text: finalText,
-            recommendedProducts: finalProducts
+            recommendedProducts: finalProducts,
+            ...(finalLocation ? { locationData: finalLocation } : {})
           };
         })
       );
@@ -950,8 +1008,8 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
               <div className={`max-w-[88%] space-y-2 ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                 {/* AI Clean Customer Loading Indicator */}
                 {msg.sender === "ai" && isTyping && !msg.text && (
-                  <div className="flex items-center space-x-2 text-xs text-[#446732] dark:text-[#a9d291] font-medium py-1.5 px-3 bg-[#f2f5ea] dark:bg-[#1d211a] rounded-full border border-[#dfe4d7] dark:border-[#43483e] w-fit mb-1">
-                    <MaterialIcon icon="auto_awesome" size={15} className="animate-spin text-[#446732] dark:text-[#a9d291]" />
+                  <div className="flex items-center space-x-2 text-xs text-[var(--md-sys-color-primary)] font-medium py-1.5 px-3 bg-[var(--md-sys-color-surface-container)] rounded-full border border-[var(--md-sys-color-outline-variant)] w-fit mb-1">
+                    <MaterialIcon icon="auto_awesome" size={15} className="animate-spin text-[var(--md-sys-color-primary)]" />
                     <span>Finding recommendations...</span>
                   </div>
                 )}
@@ -959,35 +1017,35 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                 <div
                   className={`px-6 py-5 rounded-2xl transition-all ${
                     msg.sender === "user"
-                      ? "bg-white dark:bg-[#191d16] border border-[#dfe4d7] dark:border-[#43483e] text-[#191d16] dark:text-[#e1e4d9] rounded-tr-none shadow-xs font-medium text-[13.5px] leading-relaxed tracking-[0.012em]"
-                      : "bg-white/95 dark:bg-[#191d16]/95 border border-[#dfe4d7] dark:border-[#43483e] text-[#191d16] dark:text-[#e1e4d9] rounded-tl-none shadow-xs"
+                      ? "bg-[var(--md-sys-color-surface-container-high)] border border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface)] rounded-tr-none shadow-xs font-medium text-[13.5px] leading-relaxed tracking-[0.012em]"
+                      : "bg-[var(--md-sys-color-surface-container-lowest)] border border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface)] rounded-tl-none shadow-xs"
                   }`}
                 >
                   {msg.imageUrl && (
-                    <img src={msg.imageUrl} alt="Attached query" className="w-52 h-38 object-cover rounded-xl mb-3 border border-[#dfe4d7] dark:border-[#43483e]" />
+                    <img src={msg.imageUrl} alt="Attached query" className="w-52 h-38 object-cover rounded-xl mb-3 border border-[var(--md-sys-color-outline-variant)]" />
                   )}
 
                   {msg.text ? (
                     <div>{formatMessageText(msg.text)}</div>
                   ) : (
                     isTyping && msg.sender === "ai" && (
-                      <div className="flex items-center space-x-1.5 py-1 text-[#446732] dark:text-[#a9d291]">
-                        <span className="w-2 h-2 bg-[#446732] dark:bg-[#a9d291] rounded-full animate-ping"></span>
-                        <span className="w-2 h-2 bg-[#446732] dark:bg-[#a9d291] rounded-full animate-pulse"></span>
+                      <div className="flex items-center space-x-1.5 py-1 text-[var(--md-sys-color-primary)]">
+                        <span className="w-2 h-2 bg-[var(--md-sys-color-primary)] rounded-full animate-ping"></span>
+                        <span className="w-2 h-2 bg-[var(--md-sys-color-primary)] rounded-full animate-pulse"></span>
                       </div>
                     )
                   )}
 
                   {/* Interactive Location Set Prompt Card when location is requested */}
                   {msg.sender === "ai" && !userLocation && !userLatLng && (msg.text.toLowerCase().includes("location") || msg.text.toLowerCase().includes("city") || msg.text.toLowerCase().includes("zip code") || msg.text.toLowerCase().includes("near you") || msg.text.toLowerCase().includes("stores near")) && (
-                    <div className="mt-3 p-3 bg-[#f2f5ea] dark:bg-[#1d211a] border border-[#dfe4d7] dark:border-[#43483e] rounded-xl flex items-center justify-between space-x-3 shadow-xs">
-                      <div className="flex items-center space-x-2 text-xs text-[#191d16] dark:text-[#e1e4d9] font-medium">
-                        <MaterialIcon icon="my_location" size={18} className="text-[#446732] dark:text-[#a9d291] animate-pulse" />
+                    <div className="mt-3 p-3 bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)] rounded-xl flex items-center justify-between space-x-3 shadow-xs">
+                      <div className="flex items-center space-x-2 text-xs text-[var(--md-sys-color-on-surface)] font-medium">
+                        <MaterialIcon icon="my_location" size={18} className="text-[var(--md-sys-color-primary)] animate-pulse" />
                         <span>Share your location or ZIP to view nearby stores & stock</span>
                       </div>
                       <button
                         onClick={() => onRequestLocationPermission && onRequestLocationPermission()}
-                        className="px-3 py-1.5 bg-[#446732] dark:bg-[#a9d291] hover:bg-[#2d4f1c] dark:hover:bg-[#c5efab] text-white dark:text-[#173807] text-xs font-semibold rounded-full transition cursor-pointer flex items-center space-x-1 flex-shrink-0 shadow-xs"
+                        className="px-3 py-1.5 bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] text-xs font-semibold rounded-full transition cursor-pointer flex items-center space-x-1 flex-shrink-0 shadow-xs hover:opacity-90"
                       >
                         <span>Set Location</span>
                         <MaterialIcon icon="arrow_forward" size={14} />
@@ -997,6 +1055,34 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
                   <span className="block text-[9px] opacity-50 mt-1.5 text-right font-mono">{msg.timestamp}</span>
                 </div>
+
+              {/* Render Location & Reviews Wireframe Card matching user requested layout */}
+              {msg.locationData && (
+                <div className="w-full max-w-lg my-3 animate-fadeIn">
+                  <LocationDetailsView
+                    data={msg.locationData}
+                    onSelectReviewItem={(item) => {
+                      if (onSelectTryOn) {
+                        onSelectTryOn({
+                          id: item.id,
+                          name: item.title,
+                          brand: msg.locationData?.title || "Location Match",
+                          price: 24.99,
+                          currency: "USD",
+                          category: item.category,
+                          description: item.snippet,
+                          image: item.image,
+                          stock: 10,
+                          sku: `SKU-LOC-${item.id}`,
+                          rating: item.rating,
+                          virtualTryOnEligible: true,
+                          mcpServerId: "spresso-mcp-retail"
+                        });
+                      }
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Render Embedded Interactive Visual Showcase in Chat */}
               {msg.visualShowcaseProduct && (
@@ -1012,17 +1098,17 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
 
               {/* Grounded with Google Search Live Citation Badge */}
               {msg.sender === "ai" && ((msg.groundingSources && msg.groundingSources.length > 0) || (msg.searchQueries && msg.searchQueries.length > 0)) && (
-                <div className="mt-2.5 bg-[#f2f5ea] dark:bg-[#1d211a] border border-[#dfe4d7] dark:border-[#43483e] rounded-xl p-2.5 space-y-1.5 text-xs">
-                  <div className="flex items-center space-x-1.5 text-[#446732] dark:text-[#a9d291] font-bold text-[11px] tracking-wide uppercase">
+                <div className="mt-2.5 bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)] rounded-xl p-2.5 space-y-1.5 text-xs">
+                  <div className="flex items-center space-x-1.5 text-[var(--md-sys-color-primary)] font-bold text-[11px] tracking-wide uppercase">
                     <MaterialIcon icon="travel_explore" size={14} />
                     <span>Grounded with Google Live Search</span>
                   </div>
 
                   {msg.searchQueries && msg.searchQueries.length > 0 && (
                     <div className="flex flex-wrap gap-1 items-center">
-                      <span className="text-[10px] text-[#43483e] dark:text-[#c3c8bb] font-medium">Queries:</span>
+                      <span className="text-[10px] text-[var(--md-sys-color-on-surface-variant)] font-medium">Queries:</span>
                       {msg.searchQueries.map((q, qIdx) => (
-                        <span key={qIdx} className="bg-white dark:bg-[#191d16] border border-[#dfe4d7] dark:border-[#43483e] text-[#191d16] dark:text-[#e1e4d9] px-2 py-0.5 rounded-md text-[10px] font-mono">
+                        <span key={qIdx} className="bg-[var(--md-sys-color-surface-container-lowest)] border border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface)] px-2 py-0.5 rounded-md text-[10px] font-mono">
                           "{q}"
                         </span>
                       ))}
@@ -1037,12 +1123,12 @@ export const PersonalAIShopperChat: React.FC<PersonalAIShopperChatProps> = ({
                           href={src.uri}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center space-x-1 bg-white dark:bg-[#191d16] hover:bg-[#f2f5ea] dark:hover:bg-[#282b24] border border-[#dfe4d7] dark:border-[#43483e] hover:border-[#446732] dark:hover:border-[#a9d291] px-2.5 py-1 rounded-lg text-[11px] text-[#446732] dark:text-[#a9d291] font-medium transition group"
+                          className="inline-flex items-center space-x-1 bg-[var(--md-sys-color-surface-container-lowest)] hover:bg-[var(--md-sys-color-surface-container-high)] border border-[var(--md-sys-color-outline-variant)] hover:border-[var(--md-sys-color-primary)] px-2.5 py-1 rounded-lg text-[11px] text-[var(--md-sys-color-primary)] font-medium transition group"
                           title={src.title}
                         >
-                          <MaterialIcon icon="link" size={12} className="text-[#446732] dark:text-[#a9d291]" />
+                          <MaterialIcon icon="link" size={12} className="text-[var(--md-sys-color-primary)]" />
                           <span className="truncate max-w-[180px]">{src.title}</span>
-                          <MaterialIcon icon="open_in_new" size={11} className="text-[#43483e] dark:text-[#c3c8bb]" />
+                          <MaterialIcon icon="open_in_new" size={11} className="text-[var(--md-sys-color-on-surface-variant)]" />
                         </a>
                       ))}
                     </div>

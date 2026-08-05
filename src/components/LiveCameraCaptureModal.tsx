@@ -145,39 +145,39 @@ export const LiveCameraCaptureModal: React.FC<LiveCameraCaptureModalProps> = ({
 
       <div className="relative w-full max-w-lg h-full sm:h-[88vh] bg-black text-white rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between">
         
-        {/* Top Header Overlay */}
-        <div className="absolute top-0 inset-x-0 z-30 p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-between">
+        {/* Top Header Overlay - Cloudy Liquid Glass */}
+        <div className="absolute top-0 inset-x-0 z-30 p-3.5 bg-black/40 backdrop-blur-xl border-b border-white/10 flex items-center justify-between">
           <button
             onClick={() => {
               stopCamera();
               onClose();
             }}
-            className="p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer flex items-center justify-center"
+            className="p-2 text-white/90 hover:text-white hover:bg-white/15 rounded-full transition cursor-pointer flex items-center justify-center backdrop-blur-md"
             title="Back"
           >
-            <MaterialIcon icon="chevron_left" size={28} />
+            <MaterialIcon icon="chevron_left" size={26} />
           </button>
 
-          <div className="flex items-center space-x-2">
-            <span className="text-base font-bold text-white tracking-wide">Scan</span>
+          <div className="flex items-center space-x-1.5">
+            <span className="text-sm font-bold text-white tracking-wide">Scan Camera</span>
           </div>
 
           <div className="flex items-center space-x-1">
             <button
               onClick={() => setFlashOn(!flashOn)}
-              className={`p-2 rounded-full transition cursor-pointer ${
-                flashOn ? "text-yellow-400 bg-white/20" : "text-white/80 hover:bg-white/10"
+              className={`p-2 rounded-full transition cursor-pointer backdrop-blur-md ${
+                flashOn ? "text-yellow-400 bg-white/25" : "text-white/80 hover:bg-white/15"
               }`}
               title="Flash"
             >
-              <MaterialIcon icon={flashOn ? "flash_on" : "flash_off"} size={22} />
+              <MaterialIcon icon={flashOn ? "flash_on" : "flash_off"} size={20} />
             </button>
             <button
               onClick={handleToggleCamera}
-              className="p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+              className="p-2 text-white/90 hover:text-white hover:bg-white/15 rounded-full transition cursor-pointer backdrop-blur-md"
               title="Flip Camera"
             >
-              <MaterialIcon icon="cameraswitch" size={22} />
+              <MaterialIcon icon="cameraswitch" size={20} />
             </button>
           </div>
         </div>
@@ -185,7 +185,7 @@ export const LiveCameraCaptureModal: React.FC<LiveCameraCaptureModalProps> = ({
         {/* Camera Viewport with Rounded Scan Bracket Reticle */}
         <div
           onClick={handleViewportClick}
-          className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden cursor-crosshair select-none"
+          className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden cursor-pointer select-none"
         >
           {cameraError ? (
             <div className="p-6 text-center max-w-sm space-y-4">
@@ -218,48 +218,24 @@ export const LiveCameraCaptureModal: React.FC<LiveCameraCaptureModalProps> = ({
                 </div>
               )}
 
-              {/* Rounded Reticle Scan Frame matching Reference Image */}
-              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-10 p-6">
-                
-                {/* Viewfinder Corner Bracket Box */}
-                <div className="relative w-72 h-72 sm:w-80 sm:h-80 border-2 border-white/30 rounded-3xl backdrop-brightness-110 shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]">
-                  {/* Top-Left Corner Bracket */}
-                  <div className="absolute -top-1 -left-1 w-10 h-10 border-t-4 border-l-4 border-white rounded-tl-2xl" />
-                  {/* Top-Right Corner Bracket */}
-                  <div className="absolute -top-1 -right-1 w-10 h-10 border-t-4 border-r-4 border-white rounded-tr-2xl" />
-                  {/* Bottom-Left Corner Bracket */}
-                  <div className="absolute -bottom-1 -left-1 w-10 h-10 border-b-4 border-l-4 border-white rounded-bl-2xl" />
-                  {/* Bottom-Right Corner Bracket */}
-                  <div className="absolute -bottom-1 -right-1 w-10 h-10 border-b-4 border-r-4 border-white rounded-br-2xl" />
-
-                  {/* Pulsing Scan Line */}
-                  <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 h-0.5 bg-white/60 shadow-[0_0_12px_#fff] animate-pulse" />
-                </div>
-
-                {/* Subtitle text below box matching Reference Image */}
-                <div className="mt-8 text-center space-y-1 text-white drop-shadow-md">
-                  <p className="text-sm font-bold tracking-tight">Scan Product or Item</p>
-                  <p className="text-xs text-white/80 font-normal">Center the code or object to scan</p>
-                </div>
-
-              </div>
-
-              {/* Solid Blue Dot on User Tapped Point */}
+              {/* ORGANIC LIQUID GLASS MORPH LENS ON USER TAPPED POINT */}
               {tappedPoint && (
                 <div
-                  className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center transition-all duration-200 pointer-events-none z-20"
+                  className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20 transition-all duration-500 ease-out"
                   style={{ left: `${tappedPoint.x}%`, top: `${tappedPoint.y}%` }}
                 >
-                  <div className="w-5 h-5 bg-blue-500 border-2 border-white rounded-full shadow-lg animate-ping" />
-                  <div className="absolute w-4 h-4 bg-blue-500 border-2 border-white rounded-full shadow-lg" />
+                  <div className="relative w-20 h-18 backdrop-blur-2xl bg-white/25 border-2 border-white/90 shadow-[0_0_40px_rgba(255,255,255,0.8)] animate-liquid-morph overflow-hidden">
+                    <div className="absolute top-1 left-2 w-8 h-3 bg-gradient-to-r from-white/90 to-transparent rounded-full blur-[0.5px] rotate-[-25deg]" />
+                    <div className="absolute bottom-2 right-3 w-6 h-2 bg-white/60 rounded-full blur-[1px]" />
+                  </div>
                 </div>
               )}
             </>
           )}
         </div>
 
-        {/* Bottom Google Lens Controls & Mode Selector */}
-        <div className="relative z-30 pb-6 pt-4 bg-gradient-to-t from-black via-black/80 to-transparent flex flex-col items-center space-y-4">
+        {/* Bottom Google Lens Controls & Mode Selector - Cloudy Liquid Glass Bar */}
+        <div className="relative z-30 pb-6 pt-4 bg-slate-950/80 backdrop-blur-2xl border-t border-white/15 flex flex-col items-center space-y-4">
           {/* Floating Prompt Banner */}
           {!cameraError && (
             <div className="bg-black/75 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/10 text-white text-[12px] font-medium shadow-md">

@@ -259,10 +259,10 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             return (
               <div
                 key={product.id}
-                className={`bg-white dark:bg-[#0d1813] rounded-3xl border transition-all duration-300 flex flex-col justify-between group overflow-hidden ${
+                className={`rounded-3xl border transition-all duration-300 flex flex-col justify-between group overflow-hidden ${
                   isElevated
-                    ? "-translate-y-2.5 z-20 shadow-2xl dark:shadow-[0_25px_55px_rgba(0,0,0,0.95)] ring-2 ring-[#ff5e1a] dark:ring-[#ff6b00] border-transparent"
-                    : "border-[#d8ebd7] dark:border-[#1e382b] hover:border-[#386633] dark:hover:border-[#ff6b00] shadow-sm dark:shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:-translate-y-2 hover:shadow-2xl dark:hover:shadow-[0_20px_45px_rgba(0,0,0,0.85)] hover:z-10"
+                    ? "md3-card-level-4 -translate-y-2.5 z-20 ring-2 ring-[var(--md-sys-color-primary)] border-transparent"
+                    : "md3-card-level-2 hover:border-[var(--md-sys-color-primary)] hover:-translate-y-2 hover:shadow-2xl hover:z-10"
                 }`}
               >
                 <div>
@@ -430,17 +430,17 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                         {/* Brand Studio Button */}
                         <button
                           onClick={() => setGenkitModalProduct(product)}
-                          className="px-2.5 py-2 rounded-xl bg-stone-100 dark:bg-[#132a1e] hover:bg-[#386633] text-[#18211e] dark:text-[#f8fafc] hover:text-white border border-[#d8ebd7] dark:border-[#1e382b] text-xs font-bold transition cursor-pointer flex items-center space-x-1 shadow-xs"
+                          className="px-2.5 py-2 rounded-xl bg-[var(--md-sys-color-surface-container)] hover:bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-surface)] hover:text-[var(--md-sys-color-on-primary)] border border-[var(--md-sys-color-outline-variant)] text-xs font-bold transition cursor-pointer flex items-center space-x-1 shadow-xs"
                           title="Brand Creative & Product Ideation Studio"
                         >
-                          <MaterialIcon icon="auto_awesome" size={16} className="text-[#386633] dark:text-[#81c784]" />
+                          <MaterialIcon icon="auto_awesome" size={16} className="text-[var(--md-sys-color-primary)] hover:text-inherit" />
                           <span className="hidden md:inline font-mono">Studio</span>
                         </button>
 
                         {/* Virtual Try-On & Animation Button */}
                         <button
                           onClick={() => onSelectTryOn(product)}
-                          className="px-3 py-2 rounded-xl bg-[#e8f3e8] dark:bg-[#12221b] hover:bg-[#386633] dark:hover:bg-[#2e7d32] text-[#386633] dark:text-[#81c784] hover:text-white border border-[#386633]/30 dark:border-[#1e382b] text-xs font-bold transition cursor-pointer flex items-center space-x-1.5 shadow-xs"
+                          className="px-3 py-2 rounded-xl bg-[var(--md-sys-color-primary-container)] hover:bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary-container)] hover:text-[var(--md-sys-color-on-primary)] border border-[var(--md-sys-color-outline-variant)] text-xs font-bold transition cursor-pointer flex items-center space-x-1.5 shadow-xs"
                           title="Virtual Avatar Try-On & Animation"
                         >
                           <MaterialIcon icon="animation" size={18} />
@@ -458,8 +458,8 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                           }}
                           className={`p-2.5 rounded-xl border transition cursor-pointer ${
                             addedToCartId === product.id
-                              ? "bg-[#386633] dark:bg-[#2e7d32] text-white border-[#386633]"
-                              : "bg-white dark:bg-[#0d1813] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] text-[#18211e] dark:text-[#f8fafc] border-[#b0d4af] dark:border-[#1e382b]"
+                              ? "bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] border-[var(--md-sys-color-primary)]"
+                              : "bg-[var(--md-sys-color-surface-container-lowest)] hover:bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-on-surface)] border-[var(--md-sys-color-outline-variant)]"
                           }`}
                           title="Add to Cart"
                         >
@@ -469,7 +469,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                         {/* Buy Now Button */}
                         <button
                           onClick={() => handleCheckout(product)}
-                          className="p-2.5 rounded-xl bg-[#386633] dark:bg-[#2e7d32] hover:bg-[#2c5227] dark:hover:bg-[#388e3c] text-white transition shadow-xs cursor-pointer"
+                          className="p-2.5 rounded-xl bg-[var(--md-sys-color-primary)] hover:opacity-90 text-[var(--md-sys-color-on-primary)] transition shadow-xs cursor-pointer"
                           title="Buy Item"
                         >
                           <MaterialIcon icon="shopping_bag" size={18} />
@@ -488,42 +488,42 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       {/* Settings / Accessibility Modal */}
       {accessibilityModalProduct && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 border border-[#d8ebd7] shadow-2xl relative">
+          <div className="bg-[var(--md-sys-color-surface-container-lowest)] text-[var(--md-sys-color-on-surface)] rounded-3xl max-w-md w-full p-6 space-y-4 border border-[var(--md-sys-color-outline-variant)] shadow-2xl relative">
             <button
               onClick={() => setAccessibilityModalProduct(null)}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-[#e8f3e8] text-[#5e635f] transition cursor-pointer"
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-on-surface-variant)] transition cursor-pointer"
             >
               <MaterialIcon icon="close" size={20} />
             </button>
 
             <div className="flex items-center space-x-3">
-              <div className="p-3 bg-[#e8f3e8] text-[#386633] rounded-2xl">
+              <div className="p-3 bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] rounded-2xl">
                 <MaterialIcon icon="accessibility_new" size={24} />
               </div>
               <div>
-                <h3 className="font-bold text-base text-[#18211e]">Material 3 Accessibility & Fit Settings</h3>
-                <p className="text-xs text-[#5e635f] truncate max-w-[240px]">{accessibilityModalProduct.name}</p>
+                <h3 className="font-bold text-base text-[var(--md-sys-color-on-surface)]">Material 3 Accessibility & Fit Settings</h3>
+                <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] truncate max-w-[240px]">{accessibilityModalProduct.name}</p>
               </div>
             </div>
 
-            <div className="space-y-3 text-xs bg-[#f2f8f2] p-4 rounded-2xl border border-[#d8ebd7]">
-              <div className="flex items-center justify-between py-1 border-b border-[#d8ebd7]">
-                <span className="font-semibold text-[#18211e]">Screen Reader Alt Text</span>
-                <span className="text-[#386633] font-bold">Enabled</span>
+            <div className="space-y-3 text-xs bg-[var(--md-sys-color-surface-container-low)] p-4 rounded-2xl border border-[var(--md-sys-color-outline-variant)]">
+              <div className="flex items-center justify-between py-1 border-b border-[var(--md-sys-color-outline-variant)]">
+                <span className="font-semibold text-[var(--md-sys-color-on-surface)]">Screen Reader Alt Text</span>
+                <span className="text-[var(--md-sys-color-primary)] font-bold">Enabled</span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-[#d8ebd7]">
-                <span className="font-semibold text-[#18211e]">Haptic Feedback for Smart Glasses</span>
-                <span className="text-[#386633] font-bold">Active</span>
+              <div className="flex items-center justify-between py-1 border-b border-[var(--md-sys-color-outline-variant)]">
+                <span className="font-semibold text-[var(--md-sys-color-on-surface)]">Haptic Feedback for Smart Glasses</span>
+                <span className="text-[var(--md-sys-color-primary)] font-bold">Active</span>
               </div>
               <div className="flex items-center justify-between py-1">
-                <span className="font-semibold text-[#18211e]">High-Contrast Color Mode</span>
-                <span className="text-[#386633] font-bold">Auto</span>
+                <span className="font-semibold text-[var(--md-sys-color-on-surface)]">High-Contrast Color Mode</span>
+                <span className="text-[var(--md-sys-color-primary)] font-bold">Auto</span>
               </div>
             </div>
 
             <button
               onClick={() => setAccessibilityModalProduct(null)}
-              className="w-full py-2.5 bg-[#386633] text-white rounded-xl font-bold text-xs hover:bg-[#2c5227] transition cursor-pointer"
+              className="w-full py-2.5 bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] rounded-xl font-bold text-xs hover:opacity-90 transition cursor-pointer"
             >
               Done
             </button>

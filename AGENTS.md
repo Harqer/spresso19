@@ -42,3 +42,4 @@ If an agent accidentally outputs raw thinking streams, debug panels, or backend 
 ## 7. Zero UI Overhead & Pure Semantic Intelligence
 - **Natural Intent Classification**: Capabilities such as web research, local physical store shopping, price comparison, and location context must be detected automatically from the user's natural language prompt and browser context server-side.
 - **No Unrequested UI Buttons**: Do not create or require dedicated frontend mode toggles or extra UI buttons for semantic AI capabilities unless explicitly requested by the user. Keep the interface clean, elegant, and unobtrusive.
+

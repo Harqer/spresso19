@@ -266,21 +266,33 @@ STRICT GOOGLE CONCISE RESPONSE GUIDELINES (MAX 80-100 WORDS EXPLANATION):
 3. LOCAL STORES & LIVE SEARCH GROUNDING:
    - Use live search and local grounding for accurate real prices and store options.
 
-4. STRUCTURED PRODUCT CARDS (CRITICAL):
+4. STRUCTURED PRODUCT & LOCATION CARDS (CRITICAL):
    - When recommending products, output a hidden JSON code block at the end with recommendedProducts array.
+   - LOCATION & RESTAURANT/PROPERTY DETECTION: If the query or image relates to a location, hotel, restaurant, property listing, café, or point of interest, output a structured "locationData" object inside the JSON code block:
 \`\`\`json
 {
-  "recommendedProducts": [
-    {
-      "name": "Item Name",
-      "brand": "Brand",
-      "price": 9.99,
-      "currency": "$",
-      "category": "Category",
-      "description": "Short description.",
-      "image": ""
-    }
-  ]
+  "locationData": {
+    "title": "Name of Restaurant / Hotel / Property",
+    "subtitle": "Category • Cuisine / Atmosphere",
+    "heroImage": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop",
+    "distanceInfo": "12 mins from hotel (0.8 mi away)",
+    "sectionTitle": "Featured Spots & Customer Reviews",
+    "sectionMeta": "Within 5 miles • $$-$$$",
+    "categories": ["Popular", "Dining", "Reviews", "Amenities"],
+    "reviewsCountText": "View 231 reviews & recommendations",
+    "items": [
+      {
+        "id": "loc-item-1",
+        "title": "Highlight / Menu / Room Title",
+        "category": "Signature Dish",
+        "priceLevel": "$$",
+        "distance": "0.8 miles away",
+        "rating": 5,
+        "image": "https://images.unsplash.com/photo-1621996346565-e3d5d6281288?w=400&auto=format&fit=crop",
+        "snippet": "Cozy atmosphere, outstanding homemade pasta, and excellent wine selection."
+      }
+    ]
+  }
 }
 \`\`\`
    - Ensure realistic prices (> 0).`;

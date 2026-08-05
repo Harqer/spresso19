@@ -3,6 +3,7 @@ import { ProductItem, HITLPayload } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { AIShopperInputBar } from "./AIShopperInputBar";
 import { SeasonalCategorySection } from "./SeasonalCategorySection";
+import { StackedWardrobeDecks } from "./StackedWardrobeDecks";
 
 export type WardrobeCategory = "TOP" | "BOTTOM" | "SWEATER_OUTERWEAR" | "DRESS" | "SHOES" | "ACCESSORY";
 export type WeatherSuitability = "HOT_SUMMER" | "COLD_WINTER" | "MILD_SPRING_AUTUMN" | "ALL_WEATHER";
@@ -121,7 +122,7 @@ export const WardrobeView: React.FC<WardrobeViewProps> = ({
   onRequestHITLCheckout,
   onAskAI
 }) => {
-  const [activeTab, setActiveTab] = useState<"ALL" | "SEASONAL" | "PHOTO_GALLERY" | "BOOKMARKS" | "LIKED" | "AI_OUTFIT" | "MIX_MATCH" | "SAVED_OUTFITS">("SEASONAL");
+  const [activeTab, setActiveTab] = useState<"STACKED_DECKS" | "ALL" | "SEASONAL" | "PHOTO_GALLERY" | "BOOKMARKS" | "LIKED" | "AI_OUTFIT" | "MIX_MATCH" | "SAVED_OUTFITS">("STACKED_DECKS");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedWeatherFilter, setSelectedWeatherFilter] = useState<string>("ALL");
 
@@ -567,6 +568,7 @@ export const WardrobeView: React.FC<WardrobeViewProps> = ({
       {/* Main Tab Navigation Bar */}
       <div className="flex items-center space-x-2 border-b border-[#d8ebd7] pb-2 overflow-x-auto no-scrollbar">
         {[
+          { id: "STACKED_DECKS", label: "🎴 Stacked Deck Fan-Out Fits", count: allWardrobeItems.length + likedProducts.length },
           { id: "SEASONAL", label: "🌟 Seasonal Collections", count: allWardrobeItems.length },
           { id: "BOOKMARKS", label: "🔖 Saved Catalog Bookmarks", count: bookmarkedWardrobeItems.length },
           { id: "LIKED", label: "❤️ Liked Items", count: likedProducts.length },
@@ -596,6 +598,22 @@ export const WardrobeView: React.FC<WardrobeViewProps> = ({
           </button>
         ))}
       </div>
+
+      {/* ========================================================================= */}
+      {/* TAB 0: STACKED WARDROBE DECKS (JETPACK MOTION FAN-OUT STACKED CARDS) */}
+      {/* ========================================================================= */}
+      {activeTab === "STACKED_DECKS" && (
+        <StackedWardrobeDecks
+          userUploadedItems={userUploadedItems}
+          bookmarkedItems={bookmarkedWardrobeItems}
+          likedProducts={likedProducts}
+          products={products}
+          onSelectTryOn={onSelectTryOn}
+          onRequestHITLCheckout={onRequestHITLCheckout}
+          onOpenUploadModal={() => setShowUploadModal(true)}
+          onSaveFavoriteOutfit={handleSaveFavoriteOutfit}
+        />
+      )}
 
       {/* ========================================================================= */}
       {/* TAB 0: SEASONAL WARDROBE CATEGORIES (REUSABLE COMPONENT) */}

@@ -11,38 +11,143 @@
   --font-mono: 'JetBrains Mono', monospace;
 }
 
-/* Jetpack Compose / Material 3 Dynamic Light & Dark Theme Tokens */
+/* Material 3 Dynamic Light & Dark Theme Tokens & Tonal Elevation */
 :root {
-  --color-brand-primary: #446732;
-  --color-brand-hover: #2d4f1c;
-  --color-brand-light: #c5efab;
-  --color-brand-soft: #f2f5ea;
-  --color-accent-orange: #ff5e1a;
+  /* Default Light Theme Tokens */
+  --md-sys-color-primary: #1e90ff;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #e0f2fe;
+  --md-sys-color-on-primary-container: #0369a1;
+
+  --md-sys-color-secondary: #ff5722;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #ffedd5;
+  --md-sys-color-on-secondary-container: #9a3412;
+
+  --md-sys-color-tertiary: #0284c7;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #e0f2fe;
+  --md-sys-color-on-tertiary-container: #0369a1;
+
+  --md-sys-color-background: #f8fafc;
+  --md-sys-color-on-background: #0f172a;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #0f172a;
+  --md-sys-color-surface-variant: #f1f5f9;
+  --md-sys-color-on-surface-variant: #475569;
+
+  /* Tonal Surface Elevation Levels */
+  --md-sys-color-surface-dim: #f1f5f9;
+  --md-sys-color-surface-bright: #ffffff;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f8fafc;
+  --md-sys-color-surface-container: #f1f5f9;
+  --md-sys-color-surface-container-high: #e2e8f0;
+  --md-sys-color-surface-container-highest: #cbd5e1;
+
+  --md-sys-color-outline: #94a3b8;
+  --md-sys-color-outline-variant: #e2e8f0;
+
+  /* Legacy aliases for backwards compatibility */
+  --color-brand-primary: var(--md-sys-color-primary);
+  --color-brand-hover: #0284c7;
+  --color-brand-light: var(--md-sys-color-primary-container);
+  --color-brand-soft: var(--md-sys-color-surface-container-low);
+  --color-accent-orange: #ff5722;
   --color-accent-orange-hover: #e04e0d;
-  --bg-main: #f8faf0;
-  --bg-surface: #ffffff;
-  --bg-surface-elevated: #edefe5;
-  --border-color: #dfe4d7;
-  --text-primary: #191d16;
-  --text-secondary: #43483e;
+  --bg-main: var(--md-sys-color-background);
+  --bg-surface: var(--md-sys-color-surface-container-lowest);
+  --bg-surface-elevated: var(--md-sys-color-surface-container);
+  --border-color: var(--md-sys-color-outline-variant);
+  --text-primary: var(--md-sys-color-on-surface);
+  --text-secondary: var(--md-sys-color-on-surface-variant);
   --text-active-tab: #ffffff;
 }
 
 .dark {
-  /* Jetpack Compose Material 3 Dark Theme Colors */
-  --color-brand-primary: #a9d291;
-  --color-brand-hover: #c5efab;
-  --color-brand-light: #2d4f1c;
-  --color-brand-soft: #1d211a;
-  --color-accent-orange: #ff6b00;
-  --color-accent-orange-hover: #ff8533;
-  --bg-main: #11140f;
-  --bg-surface: #191d16;
-  --bg-surface-elevated: #282b24;
-  --border-color: #43483e;
-  --text-primary: #e1e4d9;
-  --text-secondary: #c3c8bb;
-  --text-active-tab: #173807;
+  /* Android E-Commerce Spec Dark Theme (#121212 background, #1e1e1e/#242424 cards, #e0e0e0 text, #1e90ff electric blue primary) */
+  --md-sys-color-primary: #1e90ff;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #172554;
+  --md-sys-color-on-primary-container: #bfdbfe;
+
+  --md-sys-color-secondary: #ff5722;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #7c2d12;
+  --md-sys-color-on-secondary-container: #ffedd5;
+
+  --md-sys-color-tertiary: #38bdf8;
+  --md-sys-color-on-tertiary: #0c4a6e;
+  --md-sys-color-tertiary-container: #0369a1;
+  --md-sys-color-on-tertiary-container: #e0f2fe;
+
+  --md-sys-color-background: #121212;
+  --md-sys-color-on-background: #e0e0e0;
+  --md-sys-color-surface: #121212;
+  --md-sys-color-on-surface: #e0e0e0;
+  --md-sys-color-surface-variant: #1e1e1e;
+  --md-sys-color-on-surface-variant: #a0a0a0;
+
+  /* Tonal Surface Elevation Levels (Android E-Commerce Dark Spec) */
+  --md-sys-color-surface-dim: #121212;
+  --md-sys-color-surface-bright: #2c2c2c;
+  --md-sys-color-surface-container-lowest: #181818;
+  --md-sys-color-surface-container-low: #1e1e1e;
+  --md-sys-color-surface-container: #242424;
+  --md-sys-color-surface-container-high: #2c2c2c;
+  --md-sys-color-surface-container-highest: #383838;
+
+  --md-sys-color-outline: #757575;
+  --md-sys-color-outline-variant: #2c2c2c;
+
+  --color-brand-primary: var(--md-sys-color-primary);
+  --color-brand-hover: #60a5fa;
+  --color-brand-light: var(--md-sys-color-primary-container);
+  --color-brand-soft: var(--md-sys-color-surface-container-low);
+  --color-accent-orange: #ff5722;
+  --color-accent-orange-hover: #e04e0d;
+  --bg-main: var(--md-sys-color-background);
+  --bg-surface: var(--md-sys-color-surface-container-low);
+  --bg-surface-elevated: var(--md-sys-color-surface-container-high);
+  --border-color: var(--md-sys-color-outline-variant);
+  --text-primary: var(--md-sys-color-on-surface);
+  --text-secondary: var(--md-sys-color-on-surface-variant);
+  --text-active-tab: #ffffff;
+}
+
+/* Material 3 Tonal Elevation Cards Above Background */
+.md3-card-level-0 {
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.md3-card-level-1 {
+  background-color: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.md3-card-level-2 {
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.08), 0 1px 4px -1px rgba(0, 0, 0, 0.04);
+}
+
+.md3-card-level-3 {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.12), 0 2px 6px -1px rgba(0, 0, 0, 0.07);
+}
+
+.md3-card-level-4 {
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.16), 0 4px 10px -2px rgba(0, 0, 0, 0.1);
 }
 
 body {
@@ -193,3 +298,52 @@ body {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+:root, :host { 
+  --glass-frost: 0.1;
+  --glass-saturation: 1.2;
+  --filter-id: url(#glass-filter-_r_b_);
+}
+
+.liquidglass {
+  position: absolute;
+  z-index: 30;
+  width: 220px;
+  height: 110px;
+  background: hsl(0 0% 0% / var(--glass-frost, 0));
+  -webkit-backdrop-filter: var(--filter-id, url(#glass-filter-_r_b_)) saturate(var(--glass-saturation, 1.2));
+  backdrop-filter: var(--filter-id, url(#glass-filter-_r_b_)) saturate(var(--glass-saturation, 1.2));
+  box-shadow: inset 0 0 2px 1px lab(100% 0 0 / .35), inset 0 0 10px 4px lab(100% 0 0 / .15), inset 0 4px 16px lab(5.32203% 1.61424 -5.88284 / .0509804), inset 0 8px 24px lab(5.32203% 1.61424 -5.88284 / .0509804), inset 0 6px 56px lab(5.32203% 1.61424 -5.88284 / .0509804);
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.glass-surface__filter {
+  pointer-events: none;
+  opacity: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+
+@keyframes liquidGlassEntry {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.animate-liquid-entry {
+  animation: liquidGlassEntry 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+

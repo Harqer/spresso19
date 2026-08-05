@@ -166,7 +166,7 @@ export function GroceryListView({ onAddToCart, onAskAI }: GroceryListViewProps) 
     .reduce((sum, item) => sum + item.estimatedPrice * item.quantity, 0);
 
   return (
-    <div className="w-full max-w-3xl mx-auto bg-white rounded-3xl border border-[#d8ebd7] shadow-xs overflow-hidden font-sans text-[#18211e]">
+    <div className="w-full max-w-3xl mx-auto md3-card-level-2 rounded-3xl overflow-hidden font-sans">
       {/* Header */}
       <div className="p-6 bg-[#f2f8f2] border-b border-[#d8ebd7] flex items-center justify-between">
         <div>
@@ -246,10 +246,10 @@ export function GroceryListView({ onAddToCart, onAskAI }: GroceryListViewProps) 
           filteredItems.map(item => (
             <div
               key={item.id}
-              className={`flex items-center justify-between p-3.5 rounded-2xl border transition ${
+              className={`flex items-center justify-between p-3.5 rounded-2xl transition ${
                 item.checked
-                  ? "bg-[#f8fbf8] border-[#e2eee1] opacity-60"
-                  : "bg-white border-[#d8ebd7] hover:border-[#386633]"
+                  ? "opacity-50 md3-card-level-0"
+                  : "md3-card-level-1 hover:border-[var(--md-sys-color-primary)]"
               }`}
             >
               {/* Checkbox & Details */}

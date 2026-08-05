@@ -30,6 +30,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
   const [tappedPoint, setTappedPoint] = useState<{ x: number; y: number } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [detectedItems, setDetectedItems] = useState<DetectedItem[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [croppedThumbnail, setCroppedThumbnail] = useState<string | null>(null);
   const [hudStatusText, setHudStatusText] = useState<string>("");
   const [addedToListings, setAddedToListings] = useState<boolean>(false);
@@ -100,8 +101,11 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
       const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
       stopCamera();
       setCapturedPhoto(dataUrl);
+
+      // Do NOT auto-select or auto-analyze point. Wait for user tap on photo.
       setTappedPoint(null);
       setDetectedItems([]);
+      setCroppedThumbnail(null);
       setHudStatusText("");
     }
   };
@@ -114,87 +118,18 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
         stopCamera();
         const dataUrl = reader.result as string;
         setCapturedPhoto(dataUrl);
+
+        // Do NOT auto-select or auto-analyze point. Wait for user tap on photo.
         setTappedPoint(null);
         setDetectedItems([]);
+        setCroppedThumbnail(null);
         setHudStatusText("");
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Analysis & Sweep Animation State
-  const sweepCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [isSweeping, setIsSweeping] = useState(false);
-
-  const triggerMaterial3Sweep = (point: { x: number; y: number }) => {
-    setIsSweeping(true);
-    const canvas = sweepCanvasRef.current;
-    if (!canvas) {
-      setTimeout(() => setIsSweeping(false), 700);
-      return;
-    }
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      setTimeout(() => setIsSweeping(false), 700);
-      return;
-    }
-
-    const width = canvas.width || 800;
-    const height = canvas.height || 800;
-    const originX = (point.x / 100) * width;
-    const originY = (point.y / 100) * height;
-
-    let startTime: number | null = null;
-    const duration = 800; // ms
-
-    const animateSweep = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min(1, (timestamp - startTime) / duration);
-
-      ctx.clearRect(0, 0, width, height);
-
-      // Material 3 Radial Ripple Sweep Wave
-      const maxRadius = Math.hypot(width, height);
-      const radius = progress * maxRadius;
-
-      // Draw Material 3 Tonal Ripple Ring
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(originX, originY, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(59, 130, 246, ${1 - progress})`;
-      ctx.lineWidth = 6;
-      ctx.stroke();
-
-      // Soft Tonal Fill Wave
-      const radGrad = ctx.createRadialGradient(originX, originY, 0, originX, originY, radius);
-      radGrad.addColorStop(0, `rgba(59, 130, 246, ${0.3 * (1 - progress)})`);
-      radGrad.addColorStop(0.8, `rgba(56, 102, 51, ${0.15 * (1 - progress)})`);
-      radGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
-      ctx.fillStyle = radGrad;
-      ctx.fill();
-      ctx.restore();
-
-      // Horizontal Material 3 Scan Sweep Line
-      const scanY = progress * height;
-      ctx.save();
-      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
-      ctx.fillRect(0, scanY, width, 2);
-      ctx.restore();
-
-      if (progress < 1) {
-        requestAnimationFrame(animateSweep);
-      } else {
-        ctx.clearRect(0, 0, width, height);
-        setIsSweeping(false);
-      }
-    };
-
-    requestAnimationFrame(animateSweep);
-  };
-
   const handlePhotoInteraction = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    if (!capturedPhoto || isAnalyzing) return;
     const rect = e.currentTarget.getBoundingClientRect();
     let clientX = 0;
     let clientY = 0;
@@ -212,15 +147,36 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
     const x = Math.round(Math.max(5, Math.min(95, ((clientX - rect.left) / rect.width) * 100)));
     const y = Math.round(Math.max(5, Math.min(95, ((clientY - rect.top) / rect.height) * 100)));
 
-    triggerMaterial3Sweep({ x, y });
-    analyzeTappedObject(capturedPhoto, { x, y });
+    const point = { x, y };
+    setTappedPoint(point);
+
+    if (capturedPhoto) {
+      analyzeTappedObject(capturedPhoto, point);
+    }
+  };
+
+  const handleSelectItem = async (index: number) => {
+    setSelectedIndex(index);
+    if (detectedItems[index] && capturedPhoto) {
+      const item = detectedItems[index];
+      if (item.boundingBox) {
+        const [ymin, xmin, ymax, xmax] = item.boundingBox;
+        const centerX = Math.round((xmin + xmax) / 20);
+        const centerY = Math.round((ymin + ymax) / 20);
+        const point = { x: centerX, y: centerY };
+        setTappedPoint(point);
+        const crop = await cropImageSnippet(capturedPhoto, item.boundingBox, point);
+        setCroppedThumbnail(crop);
+      }
+    }
   };
 
   const analyzeTappedObject = async (photoDataUrl: string, point: { x: number; y: number }) => {
     setTappedPoint(point);
     setIsAnalyzing(true);
     setAddedToListings(false);
-    setHudStatusText("Analyzing selected item...");
+    setSelectedIndex(0);
+    setHudStatusText("Analyzing item at selected location...");
 
     try {
       const res = await fetch("/api/vision/identify", {
@@ -229,7 +185,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
         body: JSON.stringify({
           imageBase64: photoDataUrl,
           deviceContext: "MOBILE_CAMERA_OBJECT_DETECTION",
-          promptText: `Analyze object at location X: ${point.x}%, Y: ${point.y}%. CRITICAL: Ignore and exclude the human person/model wearing or holding the item. Focus strictly on the clothing garment, accessory, footwear, or item at this spot for an e-commerce product listing.`
+          promptText: `Analyze object at location X: ${point.x}%, Y: ${point.y}%. CRITICAL: Ignore any person or human model in background. Identify the exact clothing item, footwear, accessory, or object at this specific location for an e-commerce product listing.`
         })
       });
 
@@ -302,24 +258,24 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
         onChange={handleFileUpload}
       />
 
-      <div className="relative w-full max-w-lg h-full sm:h-[88vh] bg-slate-950 text-white rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between border border-white/10">
+      <div className="relative w-full max-w-lg h-full sm:h-[88vh] bg-slate-950 text-white rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between border border-white/15">
         
-        {/* Top Header */}
-        <div className="absolute top-0 inset-x-0 z-40 p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-between">
+        {/* Top Header - Minimal Clean Camera Header */}
+        <div className="absolute top-0 inset-x-0 z-40 p-3.5 bg-black/30 backdrop-blur-md flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <button
               onClick={() => {
                 stopCamera();
                 onClose();
               }}
-              className="p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+              className="p-2 text-white/90 hover:text-white hover:bg-white/15 rounded-full transition cursor-pointer backdrop-blur-md"
               title="Close Camera"
             >
-              <MaterialIcon icon="close" size={24} />
+              <MaterialIcon icon="close" size={22} />
             </button>
             <div className="flex items-center space-x-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-bold text-white tracking-tight">Camera · Object Detection</span>
+              <span className="text-xs font-bold text-white tracking-tight">Camera · Object Detection</span>
             </div>
           </div>
 
@@ -327,16 +283,16 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
             {!capturedPhoto && (
               <button
                 onClick={() => setFacingMode(prev => (prev === "environment" ? "user" : "environment"))}
-                className="p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+                className="p-2 text-white/90 hover:text-white hover:bg-white/15 rounded-full transition cursor-pointer backdrop-blur-md"
                 title="Flip Camera"
               >
-                <MaterialIcon icon="cameraswitch" size={22} />
+                <MaterialIcon icon="cameraswitch" size={20} />
               </button>
             )}
             {capturedPhoto && (
               <button
                 onClick={handleRetake}
-                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-bold rounded-full transition cursor-pointer flex items-center space-x-1"
+                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 text-white text-xs font-bold rounded-full transition cursor-pointer flex items-center space-x-1"
               >
                 <MaterialIcon icon="refresh" size={16} />
                 <span>Retake</span>
@@ -349,7 +305,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
         <div
           onClick={handlePhotoInteraction}
           onTouchStart={handlePhotoInteraction}
-          className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden select-none cursor-crosshair touch-none"
+          className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden select-none cursor-pointer touch-none"
         >
           {/* CAMERA FEED MODE */}
           {!capturedPhoto && (
@@ -378,10 +334,23 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
                     className="w-full h-full object-cover"
                   />
 
+                  {/* ORGANIC LIQUID GLASS MORPH LENS IN LIVE CAMERA */}
+                  {tappedPoint && (
+                    <div
+                      className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 transition-all duration-500 ease-out"
+                      style={{ left: `${tappedPoint.x}%`, top: `${tappedPoint.y}%` }}
+                    >
+                      <div className="relative w-20 h-18 backdrop-blur-2xl bg-white/25 border-2 border-white/90 shadow-[0_0_40px_rgba(255,255,255,0.8)] animate-liquid-morph overflow-hidden">
+                        <div className="absolute top-1 left-2 w-8 h-3 bg-gradient-to-r from-white/90 to-transparent rounded-full blur-[0.5px] rotate-[-25deg]" />
+                        <div className="absolute bottom-2 right-3 w-6 h-2 bg-white/60 rounded-full blur-[1px]" />
+                      </div>
+                    </div>
+                  )}
+
                   {isInitializing && (
                     <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center space-y-3 text-white z-20">
                       <div className="w-9 h-9 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
-                      <span className="text-xs font-medium text-white/80">Initializing Object Detection Camera...</span>
+                      <span className="text-xs font-medium text-white/80">Initializing Camera...</span>
                     </div>
                   )}
                 </>
@@ -391,49 +360,61 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
 
           {/* CAPTURED PICTURE MODE */}
           {capturedPhoto && (
-            <>
+            <div
+              onClick={handlePhotoInteraction}
+              onTouchStart={handlePhotoInteraction}
+              className="relative w-full h-full cursor-pointer overflow-hidden select-none"
+            >
               <img
                 src={capturedPhoto}
                 alt="Captured Object"
-                className="w-full h-full object-contain bg-black"
+                className="w-full h-full object-cover bg-black"
               />
 
-              {/* MATERIAL 3 ANIMATED SWEEP CANVAS OVERLAY */}
-              <canvas
-                ref={sweepCanvasRef}
-                width={800}
-                height={800}
-                className="absolute inset-0 w-full h-full pointer-events-none z-20"
-              />
-
-              {/* INTERACTIVE SOLID BLUE DOT ON TOUCH/CLICK LOCATION */}
+              {/* EXACT LIQUIDGLASS SVG DISPLACEMENT FILTER & GLASS COMPONENT */}
               {tappedPoint && (
                 <div
-                  className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-30 transition-all duration-200"
+                  className="liquidglass animate-liquid-entry -translate-x-1/2 -translate-y-1/2"
                   style={{ left: `${tappedPoint.x}%`, top: `${tappedPoint.y}%` }}
                 >
-                  <div className="w-5 h-5 bg-blue-500 border-2 border-white rounded-full shadow-xl" />
+                  <svg className="glass-surface__filter" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <filter id="glass-filter-_r_b_" colorInterpolationFilters="sRGB" x="0%" y="0%" width="100%" height="100%">
+                        <feImage
+                          x="0"
+                          y="0"
+                          width="100%"
+                          height="100%"
+                          preserveAspectRatio="none"
+                          result="map"
+                          href="data:image/png;base64,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"
+                        />
+                        <feDisplacementMap in="SourceGraphic" in2="map" id="redchannel" result="dispRed" scale="-20" xChannelSelector="R" yChannelSelector="G" />
+                        <feColorMatrix in="dispRed" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="red" />
+                        <feDisplacementMap in="SourceGraphic" in2="map" id="greenchannel" result="dispGreen" scale="-24" xChannelSelector="R" yChannelSelector="G" />
+                        <feColorMatrix in="dispGreen" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="green" />
+                        <feDisplacementMap in="SourceGraphic" in2="map" id="bluechannel" result="dispBlue" scale="-28" xChannelSelector="R" yChannelSelector="G" />
+                        <feColorMatrix in="dispBlue" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="blue" />
+                        <feBlend in="red" in2="green" mode="screen" result="rg" />
+                        <feBlend in="rg" in2="blue" mode="screen" result="output" />
+                        <feGaussianBlur in="output" stdDeviation="3" />
+                      </filter>
+                    </defs>
+                  </svg>
                 </div>
               )}
-
-              {/* Material 3 Progress Sweep Bar */}
-              {isAnalyzing && (
-                <div className="absolute inset-x-0 top-0 z-40 h-1 bg-slate-800 overflow-hidden">
-                  <div className="h-full bg-blue-500 animate-pulse w-full" />
-                </div>
-              )}
-            </>
+            </div>
           )}
         </div>
 
-        {/* Bottom Control / Product Listing Action Card */}
-        <div className="relative z-40 pb-6 pt-4 bg-gradient-to-t from-black via-black/90 to-transparent flex flex-col items-center space-y-3 px-4">
+        {/* Bottom Control / Product Listing Action Card - Cloudy Liquid Glass Bar */}
+        <div className="relative z-40 pb-6 pt-4 bg-slate-950/80 backdrop-blur-2xl border-t border-white/15 flex flex-col items-center space-y-3 px-4">
           {!capturedPhoto ? (
             /* Live Camera Shutter Button */
             <div className="w-full flex items-center justify-between max-w-xs">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-12 h-12 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/30 text-white flex items-center justify-center transition cursor-pointer shadow-md"
+                className="w-12 h-12 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/25 text-white flex items-center justify-center transition cursor-pointer shadow-md backdrop-blur-md"
                 title="Upload Photo"
               >
                 <MaterialIcon icon="photo_library" size={22} />
@@ -442,7 +423,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
               <button
                 onClick={handleSnapPicture}
                 disabled={isInitializing}
-                className="w-20 h-20 rounded-full bg-transparent border-4 border-emerald-400 flex items-center justify-center cursor-pointer transition transform active:scale-90 shadow-2xl group"
+                className="w-20 h-20 rounded-full bg-white/5 backdrop-blur-md border-4 border-emerald-400 flex items-center justify-center cursor-pointer transition transform active:scale-90 shadow-2xl group"
                 title="Take Picture for Object Detection"
               >
                 <div className="w-16 h-16 rounded-full bg-emerald-400 group-hover:bg-emerald-300 text-black flex items-center justify-center shadow-inner">
@@ -456,17 +437,37 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
             /* Post-Capture Object Detection Results & Listing Card */
             <div className="w-full space-y-3 max-w-md">
               {/* Tap Instruction Pill */}
-              <div className="bg-emerald-950/80 border border-emerald-500/30 px-3.5 py-1.5 rounded-xl text-center text-emerald-200 text-xs font-medium shadow-md">
-                💡 <span className="font-bold">Touch or click anywhere</span> on clothing/item in photo to move blue dot & isolate product.
+              <div className="bg-emerald-950/60 backdrop-blur-md border border-emerald-500/30 px-3.5 py-1.5 rounded-xl text-center text-emerald-200 text-xs font-medium shadow-md">
+                💡 <span className="font-bold">Touch or click anywhere</span> on clothing/item in photo to isolate product.
               </div>
 
+              {/* Multiple Item Selector Tabs if more than 1 item */}
+              {detectedItems.length > 1 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                  {detectedItems.map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSelectItem(idx)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition shrink-0 cursor-pointer ${
+                        idx === selectedIndex
+                          ? "bg-emerald-500 text-black shadow-md"
+                          : "bg-white/10 text-white hover:bg-white/20 border border-white/15"
+                      }`}
+                    >
+                      {item.detectedName}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Detected Item Card */}
-              {detectedItems.length > 0 && (
-                <div className="bg-slate-900/95 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-white shadow-2xl space-y-3 animate-fade-in">
+              {detectedItems.length > 0 && detectedItems[selectedIndex] && (
+                <div className="bg-slate-900/80 backdrop-blur-xl p-4 rounded-3xl border border-white/20 text-white shadow-2xl space-y-3 animate-fade-in relative overflow-hidden">
+                  <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent" />
                   <div className="flex items-start gap-3">
                     {/* Mini Cropped Image Thumbnail Preview */}
                     {(croppedThumbnail || capturedPhoto) && (
-                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 border-emerald-400 shadow-lg bg-black shrink-0">
+                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-emerald-400 shadow-lg bg-black shrink-0">
                         <img
                           src={croppedThumbnail || capturedPhoto!}
                           alt="Isolated Item Snippet"
@@ -480,24 +481,24 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <span className="px-2 py-0.5 bg-blue-500 text-white text-[10px] font-extrabold rounded-md uppercase tracking-wider">
+                        <span className="px-2 py-0.5 bg-blue-500/90 backdrop-blur-md text-white text-[10px] font-extrabold rounded-md uppercase tracking-wider border border-blue-400/30">
                           Product Isolated
                         </span>
                         <span className="text-[11px] text-emerald-400 font-mono font-bold">
-                          98% MATCH
+                          {Math.round((detectedItems[selectedIndex].confidenceScore || 0.95) * 100)}% MATCH
                         </span>
                       </div>
                       <h3 className="text-sm font-bold text-white mt-1 truncate">
-                        {detectedItems[0].detectedName}
+                        {detectedItems[selectedIndex].detectedName}
                       </h3>
                       <p className="text-xs text-slate-300 mt-0.5 truncate">
-                        Brand: <span className="font-semibold text-white">{detectedItems[0].brandGuess || "Spresso Item"}</span> · Category: {detectedItems[0].category}
+                        Brand: <span className="font-semibold text-white">{detectedItems[selectedIndex].brandGuess || "Spresso Item"}</span> · Category: {detectedItems[selectedIndex].category}
                       </p>
                     </div>
 
                     <div className="text-right shrink-0">
                       <span className="text-base font-extrabold text-emerald-400 block">
-                        ${(detectedItems[0].priceEstimate && detectedItems[0].priceEstimate > 0 ? detectedItems[0].priceEstimate : 95).toFixed(2)}
+                        ${(detectedItems[selectedIndex].priceEstimate && detectedItems[selectedIndex].priceEstimate > 0 ? detectedItems[selectedIndex].priceEstimate : 95).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -505,7 +506,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
                   {/* Actions */}
                   <div className="flex items-center gap-2 pt-1">
                     <button
-                      onClick={() => handleCreateListing(detectedItems[0])}
+                      onClick={() => handleCreateListing(detectedItems[selectedIndex])}
                       disabled={addedToListings}
                       className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-md ${
                         addedToListings
@@ -520,14 +521,15 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
                     {onSelectTryOn && (
                       <button
                         onClick={() => {
+                          const activeItem = detectedItems[selectedIndex];
                           onSelectTryOn({
-                            id: detectedItems[0].matchingCatalogId || `prod-custom-${Date.now()}`,
-                            name: detectedItems[0].detectedName,
-                            brand: detectedItems[0].brandGuess || "Spresso",
-                            price: detectedItems[0].priceEstimate && detectedItems[0].priceEstimate > 0 ? detectedItems[0].priceEstimate : 95,
+                            id: activeItem.matchingCatalogId || `prod-custom-${Date.now()}`,
+                            name: activeItem.detectedName,
+                            brand: activeItem.brandGuess || "Spresso",
+                            price: activeItem.priceEstimate && activeItem.priceEstimate > 0 ? activeItem.priceEstimate : 95,
                             currency: "USD",
-                            category: detectedItems[0].category || "Fashion",
-                            description: detectedItems[0].detectedName,
+                            category: activeItem.category || "Fashion",
+                            description: activeItem.detectedName,
                             image: croppedThumbnail || capturedPhoto || "",
                             stock: 10,
                             sku: `SCAN-${Math.floor(1000 + Math.random() * 9000)}`,
