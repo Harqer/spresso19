@@ -14,6 +14,7 @@ import { CartDrawer } from "./components/CartDrawer";
 import { LocationPermissionModal } from "./components/LocationPermissionModal";
 import { ProductDetailsModal } from "./components/ProductDetailsModal";
 import { GoogleLensScreenWidgetModal } from "./components/GoogleLensScreenWidgetModal";
+import { GamifiedOnboardingModal } from "./components/GamifiedOnboardingModal";
 import { SpressoLogo } from "./components/SpressoLogo";
 import { MaterialIcon } from "./components/MaterialIcon";
 import { AuthScreen } from "./components/AuthScreen";
@@ -67,6 +68,17 @@ export default function App() {
   const [userLatLng, setUserLatLng] = useState<{ latitude: number; longitude: number } | null>(null);
   const [searchRadius, setSearchRadius] = useState<number>(25);
   const [locationModalOpen, setLocationModalOpen] = useState<boolean>(false);
+  const [onboardingOpen, setOnboardingOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const isCompleted = localStorage.getItem("spresso_onboarding_completed");
+    if (!isCompleted) {
+      const timer = setTimeout(() => {
+        setOnboardingOpen(true);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const [tryOnProduct, setTryOnProduct] = useState<ProductItem | null>(null);
   const [showcaseProduct, setShowcaseProduct] = useState<ProductItem | null>(null);
@@ -262,6 +274,17 @@ export default function App() {
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* Gamified Onboarding Intro Tour Replay Button */}
+            <button
+              onClick={() => setOnboardingOpen(true)}
+              className="p-2.5 rounded-xl bg-gradient-to-r from-[#446732] to-[#385428] dark:from-[#a9d291] dark:to-[#8dbf72] text-white dark:text-[#173807] font-bold text-xs hover:opacity-90 transition cursor-pointer flex items-center space-x-1.5 shadow-xs border border-[#446732]/30 dark:border-[#a9d291]/30"
+              title="Start Gamified App Tour & Intro"
+              aria-label="Start Gamified App Tour & Intro"
+            >
+              <MaterialIcon icon="rocket_launch" size={18} />
+              <span className="hidden sm:inline font-mono">Intro Tour</span>
+            </button>
+
             {/* Theme Toggle Button (Jetpack Compose Material 3 standard: Light / Dark) */}
             <button
               onClick={toggleTheme}
@@ -706,6 +729,20 @@ export default function App() {
           }
         }}
         onRequestHITLCheckout={payload => setHitlPayload(payload)}
+      />
+
+      {/* Gamified Onboarding Experience Modal */}
+      <GamifiedOnboardingModal
+        isOpen={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
+        onComplete={(prefs) => {
+          if (prefs.radius) {
+            setSearchRadius(prefs.radius);
+          }
+          if (prefs.locationEnabled && !userLocation) {
+            setLocationModalOpen(true);
+          }
+        }}
       />
     </div>
   );
