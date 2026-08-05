@@ -47,9 +47,13 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
   const [accessibilityModalProduct, setAccessibilityModalProduct] = useState<ProductItem | null>(null);
   const [genkitModalProduct, setGenkitModalProduct] = useState<ProductItem | null>(null);
+  const [spin360Product, setSpin360Product] = useState<ProductItem | null>(null);
+  const [spin360Angle, setSpin360Angle] = useState<number>(0);
+  const [isAutoSpinning, setIsAutoSpinning] = useState<boolean>(true);
+  const [tiltX, setTiltX] = useState<number>(0);
+  const [tiltY, setTiltY] = useState<number>(0);
+  const [active360AngleIdx, setActive360AngleIdx] = useState<number>(0);
   const [addedToCartId, setAddedToCartId] = useState<string | null>(null);
-  const [active360ProductId, setActive360ProductId] = useState<string | null>(null);
-  const [rotationAngles, setRotationAngles] = useState<Record<string, number>>({});
   const [bookmarkedIds, setBookmarkedIds] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem("spresso_wardrobe_items");
@@ -75,6 +79,15 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       return next;
     });
   };
+
+  // 360 Auto-Spin Loop Effect
+  useEffect(() => {
+    if (!spin360Product || !isAutoSpinning) return;
+    const interval = setInterval(() => {
+      setSpin360Angle(prev => (prev + 1.5) % 360);
+    }, 30);
+    return () => clearInterval(interval);
+  }, [spin360Product, isAutoSpinning]);
 
   // Fetch live web search research feed grounded by Gemini
   const fetchPersonalizedFeed = async (cat: string) => {
@@ -253,11 +266,6 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                     src={product.image}
                     alt={product.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    style={
-                      active360ProductId === product.id
-                        ? { transform: `rotateY(${rotationAngles[product.id] || 0}deg)` }
-                        : undefined
-                    }
                   />
 
                   {/* Bookmark/Save to Wardrobe Button */}
@@ -293,43 +301,20 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
                   {/* 360° Button on the Right Side of the Product Image */}
                   <button
-                    onClick={() =>
-                      setActive360ProductId(prev => (prev === product.id ? null : product.id))
-                    }
-                    className={`absolute bottom-3 right-3 px-2.5 py-1.5 rounded-full border backdrop-blur-md transition cursor-pointer flex items-center space-x-1 shadow-sm font-mono text-[10px] font-bold ${
-                      active360ProductId === product.id
-                        ? "bg-[#386633] text-white border-[#386633]"
-                        : "bg-white/90 text-[#18211e] border-[#d8ebd7] hover:bg-[#e8f3e8]"
-                    }`}
-                    title="360° Interactive Product View"
+                    onClick={() => {
+                      setSpin360Product(product);
+                      setSpin360Angle(0);
+                      setIsAutoSpinning(true);
+                      setTiltX(0);
+                      setTiltY(0);
+                      setActive360AngleIdx(0);
+                    }}
+                    className="absolute bottom-3 right-3 px-2.5 py-1.5 rounded-full border bg-white/90 text-[#18211e] border-[#d8ebd7] hover:bg-[#e8f3e8] hover:scale-105 backdrop-blur-md transition cursor-pointer flex items-center space-x-1 shadow-sm font-mono text-[10px] font-bold"
+                    title="Open 3D Parallax 360° Cinematic Spin"
                   >
-                    <MaterialIcon icon="360" size={16} />
-                    <span>360°</span>
+                    <MaterialIcon icon="360" size={16} className="text-[#386633]" />
+                    <span>360° Spin</span>
                   </button>
-
-                  {/* 360 Rotation Control Overlay when Active */}
-                  {active360ProductId === product.id && (
-                    <div className="absolute inset-x-2 bottom-12 bg-white/95 backdrop-blur-md border border-[#d8ebd7] rounded-xl p-2 space-y-1 shadow-md z-10 animate-fadeIn">
-                      <div className="flex justify-between items-center text-[10px] font-mono text-[#386633] font-bold">
-                        <span className="flex items-center space-x-1">
-                          <MaterialIcon icon="360" size={14} />
-                          <span>360° Rotate Product</span>
-                        </span>
-                        <span>{rotationAngles[product.id] || 0}°</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="-180"
-                        max="180"
-                        value={rotationAngles[product.id] || 0}
-                        onChange={e => {
-                          const val = Number(e.target.value);
-                          setRotationAngles(prev => ({ ...prev, [product.id]: val }));
-                        }}
-                        className="w-full accent-[#386633] cursor-pointer"
-                      />
-                    </div>
-                  )}
                 </div>
 
                 {/* Info Body */}
@@ -485,6 +470,197 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             >
               Done
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 360 Cinematic Parallax Spin Modal */}
+      {spin360Product && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-gradient-to-b from-stone-900 via-stone-950 to-black text-white rounded-3xl border border-stone-800 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl my-auto">
+            
+            {/* Header */}
+            <div className="p-5 border-b border-stone-800 flex items-center justify-between bg-stone-900/50">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#386633] text-white flex items-center justify-center shadow-lg">
+                  <MaterialIcon icon="360" size={22} />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h2 className="font-bold text-base text-white">{spin360Product.name}</h2>
+                    <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold rounded-full">
+                      GenKit 3D Spin
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-400">
+                    {spin360Product.brand} · ${spin360Product.price.toFixed(2)} · Cinematic Parallax View
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSpin360Product(null)}
+                className="w-9 h-9 rounded-full bg-stone-800 border border-stone-700 hover:bg-stone-700 text-stone-300 flex items-center justify-center transition cursor-pointer"
+              >
+                <MaterialIcon icon="close" size={18} />
+              </button>
+            </div>
+
+            {/* 3D Stage Area */}
+            <div
+              className="relative flex-1 min-h-[340px] flex items-center justify-center p-8 bg-gradient-to-b from-stone-950 via-black to-stone-950 overflow-hidden cursor-grab active:cursor-grabbing select-none"
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width - 0.5;
+                const y = (e.clientY - rect.top) / rect.height - 0.5;
+                setTiltX(x * 12);
+                setTiltY(-y * 12);
+              }}
+              onMouseLeave={() => {
+                setTiltX(0);
+                setTiltY(0);
+              }}
+            >
+              {/* Background Glow / Studio Light Grid */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,102,51,0.25)_0%,transparent_70%)] pointer-events-none"></div>
+              
+              {/* Parallax Container */}
+              <div
+                className="relative transition-transform duration-75 ease-out max-w-md w-full flex items-center justify-center"
+                style={{
+                  perspective: "1200px",
+                  transformStyle: "preserve-3d"
+                }}
+              >
+                {/* Product Image Layer */}
+                <div
+                  className="relative transition-all duration-100 ease-out flex items-center justify-center"
+                  style={{
+                    transform: `perspective(1000px) rotateY(${spin360Angle}deg) rotateX(${tiltY}deg) rotateZ(${tiltX * 0.3}deg) scale(1.05)`,
+                    filter: "drop-shadow(0 25px 25px rgba(0, 0, 0, 0.7))"
+                  }}
+                >
+                  <img
+                    src={
+                      (spin360Product.genMediaKit?.angles && spin360Product.genMediaKit.angles[active360AngleIdx]) ||
+                      spin360Product.image
+                    }
+                    alt={spin360Product.name}
+                    className="max-h-[320px] object-contain rounded-2xl pointer-events-none"
+                  />
+                  
+                  {/* Glass Light Reflection Layer */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent rounded-2xl pointer-events-none"></div>
+                </div>
+
+                {/* Pedestal Shadow */}
+                <div
+                  className="absolute -bottom-8 w-64 h-8 bg-black/60 rounded-[100%] blur-xl pointer-events-none"
+                  style={{
+                    transform: `scale(${1 + Math.sin((spin360Angle * Math.PI) / 180) * 0.15})`
+                  }}
+                ></div>
+              </div>
+
+              {/* Live Degrees Indicator */}
+              <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-stone-800 rounded-full text-[11px] font-mono text-emerald-400 font-bold flex items-center space-x-1.5">
+                <MaterialIcon icon="360" size={14} />
+                <span>Orbit: {Math.round(spin360Angle)}°</span>
+              </div>
+
+              {/* Interactive Auto-Spin Toggle */}
+              <div className="absolute bottom-4 right-4 flex items-center space-x-2">
+                <button
+                  onClick={() => setIsAutoSpinning(!isAutoSpinning)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-mono font-bold flex items-center space-x-1.5 border transition cursor-pointer ${
+                    isAutoSpinning
+                      ? "bg-emerald-600 text-white border-emerald-500 shadow-md"
+                      : "bg-stone-800 text-stone-300 border-stone-700 hover:bg-stone-700"
+                  }`}
+                >
+                  <MaterialIcon icon={isAutoSpinning ? "pause" : "play_arrow"} size={16} />
+                  <span>{isAutoSpinning ? "Auto Orbit ON" : "Pause Auto Orbit"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Orbit Slider & Studio Angle Presets */}
+            <div className="p-5 bg-stone-900/90 border-t border-stone-800 space-y-4">
+              
+              {/* Slider */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-xs font-mono text-stone-400">
+                  <span>360° Studio Rotation Angle</span>
+                  <span className="text-emerald-400 font-bold">{Math.round(spin360Angle)}°</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="360"
+                  value={spin360Angle}
+                  onChange={(e) => {
+                    setIsAutoSpinning(false);
+                    setSpin360Angle(Number(e.target.value));
+                  }}
+                  className="w-full accent-emerald-500 cursor-pointer"
+                />
+              </div>
+
+              {/* Angle Presets */}
+              <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {[
+                  { label: "Front 0°", angle: 0, idx: 0 },
+                  { label: "Quarter 45°", angle: 45, idx: 1 },
+                  { label: "Profile 90°", angle: 90, idx: 2 },
+                  { label: "Rear 180°", angle: 180, idx: 3 },
+                  { label: "Detail 270°", angle: 270, idx: 4 }
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() => {
+                      setIsAutoSpinning(false);
+                      setSpin360Angle(preset.angle);
+                      setActive360AngleIdx(preset.idx);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold transition flex items-center space-x-1 cursor-pointer whitespace-nowrap ${
+                      Math.abs(spin360Angle - preset.angle) < 15
+                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50"
+                        : "bg-stone-800/80 text-stone-400 border-stone-700/60 hover:text-white hover:bg-stone-800"
+                    }`}
+                  >
+                    <MaterialIcon icon="3d_rotation" size={14} />
+                    <span>{preset.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Footer Actions */}
+              <div className="flex items-center justify-between pt-2 border-t border-stone-800/80 gap-3">
+                <button
+                  onClick={() => {
+                    const prod = spin360Product;
+                    setSpin360Product(null);
+                    if (onSelectTryOn) onSelectTryOn(prod);
+                  }}
+                  className="flex-1 py-3 bg-[#386633] hover:bg-[#2c5227] text-white rounded-2xl font-bold text-xs flex items-center justify-center space-x-2 transition shadow-lg cursor-pointer"
+                >
+                  <MaterialIcon icon="dry_cleaning" size={18} />
+                  <span>Animate (Virtual Try-On)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    onAddToCart(spin360Product);
+                    setSpin360Product(null);
+                  }}
+                  className="px-6 py-3 bg-white hover:bg-stone-100 text-stone-900 rounded-2xl font-bold text-xs flex items-center justify-center space-x-1.5 transition shadow-lg cursor-pointer"
+                >
+                  <MaterialIcon icon="add_shopping_cart" size={18} />
+                  <span>Add to Wardrobe</span>
+                </button>
+              </div>
+
+            </div>
+
           </div>
         </div>
       )}

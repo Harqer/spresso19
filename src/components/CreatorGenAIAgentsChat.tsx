@@ -325,15 +325,26 @@ export const CreatorGenAIAgentsChat: React.FC<CreatorGenAIAgentsChatProps> = ({
     setCustomGenPrompt(chosen.promptExample);
   };
 
-  const handleRunTemplateGeneration = (tmpl?: CreativeTemplate) => {
+  const handleRunTemplateGeneration = async (tmpl?: CreativeTemplate) => {
     const t = tmpl || activeTemplate || CREATIVE_TEMPLATES[0];
     const promptToUse = customGenPrompt.trim() || t.promptExample;
 
     setIsGeneratingMedia(true);
     setGeneratedResult(null);
 
-    // Simulate Genkit image/video synthesis pipeline
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/creator/generate-campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeName: `${userName}'s ${t.name}`,
+          category: t.category,
+          productFeatures: promptToUse,
+          targetAudience: "E-Commerce Shoppers & Fashion Creators"
+        })
+      });
+      const data = await res.json();
+      
       const imagesList = [
         "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
         "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80",
@@ -343,14 +354,26 @@ export const CreatorGenAIAgentsChat: React.FC<CreatorGenAIAgentsChatProps> = ({
       ];
       const randomImg = imagesList[Math.floor(Math.random() * imagesList.length)];
 
+      const campaignTitle = data.campaign?.marketingCampaign?.campaignTitle || `GenKit Campaign for ${t.name}`;
+      const socialCopy = data.campaign?.marketingCampaign?.socialCopy || `Genkit 60fps dynamic video render applied using reference template [${t.name}] by ${t.creator}.`;
+
       setGeneratedResult({
         prompt: promptToUse,
         templateName: t.name,
         imageUrl: randomImg,
+        videoConcept: `${campaignTitle}: ${socialCopy}`
+      });
+    } catch (err) {
+      console.warn("Template generation error:", err);
+      setGeneratedResult({
+        prompt: promptToUse,
+        templateName: t.name,
+        imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
         videoConcept: `Genkit 60fps dynamic video render applied using reference template [${t.name}] by ${t.creator}. Applied style transfer, camera orbits and raytraced lighting.`
       });
+    } finally {
       setIsGeneratingMedia(false);
-    }, 1800);
+    }
   };
 
   const filteredTemplates = CREATIVE_TEMPLATES.filter(tmpl => {

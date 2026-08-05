@@ -415,7 +415,7 @@ router.post("/api/try-on", async (req, res) => {
 router.post("/api/vitpose/extract-keypoints", async (req, res) => {
   try {
     const { userImageBase64 } = req.body;
-    const vitposeData = extractViTPoseKeypoints(userImageBase64);
+    const vitposeData = await extractViTPoseKeypoints(userImageBase64);
     res.json({ success: true, ...vitposeData });
   } catch (err: any) {
     res.json({ success: false, error: err.message });

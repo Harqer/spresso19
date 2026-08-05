@@ -101,19 +101,43 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   const runTryOnAnalysis = async (mediaType: "image" | "video" = selectedMediaType) => {
     setIsProcessing(true);
     try {
-      const res = await fetch("/api/try-on", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId: product.id,
-          userPhotoBase64: customAvatar || selectedAvatar.url,
-          customNotes: `Render in ${selectedBg.name} using ${selectedAnimation.name}`,
-          mediaType
-        })
-      });
-      const data = await res.json();
+      const [resTryOn, resVitpose] = await Promise.all([
+        fetch("/api/try-on", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productId: product.id,
+            userPhotoBase64: customAvatar || selectedAvatar.url,
+            customNotes: `Render in ${selectedBg.name} using ${selectedAnimation.name}`,
+            mediaType
+          })
+        }),
+        fetch("/api/vitpose/orchestrate-fit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userImageBase64: customAvatar || selectedAvatar.url,
+            desiredFitStyle: selectedAnimation.name,
+            preferredCategory: product.category
+          })
+        }).catch(() => null)
+      ]);
+
+      const data = await resTryOn.json();
+      let fitReason = "";
+      if (resVitpose && resVitpose.ok) {
+        const vitData = await resVitpose.json();
+        if (vitData.orchestratorOutput?.fitAnalysis) {
+          fitReason = vitData.orchestratorOutput.fitAnalysis;
+        }
+      }
+
       if (data.tryOnMeta) {
-        setTryOnMeta(prev => ({ ...prev, ...data.tryOnMeta }));
+        setTryOnMeta(prev => ({
+          ...prev,
+          ...data.tryOnMeta,
+          ...(fitReason ? { styleMatchAnalysis: `${data.tryOnMeta.styleMatchAnalysis} ViTPose Dimensions: ${fitReason}` } : {})
+        }));
       }
     } catch {
       // Fallback
