@@ -26,25 +26,54 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [pendingChatQuery, setPendingChatQuery] = useState<{ query: string; image?: string | null } | null>(null);
 
-  // Dynamic Light / Dark Theme State (Jetpack Compose Material 3 standard)
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem("spresso_theme");
-    return (saved === "light" || saved === "dark") ? saved : "dark";
+  // Dynamic Light / Dark / System Theme State (Jetpack Compose Material 3 standard: Light, Dark, System default)
+  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>(() => {
+    const saved = localStorage.getItem("spresso_theme_mode");
+    if (saved === "light" || saved === "dark" || saved === "system") return saved;
+    return "system";
   });
 
   useEffect(() => {
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-      document.body.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      document.body.classList.remove("dark");
-    }
-    localStorage.setItem("spresso_theme", theme);
-  }, [theme]);
+    const applyTheme = () => {
+      let isDark = false;
+      if (themeMode === "dark") {
+        isDark = true;
+      } else if (themeMode === "light") {
+        isDark = false;
+      } else {
+        // System default (MODE_NIGHT_FOLLOW_SYSTEM)
+        isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      }
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === "dark" ? "light" : "dark");
+      if (isDark) {
+        document.documentElement.classList.add("dark");
+        document.body.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.body.classList.remove("dark");
+      }
+    };
+
+    applyTheme();
+    localStorage.setItem("spresso_theme_mode", themeMode);
+
+    // Listen to system theme changes if set to system
+    if (themeMode === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const listener = () => applyTheme();
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener("change", listener);
+        return () => mediaQuery.removeEventListener("change", listener);
+      }
+    }
+  }, [themeMode]);
+
+  const cycleThemeMode = () => {
+    setThemeMode(prev => {
+      if (prev === "system") return "light";
+      if (prev === "light") return "dark";
+      return "system";
+    });
   };
 
   const handleAskAI = (query: string, image?: string | null) => {
@@ -260,14 +289,29 @@ export default function App() {
           </div>
 
           <div className="flex items-center space-x-2">
-            {/* Theme Toggle Button (Light / Dark Mode - Jetpack Compose M3 standard) */}
+            {/* Theme Toggle Button (Jetpack Compose Material 3 standard: Light, Dark, System default) */}
             <button
-              onClick={toggleTheme}
+              onClick={cycleThemeMode}
               className="p-2.5 rounded-xl bg-white dark:bg-[#0d1813] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] text-[#386633] dark:text-[#ff6b00] transition cursor-pointer flex items-center justify-center shadow-xs"
-              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+              title={`Theme: ${
+                themeMode === 'system'
+                  ? 'System Default (Click for Light)'
+                  : themeMode === 'light'
+                  ? 'Light Mode (Click for Dark)'
+                  : 'Dark Mode (Click for System Default)'
+              }`}
               aria-label="Toggle Theme Mode"
             >
-              <MaterialIcon icon={theme === 'dark' ? "light_mode" : "dark_mode"} size={20} />
+              <MaterialIcon
+                icon={
+                  themeMode === 'system'
+                    ? "brightness_auto"
+                    : themeMode === 'light'
+                    ? "light_mode"
+                    : "dark_mode"
+                }
+                size={20}
+              />
             </button>
 
             <button
