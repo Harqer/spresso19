@@ -274,21 +274,10 @@ export default function App() {
           </div>
 
           <div className="flex items-center space-x-2">
-            {/* Gamified Onboarding Intro Tour Replay Button */}
-            <button
-              onClick={() => setOnboardingOpen(true)}
-              className="p-2.5 rounded-xl bg-gradient-to-r from-[#446732] to-[#385428] dark:from-[#a9d291] dark:to-[#8dbf72] text-white dark:text-[#173807] font-bold text-xs hover:opacity-90 transition cursor-pointer flex items-center space-x-1.5 shadow-xs border border-[#446732]/30 dark:border-[#a9d291]/30"
-              title="Start Gamified App Tour & Intro"
-              aria-label="Start Gamified App Tour & Intro"
-            >
-              <MaterialIcon icon="rocket_launch" size={18} />
-              <span className="hidden sm:inline font-mono">Intro Tour</span>
-            </button>
-
-            {/* Theme Toggle Button (Jetpack Compose Material 3 standard: Light / Dark) */}
+            {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-xl bg-white dark:bg-[#191d16] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] text-[#446732] dark:text-[#a9d291] transition cursor-pointer flex items-center justify-center shadow-xs border border-[#dfe4d7] dark:border-[#43483e]"
+              className="p-2.5 rounded-xl hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] text-[#446732] dark:text-[#a9d291] transition cursor-pointer flex items-center justify-center"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label="Toggle Theme Mode"
             >
@@ -298,33 +287,20 @@ export default function App() {
               />
             </button>
 
+            {/* Location & Search Radius Icon Button */}
             <button
               onClick={() => setLocationModalOpen(prev => !prev)}
-              className={`rounded-xl border transition cursor-pointer flex items-center space-x-1.5 px-3 py-1.5 shadow-xs ${
-                userLocation
-                  ? "bg-white dark:bg-[#191d16] border-[#446732]/40 dark:border-[#43483e] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] text-[#191d16] dark:text-[#e1e4d9]"
-                  : "bg-[#c5efab] dark:bg-[#2d4f1c] border-[#446732]/60 dark:border-[#a9d291]/60 hover:bg-[#446732] dark:hover:bg-[#a9d291] hover:text-white dark:hover:text-[#173807] text-[#173807] dark:text-[#c5efab] font-bold"
-              }`}
-              title={userLocation ? `Click to adjust location & ${searchRadius}-mile search radius` : "Set location and search radius"}
+              className="relative p-2.5 rounded-xl hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] text-[#446732] dark:text-[#a9d291] transition cursor-pointer flex items-center justify-center"
+              title={userLocation ? `Location: ${userLocation} (${searchRadius} mi)` : "Set location and search radius"}
+              aria-label="Set Location and Radius"
             >
-              <MaterialIcon icon="location_on" size={18} className="text-[#446732] dark:text-[#a9d291] shrink-0" />
-              <div className="flex items-center space-x-1 text-xs font-semibold">
-                <span className="max-w-[120px] truncate">
-                  {(() => {
-                    if (!userLocation) return "Set Location";
-                    if (userLocation.includes("Lat ") || userLocation.match(/Near\s+-?\d+\.\d+/i) || userLocation.match(/-?\d+\.\d+,\s*-?\d+\.\d+/)) {
-                      if (userLocation.includes("San Francisco")) return "San Francisco";
-                      return "Near Me";
-                    }
-                    return userLocation;
-                  })()}
-                </span>
-                <span className="text-[11px] font-bold text-[#446732] dark:text-[#a9d291] bg-[#e8f3e8] dark:bg-[#2d4f1c] px-1.5 py-0.5 rounded-md border border-[#dfe4d7] dark:border-[#43483e] font-mono">
-                  {searchRadius}m
-                </span>
-              </div>
+              <MaterialIcon icon="location_on" size={20} />
+              {userLocation && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#446732] dark:bg-[#a9d291]" />
+              )}
             </button>
 
+            {/* Shopping Cart Button */}
             <button
               onClick={() => setCartDrawerOpen(true)}
               className="relative p-2.5 rounded-xl bg-white dark:bg-[#191d16] border border-[#446732]/30 dark:border-[#43483e] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] text-[#191d16] dark:text-[#e1e4d9] transition cursor-pointer flex items-center justify-center shadow-xs"
@@ -338,26 +314,6 @@ export default function App() {
                 </span>
               )}
             </button>
-
-            {user && (
-              <div className="flex items-center space-x-2 pl-1">
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="User" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full border border-[#446732]/30 dark:border-[#43483e] object-cover" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] font-mono text-xs font-bold flex items-center justify-center shadow-xs">
-                    {(user.displayName || user.email || "U").charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <button
-                  onClick={() => logoutUser()}
-                  className="p-1.5 text-[#43483e] dark:text-[#c3c8bb] hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition cursor-pointer flex items-center justify-center"
-                  title="Sign Out"
-                  aria-label="Sign Out"
-                >
-                  <MaterialIcon icon="logout" size={18} />
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </header>

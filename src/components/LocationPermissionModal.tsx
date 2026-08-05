@@ -97,17 +97,17 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
               animate={{ opacity: 1, scale: 1, y: 0, transformOrigin: "top right" }}
               exit={{ opacity: 0, scale: 0.75, y: -25, transformOrigin: "top right" }}
               transition={{ type: "spring", stiffness: 380, damping: 28 }}
-              className="pointer-events-auto bg-white rounded-3xl w-[92vw] max-w-sm shadow-2xl border border-[#d8ebd7] overflow-hidden flex flex-col"
+              className="pointer-events-auto bg-white dark:bg-[#191d16] rounded-3xl w-[92vw] max-w-sm shadow-2xl border border-[#d8ebd7] dark:border-[#43483e] overflow-hidden flex flex-col text-[#191d16] dark:text-[#e1e4d9]"
             >
               {/* Header */}
-              <div className="relative bg-[#f2f8f2] p-4 border-b border-[#d8ebd7] flex items-center justify-between">
+              <div className="relative bg-[#f2f8f2] dark:bg-[#20251c] p-4 border-b border-[#d8ebd7] dark:border-[#43483e] flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-[#386633] text-white flex items-center justify-center shadow-xs">
+                  <div className="w-8 h-8 rounded-full bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] flex items-center justify-center shadow-xs">
                     <MaterialIcon icon="near_me" size={18} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#18211e]">Location & Deal Radius</h3>
-                    <p className="text-[11px] text-[#5e635f] font-medium">
+                    <h3 className="text-sm font-bold text-[#18211e] dark:text-[#e1e4d9]">Location & Search Radius</h3>
+                    <p className="text-[11px] text-[#5e635f] dark:text-[#c3c8bb] font-medium">
                       {userLocation ? `${userLocation} · ${selectedRadius} mi` : "Set your local deal area"}
                     </p>
                   </div>
@@ -115,7 +115,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
 
                 <button
                   onClick={onClose}
-                  className="p-1.5 rounded-full hover:bg-white text-[#5e635f] hover:text-[#18211e] transition cursor-pointer"
+                  className="p-1.5 rounded-full hover:bg-white dark:hover:bg-[#282b24] text-[#5e635f] dark:text-[#c3c8bb] hover:text-[#18211e] dark:hover:text-white transition cursor-pointer"
                   title="Close radius menu"
                 >
                   <MaterialIcon icon="close" size={18} />
@@ -125,13 +125,13 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
               {/* Popover Body */}
               <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
                 {/* Search Radius Controls */}
-                <div className="bg-[#f9fbf9] p-3.5 rounded-2xl border border-[#e2f0e1] space-y-3">
+                <div className="bg-[#f9fbf9] dark:bg-[#20251c] p-3.5 rounded-2xl border border-[#e2f0e1] dark:border-[#43483e] space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1.5 text-xs font-bold text-[#18211e]">
-                      <MaterialIcon icon="radar" size={16} className="text-[#386633]" />
+                    <div className="flex items-center space-x-1.5 text-xs font-bold text-[#18211e] dark:text-[#e1e4d9]">
+                      <MaterialIcon icon="radar" size={16} className="text-[#446732] dark:text-[#a9d291]" />
                       <span>Search Area Radius</span>
                     </div>
-                    <span className="text-xs font-extrabold text-white bg-[#386633] px-2.5 py-0.5 rounded-full font-mono shadow-xs">
+                    <span className="text-xs font-extrabold text-white dark:text-[#173807] bg-[#446732] dark:bg-[#a9d291] px-2.5 py-0.5 rounded-full font-mono shadow-xs">
                       {selectedRadius} miles
                     </span>
                   </div>
@@ -145,9 +145,9 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                       step="5"
                       value={selectedRadius}
                       onChange={(e) => setSelectedRadius(parseInt(e.target.value, 10))}
-                      className="w-full accent-[#386633] cursor-pointer h-2 bg-[#d8ebd7] rounded-lg appearance-none"
+                      className="w-full accent-[#446732] dark:accent-[#a9d291] cursor-pointer h-2 bg-[#d8ebd7] dark:bg-[#343a2d] rounded-lg appearance-none"
                     />
-                    <div className="flex justify-between text-[10px] font-semibold text-[#5e635f]">
+                    <div className="flex justify-between text-[10px] font-semibold text-[#5e635f] dark:text-[#c3c8bb]">
                       <span>5 mi (Nearby)</span>
                       <span>50 mi (Outlets)</span>
                       <span>150 mi (Regional)</span>
@@ -165,8 +165,8 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                           onClick={() => setSelectedRadius(preset.value)}
                           className={`py-1.5 rounded-xl text-[11px] font-bold transition text-center cursor-pointer border ${
                             isSelected
-                              ? "bg-[#386633] text-white border-[#386633] shadow-xs"
-                              : "bg-white text-[#18211e] border-[#d8ebd7] hover:bg-[#e8f3e8]"
+                              ? "bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] border-[#446732] dark:border-[#a9d291] shadow-xs"
+                              : "bg-white dark:bg-[#282b24] text-[#18211e] dark:text-[#c3c8bb] border-[#d8ebd7] dark:border-[#43483e] hover:bg-[#e8f3e8] dark:hover:bg-[#343a2d]"
                           }`}
                         >
                           {preset.label}
@@ -175,7 +175,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                     })}
                   </div>
 
-                  <p className="text-[11px] text-[#2c5227] leading-tight pt-0.5">
+                  <p className="text-[11px] text-[#446732] dark:text-[#a9d291] leading-tight pt-0.5">
                     {selectedRadius >= 25
                       ? `Searching ${selectedRadius} miles captures deals across regional outlets & major stores.`
                       : `Searching ${selectedRadius} miles strictly focuses on immediate local store stock.`}
@@ -183,7 +183,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                 </div>
 
                 {errorMsg && (
-                  <div className="p-2.5 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200">
+                  <div className="p-2.5 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 text-xs rounded-xl border border-red-200 dark:border-red-900">
                     {errorMsg}
                   </div>
                 )}
@@ -192,13 +192,13 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                 {manualMode ? (
                   <form onSubmit={handleManualSubmit} className="space-y-2.5">
                     <div>
-                      <label className="block text-xs font-bold text-[#18211e] mb-1">City, State or ZIP Code</label>
+                      <label className="block text-xs font-bold text-[#18211e] dark:text-[#e1e4d9] mb-1">City, State or ZIP Code</label>
                       <input
                         type="text"
                         value={manualInput}
                         onChange={(e) => setManualInput(e.target.value)}
                         placeholder="e.g. San Francisco, CA or 94103"
-                        className="w-full px-3 py-2 rounded-xl border border-[#b0d4af] text-xs focus:outline-none focus:border-[#386633] bg-white text-[#18211e]"
+                        className="w-full px-3 py-2 rounded-xl border border-[#b0d4af] dark:border-[#43483e] text-xs focus:outline-none focus:border-[#446732] dark:focus:border-[#a9d291] bg-white dark:bg-[#282b24] text-[#18211e] dark:text-[#e1e4d9]"
                         autoFocus
                       />
                     </div>
@@ -207,14 +207,14 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                       <button
                         type="button"
                         onClick={() => setManualMode(false)}
-                        className="flex-1 py-2 rounded-xl border border-[#b0d4af] text-xs font-bold text-[#18211e] hover:bg-[#e8f3e8] transition cursor-pointer"
+                        className="flex-1 py-2 rounded-xl border border-[#b0d4af] dark:border-[#43483e] text-xs font-bold text-[#18211e] dark:text-[#e1e4d9] hover:bg-[#e8f3e8] dark:hover:bg-[#282b24] transition cursor-pointer"
                       >
                         Back
                       </button>
                       <button
                         type="submit"
                         disabled={!manualInput.trim()}
-                        className="flex-1 py-2 rounded-xl bg-[#386633] text-white text-xs font-bold hover:bg-[#2c5227] transition disabled:opacity-50 cursor-pointer shadow-xs"
+                        className="flex-1 py-2 rounded-xl bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#173807] text-xs font-bold hover:bg-[#385428] dark:hover:bg-[#96c47c] transition disabled:opacity-50 cursor-pointer shadow-xs"
                       >
                         Save Location
                       </button>
@@ -225,7 +225,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                     <button
                       onClick={handleRequestGeolocation}
                       disabled={loading}
-                      className="w-full py-2.5 bg-[#386633] hover:bg-[#2c5227] text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center space-x-2 cursor-pointer"
+                      className="w-full py-2.5 bg-[#446732] dark:bg-[#a9d291] hover:bg-[#385428] dark:hover:bg-[#96c47c] text-white dark:text-[#173807] font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center space-x-2 cursor-pointer"
                     >
                       {loading ? (
                         <>
@@ -243,9 +243,9 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                     <button
                       type="button"
                       onClick={() => setManualMode(true)}
-                      className="w-full py-2 bg-white hover:bg-[#f2f8f2] text-[#18211e] border border-[#d8ebd7] font-semibold text-xs rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                      className="w-full py-2 bg-white dark:bg-[#282b24] hover:bg-[#f2f8f2] dark:hover:bg-[#343a2d] text-[#18211e] dark:text-[#e1e4d9] border border-[#d8ebd7] dark:border-[#43483e] font-semibold text-xs rounded-xl transition flex items-center justify-center space-x-1.5 cursor-pointer"
                     >
-                      <MaterialIcon icon="edit_location" size={15} className="text-[#386633]" />
+                      <MaterialIcon icon="edit_location" size={15} className="text-[#446732] dark:text-[#a9d291]" />
                       <span>{userLocation ? `Change City (${userLocation})` : "Enter City or ZIP"}</span>
                     </button>
                   </div>
@@ -255,10 +255,10 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                 <button
                   type="button"
                   onClick={handleApplyRadiusAndClose}
-                  className="w-full py-2.5 bg-[#18211e] hover:bg-[#2c3832] text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer flex items-center justify-center space-x-1.5"
+                  className="w-full py-2.5 bg-[#18211e] dark:bg-[#446732] hover:bg-[#2c3832] dark:hover:bg-[#385428] text-white font-bold text-xs rounded-xl transition shadow-sm cursor-pointer flex items-center justify-center space-x-1.5"
                 >
-                  <MaterialIcon icon="check_circle" size={16} className="text-emerald-400" />
-                  <span>Apply & Collapse to Top Right</span>
+                  <MaterialIcon icon="check_circle" size={16} className="text-emerald-400 dark:text-[#a9d291]" />
+                  <span>Apply & Save Radius</span>
                 </button>
               </div>
             </motion.div>
