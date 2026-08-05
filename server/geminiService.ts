@@ -714,30 +714,10 @@ Return structured JSON:
   }
 
   if (response?.text) {
-    return JSON.parse(response.text);
+    return JSON.parse(response.text.replace(/```json\s*|\s*```/g, "").trim());
   }
 
-  return {
-    plannerExecutionGraph: [
-      { step: 1, agent: "Planner Agent", status: "COMPLETED", note: "Routed sector request" },
-      { step: 2, agent: "Macro Hub", status: "COMPLETED", note: "FRED & WB data synthesized" },
-      { step: 3, agent: "Labor Matrix", status: "COMPLETED", note: "BLS labor statistics verified" },
-      { step: 4, agent: "Policy & Volatility", status: "COMPLETED", note: "Regulatory & trade policy checked" },
-      { step: 5, agent: "Auditor Judge Agent", status: "PASSED", note: "Critic check score 98%" },
-      { step: 6, agent: "Narrative Scribe", status: "COMPLETED", note: "Final synthesis ready" }
-    ],
-    economicMetrics: {
-      gdpGrowthRate: "+2.6%",
-      inflationIndexCPI: "2.4%",
-      creatorEconomyCAGR: "+19.1%",
-      smartWearablesDemandScore: "92/100"
-    },
-    executiveNarrative: "Macroeconomic indicators show favorable consumer spending trajectories.",
-    strategicRecommendations: [
-      "Expand inventory for high-demand smart wearables.",
-      "Utilize MCP tool calls for real-time price optimization."
-    ]
-  };
+  throw new Error("Economic Research Agent failed to generate live model output from Gemini / Model Garden.");
 }
 
 export async function generateCreatorCampaign(body: any) {
@@ -797,36 +777,10 @@ Generate structured JSON:
   }
 
   if (response?.text) {
-    return JSON.parse(response.text);
+    return JSON.parse(response.text.replace(/```json\s*|\s*```/g, "").trim());
   }
 
-  return {
-    brandIdentity: {
-      subdomain: "aura-spatial.omnicart.shop",
-      tagline: "Next-Gen Ambient Spatial Commerce",
-      primaryColor: "#6366f1",
-      secondaryColor: "#10b981",
-      logoConcept: "Minimalist optical lens"
-    },
-    genMediaLoopExecution: [
-      { agent: "image_gen_prompt_generation_agent", action: "Prompt Created", score: 90 },
-      { agent: "image_generation_agent", action: "Asset Rendered", score: 92 },
-      { agent: "scoring_agent", action: "Evaluated Brand Match", score: 95 },
-      { agent: "checker_agent", action: "Condition Met", status: "TERMINATE_SUCCESS" }
-    ],
-    marketingCampaign: {
-      campaignTitle: "Spatial Living Campaign",
-      socialCopy: "Experience agentic shopping across Web, Mobile, and Smart Glasses.",
-      emailSubject: "Welcome to OmniCart Creator Platform",
-      suggestedAds: [
-        { platform: "TikTok / Reels", hook: "Shop hands-free with Meta Smart Glasses" }
-      ]
-    },
-    generatedStorefrontConfig: {
-      heroHeading: "Discover Next-Gen Creator Products",
-      featuredProducts: ["prod-rayban-meta-01", "prod-cyber-jacket-02"]
-    }
-  };
+  throw new Error("Creator Campaign Agent failed to generate live model output from Gemini / Model Garden.");
 }
 
 export async function generateCreativeProductStudio(body: any) {
