@@ -13,7 +13,7 @@ export function vitposePlugin(options: ViTPosePluginOptions = {}) {
         ai.defineTool(
           {
             name: 'vitposePlugin/extractPoseLarge',
-            description: 'Commercial GPU-backed Vision Transformer keypoint estimator (Cloud Run GPU / Model Garden Microservice)',
+            description: 'Commercial GPU-backed Vision Transformer keypoint estimator based on official ViTAE-Transformer/ViTPose architecture (Cloud Run GPU / Model Garden Microservice)',
             inputSchema: z.object({
               imageBase64: z.string(),
             }),

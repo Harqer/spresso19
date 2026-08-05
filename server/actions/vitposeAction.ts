@@ -40,7 +40,7 @@ const ViTPoseOutputSchema = z.object({
 export const extractViTPose = ai.defineTool(
   {
     name: 'huggingfaceViTPose',
-    description: 'Executes real forward pass on ViTPose Vision Transformer via Hugging Face Inference API or Model Garden Endpoint',
+    description: 'Executes real forward pass on ViTPose Vision Transformer (https://github.com/ViTAE-Transformer/ViTPose) via Hugging Face Inference API or Model Garden Endpoint',
     inputSchema: z.object({
       userImageBase64: z.string(),
       modelVariant: z
