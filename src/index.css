@@ -2,6 +2,8 @@
 @import "@openai/apps-sdk-ui/css";
 @source "../node_modules/@openai/apps-sdk-ui";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Jetpack Compose / Material 3 Dynamic Light & Dark Theme Tokens */
 :root {
   --color-brand-primary: #386633;
