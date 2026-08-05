@@ -350,19 +350,33 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
                 </p>
               </div>
 
-              {/* Animated Radar Pulse Screen */}
-              <div className="relative w-full h-44 bg-[#191d16] rounded-2xl overflow-hidden border border-[#dfe4d7] dark:border-[#43483e] flex flex-col items-center justify-center p-4">
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-32 h-32 rounded-full border border-[#a9d291]/20 animate-ping" />
-                  <div className="w-20 h-20 rounded-full border border-[#a9d291]/40" />
+              {/* Location & Radius Selector Box */}
+              <div className="p-5 bg-white dark:bg-[#191d16] rounded-2xl border border-[#dfe4d7] dark:border-[#43483e] shadow-md space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#e8efe0] dark:bg-[#282b24] text-[#446732] dark:text-[#a9d291] flex items-center justify-center">
+                      <MaterialIcon icon="location_on" size={24} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-[#43483e] dark:text-[#c3c8bb]">Current Search Radius</p>
+                      <p className="text-base font-extrabold text-[#446732] dark:text-[#a9d291] font-mono">
+                        {radiusMiles} miles
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="px-2.5 py-1 bg-[#446732]/10 dark:bg-[#a9d291]/10 text-[#446732] dark:text-[#a9d291] text-[10px] font-mono font-bold rounded-lg border border-[#446732]/20 dark:border-[#a9d291]/20">
+                    Local Stores & Pickup
+                  </span>
                 </div>
 
-                <MaterialIcon icon="storefront" size={32} className="text-[#a9d291] z-10" />
-                <span className="text-xs font-mono font-bold text-white mt-2 z-10">
-                  Search Radius: <span className="text-[#a9d291] text-sm">{radiusMiles} miles</span>
-                </span>
-
-                <div className="w-full max-w-xs mt-4 z-10 px-2">
+                {/* Range Slider Bar */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex justify-between text-xs font-bold text-[#43483e] dark:text-[#c3c8bb]">
+                    <span>5 mi</span>
+                    <span>25 mi</span>
+                    <span>50 mi</span>
+                  </div>
                   <input
                     type="range"
                     min="5"
@@ -370,13 +384,26 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
                     step="5"
                     value={radiusMiles}
                     onChange={(e) => setRadiusMiles(parseInt(e.target.value))}
-                    className="w-full accent-[#446732] dark:accent-[#a9d291] cursor-pointer"
+                    className="w-full h-2 bg-[#dfe4d7] dark:bg-[#282b24] rounded-lg appearance-none cursor-pointer accent-[#446732] dark:accent-[#a9d291]"
                   />
-                  <div className="flex justify-between text-[10px] text-[#c3c8bb] font-mono mt-1">
-                    <span>5 mi (Strict)</span>
-                    <span>25 mi (City)</span>
-                    <span>50 mi (Metro)</span>
-                  </div>
+                </div>
+
+                {/* Interactive Distance Preset Pills */}
+                <div className="grid grid-cols-4 gap-2 pt-1">
+                  {[5, 15, 25, 50].map((miles) => (
+                    <button
+                      key={miles}
+                      type="button"
+                      onClick={() => setRadiusMiles(miles)}
+                      className={`py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border ${
+                        radiusMiles === miles
+                          ? "bg-[#446732] dark:bg-[#a9d291] text-white dark:text-[#191d16] border-[#446732] dark:border-[#a9d291] shadow-xs"
+                          : "bg-[#f8faf6] dark:bg-[#282b24] text-[#43483e] dark:text-[#c3c8bb] border-[#dfe4d7] dark:border-[#43483e] hover:border-[#446732]"
+                      }`}
+                    >
+                      {miles} mi
+                    </button>
+                  ))}
                 </div>
               </div>
 
