@@ -128,7 +128,7 @@ router.post("/api/personalized-feed", async (req, res) => {
     const result = await getPersonalizedFeed(req.body);
     res.json(result);
   } catch (err: any) {
-    res.json({ success: true, products: mockInventory });
+    res.status(500).json({ success: false, error: err.message || "Failed to generate personalized feed" });
   }
 });
 
@@ -138,16 +138,7 @@ router.post("/api/genmedia-kit", async (req, res) => {
     const result = await getGenMediaKit(productId);
     res.json(result);
   } catch (err: any) {
-    res.json({
-      success: true,
-      genMediaKit: {
-        materials: ["High-grade materials"],
-        sustainabilityScore: "94% Recyclable",
-        priceComparison: [
-          { merchant: "Spresso Direct", price: 299, inStock: true, shipping: "Free Express" }
-        ]
-      }
-    });
+    res.status(500).json({ success: false, error: err.message || "Failed to generate GenMedia kit" });
   }
 });
 
