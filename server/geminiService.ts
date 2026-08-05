@@ -480,91 +480,46 @@ export interface ViTPoseOutput {
   skeletonWireframeMap: string; // OpenPose-compatible skeleton representation
 }
 
+import { extractViTPose } from "./actions/vitposeAction.js";
+
 export async function extractViTPoseKeypoints(userImageBase64?: string): Promise<ViTPoseOutput> {
-  const ai = getGeminiAI();
-
-  // Baseline skeletal joint coordinates (x, y) & skeletal metrics
-  let keypoints: ViTPoseKeypoints = {
-    nose: [200, 70],
-    left_eye: [192, 60],
-    right_eye: [208, 60],
-    left_ear: [180, 65],
-    right_ear: [220, 65],
-    left_shoulder: [145, 120],
-    right_shoulder: [255, 122],
-    left_elbow: [120, 185],
-    right_elbow: [280, 188],
-    left_wrist: [105, 250],
-    right_wrist: [295, 252],
-    left_hip: [160, 260],
-    right_hip: [240, 262],
-    left_knee: [162, 350],
-    right_knee: [238, 352],
-    left_ankle: [165, 440],
-    right_ankle: [235, 442],
-    chest_center: [200, 170],
-    waist_center: [200, 240]
-  };
-
-  let estimated_height_cm = 175;
-  let estimated_chest_girth_cm = 98;
-  let estimated_waist_girth_cm = 82;
-
-  if (userImageBase64 && userImageBase64.length > 50) {
-    try {
-      const cleanBase64 = userImageBase64.replace(/^data:image\/\w+;base64,/, "");
-      const visionPrompt = `You are ViTPose Plain Vision Transformer Pose Keypoint Estimator.
-Analyze the user image and extract normalized 2D skeletal pose keypoints (0-500 scale for x and y coordinates):
-Return valid JSON matching this structure:
-{
-  "keypoints": {
-    "nose": [x, y],
-    "left_eye": [x, y],
-    "right_eye": [x, y],
-    "left_ear": [x, y],
-    "right_ear": [x, y],
-    "left_shoulder": [x, y],
-    "right_shoulder": [x, y],
-    "left_elbow": [x, y],
-    "right_elbow": [x, y],
-    "left_wrist": [x, y],
-    "right_wrist": [x, y],
-    "left_hip": [x, y],
-    "right_hip": [x, y],
-    "left_knee": [x, y],
-    "right_knee": [x, y],
-    "left_ankle": [x, y],
-    "right_ankle": [x, y],
-    "chest_center": [x, y],
-    "waist_center": [x, y]
-  },
-  "estimated_height_cm": 178,
-  "estimated_chest_girth_cm": 102,
-  "estimated_waist_girth_cm": 84
-}`;
-
-      const res = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [
-          { inlineData: { data: cleanBase64, mimeType: "image/jpeg" } },
-          visionPrompt
-        ],
-        config: { responseMimeType: "application/json" }
-      });
-
-      if (res?.text) {
-        const parsed = JSON.parse(res.text.replace(/```json\s*|\s*```/g, "").trim());
-        if (parsed.keypoints) {
-          keypoints = { ...keypoints, ...parsed.keypoints };
-        }
-        if (parsed.estimated_height_cm) estimated_height_cm = Number(parsed.estimated_height_cm);
-        if (parsed.estimated_chest_girth_cm) estimated_chest_girth_cm = Number(parsed.estimated_chest_girth_cm);
-        if (parsed.estimated_waist_girth_cm) estimated_waist_girth_cm = Number(parsed.estimated_waist_girth_cm);
-      }
-    } catch (err) {
-      console.warn("[ViTPose] Dynamic vision keypoint extraction fallback:", err);
-    }
+  if (!userImageBase64 || userImageBase64.length < 50) {
+    throw new Error("No valid user image provided for ViTPose keypoint extraction.");
   }
+
+  // Execute ViTPose via Hugging Face / Model Garden Genkit Action
+  const vitposeResult = await extractViTPose({
+    userImageBase64,
+    modelVariant: 'usyd-dlc/vitpose-large-coco',
+  });
+
+  const rawKeypoints = vitposeResult.keypoints || [];
+  const keypointsMap: Record<string, [number, number]> = {};
+  rawKeypoints.forEach((kp: any) => {
+    keypointsMap[kp.name] = [kp.x, kp.y];
+  });
+
+  const keypoints: ViTPoseKeypoints = {
+    nose: keypointsMap.nose || [200, 70],
+    left_eye: keypointsMap.left_eye || [192, 60],
+    right_eye: keypointsMap.right_eye || [208, 60],
+    left_ear: keypointsMap.left_ear || [180, 65],
+    right_ear: keypointsMap.right_ear || [220, 65],
+    left_shoulder: keypointsMap.left_shoulder || keypointsMap.shoulder_left || [145, 120],
+    right_shoulder: keypointsMap.right_shoulder || keypointsMap.shoulder_right || [255, 122],
+    left_elbow: keypointsMap.left_elbow || keypointsMap.elbow_left || [120, 185],
+    right_elbow: keypointsMap.right_elbow || keypointsMap.elbow_right || [280, 188],
+    left_wrist: keypointsMap.left_wrist || keypointsMap.wrist_left || [105, 250],
+    right_wrist: keypointsMap.right_wrist || keypointsMap.wrist_right || [295, 252],
+    left_hip: keypointsMap.left_hip || keypointsMap.hip_left || [160, 260],
+    right_hip: keypointsMap.right_hip || keypointsMap.hip_right || [240, 262],
+    left_knee: keypointsMap.left_knee || keypointsMap.knee_left || [162, 350],
+    right_knee: keypointsMap.right_knee || keypointsMap.knee_right || [238, 352],
+    left_ankle: keypointsMap.left_ankle || keypointsMap.ankle_left || [165, 440],
+    right_ankle: keypointsMap.right_ankle || keypointsMap.ankle_right || [235, 442],
+    chest_center: keypointsMap.chest_center || [200, 170],
+    waist_center: keypointsMap.waist_center || [200, 240]
+  };
 
   const shoulder_span_px = Math.abs(keypoints.right_shoulder[0] - keypoints.left_shoulder[0]);
   const hip_width_px = Math.abs(keypoints.right_hip[0] - keypoints.left_hip[0]);
@@ -574,10 +529,9 @@ Return valid JSON matching this structure:
   const dx = keypoints.right_shoulder[0] - keypoints.left_shoulder[0];
   const shoulder_slope_deg = parseFloat((Math.atan2(dy, dx) * (180 / Math.PI)).toFixed(2));
 
-  if (!estimated_chest_girth_cm) estimated_chest_girth_cm = Math.round(shoulder_span_px * 0.88);
-  if (!estimated_waist_girth_cm) estimated_waist_girth_cm = Math.round(hip_width_px * 0.92);
-
-  const skeletonWireframeMap = `OPENPOSE_SKELETON_MAP::HEAD(${keypoints.nose[0]},${keypoints.nose[1]});SHOULDERS(${keypoints.left_shoulder[0]},${keypoints.left_shoulder[1]}-${keypoints.right_shoulder[0]},${keypoints.right_shoulder[1]});HIPS(${keypoints.left_hip[0]},${keypoints.left_hip[1]}-${keypoints.right_hip[0]},${keypoints.right_hip[1]})`;
+  const estimated_height_cm = 175;
+  const estimated_chest_girth_cm = Math.round(shoulder_span_px * 0.88);
+  const estimated_waist_girth_cm = Math.round(hip_width_px * 0.92);
 
   return {
     keypoints,
@@ -591,9 +545,10 @@ Return valid JSON matching this structure:
       estimated_chest_girth_cm,
       estimated_waist_girth_cm
     },
-    skeletonWireframeMap
+    skeletonWireframeMap: vitposeResult.skeletonWireframeMap || `OPENPOSE_SKELETON_MAP::HEAD(${keypoints.nose[0]},${keypoints.nose[1]});SHOULDERS(${keypoints.left_shoulder[0]},${keypoints.left_shoulder[1]}-${keypoints.right_shoulder[0]},${keypoints.right_shoulder[1]});HIPS(${keypoints.left_hip[0]},${keypoints.left_hip[1]}-${keypoints.right_hip[0]},${keypoints.right_hip[1]})`
   };
 }
+
 
 export async function orchestrateProductFitWithViTPose(
   userImageBase64?: string,

@@ -15,6 +15,7 @@
     "@genkit-ai/ai": "^1.40.1",
     "@genkit-ai/google-genai": "^1.40.1",
     "@google/genai": "^2.4.0",
+    "@huggingface/inference": "^4.13.24",
     "@openai/agents": "^0.13.5",
     "@openai/apps-sdk-ui": "^0.2.2",
     "@tailwindcss/vite": "^4.1.14",
