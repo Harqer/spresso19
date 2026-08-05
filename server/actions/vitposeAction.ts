@@ -2,9 +2,16 @@ import { genkit, z } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { HfInference } from '@huggingface/inference';
 import { getGeminiAI } from '../geminiService.js';
+import { vitposePlugin } from '../plugins/vitposePlugin.js';
 
 export const ai = genkit({
-  plugins: [googleAI()],
+  plugins: [
+    googleAI(),
+    vitposePlugin({
+      endpointUrl: process.env.VITPOSE_GPU_ENDPOINT_URL,
+      apiKey: process.env.VITPOSE_INTERNAL_KEY,
+    }),
+  ],
 });
 
 const KeypointSchema = z.object({
