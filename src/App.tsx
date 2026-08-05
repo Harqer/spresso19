@@ -26,6 +26,25 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [pendingChatQuery, setPendingChatQuery] = useState<{ query: string; image?: string | null } | null>(null);
 
+  // Dynamic Light / Dark Theme State (Jetpack Compose Material 3 standard)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem("spresso_theme");
+    return (saved === "light" || saved === "dark") ? saved : "dark";
+  });
+
+  useEffect(() => {
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem("spresso_theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === "dark" ? "light" : "dark");
+  };
+
   const handleAskAI = (query: string, image?: string | null) => {
     setPendingChatQuery({ query, image });
     setActiveTab("chat");
@@ -222,35 +241,43 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafcf9] text-[#18211e] font-sans selection:bg-[#386633] selection:text-white">
+    <div className="min-h-screen bg-[#fafcf9] dark:bg-[#070d0a] text-[#18211e] dark:text-[#f8fafc] font-sans selection:bg-[#ff5e1a] selection:text-white transition-colors duration-300">
       {/* Top AppBar */}
-      <header className="fixed top-0 w-full z-30 bg-white/90 backdrop-blur-md border-b border-[#d8ebd7]">
+      <header className="fixed top-0 w-full z-30 bg-white/90 dark:bg-[#0d1813]/90 backdrop-blur-md border-b border-[#d8ebd7] dark:border-[#1e382b] transition-colors duration-300">
         <div className="flex justify-between items-center px-4 md:px-6 h-16 w-full max-w-7xl mx-auto">
           <div className="flex items-center space-x-3">
             {/* Mobile Menu Open Toggle Button */}
             <button
               onClick={() => setMobileMenuOpen(prev => !prev)}
-              className="md:hidden p-2 text-[#386633] hover:bg-[#e8f3e8] rounded-xl transition cursor-pointer flex items-center justify-center"
+              className="md:hidden p-2 text-[#386633] dark:text-[#81c784] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] rounded-xl transition cursor-pointer flex items-center justify-center"
               title="Toggle Navigation Menu"
               aria-label="Toggle Navigation Menu"
             >
               <MaterialIcon icon={mobileMenuOpen ? "close" : "menu"} size={22} />
             </button>
-
-            {/* Header Brand Logo removed per user selection */}
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* Theme Toggle Button (Light / Dark Mode - Jetpack Compose M3 standard) */}
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl bg-white dark:bg-[#0d1813] border border-[#386633]/30 dark:border-[#1e382b] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] text-[#386633] dark:text-[#ff6b00] transition cursor-pointer flex items-center justify-center shadow-xs"
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+              aria-label="Toggle Theme Mode"
+            >
+              <MaterialIcon icon={theme === 'dark' ? "light_mode" : "dark_mode"} size={20} />
+            </button>
+
             <button
               onClick={() => setLocationModalOpen(prev => !prev)}
               className={`rounded-xl border transition cursor-pointer flex items-center space-x-1.5 px-3 py-1.5 shadow-xs ${
                 userLocation
-                  ? "bg-white border-[#386633]/40 hover:bg-[#e8f3e8] text-[#18211e]"
-                  : "bg-[#e8f3e8] border-[#386633]/60 hover:bg-[#386633] hover:text-white text-[#386633] font-bold"
+                  ? "bg-white dark:bg-[#12221b] border-[#386633]/40 dark:border-[#1e382b] hover:bg-[#e8f3e8] dark:hover:bg-[#1a3327] text-[#18211e] dark:text-[#f8fafc]"
+                  : "bg-[#e8f3e8] dark:bg-[#132a1e] border-[#386633]/60 dark:border-[#388e3c]/60 hover:bg-[#386633] dark:hover:bg-[#2e7d32] hover:text-white text-[#386633] dark:text-[#81c784] font-bold"
               }`}
               title={userLocation ? `Click to adjust location & ${searchRadius}-mile search radius` : "Set location and search radius"}
             >
-              <MaterialIcon icon="location_on" size={18} className="text-[#386633] shrink-0" />
+              <MaterialIcon icon="location_on" size={18} className="text-[#386633] dark:text-[#81c784] shrink-0" />
               <div className="flex items-center space-x-1 text-xs font-semibold">
                 <span className="max-w-[120px] truncate">
                   {(() => {
@@ -262,7 +289,7 @@ export default function App() {
                     return userLocation;
                   })()}
                 </span>
-                <span className="text-[11px] font-bold text-[#386633] bg-[#e8f3e8] px-1.5 py-0.5 rounded-md border border-[#d8ebd7] font-mono">
+                <span className="text-[11px] font-bold text-[#386633] dark:text-[#81c784] bg-[#e8f3e8] dark:bg-[#183324] px-1.5 py-0.5 rounded-md border border-[#d8ebd7] dark:border-[#1e382b] font-mono">
                   {searchRadius}m
                 </span>
               </div>
@@ -270,13 +297,13 @@ export default function App() {
 
             <button
               onClick={() => setCartDrawerOpen(true)}
-              className="relative p-2.5 rounded-xl bg-white border border-[#386633]/30 hover:bg-[#e8f3e8] text-[#18211e] transition cursor-pointer flex items-center justify-center shadow-xs"
+              className="relative p-2.5 rounded-xl bg-white dark:bg-[#0d1813] border border-[#386633]/30 dark:border-[#1e382b] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] text-[#18211e] dark:text-[#f8fafc] transition cursor-pointer flex items-center justify-center shadow-xs"
               title="Shopping Cart"
               aria-label="Shopping Cart"
             >
-              <MaterialIcon icon="shopping_bag" size={20} className="text-[#386633]" />
+              <MaterialIcon icon="shopping_bag" size={20} className="text-[#386633] dark:text-[#81c784]" />
               {totalCartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-[#386633] text-white font-mono text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-[#ff5e1a] dark:bg-[#ff6b00] text-white font-mono text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs">
                   {totalCartCount}
                 </span>
               )}
@@ -285,15 +312,15 @@ export default function App() {
             {user && (
               <div className="flex items-center space-x-2 pl-1">
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="User" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full border border-[#386633]/30 object-cover" />
+                  <img src={user.photoURL} alt="User" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full border border-[#386633]/30 dark:border-[#1e382b] object-cover" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-[#386633] text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">
+                  <div className="w-8 h-8 rounded-full bg-[#386633] dark:bg-[#2e7d32] text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">
                     {(user.displayName || user.email || "U").charAt(0).toUpperCase()}
                   </div>
                 )}
                 <button
                   onClick={() => logoutUser()}
-                  className="p-1.5 text-[#52645b] hover:text-red-600 hover:bg-red-50 rounded-xl transition cursor-pointer flex items-center justify-center"
+                  className="p-1.5 text-[#52645b] dark:text-[#94a3b8] hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition cursor-pointer flex items-center justify-center"
                   title="Sign Out"
                   aria-label="Sign Out"
                 >
@@ -309,24 +336,24 @@ export default function App() {
       {mobileMenuOpen && (
         <div
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden transition-opacity"
+          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-40 md:hidden transition-opacity"
         />
       )}
 
       {/* Navigation Drawer Sidebar */}
       <aside
-        className={`h-full fixed left-0 top-0 bg-white border-r border-[#d8ebd7] transition-all duration-300 flex flex-col p-3 pt-3 space-y-3 ${
+        className={`h-full fixed left-0 top-0 bg-white dark:bg-[#0d1813] border-r border-[#d8ebd7] dark:border-[#1e382b] transition-all duration-300 flex flex-col p-3 pt-3 space-y-3 ${
           mobileMenuOpen ? "translate-x-0 w-64 shadow-2xl z-50" : "-translate-x-full md:translate-x-0 z-40"
         } ${sidebarOpen ? "md:w-64" : "md:w-16"}`}
       >
         {/* Sidebar Header with Spresso Logo & Toggle/Close Icon */}
-        <div className="flex items-center justify-between pb-2 border-b border-[#d8ebd7] min-h-14">
+        <div className="flex items-center justify-between pb-2 border-b border-[#d8ebd7] dark:border-[#1e382b] min-h-14">
           {/* Mobile View Header: Full Logo + Close Button */}
           <div className="flex md:hidden items-center justify-between w-full">
             <SpressoLogo variant="full" showTextLeft={true} width={80} height={48} />
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="p-1.5 text-[#386633] hover:bg-[#e8f3e8] rounded-xl transition cursor-pointer"
+              className="p-1.5 text-[#386633] dark:text-[#81c784] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] rounded-xl transition cursor-pointer"
               title="Close Menu"
               aria-label="Close Menu"
             >
@@ -341,7 +368,7 @@ export default function App() {
                 <SpressoLogo variant="full" showTextLeft={true} width={80} height={48} />
                 <button
                   onClick={() => setSidebarOpen(false)}
-                  className="p-1.5 text-[#386633] hover:bg-[#e8f3e8] rounded-xl transition cursor-pointer"
+                  className="p-1.5 text-[#386633] dark:text-[#81c784] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] rounded-xl transition cursor-pointer"
                   title="Collapse Sidebar"
                   aria-label="Collapse Sidebar"
                 >
@@ -351,7 +378,7 @@ export default function App() {
             ) : (
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="w-full flex items-center justify-center p-1 text-[#386633] hover:bg-[#e8f3e8] rounded-xl transition cursor-pointer"
+                className="w-full flex items-center justify-center p-1 text-[#386633] dark:text-[#81c784] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] rounded-xl transition cursor-pointer"
                 title="Expand Sidebar"
                 aria-label="Expand Sidebar"
               >
@@ -375,20 +402,20 @@ export default function App() {
                   sidebarOpen ? "justify-between px-3" : "md:justify-center px-3 md:px-0"
                 } py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                   isActive
-                    ? "bg-[#386633] text-white shadow-xs"
-                    : "text-[#2d3a33] hover:bg-[#e8f3e8] hover:text-[#386633]"
+                    ? "bg-[#386633] dark:bg-[#2e7d32] text-white font-bold shadow-xs"
+                    : "text-[#2d3a33] dark:text-[#94a3b8] hover:bg-[#e8f3e8] dark:hover:bg-[#132a1e] hover:text-[#386633] dark:hover:text-[#81c784]"
                 }`}
                 title={item.label}
               >
                 <div className="flex items-center space-x-3">
-                  <MaterialIcon icon={item.icon} size={20} className={isActive ? "text-white" : "text-[#386633]"} />
+                  <MaterialIcon icon={item.icon} size={20} className={isActive ? "text-white" : "text-[#386633] dark:text-[#81c784]"} />
                   <span className={`block ${sidebarOpen ? "md:block" : "md:hidden"}`}>{item.label}</span>
                 </div>
 
                 {item.count !== undefined && item.count > 0 && (
                   <span
                     className={`px-1.5 py-0.5 text-[10px] font-mono rounded-full font-bold ${
-                      isActive ? "bg-[#2c5227] text-white" : "bg-[#386633] text-white"
+                      isActive ? "bg-[#ff5e1a] dark:bg-[#ff6b00] text-white" : "bg-[#386633] dark:bg-[#2e7d32] text-white"
                     } ${sidebarOpen ? "md:inline-block" : "md:hidden"}`}
                   >
                     {item.count}
@@ -400,26 +427,26 @@ export default function App() {
         </nav>
 
         {/* User Profile Footer */}
-        <div className="mt-auto pt-3 border-t border-[#d8ebd7]">
+        <div className="mt-auto pt-3 border-t border-[#d8ebd7] dark:border-[#1e382b]">
           {user ? (
-            <div className={`flex items-center justify-between ${sidebarOpen ? "p-2 bg-[#f2f8f2]" : "md:justify-center p-2 bg-transparent"} rounded-2xl`}>
+            <div className={`flex items-center justify-between ${sidebarOpen ? "p-2 bg-[#f2f8f2] dark:bg-[#12221b]" : "md:justify-center p-2 bg-transparent"} rounded-2xl`}>
               <div className="flex items-center space-x-2.5 overflow-hidden">
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="User Avatar" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[#2c5227]/20" />
+                  <img src={user.photoURL} alt="User Avatar" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[#2c5227]/20 dark:border-[#1e382b]" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-[#386633] text-white font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 shadow-xs">
+                  <div className="w-8 h-8 rounded-full bg-[#386633] dark:bg-[#2e7d32] text-white font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 shadow-xs">
                     {(user.displayName || user.email || "S").charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className={`overflow-hidden min-w-0 ${sidebarOpen ? "md:block" : "md:hidden"}`}>
-                  <p className="text-xs font-bold text-[#18211e] truncate">{user.displayName || "Spresso Shopper"}</p>
-                  <p className="text-[10px] text-[#5e635f] truncate">{user.email}</p>
+                  <p className="text-xs font-bold text-[#18211e] dark:text-[#f8fafc] truncate">{user.displayName || "Spresso Shopper"}</p>
+                  <p className="text-[10px] text-[#5e635f] dark:text-[#94a3b8] truncate">{user.email}</p>
                 </div>
               </div>
               <button
                 onClick={() => logoutUser()}
                 title="Sign Out"
-                className={`p-1.5 text-[#5e635f] hover:text-[#a84a32] hover:bg-[#eaf4e9] rounded-lg transition-colors flex-shrink-0 ml-1 ${sidebarOpen ? "md:block" : "md:hidden"}`}
+                className={`p-1.5 text-[#5e635f] dark:text-[#94a3b8] hover:text-[#a84a32] dark:hover:text-red-400 hover:bg-[#eaf4e9] dark:hover:bg-red-950/40 rounded-lg transition-colors flex-shrink-0 ml-1 ${sidebarOpen ? "md:block" : "md:hidden"}`}
               >
                 <MaterialIcon icon="logout" size={18} />
               </button>
@@ -427,7 +454,7 @@ export default function App() {
           ) : (
             <button
               onClick={() => loginWithGoogle()}
-              className={`w-full flex items-center ${sidebarOpen ? "justify-center space-x-2 px-3 py-2" : "md:justify-center p-2"} bg-[#386633] text-white rounded-2xl text-xs font-semibold hover:bg-[#2c5227] transition-all shadow-xs`}
+              className={`w-full flex items-center ${sidebarOpen ? "justify-center space-x-2 px-3 py-2" : "md:justify-center p-2"} bg-[#386633] dark:bg-[#2e7d32] text-white rounded-2xl text-xs font-semibold hover:bg-[#2c5227] dark:hover:bg-[#388e3c] transition-all shadow-xs`}
             >
               <MaterialIcon icon="login" size={18} />
               <span className={`block ${sidebarOpen ? "md:block" : "md:hidden"}`}>Sign in with Google</span>
