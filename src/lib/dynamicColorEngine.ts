@@ -195,52 +195,115 @@ export function generateTonalPalette(hue: number, saturation: number): TonalPale
   return palette as TonalPalette;
 }
 
-// Generate the 5 Key Tonal Palettes from Seed Color
+/**
+ * Material 3 HCT Color Harmonization (Blend Tool)
+ * Shifts the hue of static or secondary colors closer to the primary scheme hue
+ * as defined in Material You / Material 3 specification (Diagram A vs Diagram B).
+ */
+export function blendHarmonizeHue(designHue: number, sourceHue: number, maxRotation: number = 15): number {
+  let diff = (sourceHue - designHue + 360) % 360;
+  if (diff > 180) {
+    diff -= 360;
+  }
+  // Rotation proportional to hue distance up to maxRotation degrees
+  const rotation = Math.min(Math.abs(diff) * 0.5, maxRotation);
+  const sign = diff >= 0 ? 1 : -1;
+  return (designHue + sign * rotation + 360) % 360;
+}
+
+export function blendHarmonizeColor(designHex: string, sourceHex: string, maxRotation: number = 20): string {
+  const designRgb = hexToRgb(designHex);
+  const sourceRgb = hexToRgb(sourceHex);
+  const designHsl = rgbToHsl(designRgb.r, designRgb.g, designRgb.b);
+  const sourceHsl = rgbToHsl(sourceRgb.r, sourceRgb.g, sourceRgb.b);
+
+  const harmonizedHue = blendHarmonizeHue(designHsl.h, sourceHsl.h, maxRotation);
+  return hslToHex(harmonizedHue, designHsl.s, designHsl.l);
+}
+
+// Generate the 5 Key Tonal Palettes from Seed Color with optional HCT Harmonization (Blend)
 export interface FiveTonalPalettes {
   primary: TonalPalette;
   secondary: TonalPalette;
   tertiary: TonalPalette;
   neutral: TonalPalette;
   neutralVariant: TonalPalette;
+  harmonizedStatus?: {
+    success: string;
+    warning: string;
+    info: string;
+    error: string;
+  };
 }
 
-export function generateFiveTonalPalettes(seedHex: string, secondarySeedHex?: string): FiveTonalPalettes {
+export function generateFiveTonalPalettes(
+  seedHex: string,
+  secondarySeedHex?: string,
+  harmonize: boolean = true
+): FiveTonalPalettes {
   const rgb = hexToRgb(seedHex);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
-  const hue = hsl.h;
+  const primaryHue = hsl.h;
   const sat = hsl.s;
   const light = hsl.l;
 
   // Primary: Hue & Saturation
   const primarySat = Math.max(10, Math.min(sat, 85));
-  const primary = generateTonalPalette(hue, primarySat);
+  const primary = generateTonalPalette(primaryHue, primarySat);
 
-  // Secondary: If secondarySeedHex is provided, or if seed is charcoal/dark (low sat or low light),
-  // derive a vibrant Lime Green (Hue ~84, Sat ~85) secondary palette so cards & accents pop out!
-  let secondary: TonalPalette;
+  // Secondary: Derived or explicit
+  let secHue: number;
+  let secSat: number;
+
   if (secondarySeedHex) {
     const secRgb = hexToRgb(secondarySeedHex);
     const secHsl = rgbToHsl(secRgb.r, secRgb.g, secRgb.b);
-    secondary = generateTonalPalette(secHsl.h, Math.max(50, secHsl.s));
+    secHue = secHsl.h;
+    secSat = Math.max(45, secHsl.s);
   } else if (sat < 25 || light < 30) {
     // Charcoal / Black seed -> Lime green secondary accent (Hue: 84, Saturation: 85)
-    secondary = generateTonalPalette(84, 85);
+    secHue = 84;
+    secSat = 85;
   } else {
-    secondary = generateTonalPalette(hue, Math.max(15, Math.round(primarySat * 0.4)));
+    secHue = primaryHue;
+    secSat = Math.max(15, Math.round(primarySat * 0.4));
   }
 
-  // Tertiary: Lime-Cyan / Emerald offset (Hue + 60deg), Saturation ~60
-  const tertiaryHue = (hue + 60) % 360;
+  // Apply Material 3 Blend/Harmonization if enabled
+  if (harmonize && secondarySeedHex) {
+    secHue = blendHarmonizeHue(secHue, primaryHue, 20);
+  }
+
+  const secondary = generateTonalPalette(secHue, secSat);
+
+  // Tertiary: Hue offset (+60deg), harmonized if enabled
+  let tertiaryHue = (primaryHue + 60) % 360;
+  if (harmonize) {
+    tertiaryHue = blendHarmonizeHue(tertiaryHue, primaryHue, 15);
+  }
   const tertiary = generateTonalPalette(tertiaryHue, Math.max(35, Math.round(primarySat * 0.75)));
 
-  // Neutral: Hue, Saturation ~4 (very low saturation for clean surfaces)
-  const neutral = generateTonalPalette(hue, 6);
+  // Neutral: Hue, Saturation ~6 (very low saturation for clean surfaces)
+  const neutral = generateTonalPalette(primaryHue, 6);
 
-  // Neutral Variant: Hue, Saturation ~10 (for outlines, surface variants)
-  const neutralVariant = generateTonalPalette(hue, 12);
+  // Neutral Variant: Hue, Saturation ~12 (for outlines, surface variants)
+  const neutralVariant = generateTonalPalette(primaryHue, 12);
 
-  return { primary, secondary, tertiary, neutral, neutralVariant };
+  // Harmonized Status Badges (Success, Warning, Info, Error)
+  const rawSuccess = "#10b981";
+  const rawWarning = "#f59e0b";
+  const rawInfo = "#3b82f6";
+  const rawError = "#ef4444";
+
+  const harmonizedStatus = {
+    success: harmonize ? blendHarmonizeColor(rawSuccess, seedHex, 15) : rawSuccess,
+    warning: harmonize ? blendHarmonizeColor(rawWarning, seedHex, 15) : rawWarning,
+    info: harmonize ? blendHarmonizeColor(rawInfo, seedHex, 15) : rawInfo,
+    error: harmonize ? blendHarmonizeColor(rawError, seedHex, 15) : rawError,
+  };
+
+  return { primary, secondary, tertiary, neutral, neutralVariant, harmonizedStatus };
 }
 
 // Map Tonal Palettes into Material Light or Dark Scheme Tokens
@@ -341,9 +404,10 @@ export function generateMaterialScheme(
 export function applyDynamicThemeToDocument(
   seedHex: string,
   mode: "light" | "dark",
-  secondarySeedHex?: string
+  secondarySeedHex?: string,
+  harmonize: boolean = true
 ) {
-  const palettes = generateFiveTonalPalettes(seedHex, secondarySeedHex);
+  const palettes = generateFiveTonalPalettes(seedHex, secondarySeedHex, harmonize);
   const scheme = generateMaterialScheme(palettes, mode);
 
   const root = document.documentElement;
@@ -381,6 +445,14 @@ export function applyDynamicThemeToDocument(
 
   root.style.setProperty("--md-sys-color-outline", scheme.outline);
   root.style.setProperty("--md-sys-color-outline-variant", scheme.outlineVariant);
+
+  // Apply Harmonized Status Color CSS Properties
+  if (palettes.harmonizedStatus) {
+    root.style.setProperty("--md-sys-color-harmonized-success", palettes.harmonizedStatus.success);
+    root.style.setProperty("--md-sys-color-harmonized-warning", palettes.harmonizedStatus.warning);
+    root.style.setProperty("--md-sys-color-harmonized-info", palettes.harmonizedStatus.info);
+    root.style.setProperty("--md-sys-color-harmonized-error", palettes.harmonizedStatus.error);
+  }
 
   // Sync Legacy Theme Tokens for backward compatibility
   root.style.setProperty("--color-brand-primary", scheme.primary);
