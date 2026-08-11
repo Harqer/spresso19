@@ -163,6 +163,28 @@ class ApiClient {
         }
     }
 
+    suspend fun requestOrderReturn(orderId: String, reason: String): JsonObject {
+        return try {
+            client.post("$backendBaseUrl/api/orders/return") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("orderId" to orderId, "reason" to reason))
+            }.body()
+        } catch (e: Exception) {
+            JsonObject(emptyMap())
+        }
+    }
+
+    suspend fun setOrderReminder(orderId: String, reminderTime: String): JsonObject {
+        return try {
+            client.post("$backendBaseUrl/api/orders/reminder") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("orderId" to orderId, "reminderTime" to reminderTime))
+            }.body()
+        } catch (e: Exception) {
+            JsonObject(emptyMap())
+        }
+    }
+
     fun close() {
         client.close()
     }
