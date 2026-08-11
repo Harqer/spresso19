@@ -16,9 +16,10 @@ fun PersonalAIShopperChatPage(
     isVideoPlaying: Boolean,
     isVoiceRecording: Boolean,
     liveTranscript: String,
-    errorMessage: String?,
+    errorMessage: String? = null,
     isAccessibilityEnabled: Boolean = false,
     onToggleAccessibility: (() -> Unit)? = null,
+    onLaunchCamera: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val messages = remember { mutableStateListOf<Pair<String, Boolean>>() }
@@ -56,7 +57,7 @@ fun PersonalAIShopperChatPage(
                     style = MaterialTheme.typography.titleLarge
                 )
 
-                // Accessibility Widget Toggle Card
+                // Native CameraX Visual Search & Smart Camera Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -70,21 +71,25 @@ fun PersonalAIShopperChatPage(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Google Lens Screen Widget",
+                                text = "CameraX Smart Visual Search",
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Text(
-                                text = "Toggles background draw-over widget for visual try-ons & product finding.",
+                                text = "Native real-time lens object detection & virtual try-on capture.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Switch(
-                            checked = isAccessibilityEnabled,
-                            onCheckedChange = {
-                                onToggleAccessibility?.invoke()
+                        if (onLaunchCamera != null) {
+                            Button(
+                                onClick = { onLaunchCamera() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Text("📷 Open Camera")
                             }
-                        )
+                        }
                     }
                 }
                 

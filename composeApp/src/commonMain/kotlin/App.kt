@@ -175,7 +175,8 @@ fun App(
                             liveTranscript = liveTranscript,
                             errorMessage = errorMessage,
                             isAccessibilityEnabled = isAccessibilityEnabled,
-                            onToggleAccessibility = onToggleAccessibility
+                            onToggleAccessibility = onToggleAccessibility,
+                            onLaunchCamera = { pickImage() }
                         )
                     }
                     Tab.Wardrobe -> {
