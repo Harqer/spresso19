@@ -95,6 +95,8 @@ android {
             storePassword = "spresso123"
             keyAlias = "spresso"
             keyPassword = "spresso123"
+            enableV1Signing = true
+            enableV2Signing = true
         }
     }
 
