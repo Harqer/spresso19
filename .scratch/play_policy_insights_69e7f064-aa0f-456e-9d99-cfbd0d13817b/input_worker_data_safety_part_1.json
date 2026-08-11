@@ -1,0 +1,154 @@
+{
+    "APP_DIR": "/home/shaolin/Spresso/spresso19",
+    "APP_NAME": "app_name",
+    "GOAL_NAME": "data_safety_part_1",
+    "PACKAGE_NAME": "com.spresso.app",
+    "REPO_ROOT": "/home/shaolin/.gemini/config/skills/play-policy-insights",
+    "TARGET_SDK": 35,
+    "TEMP_DIR": "/home/shaolin/Spresso/spresso19/.scratch/play_policy_insights_69e7f064-aa0f-456e-9d99-cfbd0d13817b",
+    "accessibility": [
+        "composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt (Pattern: AccessibilityService)",
+        "composeApp/src/androidMain/kotlin/com/spresso19/SpressoAccessibilityService.kt (Pattern: AccessibilityService)"
+    ],
+    "data_sources": {
+        "AUDIO": {
+            "description": "A user\u2019s voice such as a voicemail or a sound recording.",
+            "findings": [
+                "composeApp/src/androidMain/kotlin/audio/AudioRecorder.kt (Pattern: AudioRecord)",
+                "composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt (Pattern: RECORD_AUDIO)",
+                "composeApp/src/androidMain/kotlin/com/spresso19/wearable/MetaWearablesManager.kt (Pattern: AudioRecord)"
+            ]
+        },
+        "USER_ACCOUNT": {
+            "description": "Identifiers that relate to an identifiable person. For example, an account ID, account number, or account name.",
+            "findings": [
+                "composeApp/src/androidMain/kotlin/network/AuthHelper.kt (Pattern: uid)"
+            ]
+        },
+        "VIDEOS": {
+            "description": "A user\u2019s videos.",
+            "findings": [
+                "composeApp/src/androidMain/kotlin/audio/AudioRecorder.kt (Pattern: MediaRecorder)",
+                "composeApp/src/androidMain/kotlin/com/spresso19/wearable/MetaWearablesManager.kt (Pattern: MediaRecorder)"
+            ]
+        }
+    },
+    "disclosure": [
+        "composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt (Pattern: share)",
+        "composeApp/src/androidMain/kotlin/ui/ImagePicker.kt (Pattern: AlertDialog)",
+        "dist/assets/index-BunGqtNk.js (Pattern: Dialog)",
+        "functions/lib/index.js (Pattern: Accept)",
+        "functions/src/index.ts (Pattern: Accept)",
+        "server/routes.ts (Pattern: collect)",
+        "src/components/ElevatedQuickActionFab.tsx (Pattern: share)",
+        "src/components/MaterialIcon.tsx (Pattern: share)",
+        "src/components/OrdersTracker.tsx (Pattern: collect)",
+        "src/components/ProductDetailsModal.tsx (Pattern: share)",
+        "src/components/SeasonalCategorySection.tsx (Pattern: collect)",
+        "src/components/pages/WardrobeViewPage.tsx (Pattern: collect)",
+        "src/lib/firebase.ts (Pattern: collect)",
+        "src/lib/location.ts (Pattern: Accept)"
+    ],
+    "found_urls": [],
+    "network_transmission": {
+        "-": [
+            "composeApp/src/androidMain/kotlin/network/SpressoConfig.kt (Pattern: WebSocket)",
+            "composeApp/src/commonMain/kotlin/App.kt (Pattern: fetch)",
+            "composeApp/src/commonMain/kotlin/components/atoms/NetworkImage.kt (Pattern: HttpClient)",
+            "composeApp/src/commonMain/kotlin/components/molecules/ProductCard.kt (Pattern: HttpClient)",
+            "composeApp/src/commonMain/kotlin/components/pages/ProductCatalogPage.kt (Pattern: HttpClient)",
+            "composeApp/src/commonMain/kotlin/components/pages/WardrobeViewPage.kt (Pattern: HttpClient)",
+            "composeApp/src/commonMain/kotlin/network/ApiClient.kt (Pattern: HttpClient)",
+            "composeApp/src/commonMain/kotlin/network/LiveApiClient.kt (Pattern: WebSocket)",
+            "composeApp/src/commonMain/kotlin/network/SpressoConfig.kt (Pattern: WebSocket)",
+            "composeApp/src/wasmJsMain/kotlin/network/SpressoConfig.kt (Pattern: WebSocket)",
+            "dist/assets/index-BunGqtNk.js (Pattern: fetch)",
+            "server.ts (Pattern: WebSocket)",
+            "server/actions/vitposeAction.ts (Pattern: fetch)",
+            "server/apifyService.ts (Pattern: fetch)",
+            "server/kitesurfService.ts (Pattern: fetch)",
+            "server/plugins/vitposePlugin.ts (Pattern: fetch)",
+            "server/routes.ts (Pattern: fetch)",
+            "src/App.tsx (Pattern: fetch)",
+            "src/components/CameraObjectDetectionModal.tsx (Pattern: fetch)",
+            "src/components/GamifiedOnboardingModal.tsx (Pattern: fetch)",
+            "src/components/GenkitCreativeStudioModal.tsx (Pattern: fetch)",
+            "src/components/GoogleLensScreenWidgetModal.tsx (Pattern: fetch)",
+            "src/components/LiveCookingAssistantModal.tsx (Pattern: WebSocket)",
+            "src/components/OrdersTracker.tsx (Pattern: fetch)",
+            "src/components/SmartVisionView.tsx (Pattern: fetch)",
+            "src/components/VirtualTryOnModal.tsx (Pattern: fetch)",
+            "src/components/organisms/ProductCatalogGrid.tsx (Pattern: fetch)",
+            "src/components/pages/CreatorGenAIAgentsChatPage.tsx (Pattern: fetch)",
+            "src/components/pages/PersonalAIShopperChatPage.tsx (Pattern: fetch)",
+            "src/components/pages/ProductCatalogPage.tsx (Pattern: fetch)",
+            "src/dataconnect/esm/index.esm.js (Pattern: fetch)",
+            "src/dataconnect/index.cjs.js (Pattern: fetch)",
+            "src/hooks/useWardrobeInteractions.ts (Pattern: fetch)",
+            "src/lib/location.ts (Pattern: fetch)",
+            "verify_orders_test.ts (Pattern: fetch)"
+        ]
+    },
+    "requested_permissions": {
+        "AUDIO": [
+            "android.permission.RECORD_AUDIO"
+        ],
+        "PHOTOS": [
+            "android.permission.CAMERA"
+        ],
+        "VIDEOS": [
+            "android.permission.CAMERA",
+            "android.permission.RECORD_AUDIO"
+        ],
+        "accessibility": [
+            "android.permission.BIND_ACCESSIBILITY_SERVICE"
+        ]
+    },
+    "semantic_files": {
+        "AUDIO": [
+            "AudioRecorder.kt",
+            "AudioRecorder.kt",
+            "AudioRecorder.kt",
+            "DynamicThemePickerModal.tsx",
+            "ChatMicButton.tsx",
+            "dynamicColorEngine.ts"
+        ],
+        "CONFIG": [
+            "vite.config.ts",
+            "SpressoConfig.kt",
+            "accessibility_service_config.xml",
+            "network_security_config.xml",
+            "SpressoConfig.kt",
+            "SpressoConfig.kt",
+            "drizzle.config.ts"
+        ],
+        "PHOTOS": [
+            "ImageDecoder.kt",
+            "CameraCaptureView.kt",
+            "ImagePicker.kt",
+            "ImageDecoder.kt",
+            "NetworkImage.kt",
+            "ImagePicker.kt",
+            "ImageDecoder.kt",
+            "ImagePicker.kt",
+            "CameraObjectDetectionModal.tsx",
+            "LiveCameraCaptureModal.tsx",
+            "AgentAvatarBadge.tsx",
+            "imageCropper.ts"
+        ],
+        "SUPPORT": [
+            "AuthHelper.kt",
+            "DataConnectHelper.kt",
+            "AuthHelper.kt",
+            "DataConnectHelper.kt",
+            "AuthHelper.kt",
+            "DataConnectHelper.kt"
+        ],
+        "USER_ACCOUNT": [
+            "AuthHelper.kt",
+            "AuthHelper.kt",
+            "AuthHelper.kt",
+            "AuthScreen.tsx"
+        ]
+    }
+}

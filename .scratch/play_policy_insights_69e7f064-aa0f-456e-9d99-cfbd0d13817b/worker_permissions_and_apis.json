@@ -1,0 +1,28 @@
+{
+  "domain": "Permissions and APIs",
+  "findings": [
+    {
+      "policy_id": "accessibility_api_policy",
+      "issue_summary": "Unjustified use of Accessibility API for visual search and missing prominent disclosure prior to requesting service enablement.",
+      "severity": "CRITICAL",
+      "files_involved": [
+        "composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt",
+        "composeApp/src/androidMain/kotlin/com/spresso19/SpressoAccessibilityService.kt"
+      ],
+      "evidence": "In MainActivity.kt (lines 56-65), clicking onToggleAccessibility opens Settings.ACTION_ACCESSIBILITY_SETTINGS directly without presenting an in-app prominent disclosure or acquiring affirmative user consent. Furthermore, SpressoAccessibilityService.kt (lines 55-115) uses AccessibilityService.takeScreenshot for non-accessibility visual product search rather than assisting users with disabilities, while accessibility_service_config.xml lacks the android:isAccessibilityTool='true' attribute.",
+      "recommendation": "Remove AccessibilityService usage for visual search and migrate to standard capture APIs (such as MediaProjection or CameraX). If providing an accessibility tool for users with disabilities, implement an in-app Prominent Disclosure and Affirmative Consent screen prior to requesting service enablement."
+    },
+    {
+      "policy_id": "audio_recording_policy",
+      "issue_summary": "Unconditional request for broad RECORD_AUDIO permission on app startup on Target SDK 35 without explicit user action.",
+      "severity": "IMPORTANT",
+      "files_involved": [
+        "composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt",
+        "composeApp/src/androidMain/kotlin/audio/AudioRecorder.kt",
+        "composeApp/src/androidMain/kotlin/com/spresso19/wearable/MetaWearablesManager.kt"
+      ],
+      "evidence": "In MainActivity.kt (lines 32 & 93-104), checkAndRequestAudioPermission() requests android.permission.RECORD_AUDIO unconditionally in onCreate() when targetSdk is 35. AudioRecorder.kt and MetaWearablesManager.kt start audio recording for voice interaction and hands-free checkout. Broadly requesting runtime audio permissions on app launch rather than when initiated by the user violates Play Store audio recording guidelines for Target SDK 34+.",
+      "recommendation": "Remove the automatic request for RECORD_AUDIO in MainActivity.onCreate(). Request microphone permissions strictly in response to an explicit user interaction, or migrate temporary vocal inputs to the Android Microphone Button / Speech Recognizer API."
+    }
+  ]
+}

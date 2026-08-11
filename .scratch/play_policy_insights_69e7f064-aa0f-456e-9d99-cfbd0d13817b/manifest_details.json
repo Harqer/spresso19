@@ -1,0 +1,13 @@
+{
+    "app_dir": "/home/shaolin/Spresso/spresso19",
+    "app_label": "app_name",
+    "foreground_services": [],
+    "package_name": "com.spresso.app",
+    "permissions": [
+        "android.permission.BIND_ACCESSIBILITY_SERVICE",
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.RECORD_AUDIO"
+    ],
+    "target_sdk": 35
+}

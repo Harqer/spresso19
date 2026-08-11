@@ -1,0 +1,13 @@
+{
+    "key_files": {
+        "gradles": [
+            "/home/shaolin/Spresso/spresso19/build.gradle.kts",
+            "/home/shaolin/Spresso/spresso19/settings.gradle.kts",
+            "/home/shaolin/Spresso/spresso19/androidApp/build.gradle.kts",
+            "/home/shaolin/Spresso/spresso19/composeApp/build.gradle.kts"
+        ],
+        "manifests": [
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/AndroidManifest.xml"
+        ]
+    }
+}

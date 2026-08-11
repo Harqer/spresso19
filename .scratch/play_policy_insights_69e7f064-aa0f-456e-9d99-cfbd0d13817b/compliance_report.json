@@ -1,0 +1,13 @@
+{
+    "data_safety_mismatches": [],
+    "findings": [],
+    "manual_review": [],
+    "metadata": {
+        "app_id": "com.spresso.app",
+        "overall_compliance": "Compliant",
+        "scan_date": "2026-08-11T02:55:08.067813"
+    },
+    "suggested_declaration": {
+        "collected_data": []
+    }
+}

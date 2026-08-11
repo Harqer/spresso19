@@ -1,0 +1,28 @@
+{
+  "domain": "User Account and Identity",
+  "findings": [
+    {
+      "policy_id": "login_credentials",
+      "issue_summary": "App displays an authentication screen and login flow for user accounts.",
+      "severity": "IMPORTANT",
+      "files_involved": [
+        "/home/shaolin/Spresso/spresso19/src/components/AuthScreen.tsx",
+        "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/network/AuthHelper.kt",
+        "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/network/AuthHelper.kt"
+      ],
+      "evidence": "In src/components/AuthScreen.tsx:28-70, the app renders an authentication interface supporting email login/registration (loginWithEmail/registerWithEmail) and Google sign-in. In composeApp/src/androidMain/kotlin/network/AuthHelper.kt:5, Firebase authentication state is retrieved via FirebaseAuth.getInstance().currentUser?.uid.",
+      "recommendation": "Administrative Console Requirements: Because your app implements a login flow, you MUST complete two manual setup steps in the Play Console dashboard to pass review:\n1. Reviewer Demo Credentials: Submit active, non-expiring test credentials so Google Play reviewers can access your gated features.\n2. Account Deletion Link: Submit a public-facing web link for account deletion to satisfy Google Play's data deletion policies."
+    },
+    {
+      "policy_id": "account_deletion",
+      "issue_summary": "App manages user accounts but lacks an in-app account deletion mechanism.",
+      "severity": "IMPORTANT",
+      "files_involved": [
+        "/home/shaolin/Spresso/spresso19/src/components/AuthScreen.tsx",
+        "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/network/AuthHelper.kt"
+      ],
+      "evidence": "The app handles user accounts via AuthScreen.tsx (lines 28-70) and AuthHelper.kt (line 5), but no UI component, screen, or API exists across the codebase to allow users to request account deletion or purge remote user data.",
+      "recommendation": "Implement in-app deletion: Create a highly discoverable path (e.g., under User Profile/Account Settings) to let users initiate account deletion directly in the app."
+    }
+  ]
+}

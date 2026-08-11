@@ -1,0 +1,1699 @@
+{
+    "codebase_map": {
+        "all_files": [
+            [
+                ".env.example",
+                "/home/shaolin/Spresso/spresso19/.env.example",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                ".firebaserc",
+                "/home/shaolin/Spresso/spresso19/.firebaserc",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                ".gitignore",
+                "/home/shaolin/Spresso/spresso19/.gitignore",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "AGENTS.md",
+                "/home/shaolin/Spresso/spresso19/AGENTS.md",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "Dockerfile",
+                "/home/shaolin/Spresso/spresso19/Dockerfile",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "build.gradle.kts",
+                "/home/shaolin/Spresso/spresso19/build.gradle.kts",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "bun.lock",
+                "/home/shaolin/Spresso/spresso19/bun.lock",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "composeApp-debug.apk",
+                "/home/shaolin/Spresso/spresso19/composeApp-debug.apk",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "firebase-applet-config.json",
+                "/home/shaolin/Spresso/spresso19/firebase-applet-config.json",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "firebase-blueprint.json",
+                "/home/shaolin/Spresso/spresso19/firebase-blueprint.json",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "firebase.json",
+                "/home/shaolin/Spresso/spresso19/firebase.json",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "firestore.rules",
+                "/home/shaolin/Spresso/spresso19/firestore.rules",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "gradle.properties",
+                "/home/shaolin/Spresso/spresso19/gradle.properties",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "gradlew",
+                "/home/shaolin/Spresso/spresso19/gradlew",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "gradlew.bat",
+                "/home/shaolin/Spresso/spresso19/gradlew.bat",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "index.html",
+                "/home/shaolin/Spresso/spresso19/index.html",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "metadata.json",
+                "/home/shaolin/Spresso/spresso19/metadata.json",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "package-lock.json",
+                "/home/shaolin/Spresso/spresso19/package-lock.json",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "package.json",
+                "/home/shaolin/Spresso/spresso19/package.json",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "policy.json",
+                "/home/shaolin/Spresso/spresso19/policy.json",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "policy_new.json",
+                "/home/shaolin/Spresso/spresso19/policy_new.json",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "server.ts",
+                "/home/shaolin/Spresso/spresso19/server.ts",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "settings.gradle.kts",
+                "/home/shaolin/Spresso/spresso19/settings.gradle.kts",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "tsconfig.json",
+                "/home/shaolin/Spresso/spresso19/tsconfig.json",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "verify_orders_test.ts",
+                "/home/shaolin/Spresso/spresso19/verify_orders_test.ts",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "vite.config.ts",
+                "/home/shaolin/Spresso/spresso19/vite.config.ts",
+                "/home/shaolin/Spresso/spresso19"
+            ],
+            [
+                "errors-1786251210599.log",
+                "/home/shaolin/Spresso/spresso19/.kotlin/errors/errors-1786251210599.log",
+                "/home/shaolin/Spresso/spresso19/.kotlin/errors"
+            ],
+            [
+                "errors-1786348856749.log",
+                "/home/shaolin/Spresso/spresso19/.kotlin/errors/errors-1786348856749.log",
+                "/home/shaolin/Spresso/spresso19/.kotlin/errors"
+            ],
+            [
+                "architecture_and_orders_plan.html",
+                "/home/shaolin/Spresso/spresso19/.lavish/architecture_and_orders_plan.html",
+                "/home/shaolin/Spresso/spresso19/.lavish"
+            ],
+            [
+                "architecture_verification_report.html",
+                "/home/shaolin/Spresso/spresso19/.lavish/architecture_verification_report.html",
+                "/home/shaolin/Spresso/spresso19/.lavish"
+            ],
+            [
+                "backend_wiring_report.html",
+                "/home/shaolin/Spresso/spresso19/.lavish/backend_wiring_report.html",
+                "/home/shaolin/Spresso/spresso19/.lavish"
+            ],
+            [
+                "build.gradle.kts",
+                "/home/shaolin/Spresso/spresso19/androidApp/build.gradle.kts",
+                "/home/shaolin/Spresso/spresso19/androidApp"
+            ],
+            [
+                ".gitignore",
+                "/home/shaolin/Spresso/spresso19/assets/.aistudio/.gitignore",
+                "/home/shaolin/Spresso/spresso19/assets/.aistudio"
+            ],
+            [
+                "build.gradle.kts",
+                "/home/shaolin/Spresso/spresso19/composeApp/build.gradle.kts",
+                "/home/shaolin/Spresso/spresso19/composeApp"
+            ],
+            [
+                "google-services.json",
+                "/home/shaolin/Spresso/spresso19/composeApp/google-services.json",
+                "/home/shaolin/Spresso/spresso19/composeApp"
+            ],
+            [
+                "proguard-rules.pro",
+                "/home/shaolin/Spresso/spresso19/composeApp/proguard-rules.pro",
+                "/home/shaolin/Spresso/spresso19/composeApp"
+            ],
+            [
+                "spresso.keystore",
+                "/home/shaolin/Spresso/spresso19/composeApp/spresso.keystore",
+                "/home/shaolin/Spresso/spresso19/composeApp"
+            ],
+            [
+                "AndroidManifest.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/AndroidManifest.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain"
+            ],
+            [
+                "AudioRecorder.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/audio/AudioRecorder.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/audio"
+            ],
+            [
+                "CreateOrderMutation.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/CreateOrderMutation.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect"
+            ],
+            [
+                "ListProductsQuery.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/ListProductsQuery.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect"
+            ],
+            [
+                "README.md",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/README.md",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect"
+            ],
+            [
+                "SpressoConnectorConnector.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/SpressoConnectorConnector.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect"
+            ],
+            [
+                "SpressoConnectorConnectorEnums.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/SpressoConnectorConnectorEnums.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect"
+            ],
+            [
+                "SpressoConnectorConnectorKeys.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/SpressoConnectorConnectorKeys.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect"
+            ],
+            [
+                "ToggleLikeMutation.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/ToggleLikeMutation.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect"
+            ],
+            [
+                "MainActivity.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso19"
+            ],
+            [
+                "SpressoAccessibilityService.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso19/SpressoAccessibilityService.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso19"
+            ],
+            [
+                "SpressoLensWidgetProvider.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso19/SpressoLensWidgetProvider.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso19"
+            ],
+            [
+                "MetaWearablesManager.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso19/wearable/MetaWearablesManager.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso19/wearable"
+            ],
+            [
+                "ImageDecoder.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/components/atoms/ImageDecoder.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/components/atoms"
+            ],
+            [
+                "AuthHelper.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/network/AuthHelper.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/network"
+            ],
+            [
+                "DataConnectHelper.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/network/DataConnectHelper.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/network"
+            ],
+            [
+                "SpressoConfig.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/network/SpressoConfig.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/network"
+            ],
+            [
+                "CameraCaptureView.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/ui/CameraCaptureView.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/ui"
+            ],
+            [
+                "ImagePicker.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/ui/ImagePicker.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/ui"
+            ],
+            [
+                "ic_launcher_background.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/drawable/ic_launcher_background.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/drawable"
+            ],
+            [
+                "ic_launcher_foreground.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/drawable/ic_launcher_foreground.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/drawable"
+            ],
+            [
+                "lens_widget_layout.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/layout/lens_widget_layout.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/layout"
+            ],
+            [
+                "ic_launcher.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/mipmap-anydpi-v26/ic_launcher.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/mipmap-anydpi-v26"
+            ],
+            [
+                "ic_launcher_round.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/mipmap-anydpi-v26"
+            ],
+            [
+                "strings.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/values/strings.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/values"
+            ],
+            [
+                "accessibility_service_config.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/xml/accessibility_service_config.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/xml"
+            ],
+            [
+                "lens_widget_info.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/xml/lens_widget_info.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/xml"
+            ],
+            [
+                "network_security_config.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/xml/network_security_config.xml",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/xml"
+            ],
+            [
+                "App.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/App.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin"
+            ],
+            [
+                "AudioRecorder.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/audio/AudioRecorder.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/audio"
+            ],
+            [
+                "ChatBubbleText.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms/ChatBubbleText.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms"
+            ],
+            [
+                "ImageDecoder.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms/ImageDecoder.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms"
+            ],
+            [
+                "NetworkImage.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms/NetworkImage.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms"
+            ],
+            [
+                "PrimaryButton.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms/PrimaryButton.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms"
+            ],
+            [
+                "ProductPriceTag.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms/ProductPriceTag.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms"
+            ],
+            [
+                "AgentTemplateCard.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/molecules/AgentTemplateCard.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/molecules"
+            ],
+            [
+                "ParallaxCard.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/molecules/ParallaxCard.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/molecules"
+            ],
+            [
+                "ProductActions.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/molecules/ProductActions.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/molecules"
+            ],
+            [
+                "ProductCard.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/molecules/ProductCard.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/molecules"
+            ],
+            [
+                "ChatbotCanvas.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/organisms/ChatbotCanvas.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/organisms"
+            ],
+            [
+                "CreatorAgentsPage.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/pages/CreatorAgentsPage.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/pages"
+            ],
+            [
+                "PersonalAIShopperChatPage.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/pages/PersonalAIShopperChatPage.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/pages"
+            ],
+            [
+                "ProductCatalogPage.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/pages/ProductCatalogPage.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/pages"
+            ],
+            [
+                "WardrobeViewPage.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/pages/WardrobeViewPage.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/pages"
+            ],
+            [
+                "ApiClient.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network/ApiClient.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network"
+            ],
+            [
+                "AuthHelper.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network/AuthHelper.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network"
+            ],
+            [
+                "DataConnectHelper.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network/DataConnectHelper.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network"
+            ],
+            [
+                "LiveApiClient.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network/LiveApiClient.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network"
+            ],
+            [
+                "SpressoConfig.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network/SpressoConfig.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network"
+            ],
+            [
+                "Theme.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/theme/Theme.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/theme"
+            ],
+            [
+                "ImagePicker.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/ui/ImagePicker.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/ui"
+            ],
+            [
+                "main.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/main.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin"
+            ],
+            [
+                "AudioRecorder.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/audio/AudioRecorder.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/audio"
+            ],
+            [
+                "ImageDecoder.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/components/atoms/ImageDecoder.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/components/atoms"
+            ],
+            [
+                "AuthHelper.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/network/AuthHelper.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/network"
+            ],
+            [
+                "DataConnectHelper.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/network/DataConnectHelper.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/network"
+            ],
+            [
+                "SpressoConfig.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/network/SpressoConfig.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/network"
+            ],
+            [
+                "ImagePicker.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/ui/ImagePicker.kt",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/ui"
+            ],
+            [
+                "index.html",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/resources/index.html",
+                "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/resources"
+            ],
+            [
+                "dataconnect.yaml",
+                "/home/shaolin/Spresso/spresso19/dataconnect/dataconnect.yaml",
+                "/home/shaolin/Spresso/spresso19/dataconnect"
+            ],
+            [
+                "prelude.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/.dataconnect/schema/prelude.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/.dataconnect/schema"
+            ],
+            [
+                "implicit.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/.dataconnect/schema/main/implicit.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/.dataconnect/schema/main"
+            ],
+            [
+                "input.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/.dataconnect/schema/main/input.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/.dataconnect/schema/main"
+            ],
+            [
+                "mutation.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/.dataconnect/schema/main/mutation.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/.dataconnect/schema/main"
+            ],
+            [
+                "query.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/.dataconnect/schema/main/query.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/.dataconnect/schema/main"
+            ],
+            [
+                "relation.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/.dataconnect/schema/main/relation.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/.dataconnect/schema/main"
+            ],
+            [
+                "connector.yaml",
+                "/home/shaolin/Spresso/spresso19/dataconnect/connector/connector.yaml",
+                "/home/shaolin/Spresso/spresso19/dataconnect/connector"
+            ],
+            [
+                "mutations.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/connector/mutations.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/connector"
+            ],
+            [
+                "queries.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/connector/queries.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/connector"
+            ],
+            [
+                "schema.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/schema/schema.gql",
+                "/home/shaolin/Spresso/spresso19/dataconnect/schema"
+            ],
+            [
+                "SpressoLogo.png",
+                "/home/shaolin/Spresso/spresso19/dist/SpressoLogo.png",
+                "/home/shaolin/Spresso/spresso19/dist"
+            ],
+            [
+                "index.html",
+                "/home/shaolin/Spresso/spresso19/dist/index.html",
+                "/home/shaolin/Spresso/spresso19/dist"
+            ],
+            [
+                "server.cjs",
+                "/home/shaolin/Spresso/spresso19/dist/server.cjs",
+                "/home/shaolin/Spresso/spresso19/dist"
+            ],
+            [
+                "server.cjs.map",
+                "/home/shaolin/Spresso/spresso19/dist/server.cjs.map",
+                "/home/shaolin/Spresso/spresso19/dist"
+            ],
+            [
+                "spresso_icon.svg",
+                "/home/shaolin/Spresso/spresso19/dist/spresso_icon.svg",
+                "/home/shaolin/Spresso/spresso19/dist"
+            ],
+            [
+                "spresso_logo.svg",
+                "/home/shaolin/Spresso/spresso19/dist/spresso_logo.svg",
+                "/home/shaolin/Spresso/spresso19/dist"
+            ],
+            [
+                "index-BunGqtNk.js",
+                "/home/shaolin/Spresso/spresso19/dist/assets/index-BunGqtNk.js",
+                "/home/shaolin/Spresso/spresso19/dist/assets"
+            ],
+            [
+                "index-CHWeOuOL.css",
+                "/home/shaolin/Spresso/spresso19/dist/assets/index-CHWeOuOL.css",
+                "/home/shaolin/Spresso/spresso19/dist/assets"
+            ],
+            [
+                "spresso19_architecture_context.md",
+                "/home/shaolin/Spresso/spresso19/docs/spresso19_architecture_context.md",
+                "/home/shaolin/Spresso/spresso19/docs"
+            ],
+            [
+                "package-lock.json",
+                "/home/shaolin/Spresso/spresso19/functions/package-lock.json",
+                "/home/shaolin/Spresso/spresso19/functions"
+            ],
+            [
+                "package.json",
+                "/home/shaolin/Spresso/spresso19/functions/package.json",
+                "/home/shaolin/Spresso/spresso19/functions"
+            ],
+            [
+                "tsconfig.json",
+                "/home/shaolin/Spresso/spresso19/functions/tsconfig.json",
+                "/home/shaolin/Spresso/spresso19/functions"
+            ],
+            [
+                "index.js",
+                "/home/shaolin/Spresso/spresso19/functions/lib/index.js",
+                "/home/shaolin/Spresso/spresso19/functions/lib"
+            ],
+            [
+                "index.js.map",
+                "/home/shaolin/Spresso/spresso19/functions/lib/index.js.map",
+                "/home/shaolin/Spresso/spresso19/functions/lib"
+            ],
+            [
+                "worker.js",
+                "/home/shaolin/Spresso/spresso19/functions/lib/worker.js",
+                "/home/shaolin/Spresso/spresso19/functions/lib"
+            ],
+            [
+                "worker.js.map",
+                "/home/shaolin/Spresso/spresso19/functions/lib/worker.js.map",
+                "/home/shaolin/Spresso/spresso19/functions/lib"
+            ],
+            [
+                "index.ts",
+                "/home/shaolin/Spresso/spresso19/functions/src/index.ts",
+                "/home/shaolin/Spresso/spresso19/functions/src"
+            ],
+            [
+                "worker.ts",
+                "/home/shaolin/Spresso/spresso19/functions/src/worker.ts",
+                "/home/shaolin/Spresso/spresso19/functions/src"
+            ],
+            [
+                "libs.versions.toml",
+                "/home/shaolin/Spresso/spresso19/gradle/libs.versions.toml",
+                "/home/shaolin/Spresso/spresso19/gradle"
+            ],
+            [
+                "gradle-wrapper.jar",
+                "/home/shaolin/Spresso/spresso19/gradle/wrapper/gradle-wrapper.jar",
+                "/home/shaolin/Spresso/spresso19/gradle/wrapper"
+            ],
+            [
+                "gradle-wrapper.properties",
+                "/home/shaolin/Spresso/spresso19/gradle/wrapper/gradle-wrapper.properties",
+                "/home/shaolin/Spresso/spresso19/gradle/wrapper"
+            ],
+            [
+                "yarn.lock",
+                "/home/shaolin/Spresso/spresso19/kotlin-js-store/yarn.lock",
+                "/home/shaolin/Spresso/spresso19/kotlin-js-store"
+            ],
+            [
+                "SpressoLogo.png",
+                "/home/shaolin/Spresso/spresso19/public/SpressoLogo.png",
+                "/home/shaolin/Spresso/spresso19/public"
+            ],
+            [
+                "spresso_icon.svg",
+                "/home/shaolin/Spresso/spresso19/public/spresso_icon.svg",
+                "/home/shaolin/Spresso/spresso19/public"
+            ],
+            [
+                "spresso_logo.svg",
+                "/home/shaolin/Spresso/spresso19/public/spresso_logo.svg",
+                "/home/shaolin/Spresso/spresso19/public"
+            ],
+            [
+                "setup_wearables_wizard.sh",
+                "/home/shaolin/Spresso/spresso19/scripts/setup_wearables_wizard.sh",
+                "/home/shaolin/Spresso/spresso19/scripts"
+            ],
+            [
+                "apifyService.ts",
+                "/home/shaolin/Spresso/spresso19/server/apifyService.ts",
+                "/home/shaolin/Spresso/spresso19/server"
+            ],
+            [
+                "geminiService.ts",
+                "/home/shaolin/Spresso/spresso19/server/geminiService.ts",
+                "/home/shaolin/Spresso/spresso19/server"
+            ],
+            [
+                "inventory.ts",
+                "/home/shaolin/Spresso/spresso19/server/inventory.ts",
+                "/home/shaolin/Spresso/spresso19/server"
+            ],
+            [
+                "kitesurfService.ts",
+                "/home/shaolin/Spresso/spresso19/server/kitesurfService.ts",
+                "/home/shaolin/Spresso/spresso19/server"
+            ],
+            [
+                "routes.ts",
+                "/home/shaolin/Spresso/spresso19/server/routes.ts",
+                "/home/shaolin/Spresso/spresso19/server"
+            ],
+            [
+                "vitposeAction.ts",
+                "/home/shaolin/Spresso/spresso19/server/actions/vitposeAction.ts",
+                "/home/shaolin/Spresso/spresso19/server/actions"
+            ],
+            [
+                "index.cjs.js",
+                "/home/shaolin/Spresso/spresso19/server/dataconnect/index.cjs.js",
+                "/home/shaolin/Spresso/spresso19/server/dataconnect"
+            ],
+            [
+                "index.d.ts",
+                "/home/shaolin/Spresso/spresso19/server/dataconnect/index.d.ts",
+                "/home/shaolin/Spresso/spresso19/server/dataconnect"
+            ],
+            [
+                "package.json",
+                "/home/shaolin/Spresso/spresso19/server/dataconnect/package.json",
+                "/home/shaolin/Spresso/spresso19/server/dataconnect"
+            ],
+            [
+                "index.esm.js",
+                "/home/shaolin/Spresso/spresso19/server/dataconnect/esm/index.esm.js",
+                "/home/shaolin/Spresso/spresso19/server/dataconnect/esm"
+            ],
+            [
+                "package.json",
+                "/home/shaolin/Spresso/spresso19/server/dataconnect/esm/package.json",
+                "/home/shaolin/Spresso/spresso19/server/dataconnect/esm"
+            ],
+            [
+                "tryOnOrchestrationFlow.ts",
+                "/home/shaolin/Spresso/spresso19/server/flows/tryOnOrchestrationFlow.ts",
+                "/home/shaolin/Spresso/spresso19/server/flows"
+            ],
+            [
+                "vitposePlugin.ts",
+                "/home/shaolin/Spresso/spresso19/server/plugins/vitposePlugin.ts",
+                "/home/shaolin/Spresso/spresso19/server/plugins"
+            ],
+            [
+                "Dockerfile",
+                "/home/shaolin/Spresso/spresso19/server/vitpose_microservice/Dockerfile",
+                "/home/shaolin/Spresso/spresso19/server/vitpose_microservice"
+            ],
+            [
+                "main.py",
+                "/home/shaolin/Spresso/spresso19/server/vitpose_microservice/main.py",
+                "/home/shaolin/Spresso/spresso19/server/vitpose_microservice"
+            ],
+            [
+                "requirements.txt",
+                "/home/shaolin/Spresso/spresso19/server/vitpose_microservice/requirements.txt",
+                "/home/shaolin/Spresso/spresso19/server/vitpose_microservice"
+            ],
+            [
+                "App.tsx",
+                "/home/shaolin/Spresso/spresso19/src/App.tsx",
+                "/home/shaolin/Spresso/spresso19/src"
+            ],
+            [
+                "index.css",
+                "/home/shaolin/Spresso/spresso19/src/index.css",
+                "/home/shaolin/Spresso/spresso19/src"
+            ],
+            [
+                "main.tsx",
+                "/home/shaolin/Spresso/spresso19/src/main.tsx",
+                "/home/shaolin/Spresso/spresso19/src"
+            ],
+            [
+                "theme.ts",
+                "/home/shaolin/Spresso/spresso19/src/theme.ts",
+                "/home/shaolin/Spresso/spresso19/src"
+            ],
+            [
+                "types.ts",
+                "/home/shaolin/Spresso/spresso19/src/types.ts",
+                "/home/shaolin/Spresso/spresso19/src"
+            ],
+            [
+                "vite-env.d.ts",
+                "/home/shaolin/Spresso/spresso19/src/vite-env.d.ts",
+                "/home/shaolin/Spresso/spresso19/src"
+            ],
+            [
+                "regenerated_image_1785478968408.png",
+                "/home/shaolin/Spresso/spresso19/src/assets/images/regenerated_image_1785478968408.png",
+                "/home/shaolin/Spresso/spresso19/src/assets/images"
+            ],
+            [
+                "AIShopperInputBar.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/AIShopperInputBar.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "ArcFanLayout.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/ArcFanLayout.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "AuthScreen.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/AuthScreen.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "CameraObjectDetectionModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/CameraObjectDetectionModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "CartDrawer.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/CartDrawer.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "DynamicThemePickerModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/DynamicThemePickerModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "ElevatedQuickActionFab.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/ElevatedQuickActionFab.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "GamifiedOnboardingModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/GamifiedOnboardingModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "GenkitCreativeStudioModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/GenkitCreativeStudioModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "GoogleLensScreenWidgetModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/GoogleLensScreenWidgetModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "GroceryListView.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/GroceryListView.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "HITLCheckoutModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/HITLCheckoutModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "LiveCameraCaptureModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/LiveCameraCaptureModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "LiveCookingAssistantModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/LiveCookingAssistantModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "LocationDetailsView.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/LocationDetailsView.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "LocationPermissionModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/LocationPermissionModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "M3ExpressiveCircularProgress.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/M3ExpressiveCircularProgress.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "MaterialIcon.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/MaterialIcon.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "NavigableListDetailPaneScaffold.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/NavigableListDetailPaneScaffold.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "OrdersTracker.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/OrdersTracker.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "ProductDetailsModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/ProductDetailsModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "PullToRefreshBox.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/PullToRefreshBox.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "SeasonalCategorySection.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/SeasonalCategorySection.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "SmartVisionView.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/SmartVisionView.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "SpressoLogo.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/SpressoLogo.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "StackedWardrobeDecks.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/StackedWardrobeDecks.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "VirtualTryOnModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/VirtualTryOnModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components"
+            ],
+            [
+                "AgentAvatarBadge.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms/AgentAvatarBadge.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms"
+            ],
+            [
+                "ChatBubbleText.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms/ChatBubbleText.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms"
+            ],
+            [
+                "ChatMicButton.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms/ChatMicButton.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms"
+            ],
+            [
+                "ChatSuggestionChip.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms/ChatSuggestionChip.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms"
+            ],
+            [
+                "FluidShaderCanvas.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms/FluidShaderCanvas.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms"
+            ],
+            [
+                "GoogleLensBoundingBox.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms/GoogleLensBoundingBox.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms"
+            ],
+            [
+                "GoogleWalletButton.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms/GoogleWalletButton.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms"
+            ],
+            [
+                "IconButton.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms/IconButton.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms"
+            ],
+            [
+                "ProductPriceTag.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms/ProductPriceTag.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms"
+            ],
+            [
+                "WardrobeBadge.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms/WardrobeBadge.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms"
+            ],
+            [
+                "WardrobeTabChip.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms/WardrobeTabChip.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/atoms"
+            ],
+            [
+                "AgentTemplateCard.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules/AgentTemplateCard.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules"
+            ],
+            [
+                "AnimatedTicketCard.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules/AnimatedTicketCard.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules"
+            ],
+            [
+                "ChatAudioControls.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules/ChatAudioControls.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules"
+            ],
+            [
+                "ChatMessageHeader.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules/ChatMessageHeader.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules"
+            ],
+            [
+                "ChatProductCard.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules/ChatProductCard.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules"
+            ],
+            [
+                "GoogleLensCategoryTabs.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules/GoogleLensCategoryTabs.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules"
+            ],
+            [
+                "GoogleLensHeaderBar.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules/GoogleLensHeaderBar.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules"
+            ],
+            [
+                "HeaderNavBar.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules/HeaderNavBar.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules"
+            ],
+            [
+                "ProductCatalogCard.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules/ProductCatalogCard.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules"
+            ],
+            [
+                "WardrobeHeaderToolbar.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules/WardrobeHeaderToolbar.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules"
+            ],
+            [
+                "WardrobeItemCard.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules/WardrobeItemCard.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/molecules"
+            ],
+            [
+                "AppModalManager.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/AppModalManager.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "CreatorAgentChatPanel.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/CreatorAgentChatPanel.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "GoogleLensResultCard.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/GoogleLensResultCard.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "NavigationDrawer.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/NavigationDrawer.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "Product360SpinModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/Product360SpinModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "ProductCatalogGrid.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/ProductCatalogGrid.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "WardrobeAiOutfitTab.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeAiOutfitTab.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "WardrobeItemGrid.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeItemGrid.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "WardrobeLikedTab.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeLikedTab.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "WardrobeMixMatchTab.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeMixMatchTab.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "WardrobeSavedOutfitsTab.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeSavedOutfitsTab.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "WardrobeSeasonalTab.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeSeasonalTab.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "WardrobeUploadModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeUploadModal.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/organisms"
+            ],
+            [
+                "CreatorGenAIAgentsChatPage.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/pages/CreatorGenAIAgentsChatPage.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/pages"
+            ],
+            [
+                "MainAppPage.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/pages/MainAppPage.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/pages"
+            ],
+            [
+                "PersonalAIShopperChatPage.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/pages/PersonalAIShopperChatPage.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/pages"
+            ],
+            [
+                "ProductCatalogPage.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/pages/ProductCatalogPage.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/pages"
+            ],
+            [
+                "WardrobeViewPage.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/pages/WardrobeViewPage.tsx",
+                "/home/shaolin/Spresso/spresso19/src/components/pages"
+            ],
+            [
+                "README.md",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/README.md",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect"
+            ],
+            [
+                "index.cjs.js",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/index.cjs.js",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect"
+            ],
+            [
+                "index.d.ts",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/index.d.ts",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect"
+            ],
+            [
+                "package.json",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/package.json",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect"
+            ],
+            [
+                "config.json",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/.guides/config.json",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/.guides"
+            ],
+            [
+                "setup.md",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/.guides/setup.md",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/.guides"
+            ],
+            [
+                "usage.md",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/.guides/usage.md",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/.guides"
+            ],
+            [
+                "index.esm.js",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/esm/index.esm.js",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/esm"
+            ],
+            [
+                "package.json",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/esm/package.json",
+                "/home/shaolin/Spresso/spresso19/src/dataconnect/esm"
+            ],
+            [
+                "drizzle.config.ts",
+                "/home/shaolin/Spresso/spresso19/src/db/drizzle.config.ts",
+                "/home/shaolin/Spresso/spresso19/src/db"
+            ],
+            [
+                "index.ts",
+                "/home/shaolin/Spresso/spresso19/src/db/index.ts",
+                "/home/shaolin/Spresso/spresso19/src/db"
+            ],
+            [
+                "schema.ts",
+                "/home/shaolin/Spresso/spresso19/src/db/schema.ts",
+                "/home/shaolin/Spresso/spresso19/src/db"
+            ],
+            [
+                "useWardrobeInteractions.ts",
+                "/home/shaolin/Spresso/spresso19/src/hooks/useWardrobeInteractions.ts",
+                "/home/shaolin/Spresso/spresso19/src/hooks"
+            ],
+            [
+                "useWardrobeState.ts",
+                "/home/shaolin/Spresso/spresso19/src/hooks/useWardrobeState.ts",
+                "/home/shaolin/Spresso/spresso19/src/hooks"
+            ],
+            [
+                "dynamicColorEngine.ts",
+                "/home/shaolin/Spresso/spresso19/src/lib/dynamicColorEngine.ts",
+                "/home/shaolin/Spresso/spresso19/src/lib"
+            ],
+            [
+                "firebase.ts",
+                "/home/shaolin/Spresso/spresso19/src/lib/firebase.ts",
+                "/home/shaolin/Spresso/spresso19/src/lib"
+            ],
+            [
+                "greeting.ts",
+                "/home/shaolin/Spresso/spresso19/src/lib/greeting.ts",
+                "/home/shaolin/Spresso/spresso19/src/lib"
+            ],
+            [
+                "location.ts",
+                "/home/shaolin/Spresso/spresso19/src/lib/location.ts",
+                "/home/shaolin/Spresso/spresso19/src/lib"
+            ],
+            [
+                "secrets.ts",
+                "/home/shaolin/Spresso/spresso19/src/lib/secrets.ts",
+                "/home/shaolin/Spresso/spresso19/src/lib"
+            ],
+            [
+                "imageCropper.ts",
+                "/home/shaolin/Spresso/spresso19/src/utils/imageCropper.ts",
+                "/home/shaolin/Spresso/spresso19/src/utils"
+            ]
+        ],
+        "gradles": [
+            "/home/shaolin/Spresso/spresso19/build.gradle.kts",
+            "/home/shaolin/Spresso/spresso19/settings.gradle.kts",
+            "/home/shaolin/Spresso/spresso19/androidApp/build.gradle.kts",
+            "/home/shaolin/Spresso/spresso19/composeApp/build.gradle.kts"
+        ],
+        "manifests": [
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/AndroidManifest.xml"
+        ],
+        "source_code": [
+            "/home/shaolin/Spresso/spresso19/package.json",
+            "/home/shaolin/Spresso/spresso19/server.ts",
+            "/home/shaolin/Spresso/spresso19/verify_orders_test.ts",
+            "/home/shaolin/Spresso/spresso19/vite.config.ts",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/audio/AudioRecorder.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/CreateOrderMutation.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/ListProductsQuery.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/SpressoConnectorConnector.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/SpressoConnectorConnectorEnums.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/SpressoConnectorConnectorKeys.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso/dataconnect/com/spresso/dataconnect/ToggleLikeMutation.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso19/SpressoAccessibilityService.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso19/SpressoLensWidgetProvider.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/com/spresso19/wearable/MetaWearablesManager.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/components/atoms/ImageDecoder.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/network/AuthHelper.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/network/DataConnectHelper.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/network/SpressoConfig.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/ui/CameraCaptureView.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/kotlin/ui/ImagePicker.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/layout/lens_widget_layout.xml",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/values/strings.xml",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/xml/accessibility_service_config.xml",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/xml/lens_widget_info.xml",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/androidMain/res/xml/network_security_config.xml",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/App.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/audio/AudioRecorder.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms/ChatBubbleText.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms/ImageDecoder.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms/NetworkImage.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms/PrimaryButton.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms/ProductPriceTag.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/molecules/AgentTemplateCard.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/molecules/ParallaxCard.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/molecules/ProductActions.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/molecules/ProductCard.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/organisms/ChatbotCanvas.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/pages/CreatorAgentsPage.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/pages/PersonalAIShopperChatPage.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/pages/ProductCatalogPage.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/pages/WardrobeViewPage.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network/ApiClient.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network/AuthHelper.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network/DataConnectHelper.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network/LiveApiClient.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/network/SpressoConfig.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/theme/Theme.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/ui/ImagePicker.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/main.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/audio/AudioRecorder.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/components/atoms/ImageDecoder.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/network/AuthHelper.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/network/DataConnectHelper.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/network/SpressoConfig.kt",
+            "/home/shaolin/Spresso/spresso19/composeApp/src/wasmJsMain/kotlin/ui/ImagePicker.kt",
+            "/home/shaolin/Spresso/spresso19/dist/assets/index-BunGqtNk.js",
+            "/home/shaolin/Spresso/spresso19/functions/package.json",
+            "/home/shaolin/Spresso/spresso19/functions/lib/index.js",
+            "/home/shaolin/Spresso/spresso19/functions/lib/worker.js",
+            "/home/shaolin/Spresso/spresso19/functions/src/index.ts",
+            "/home/shaolin/Spresso/spresso19/functions/src/worker.ts",
+            "/home/shaolin/Spresso/spresso19/server/apifyService.ts",
+            "/home/shaolin/Spresso/spresso19/server/geminiService.ts",
+            "/home/shaolin/Spresso/spresso19/server/inventory.ts",
+            "/home/shaolin/Spresso/spresso19/server/kitesurfService.ts",
+            "/home/shaolin/Spresso/spresso19/server/routes.ts",
+            "/home/shaolin/Spresso/spresso19/server/actions/vitposeAction.ts",
+            "/home/shaolin/Spresso/spresso19/server/dataconnect/index.cjs.js",
+            "/home/shaolin/Spresso/spresso19/server/dataconnect/index.d.ts",
+            "/home/shaolin/Spresso/spresso19/server/dataconnect/package.json",
+            "/home/shaolin/Spresso/spresso19/server/dataconnect/esm/index.esm.js",
+            "/home/shaolin/Spresso/spresso19/server/dataconnect/esm/package.json",
+            "/home/shaolin/Spresso/spresso19/server/flows/tryOnOrchestrationFlow.ts",
+            "/home/shaolin/Spresso/spresso19/server/plugins/vitposePlugin.ts",
+            "/home/shaolin/Spresso/spresso19/src/App.tsx",
+            "/home/shaolin/Spresso/spresso19/src/main.tsx",
+            "/home/shaolin/Spresso/spresso19/src/theme.ts",
+            "/home/shaolin/Spresso/spresso19/src/types.ts",
+            "/home/shaolin/Spresso/spresso19/src/vite-env.d.ts",
+            "/home/shaolin/Spresso/spresso19/src/components/AIShopperInputBar.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/ArcFanLayout.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/AuthScreen.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/CameraObjectDetectionModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/CartDrawer.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/DynamicThemePickerModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/ElevatedQuickActionFab.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/GamifiedOnboardingModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/GenkitCreativeStudioModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/GoogleLensScreenWidgetModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/GroceryListView.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/HITLCheckoutModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/LiveCameraCaptureModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/LiveCookingAssistantModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/LocationDetailsView.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/LocationPermissionModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/M3ExpressiveCircularProgress.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/MaterialIcon.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/NavigableListDetailPaneScaffold.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/OrdersTracker.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/ProductDetailsModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/PullToRefreshBox.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/SeasonalCategorySection.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/SmartVisionView.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/SpressoLogo.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/StackedWardrobeDecks.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/VirtualTryOnModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/atoms/AgentAvatarBadge.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/atoms/ChatBubbleText.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/atoms/ChatMicButton.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/atoms/ChatSuggestionChip.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/atoms/FluidShaderCanvas.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/atoms/GoogleLensBoundingBox.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/atoms/GoogleWalletButton.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/atoms/IconButton.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/atoms/ProductPriceTag.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/atoms/WardrobeBadge.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/atoms/WardrobeTabChip.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/molecules/AgentTemplateCard.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/molecules/AnimatedTicketCard.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/molecules/ChatAudioControls.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/molecules/ChatMessageHeader.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/molecules/ChatProductCard.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/molecules/GoogleLensCategoryTabs.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/molecules/GoogleLensHeaderBar.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/molecules/HeaderNavBar.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/molecules/ProductCatalogCard.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/molecules/WardrobeHeaderToolbar.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/molecules/WardrobeItemCard.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/AppModalManager.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/CreatorAgentChatPanel.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/GoogleLensResultCard.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/NavigationDrawer.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/Product360SpinModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/ProductCatalogGrid.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeAiOutfitTab.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeItemGrid.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeLikedTab.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeMixMatchTab.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeSavedOutfitsTab.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeSeasonalTab.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/organisms/WardrobeUploadModal.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/pages/CreatorGenAIAgentsChatPage.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/pages/MainAppPage.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/pages/PersonalAIShopperChatPage.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/pages/ProductCatalogPage.tsx",
+            "/home/shaolin/Spresso/spresso19/src/components/pages/WardrobeViewPage.tsx",
+            "/home/shaolin/Spresso/spresso19/src/dataconnect/index.cjs.js",
+            "/home/shaolin/Spresso/spresso19/src/dataconnect/index.d.ts",
+            "/home/shaolin/Spresso/spresso19/src/dataconnect/package.json",
+            "/home/shaolin/Spresso/spresso19/src/dataconnect/esm/index.esm.js",
+            "/home/shaolin/Spresso/spresso19/src/dataconnect/esm/package.json",
+            "/home/shaolin/Spresso/spresso19/src/db/drizzle.config.ts",
+            "/home/shaolin/Spresso/spresso19/src/db/index.ts",
+            "/home/shaolin/Spresso/spresso19/src/db/schema.ts",
+            "/home/shaolin/Spresso/spresso19/src/hooks/useWardrobeInteractions.ts",
+            "/home/shaolin/Spresso/spresso19/src/hooks/useWardrobeState.ts",
+            "/home/shaolin/Spresso/spresso19/src/lib/dynamicColorEngine.ts",
+            "/home/shaolin/Spresso/spresso19/src/lib/firebase.ts",
+            "/home/shaolin/Spresso/spresso19/src/lib/greeting.ts",
+            "/home/shaolin/Spresso/spresso19/src/lib/location.ts",
+            "/home/shaolin/Spresso/spresso19/src/lib/secrets.ts",
+            "/home/shaolin/Spresso/spresso19/src/utils/imageCropper.ts"
+        ]
+    },
+    "data_safety_scan": {
+        "accessibility": {
+            "-": [
+                "composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt (Pattern: AccessibilityService)",
+                "composeApp/src/androidMain/kotlin/com/spresso19/SpressoAccessibilityService.kt (Pattern: AccessibilityService)"
+            ]
+        },
+        "data_sources": {
+            "APPS_ON_DEVICE": [
+                "composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt (Pattern: getPackageInfo)",
+                "composeApp/src/androidMain/kotlin/com/spresso19/SpressoAccessibilityService.kt (Pattern: getPackageInfo)"
+            ],
+            "APP_INTERACTIONS": [
+                "dist/assets/index-BunGqtNk.js (Pattern: onItemClick)",
+                "src/components/SeasonalCategorySection.tsx (Pattern: onItemClick)"
+            ],
+            "AUDIO": [
+                "composeApp/src/androidMain/kotlin/audio/AudioRecorder.kt (Pattern: AudioRecord)",
+                "composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt (Pattern: RECORD_AUDIO)",
+                "composeApp/src/androidMain/kotlin/com/spresso19/wearable/MetaWearablesManager.kt (Pattern: AudioRecord)",
+                "composeApp/src/commonMain/kotlin/App.kt (Pattern: AudioRecord)",
+                "composeApp/src/commonMain/kotlin/audio/AudioRecorder.kt (Pattern: AudioRecord)",
+                "composeApp/src/wasmJsMain/kotlin/audio/AudioRecorder.kt (Pattern: AudioRecord)",
+                "dist/assets/index-BunGqtNk.js (Pattern: record)",
+                "functions/lib/index.js (Pattern: record)",
+                "functions/src/index.ts (Pattern: record)",
+                "src/components/NavigableListDetailPaneScaffold.tsx (Pattern: record)"
+            ],
+            "CRASH_LOGS": [
+                "dist/assets/index-BunGqtNk.js (Pattern: uncaughtException)",
+                "src/components/AuthScreen.tsx (Pattern: Crashlytics)",
+                "src/components/CameraObjectDetectionModal.tsx (Pattern: Crashlytics)",
+                "src/components/GenkitCreativeStudioModal.tsx (Pattern: Crashlytics)",
+                "src/components/LiveCookingAssistantModal.tsx (Pattern: Crashlytics)",
+                "src/lib/firebase.ts (Pattern: Crashlytics)"
+            ],
+            "CREDIT_DEBIT_BANK_ACCOUNT_NUMBER": [
+                "dist/assets/index-BunGqtNk.js (Pattern: stripe)",
+                "src/components/HITLCheckoutModal.tsx (Pattern: credit_card)"
+            ],
+            "DEVICE_ID": [
+                "dist/assets/index-BunGqtNk.js (Pattern: instanceId)"
+            ],
+            "EMAIL": [
+                "dist/assets/index-BunGqtNk.js (Pattern: .email)",
+                "server/routes.ts (Pattern: .email)",
+                "src/App.tsx (Pattern: .email)",
+                "src/components/AuthScreen.tsx (Pattern: setEmail()",
+                "src/components/organisms/NavigationDrawer.tsx (Pattern: .email)",
+                "src/lib/firebase.ts (Pattern: .email)"
+            ],
+            "FILES_AND_DOCS": [
+                "composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt (Pattern: text/plain)",
+                "dist/assets/index-BunGqtNk.js (Pattern: */*)",
+                "src/App.tsx (Pattern: localStorage)",
+                "src/components/ElevatedQuickActionFab.tsx (Pattern: localStorage)",
+                "src/components/GamifiedOnboardingModal.tsx (Pattern: localStorage)",
+                "src/components/GroceryListView.tsx (Pattern: localStorage)",
+                "src/components/organisms/WardrobeLikedTab.tsx (Pattern: localStorage)",
+                "src/components/pages/PersonalAIShopperChatPage.tsx (Pattern: localStorage)",
+                "src/components/pages/ProductCatalogPage.tsx (Pattern: localStorage)",
+                "src/hooks/useWardrobeState.ts (Pattern: localStorage)"
+            ],
+            "MEDIA": [
+                "composeApp/src/androidMain/kotlin/ui/ImagePicker.kt (Pattern: image/*)",
+                "composeApp/src/wasmJsMain/kotlin/ui/ImagePicker.kt (Pattern: image/*)",
+                "dist/assets/index-BunGqtNk.js (Pattern: image/*)",
+                "src/components/AIShopperInputBar.tsx (Pattern: image/*)",
+                "src/components/CameraObjectDetectionModal.tsx (Pattern: image/*)",
+                "src/components/DynamicThemePickerModal.tsx (Pattern: image/*)",
+                "src/components/GoogleLensScreenWidgetModal.tsx (Pattern: image/*)",
+                "src/components/LiveCameraCaptureModal.tsx (Pattern: image/*)",
+                "src/components/SmartVisionView.tsx (Pattern: image/*)",
+                "src/components/VirtualTryOnModal.tsx (Pattern: image/*)",
+                "src/components/organisms/WardrobeUploadModal.tsx (Pattern: image/*)"
+            ],
+            "MUSIC": [
+                "composeApp/src/wasmJsMain/kotlin/audio/AudioRecorder.kt (Pattern: track)",
+                "dist/assets/index-BunGqtNk.js (Pattern: music)",
+                "server/geminiService.ts (Pattern: track)",
+                "server/inventory.ts (Pattern: track)",
+                "server/routes.ts (Pattern: track)",
+                "src/components/AuthScreen.tsx (Pattern: track)",
+                "src/components/CameraObjectDetectionModal.tsx (Pattern: track)",
+                "src/components/ElevatedQuickActionFab.tsx (Pattern: track)",
+                "src/components/GamifiedOnboardingModal.tsx (Pattern: track)",
+                "src/components/GenkitCreativeStudioModal.tsx (Pattern: track)",
+                "src/components/GoogleLensScreenWidgetModal.tsx (Pattern: track)",
+                "src/components/LiveCameraCaptureModal.tsx (Pattern: track)",
+                "src/components/LiveCookingAssistantModal.tsx (Pattern: track)",
+                "src/components/LocationDetailsView.tsx (Pattern: track)",
+                "src/components/M3ExpressiveCircularProgress.tsx (Pattern: track)",
+                "src/components/OrdersTracker.tsx (Pattern: track)",
+                "src/components/ProductDetailsModal.tsx (Pattern: track)",
+                "src/components/SmartVisionView.tsx (Pattern: track)",
+                "src/components/SpressoLogo.tsx (Pattern: track)",
+                "src/components/StackedWardrobeDecks.tsx (Pattern: track)",
+                "src/components/VirtualTryOnModal.tsx (Pattern: track)",
+                "src/components/molecules/AnimatedTicketCard.tsx (Pattern: track)",
+                "src/components/molecules/GoogleLensHeaderBar.tsx (Pattern: track)",
+                "src/components/organisms/WardrobeAiOutfitTab.tsx (Pattern: track)",
+                "src/components/pages/ProductCatalogPage.tsx (Pattern: track)",
+                "src/components/pages/WardrobeViewPage.tsx (Pattern: track)",
+                "src/db/index.ts (Pattern: track)",
+                "src/types.ts (Pattern: track)"
+            ],
+            "NAME": [
+                "src/lib/location.ts (Pattern: display_name)"
+            ],
+            "OTHER_APP_PERFORMANCE": [
+                "dist/assets/index-BunGqtNk.js (Pattern: heartbeat)",
+                "server/inventory.ts (Pattern: telemetry)",
+                "src/db/index.ts (Pattern: telemetry)"
+            ],
+            "OTHER_MESSAGES": [
+                "dist/assets/index-BunGqtNk.js (Pattern: xmpp)"
+            ],
+            "PERFORMANCE_DIAGNOSTICS": [
+                "dist/assets/index-BunGqtNk.js (Pattern: Debug)",
+                "server/geminiService.ts (Pattern: trace)",
+                "src/components/GenkitCreativeStudioModal.tsx (Pattern: trace)",
+                "src/components/VirtualTryOnModal.tsx (Pattern: trace)",
+                "src/main.tsx (Pattern: StrictMode)"
+            ],
+            "PHOTOS": [
+                "composeApp/src/androidMain/kotlin/ui/CameraCaptureView.kt (Pattern: ImageCapture)",
+                "composeApp/src/androidMain/kotlin/ui/ImagePicker.kt (Pattern: image/*)",
+                "composeApp/src/wasmJsMain/kotlin/ui/ImagePicker.kt (Pattern: image/*)",
+                "dist/assets/index-BunGqtNk.js (Pattern: image/*)",
+                "src/components/AIShopperInputBar.tsx (Pattern: image/*)",
+                "src/components/CameraObjectDetectionModal.tsx (Pattern: image/*)",
+                "src/components/DynamicThemePickerModal.tsx (Pattern: image/*)",
+                "src/components/GoogleLensScreenWidgetModal.tsx (Pattern: image/*)",
+                "src/components/LiveCameraCaptureModal.tsx (Pattern: image/*)",
+                "src/components/SmartVisionView.tsx (Pattern: image/*)",
+                "src/components/VirtualTryOnModal.tsx (Pattern: image/*)",
+                "src/components/organisms/WardrobeUploadModal.tsx (Pattern: image/*)",
+                "src/components/pages/WardrobeViewPage.tsx (Pattern: CAMERA)"
+            ],
+            "PRECISE_LOCATION": [
+                "dist/assets/index-BunGqtNk.js (Pattern: latitude)",
+                "server/geminiService.ts (Pattern: latitude)",
+                "server/routes.ts (Pattern: latitude)",
+                "src/App.tsx (Pattern: latitude)",
+                "src/components/LocationPermissionModal.tsx (Pattern: navigator.geolocation)",
+                "src/lib/location.ts (Pattern: latitude)"
+            ],
+            "PURCHASE_HISTORY": [
+                "dist/assets/index-BunGqtNk.js (Pattern: orderId)",
+                "server.ts (Pattern: orderId)",
+                "server/kitesurfService.ts (Pattern: orderId)",
+                "server/routes.ts (Pattern: orderId)",
+                "src/App.tsx (Pattern: receipt)",
+                "src/components/HITLCheckoutModal.tsx (Pattern: orderId)",
+                "src/components/MaterialIcon.tsx (Pattern: receipt)",
+                "src/components/OrdersTracker.tsx (Pattern: orderId)",
+                "verify_orders_test.ts (Pattern: orderId)"
+            ],
+            "RACE_ETHNICITY": [
+                "dist/assets/index-BunGqtNk.js (Pattern: race)",
+                "server.ts (Pattern: race)",
+                "server/geminiService.ts (Pattern: race)",
+                "src/components/GenkitCreativeStudioModal.tsx (Pattern: race)",
+                "src/components/GoogleLensScreenWidgetModal.tsx (Pattern: race)",
+                "src/components/VirtualTryOnModal.tsx (Pattern: race)"
+            ],
+            "USER_ACCOUNT": [
+                "composeApp/src/androidMain/kotlin/network/AuthHelper.kt (Pattern: uid)",
+                "composeApp/src/wasmJsMain/kotlin/network/AuthHelper.kt (Pattern: uid)",
+                "dist/assets/index-BunGqtNk.js (Pattern: login)",
+                "functions/lib/index.js (Pattern: uid)",
+                "functions/src/index.ts (Pattern: uid)",
+                "server.ts (Pattern: uid)",
+                "server/kitesurfService.ts (Pattern: credentials)",
+                "server/routes.ts (Pattern: uid)",
+                "src/App.tsx (Pattern: login)",
+                "src/components/AuthScreen.tsx (Pattern: login)",
+                "src/components/CameraObjectDetectionModal.tsx (Pattern: uid)",
+                "src/components/GenkitCreativeStudioModal.tsx (Pattern: uid)",
+                "src/components/HITLCheckoutModal.tsx (Pattern: login)",
+                "src/components/LiveCameraCaptureModal.tsx (Pattern: uid)",
+                "src/components/LiveCookingAssistantModal.tsx (Pattern: uid)",
+                "src/components/ProductDetailsModal.tsx (Pattern: uid)",
+                "src/components/VirtualTryOnModal.tsx (Pattern: uid)",
+                "src/components/atoms/FluidShaderCanvas.tsx (Pattern: uid)",
+                "src/components/molecules/AnimatedTicketCard.tsx (Pattern: uid)",
+                "src/db/index.ts (Pattern: user_id)",
+                "src/db/schema.ts (Pattern: user_id)",
+                "src/lib/firebase.ts (Pattern: login)"
+            ],
+            "VIDEOS": [
+                "composeApp/src/androidMain/kotlin/audio/AudioRecorder.kt (Pattern: MediaRecorder)",
+                "composeApp/src/androidMain/kotlin/com/spresso19/wearable/MetaWearablesManager.kt (Pattern: MediaRecorder)"
+            ],
+            "WEB_BROWSING_HISTORY": [
+                "dist/assets/index-BunGqtNk.js (Pattern: loadUrl)"
+            ]
+        },
+        "disclosure": {
+            "-": [
+                "composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt (Pattern: share)",
+                "composeApp/src/androidMain/kotlin/ui/ImagePicker.kt (Pattern: AlertDialog)",
+                "dist/assets/index-BunGqtNk.js (Pattern: Dialog)",
+                "functions/lib/index.js (Pattern: Accept)",
+                "functions/src/index.ts (Pattern: Accept)",
+                "server/routes.ts (Pattern: collect)",
+                "src/components/ElevatedQuickActionFab.tsx (Pattern: share)",
+                "src/components/MaterialIcon.tsx (Pattern: share)",
+                "src/components/OrdersTracker.tsx (Pattern: collect)",
+                "src/components/ProductDetailsModal.tsx (Pattern: share)",
+                "src/components/SeasonalCategorySection.tsx (Pattern: collect)",
+                "src/components/pages/WardrobeViewPage.tsx (Pattern: collect)",
+                "src/lib/firebase.ts (Pattern: collect)",
+                "src/lib/location.ts (Pattern: Accept)"
+            ]
+        },
+        "network_transmission": {
+            "-": [
+                "composeApp/src/androidMain/kotlin/network/SpressoConfig.kt (Pattern: WebSocket)",
+                "composeApp/src/commonMain/kotlin/App.kt (Pattern: fetch)",
+                "composeApp/src/commonMain/kotlin/components/atoms/NetworkImage.kt (Pattern: HttpClient)",
+                "composeApp/src/commonMain/kotlin/components/molecules/ProductCard.kt (Pattern: HttpClient)",
+                "composeApp/src/commonMain/kotlin/components/pages/ProductCatalogPage.kt (Pattern: HttpClient)",
+                "composeApp/src/commonMain/kotlin/components/pages/WardrobeViewPage.kt (Pattern: HttpClient)",
+                "composeApp/src/commonMain/kotlin/network/ApiClient.kt (Pattern: HttpClient)",
+                "composeApp/src/commonMain/kotlin/network/LiveApiClient.kt (Pattern: WebSocket)",
+                "composeApp/src/commonMain/kotlin/network/SpressoConfig.kt (Pattern: WebSocket)",
+                "composeApp/src/wasmJsMain/kotlin/network/SpressoConfig.kt (Pattern: WebSocket)",
+                "dist/assets/index-BunGqtNk.js (Pattern: fetch)",
+                "server.ts (Pattern: WebSocket)",
+                "server/actions/vitposeAction.ts (Pattern: fetch)",
+                "server/apifyService.ts (Pattern: fetch)",
+                "server/kitesurfService.ts (Pattern: fetch)",
+                "server/plugins/vitposePlugin.ts (Pattern: fetch)",
+                "server/routes.ts (Pattern: fetch)",
+                "src/App.tsx (Pattern: fetch)",
+                "src/components/CameraObjectDetectionModal.tsx (Pattern: fetch)",
+                "src/components/GamifiedOnboardingModal.tsx (Pattern: fetch)",
+                "src/components/GenkitCreativeStudioModal.tsx (Pattern: fetch)",
+                "src/components/GoogleLensScreenWidgetModal.tsx (Pattern: fetch)",
+                "src/components/LiveCookingAssistantModal.tsx (Pattern: WebSocket)",
+                "src/components/OrdersTracker.tsx (Pattern: fetch)",
+                "src/components/SmartVisionView.tsx (Pattern: fetch)",
+                "src/components/VirtualTryOnModal.tsx (Pattern: fetch)",
+                "src/components/organisms/ProductCatalogGrid.tsx (Pattern: fetch)",
+                "src/components/pages/CreatorGenAIAgentsChatPage.tsx (Pattern: fetch)",
+                "src/components/pages/PersonalAIShopperChatPage.tsx (Pattern: fetch)",
+                "src/components/pages/ProductCatalogPage.tsx (Pattern: fetch)",
+                "src/dataconnect/esm/index.esm.js (Pattern: fetch)",
+                "src/dataconnect/index.cjs.js (Pattern: fetch)",
+                "src/hooks/useWardrobeInteractions.ts (Pattern: fetch)",
+                "src/lib/location.ts (Pattern: fetch)",
+                "verify_orders_test.ts (Pattern: fetch)"
+            ]
+        }
+    },
+    "found_urls": [],
+    "semantic_files": {
+        "AUDIO": [
+            "AudioRecorder.kt",
+            "AudioRecorder.kt",
+            "AudioRecorder.kt",
+            "DynamicThemePickerModal.tsx",
+            "ChatMicButton.tsx",
+            "dynamicColorEngine.ts"
+        ],
+        "CONFIG": [
+            "vite.config.ts",
+            "SpressoConfig.kt",
+            "accessibility_service_config.xml",
+            "network_security_config.xml",
+            "SpressoConfig.kt",
+            "SpressoConfig.kt",
+            "drizzle.config.ts"
+        ],
+        "PHOTOS": [
+            "ImageDecoder.kt",
+            "CameraCaptureView.kt",
+            "ImagePicker.kt",
+            "ImageDecoder.kt",
+            "NetworkImage.kt",
+            "ImagePicker.kt",
+            "ImageDecoder.kt",
+            "ImagePicker.kt",
+            "CameraObjectDetectionModal.tsx",
+            "LiveCameraCaptureModal.tsx",
+            "AgentAvatarBadge.tsx",
+            "imageCropper.ts"
+        ],
+        "SUPPORT": [
+            "AuthHelper.kt",
+            "DataConnectHelper.kt",
+            "AuthHelper.kt",
+            "DataConnectHelper.kt",
+            "AuthHelper.kt",
+            "DataConnectHelper.kt"
+        ],
+        "USER_ACCOUNT": [
+            "AuthHelper.kt",
+            "AuthHelper.kt",
+            "AuthHelper.kt",
+            "AuthScreen.tsx"
+        ]
+    }
+}

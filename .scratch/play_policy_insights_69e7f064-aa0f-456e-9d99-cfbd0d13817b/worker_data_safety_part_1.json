@@ -1,0 +1,60 @@
+{
+  "domain": "Data Safety and Privacy",
+  "findings": [
+    {
+      "psl_constant": "VIDEOS",
+      "policy_id": "data_safety_section",
+      "issue_summary": "Data Safety Compliant (Local-Only)",
+      "severity": "SUGGESTION",
+      "files_involved": [
+        "composeApp/src/androidMain/kotlin/audio/AudioRecorder.kt",
+        "composeApp/src/androidMain/kotlin/com/spresso19/wearable/MetaWearablesManager.kt"
+      ],
+      "evidence": "MediaRecorder import is used solely for the MediaRecorder.AudioSource.MIC audio source constant in AudioRecord. No video recording or transmission logic exists in the codebase.",
+      "recommendation": "No action needed. No user video data is recorded or transferred.",
+      "is_transferred": false,
+      "user_initiated": false,
+      "is_third_party": false,
+      "prominent_disclosure_status": "EXEMPT",
+      "purpose": "Local functionality only",
+      "linked_to_user": false
+    },
+    {
+      "psl_constant": "AUDIO",
+      "policy_id": "data_safety_section",
+      "issue_summary": "User-Initiated Collection",
+      "severity": "IMPORTANT",
+      "files_involved": [
+        "composeApp/src/androidMain/kotlin/audio/AudioRecorder.kt",
+        "composeApp/src/commonMain/kotlin/App.kt",
+        "composeApp/src/commonMain/kotlin/network/LiveApiClient.kt",
+        "composeApp/src/androidMain/kotlin/com/spresso19/MainActivity.kt"
+      ],
+      "evidence": "In App.kt (lines 115-144), user tap on mic FloatingActionButton triggers audioRecorder.startRecording() and streams base64 audio chunks via LiveApiClient WebSocket to backend. As a user-initiated first-party transfer for AI Assistant voice interaction, prominent disclosure is exempt, but collection must be declared in Play Store Data Safety form.",
+      "recommendation": "Declare Audio collection for App Functionality in the Play Store Data Safety Section.",
+      "is_transferred": true,
+      "user_initiated": true,
+      "is_third_party": false,
+      "prominent_disclosure_status": "EXEMPT",
+      "purpose": "App functionality",
+      "linked_to_user": false
+    },
+    {
+      "psl_constant": "USER_ACCOUNT",
+      "policy_id": "data_safety_section",
+      "issue_summary": "Data Safety Compliant (Local-Only)",
+      "severity": "SUGGESTION",
+      "files_involved": [
+        "composeApp/src/androidMain/kotlin/network/AuthHelper.kt"
+      ],
+      "evidence": "AuthHelper.kt defines getCurrentUserUid() referencing FirebaseAuth currentUser UID. The UID is not transmitted to any custom off-device sinks or third-party endpoints.",
+      "recommendation": "No action required. User account UID is not transferred off-device.",
+      "is_transferred": false,
+      "user_initiated": false,
+      "is_third_party": false,
+      "prominent_disclosure_status": "EXEMPT",
+      "purpose": "Local functionality only",
+      "linked_to_user": false
+    }
+  ]
+}
