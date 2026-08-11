@@ -8,11 +8,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.ui.graphics.vector.ImageVector
+
 @Composable
 fun AgentTemplateCard(
     title: String,
     description: String,
-    icon: String,
+    icon: ImageVector,
     isSelected: Boolean,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier
@@ -40,9 +42,11 @@ fun AgentTemplateCard(
             modifier = Modifier.padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = icon,
-                style = MaterialTheme.typography.headlineMedium
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                modifier = Modifier.size(32.dp),
+                tint = MaterialTheme.colorScheme.primary
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(

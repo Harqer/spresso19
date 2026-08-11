@@ -9,6 +9,11 @@ import androidx.compose.ui.unit.dp
 import components.atoms.NetworkImage
 import io.ktor.client.HttpClient
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Checkroom
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Share
+
 @Composable
 fun WardrobeViewPage(
     displayMediaUrl: String?,
@@ -61,7 +66,12 @@ fun WardrobeViewPage(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("🧥", style = MaterialTheme.typography.displayMedium)
+                            Icon(
+                                imageVector = Icons.Default.Checkroom,
+                                contentDescription = "Wardrobe",
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                             Text(
                                 "No try-on results yet",
                                 style = MaterialTheme.typography.bodyLarge,
@@ -80,7 +90,13 @@ fun WardrobeViewPage(
                     onClick = onPickImageRequested,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("📷 Try-On / Upload")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = null)
+                        Text("Try-On / Upload")
+                    }
                 }
                 
                 if (displayMediaUrl != null) {
@@ -92,7 +108,13 @@ fun WardrobeViewPage(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("📤 Share Fit")
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null)
+                            Text("Share Fit")
+                        }
                     }
                 }
             }

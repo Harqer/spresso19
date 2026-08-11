@@ -22,6 +22,14 @@ import components.pages.PersonalAIShopperChatPage
 import components.pages.WardrobeViewPage
 import components.pages.CreatorAgentsPage
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Checkroom
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Stop
+
 enum class Tab {
     Shop,
     Assistant,
@@ -88,25 +96,25 @@ fun App(
                         selected = currentTab == Tab.Shop,
                         onClick = { currentTab = Tab.Shop },
                         label = { Text("Shop") },
-                        icon = { Text("🛍") }
+                        icon = { Icon(Icons.Default.ShoppingBag, contentDescription = "Shop") }
                     )
                     NavigationBarItem(
                         selected = currentTab == Tab.Assistant,
                         onClick = { currentTab = Tab.Assistant },
                         label = { Text("Assistant") },
-                        icon = { Text("💬") }
+                        icon = { Icon(Icons.Default.Chat, contentDescription = "Assistant") }
                     )
                     NavigationBarItem(
                         selected = currentTab == Tab.Wardrobe,
                         onClick = { currentTab = Tab.Wardrobe },
                         label = { Text("Wardrobe") },
-                        icon = { Text("🧥") }
+                        icon = { Icon(Icons.Default.Checkroom, contentDescription = "Wardrobe") }
                     )
                     NavigationBarItem(
                         selected = currentTab == Tab.Agents,
                         onClick = { currentTab = Tab.Agents },
                         label = { Text("Agents") },
-                        icon = { Text("👥") }
+                        icon = { Icon(Icons.Default.Group, contentDescription = "Agents") }
                     )
                 }
             },
@@ -141,9 +149,9 @@ fun App(
                         }
                     ) {
                         if (isVoiceRecording) {
-                            Text("🛑")
+                            Icon(Icons.Default.Stop, contentDescription = "Stop recording")
                         } else {
-                            Text("🎙")
+                            Icon(Icons.Default.Mic, contentDescription = "Start recording")
                         }
                     }
                 }

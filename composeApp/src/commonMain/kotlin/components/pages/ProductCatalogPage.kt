@@ -16,6 +16,8 @@ import network.ApiClient
 import network.ProductItem
 
 import components.molecules.ProductActions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ShoppingCart
 
 @Composable
 fun ProductCatalogPage(
@@ -127,7 +129,13 @@ fun ProductCatalogPage(
                             }
                         }
                     ) {
-                        Text("🛒 1-Tap Buy Now")
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.ShoppingCart, contentDescription = null)
+                            Text("1-Tap Buy Now")
+                        }
                     }
                 },
                 dismissButton = {

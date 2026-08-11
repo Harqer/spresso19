@@ -13,6 +13,12 @@ import kotlinx.coroutines.launch
 import network.ApiClient
 import kotlinx.serialization.json.JsonObject
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Checkroom
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.AutoAwesome
+
 @Composable
 fun CreatorAgentsPage(
     apiClient: ApiClient,
@@ -22,9 +28,9 @@ fun CreatorAgentsPage(
 ) {
     val templates = remember {
         listOf(
-            Triple("chef", "Chef AI Live Assistant", "🍳 Learn recipes, cooking techniques, and grocery list generation live."),
-            Triple("style", "Style Advisor AI", "👔 Scan outfits, match fits, and generate custom wardrobe recommendations."),
-            Triple("travel", "Travel Companion AI", "🗺 Plan itineraries, explore cities, and get local translation help.")
+            Triple("chef", "Chef AI Live Assistant", "Learn recipes, cooking techniques, and grocery list generation live."),
+            Triple("style", "Style Advisor AI", "Scan outfits, match fits, and generate custom wardrobe recommendations."),
+            Triple("travel", "Travel Companion AI", "Plan itineraries, explore cities, and get local translation help.")
         )
     }
     
@@ -58,9 +64,9 @@ fun CreatorAgentsPage(
                 val title = template.second
                 val desc = template.third
                 val icon = when(id) {
-                    "chef" -> "🍳"
-                    "style" -> "👔"
-                    else -> "🗺"
+                    "chef" -> Icons.Default.Restaurant
+                    "style" -> Icons.Default.Checkroom
+                    else -> Icons.Default.Explore
                 }
                 
                 AgentTemplateCard(
@@ -104,7 +110,13 @@ fun CreatorAgentsPage(
             if (isGenerating) {
                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
             } else {
-                Text("🚀 Generate AI Creator Campaign")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                    Text("Generate AI Creator Campaign")
+                }
             }
         }
 

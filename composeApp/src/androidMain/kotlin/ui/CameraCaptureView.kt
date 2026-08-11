@@ -17,6 +17,11 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.FlashAuto
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -236,14 +241,14 @@ fun CameraCaptureView(
                         contentDescription = "Flash mode: ${if (flashMode == ImageCapture.FLASH_MODE_ON) "On" else if (flashMode == ImageCapture.FLASH_MODE_AUTO) "Auto" else "Off"}"
                     }
             ) {
-                Text(
-                    text = when (flashMode) {
-                        ImageCapture.FLASH_MODE_ON -> "⚡ ON"
-                        ImageCapture.FLASH_MODE_AUTO -> "⚡ AUTO"
-                        else -> "⚡ OFF"
+                Icon(
+                    imageVector = when (flashMode) {
+                        ImageCapture.FLASH_MODE_ON -> Icons.Default.FlashOn
+                        ImageCapture.FLASH_MODE_AUTO -> Icons.Default.FlashAuto
+                        else -> Icons.Default.FlashOff
                     },
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelSmall
+                    contentDescription = "Flash",
+                    tint = Color.White
                 )
             }
             
@@ -284,10 +289,10 @@ fun CameraCaptureView(
                         contentDescription = "Switch camera lens to ${if (isFrontLens) "back" else "front"}"
                     }
             ) {
-                Text(
-                    text = if (isFrontLens) "📷 FRONT" else "📷 BACK",
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelSmall
+                Icon(
+                    imageVector = Icons.Default.Cameraswitch,
+                    contentDescription = "Switch Lens",
+                    tint = Color.White
                 )
             }
         }

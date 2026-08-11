@@ -11,6 +11,10 @@ import androidx.compose.ui.unit.dp
 import components.atoms.ChatBubbleText
 import components.organisms.ChatbotCanvas
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Send
+
 @Composable
 fun PersonalAIShopperChatPage(
     isVideoPlaying: Boolean,
@@ -87,7 +91,13 @@ fun PersonalAIShopperChatPage(
                                     containerColor = MaterialTheme.colorScheme.primary
                                 )
                             ) {
-                                Text("📷 Open Camera")
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.CameraAlt, contentDescription = "Camera")
+                                    Text("Open Camera")
+                                }
                             }
                         }
                     }
@@ -133,13 +143,13 @@ fun PersonalAIShopperChatPage(
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
-                        Text("➔")
+                        Icon(Icons.Default.Send, contentDescription = "Send message")
                     }
                 }
                 
                 if (errorMessage != null) {
                     Text(
-                        text = "⚠️ $errorMessage",
+                        text = errorMessage!!,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(bottom = 8.dp)
