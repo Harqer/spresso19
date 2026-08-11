@@ -30,7 +30,7 @@ interface PersonalAIShopperChatPageProps {
   onOpenVisionSearch?: () => void;
   onSelectTab?: (tabId: string) => void;
   userLocation?: string | null;
-  userLatLng?: { lat: number; lng: number } | null;
+  userLatLng?: { lat?: number; lng?: number; latitude?: number; longitude?: number } | null;
   searchRadius?: number;
   onRequestLocationPermission?: () => void;
   onClearShowcaseProduct?: () => void;
