@@ -15,6 +15,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 
+import androidx.activity.enableEdgeToEdge
+
 class MainActivity : ComponentActivity() {
 
     private val RECORD_AUDIO_REQUEST_CODE = 101
@@ -22,6 +24,7 @@ class MainActivity : ComponentActivity() {
     private val isAccessibilityEnabledState = androidx.compose.runtime.mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         verifyAppSignature()
         
@@ -33,15 +36,11 @@ class MainActivity : ComponentActivity() {
         
         setContent {
             val darkTheme = isSystemInDarkTheme()
-            window.statusBarColor = Color.Transparent.toArgb()
-            window.navigationBarColor = Color.Transparent.toArgb()
 
             val controller = WindowCompat.getInsetsController(window, window.decorView)
             controller.isAppearanceLightStatusBars = !darkTheme
             controller.isAppearanceLightNavigationBars = !darkTheme
             
-            val isAccessEnabled by isAccessibilityEnabledState
-
             App(
                 onShare = { productId ->
                     val sendIntent = android.content.Intent().apply {
@@ -52,42 +51,10 @@ class MainActivity : ComponentActivity() {
                     val shareIntent = android.content.Intent.createChooser(sendIntent, null)
                     startActivity(shareIntent)
                 },
-                isAccessibilityEnabled = isAccessEnabled,
-                onToggleAccessibility = {
-                    try {
-                        val intent = android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
-                            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-                        }
-                        startActivity(intent)
-                    } catch (e: Exception) {
-                        android.widget.Toast.makeText(this, "Could not open settings", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
+                isAccessibilityEnabled = false,
+                onToggleAccessibility = { }
             )
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        isAccessibilityEnabledState.value = isAccessibilityServiceEnabled(this)
-    }
-
-    private fun isAccessibilityServiceEnabled(context: android.content.Context): Boolean {
-        val expectedComponentName = android.content.ComponentName(context, SpressoAccessibilityService::class.java)
-        val enabledServices = android.provider.Settings.Secure.getString(
-            context.contentResolver,
-            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        val colonSplitter = android.text.TextUtils.SimpleStringSplitter(':')
-        colonSplitter.setString(enabledServices)
-        while (colonSplitter.hasNext()) {
-            val componentNameString = colonSplitter.next()
-            val enabledService = android.content.ComponentName.unflattenFromString(componentNameString)
-            if (enabledService != null && enabledService == expectedComponentName) {
-                return true
-            }
-        }
-        return false
     }
 
     private fun checkAndRequestAudioPermission() {

@@ -13,7 +13,7 @@ import components.organisms.ChatbotCanvas
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 
 @Composable
 fun PersonalAIShopperChatPage(
@@ -143,7 +143,7 @@ fun PersonalAIShopperChatPage(
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
-                        Icon(Icons.Default.Send, contentDescription = "Send message")
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send message")
                     }
                 }
                 

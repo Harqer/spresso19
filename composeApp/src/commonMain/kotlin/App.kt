@@ -23,8 +23,8 @@ import components.pages.WardrobeViewPage
 import components.pages.CreatorAgentsPage
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Checkroom
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Mic
@@ -98,11 +98,13 @@ fun App(
                         label = { Text("Shop") },
                         icon = { Icon(Icons.Default.ShoppingBag, contentDescription = "Shop") }
                     )
+import androidx.compose.material.icons.automirrored.filled.Chat
+
                     NavigationBarItem(
                         selected = currentTab == Tab.Assistant,
                         onClick = { currentTab = Tab.Assistant },
                         label = { Text("Assistant") },
-                        icon = { Icon(Icons.Default.Chat, contentDescription = "Assistant") }
+                        icon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Assistant") }
                     )
                     NavigationBarItem(
                         selected = currentTab == Tab.Wardrobe,
