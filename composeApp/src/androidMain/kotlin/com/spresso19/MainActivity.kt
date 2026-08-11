@@ -136,13 +136,16 @@ class MainActivity : ComponentActivity() {
                     break
                 }
             }
-            if (!verified) {
-                // Signature mismatch! Exit application to protect integrity.
+            val isDebuggable = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+            if (!verified && !isDebuggable) {
+                // Signature mismatch in release! Exit application to protect integrity.
                 finishAffinity()
             }
         } catch (e: Exception) {
-            // Safe fallback
-            finishAffinity()
+            val isDebuggable = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+            if (!isDebuggable) {
+                finishAffinity()
+            }
         }
     }
 }
