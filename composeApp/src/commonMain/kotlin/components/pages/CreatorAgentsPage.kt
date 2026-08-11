@@ -9,8 +9,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import components.molecules.AgentTemplateCard
 
+import kotlinx.coroutines.launch
+import network.ApiClient
+import kotlinx.serialization.json.JsonObject
+
 @Composable
 fun CreatorAgentsPage(
+    apiClient: ApiClient,
     selectedTemplateId: String,
     onTemplateSelected: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -22,6 +27,11 @@ fun CreatorAgentsPage(
             Triple("travel", "Travel Companion AI", "🗺 Plan itineraries, explore cities, and get local translation help.")
         )
     }
+    
+    var campaignPrompt by remember { mutableStateOf("") }
+    var isGenerating by remember { mutableStateOf(false) }
+    var campaignOutput by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
     
     Column(
         modifier = modifier
@@ -59,6 +69,54 @@ fun CreatorAgentsPage(
                     icon = icon,
                     isSelected = selectedTemplateId == id,
                     onSelect = { onTemplateSelected(id) }
+                )
+            }
+        }
+
+        // Interactive Campaign Generator Section
+        OutlinedTextField(
+            value = campaignPrompt,
+            onValueChange = { campaignPrompt = it },
+            label = { Text("Campaign Goal / Product Prompt") },
+            placeholder = { Text("e.g. Launching a new summer eco-friendly jacket collection") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Button(
+            onClick = {
+                if (campaignPrompt.isNotBlank()) {
+                    isGenerating = true
+                    scope.launch {
+                        try {
+                            val res = apiClient.generateCreatorCampaign(campaignPrompt, selectedTemplateId)
+                            campaignOutput = res.toString()
+                        } catch (e: Exception) {
+                            campaignOutput = "Error generating campaign: ${e.message}"
+                        } finally {
+                            isGenerating = false
+                        }
+                    }
+                }
+            },
+            enabled = !isGenerating && campaignPrompt.isNotBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (isGenerating) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else {
+                Text("🚀 Generate AI Creator Campaign")
+            }
+        }
+
+        if (campaignOutput != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth().heightIn(max = 160.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Text(
+                    text = campaignOutput!!,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(12.dp)
                 )
             }
         }

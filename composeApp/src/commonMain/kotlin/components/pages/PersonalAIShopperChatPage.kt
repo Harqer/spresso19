@@ -108,6 +108,35 @@ fun PersonalAIShopperChatPage(
                     }
                 }
                 
+                var userPrompt by remember { mutableStateOf("") }
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = userPrompt,
+                        onValueChange = { userPrompt = it },
+                        placeholder = { Text("Ask your AI Personal Shopper...") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = {
+                            if (userPrompt.isNotBlank()) {
+                                messages.add(userPrompt to true)
+                                userPrompt = ""
+                            }
+                        },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Text("➔")
+                    }
+                }
+                
                 if (errorMessage != null) {
                     Text(
                         text = "⚠️ $errorMessage",

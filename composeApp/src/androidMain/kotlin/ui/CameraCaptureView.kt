@@ -351,13 +351,17 @@ fun CameraCaptureView(
                                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                                     val bytes = tempFile.readBytes()
                                     tempFile.delete()
-                                    isShutterFlashVisible = false
-                                    onImageCaptured(bytes)
+                                    ContextCompat.getMainExecutor(context).execute {
+                                        isShutterFlashVisible = false
+                                        onImageCaptured(bytes)
+                                    }
                                 }
                                 
                                 override fun onError(exception: ImageCaptureException) {
                                     tempFile.delete()
-                                    isShutterFlashVisible = false
+                                    ContextCompat.getMainExecutor(context).execute {
+                                        isShutterFlashVisible = false
+                                    }
                                 }
                             }
                         )

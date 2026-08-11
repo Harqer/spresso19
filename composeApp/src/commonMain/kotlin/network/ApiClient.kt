@@ -185,6 +185,17 @@ class ApiClient {
         }
     }
 
+    suspend fun generateCreatorCampaign(prompt: String, templateId: String): JsonObject {
+        return try {
+            client.post("$backendBaseUrl/api/creator/generate-campaign") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("prompt" to prompt, "templateId" to templateId))
+            }.body()
+        } catch (e: Exception) {
+            JsonObject(emptyMap())
+        }
+    }
+
     fun close() {
         client.close()
     }

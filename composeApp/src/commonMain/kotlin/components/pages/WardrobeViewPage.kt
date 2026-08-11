@@ -14,6 +14,7 @@ fun WardrobeViewPage(
     displayMediaUrl: String?,
     httpClient: HttpClient,
     onPickImageRequested: () -> Unit,
+    onShareRequested: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -71,11 +72,29 @@ fun WardrobeViewPage(
                 }
             }
             
-            Button(
-                onClick = onPickImageRequested,
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("📷 Take Photo / Upload Item")
+                Button(
+                    onClick = onPickImageRequested,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("📷 Try-On / Upload")
+                }
+                
+                if (displayMediaUrl != null) {
+                    OutlinedButton(
+                        onClick = {
+                            if (onShareRequested != null) {
+                                onShareRequested("Check out my Virtual Try-On outfit from Spresso AI! $displayMediaUrl")
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("📤 Share Fit")
+                    }
+                }
             }
         }
     }

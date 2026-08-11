@@ -117,13 +117,8 @@ fun App(
                             if (isVoiceRecording) {
                                 audioRecorder.stopRecording()
                                 liveApiClient.close()
+                                isVoiceRecording = false
                             } else {
-                                scope.launch {
-                                    liveApiClient.connect(
-                                        onReceiveAudio = { _ -> },
-                                        onReceiveText = { text -> liveTranscript = text }
-                                    )
-                                }
                                 audioRecorder.onAudioChunk = { chunk ->
                                     scope.launch {
                                         @OptIn(ExperimentalEncodingApi::class)
@@ -131,8 +126,18 @@ fun App(
                                     }
                                 }
                                 audioRecorder.startRecording()
+                                if (audioRecorder.isRecording()) {
+                                    scope.launch {
+                                        liveApiClient.connect(
+                                            onReceiveAudio = { _ -> },
+                                            onReceiveText = { text -> liveTranscript = text }
+                                        )
+                                    }
+                                    isVoiceRecording = true
+                                } else {
+                                    errorMessage = "Microphone access required for voice AI recording."
+                                }
                             }
-                            isVoiceRecording = !isVoiceRecording
                         }
                     ) {
                         if (isVoiceRecording) {
@@ -165,7 +170,8 @@ fun App(
                             onTryOnRequested = { product ->
                                 activeProductId = product.id
                                 pickImage()
-                            }
+                            },
+                            onShareRequested = onShare
                         )
                     }
                     Tab.Assistant -> {
@@ -183,11 +189,13 @@ fun App(
                         WardrobeViewPage(
                             displayMediaUrl = displayMediaUrl,
                             httpClient = apiClient.client,
-                            onPickImageRequested = { pickImage() }
+                            onPickImageRequested = { pickImage() },
+                            onShareRequested = onShare
                         )
                     }
                     Tab.Agents -> {
                         CreatorAgentsPage(
+                            apiClient = apiClient,
                             selectedTemplateId = selectedTemplateId,
                             onTemplateSelected = { id -> selectedTemplateId = id }
                         )

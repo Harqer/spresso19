@@ -15,17 +15,22 @@ import kotlinx.coroutines.launch
 import network.ApiClient
 import network.ProductItem
 
+import components.molecules.ProductActions
+
 @Composable
 fun ProductCatalogPage(
     apiClient: ApiClient,
     httpClient: HttpClient,
     onProductSelected: (String) -> Unit,
     onTryOnRequested: (ProductItem) -> Unit,
+    onShareRequested: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var products by remember { mutableStateOf<List<ProductItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var activeDetailProduct by remember { mutableStateOf<ProductItem?>(null) }
+    var checkoutStatus by remember { mutableStateOf<String?>(null) }
     
     val scope = rememberCoroutineScope()
     
@@ -63,11 +68,74 @@ fun ProductCatalogPage(
                     ProductCard(
                         product = product,
                         client = httpClient,
-                        onProductClick = { onProductSelected(product.id) },
+                        onProductClick = {
+                            activeDetailProduct = product
+                            onProductSelected(product.id)
+                        },
                         onTryOnClick = { onTryOnRequested(product) }
                     )
                 }
             }
+        }
+
+        // Product Detail Modal showing ProductActions
+        if (activeDetailProduct != null) {
+            val prod = activeDetailProduct!!
+            AlertDialog(
+                onDismissRequest = { activeDetailProduct = null },
+                title = { Text(prod.name) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("${prod.brand} • $${prod.price}", style = MaterialTheme.typography.titleMedium)
+                        if (checkoutStatus != null) {
+                            Text(checkoutStatus!!, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                        }
+                        ProductActions(
+                            onVirtualTryOnClick = {
+                                activeDetailProduct = null
+                                onTryOnRequested(prod)
+                            },
+                            onSpin360Click = {
+                                scope.launch {
+                                    try {
+                                        apiClient.requestSpin360(prod.id)
+                                        checkoutStatus = "Spin 360 generated!"
+                                    } catch (e: Exception) {
+                                        checkoutStatus = "Spin 360 note: ${e.message}"
+                                    }
+                                }
+                            },
+                            onLikeClick = {
+                                checkoutStatus = "Saved to favorites!"
+                            },
+                            onShareClick = {
+                                onShareRequested(prod.name)
+                            }
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                try {
+                                    val res = apiClient.confirmCheckoutWithToken(prod.id, 1, "TOKEN_CONFIRMED", "123 Main St")
+                                    checkoutStatus = res.message ?: "Order confirmed!"
+                                } catch (e: Exception) {
+                                    checkoutStatus = "Checkout note: ${e.message}"
+                                }
+                            }
+                        }
+                    ) {
+                        Text("🛒 1-Tap Buy Now")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { activeDetailProduct = null }) {
+                        Text("Close")
+                    }
+                }
+            )
         }
     }
 }
