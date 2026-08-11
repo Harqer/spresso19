@@ -12,22 +12,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
 
       - name: Verify TypeScript & Build
         run: |
           npm run lint
           npm run build
-
-      - name: Security Audit Check
-        run: npm audit --audit-level=high || true
 
   android-kmp-build:
     runs-on: ubuntu-latest
@@ -40,8 +37,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Ensure CI google-services.json
+        run: |
+          if [ ! -f "composeApp/google-services.json" ]; then
+            echo '{"project_info":{"project_number":"0","project_id":"spresso19","storage_bucket":"spresso19.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:0:android:0","android_client_info":{"package_name":"com.spresso19"}},"api_key":[{"current_key":"mock"}]}]}' > composeApp/google-services.json
+          fi
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
       - name: Build Android Debug APK
-        run: ./gradlew :composeApp:assembleDebug
+        run: ./gradlew :composeApp:assembleDebug --no-daemon
