@@ -108,7 +108,7 @@ export const WardrobeAiOutfitTab: React.FC<WardrobeAiOutfitTabProps> = ({
                     <div className="relative aspect-square rounded-xl overflow-hidden bg-white">
                       <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
                       <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-md text-[9px] font-mono font-bold shadow-xs ${item.type === "user_upload" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
-                        {item.type === "user_upload" ? "📷 Gallery Photo" : "🔖 Bookmarked Shop"}
+                        {item.type === "user_upload" ? "Gallery Photo" : "Bookmarked Shop"}
                       </span>
                     </div>
                     <div>

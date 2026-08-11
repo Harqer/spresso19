@@ -178,15 +178,15 @@ export const WardrobeViewPage: React.FC<WardrobeViewProps> = ({
   };
 
   const tabs = [
-    { id: "STACKED_DECKS", label: "🎴 Stacked Deck Fan-Out Fits", count: state.allWardrobeItems.length + state.likedProducts.length },
-    { id: "SEASONAL", label: "🌟 Seasonal Collections", count: state.allWardrobeItems.length },
-    { id: "BOOKMARKS", label: "🔖 Saved Catalog Bookmarks", count: state.bookmarkedWardrobeItems.length },
-    { id: "LIKED", label: "❤️ Liked Items", count: state.likedProducts.length },
-    { id: "AI_OUTFIT", label: "🌤️ AI Weather Generator", count: currentOutfit ? 1 : 0 },
-    { id: "MIX_MATCH", label: "🎨 Mix & Match Studio", count: null },
-    { id: "ALL", label: "👔 All Closet Items", count: state.allWardrobeItems.length },
-    { id: "PHOTO_GALLERY", label: "📷 Photo Gallery Uploads", count: state.userUploadedItems.length },
-    { id: "SAVED_OUTFITS", label: "⭐ Favorite Outfits", count: state.savedFavoriteOutfits.length }
+    { id: "STACKED_DECKS", label: "Stacked Deck Fan-Out Fits", count: state.allWardrobeItems.length + state.likedProducts.length },
+    { id: "SEASONAL", label: "Seasonal Collections", count: state.allWardrobeItems.length },
+    { id: "BOOKMARKS", label: "Saved Catalog Bookmarks", count: state.bookmarkedWardrobeItems.length },
+    { id: "LIKED", label: "Liked Items", count: state.likedProducts.length },
+    { id: "AI_OUTFIT", label: "AI Weather Generator", count: currentOutfit ? 1 : 0 },
+    { id: "MIX_MATCH", label: "Mix & Match Studio", count: null },
+    { id: "ALL", label: "All Closet Items", count: state.allWardrobeItems.length },
+    { id: "PHOTO_GALLERY", label: "Photo Gallery Uploads", count: state.userUploadedItems.length },
+    { id: "SAVED_OUTFITS", label: "Favorite Outfits", count: state.savedFavoriteOutfits.length }
   ] as const;
 
   return (
@@ -273,7 +273,7 @@ export const WardrobeViewPage: React.FC<WardrobeViewProps> = ({
               <div>
                 <h3 className="text-sm font-bold text-[#18211e] font-headline flex items-center space-x-1.5">
                   <MaterialIcon icon="photo_library" size={18} className="text-[#386633]" />
-                  <span>📷 Synced Device Photo Gallery Roll</span>
+                  <span>Synced Device Photo Gallery Roll</span>
                 </h3>
                 <p className="text-[11px] text-[#5e635f] mt-0.5">
                   Tap items to import to closet, or select multiple garments and click "Stylize Outfit" for custom styling.

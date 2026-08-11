@@ -18,7 +18,7 @@ export const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({ item, produc
         <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
 
         <WardrobeBadge 
-          label={item.type === "user_upload" ? "📷 Gallery Upload" : "🔖 Bookmarked"} 
+          label={item.type === "user_upload" ? "Gallery Upload" : "Bookmarked"} 
           type={item.type === "user_upload" ? "upload" : "bookmark"}
           className="absolute top-2 left-2" 
         />
@@ -37,7 +37,7 @@ export const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({ item, produc
           <div className="flex items-center justify-between">
             <WardrobeBadge label={item.category.replace("_", " ")} type="category" />
             <WardrobeBadge 
-              label={item.weatherSuitability === "COLD_WINTER" ? "❄️ Winter" : item.weatherSuitability === "HOT_SUMMER" ? "☀️ Summer" : "🌈 All"} 
+              label={item.weatherSuitability === "COLD_WINTER" ? "Winter" : item.weatherSuitability === "HOT_SUMMER" ? "Summer" : "All-Weather"} 
               type="weather" 
             />
           </div>

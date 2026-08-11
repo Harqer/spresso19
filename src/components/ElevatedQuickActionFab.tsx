@@ -110,7 +110,7 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
         if (!bmsArr.includes(prodId)) {
           bmsArr.push(prodId);
         }
-        showToast("Saved to Bookmarked Wardrobe 🔖");
+        showToast("Saved to Bookmarked Wardrobe");
       } else {
         bmsArr = bmsArr.filter((id: string) => id !== prodId);
         showToast("Removed from Bookmarks");

@@ -138,7 +138,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
     const bookmarkedFits: GeneratedOutfit[] = [
       {
         id: "bm-fit-1",
-        title: "🔖 Saved Store Wishlist Ensemble",
+        title: "Saved Store Wishlist Ensemble",
         weatherCondition: "MILD_SPRING_AUTUMN",
         temperatureText: "Full Shop Look",
         items: bookmarkedItems.length > 0 ? bookmarkedItems.slice(0, 4) : poolItems.slice(0, 3),
@@ -148,7 +148,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
       },
       {
         id: "bm-fit-2",
-        title: "✨ Tailored Boutique Capsule",
+        title: "Tailored Boutique Capsule",
         weatherCondition: "COLD_WINTER",
         temperatureText: "38°F Chilly Day",
         items: bookmarkedItems.length > 2 ? bookmarkedItems.slice(2, 5) : poolItems.slice(0, 3),
@@ -162,7 +162,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
     const photoGalleryFits: GeneratedOutfit[] = [
       {
         id: "pg-fit-1",
-        title: "📷 Personal Closet Hand-Picked Look",
+        title: "Personal Closet Hand-Picked Look",
         weatherCondition: "ALL_WEATHER" as any,
         temperatureText: "Camera Photo Gallery",
         items: userUploadedItems.length > 0 ? userUploadedItems.slice(0, 4) : poolItems.slice(0, 3),
@@ -172,7 +172,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
       },
       {
         id: "pg-fit-2",
-        title: "🧥 Closet Essentials Layering",
+        title: "Closet Essentials Layering",
         weatherCondition: "COLD_WINTER",
         temperatureText: "50°F Chilly Breeze",
         items: userUploadedItems.length > 2 ? userUploadedItems.slice(2, 6) : poolItems.slice(0, 3),
@@ -185,7 +185,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
     return [
       {
         id: "ai-curated",
-        title: "✨ AI Curated Smart Fits",
+        title: "AI Curated Smart Fits",
         subtitle: "Intelligently mixed combinations from your Likes, Bookmarks & Photo Gallery",
         badge: `${aiFits.length} AI Outfits`,
         badgeColor: "bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] border border-[var(--md-sys-color-primary)]",
@@ -194,7 +194,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
       },
       {
         id: "photo-gallery",
-        title: "📷 Photo Gallery Closet Stack",
+        title: "Photo Gallery Closet Stack",
         subtitle: "Personal clothes uploaded from your camera roll & Google Photos gallery",
         badge: `${userUploadedItems.length} Gallery Clothes`,
         badgeColor: "bg-amber-600 text-white border border-amber-700",
@@ -204,7 +204,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
       },
       {
         id: "liked-stack",
-        title: "❤️ Liked Outfits Deck",
+        title: "Liked Outfits Deck",
         subtitle: "Outfits composed from items you liked in Google Lens & Try-On",
         badge: `${likedProducts.length} Liked Items`,
         badgeColor: "bg-rose-600 text-white border border-rose-700",
@@ -214,7 +214,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
       },
       {
         id: "bookmarked-stack",
-        title: "🔖 Bookmarked Shop Stack",
+        title: "Bookmarked Shop Stack",
         subtitle: "Saved catalog items from Spresso Store ready to style & buy",
         badge: `${bookmarkedItems.length} Bookmarks`,
         badgeColor: "bg-emerald-700 text-white border border-emerald-800",
@@ -462,7 +462,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
                               <div key={i} className="relative h-full rounded-lg overflow-hidden bg-[#f2f8f2]">
                                 <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
                                 <span className="absolute bottom-1 left-1 text-[8px] font-mono font-bold text-white bg-black/60 px-1 rounded">
-                                  {item.type === "user_upload" ? "📷" : "🔖"}
+                                  {item.type === "user_upload" ? "Gallery" : "Shop"}
                                 </span>
                               </div>
                             ))}
@@ -512,7 +512,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
                               <div className="relative aspect-square rounded-xl overflow-hidden bg-[#f2f8f2]">
                                 <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
                                 <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-black/70 text-white">
-                                  {item.type === "user_upload" ? "📷 Gallery" : "🔖 Shop"}
+                                  {item.type === "user_upload" ? "Gallery" : "Shop"}
                                 </span>
                               </div>
 
@@ -580,7 +580,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
                     <div className="relative aspect-square rounded-xl overflow-hidden bg-white border border-[#d8ebd7]">
                       <img src={it.image} alt={it.name} className="w-full h-full object-cover" />
                       <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-black/70 text-white">
-                        {it.type === "user_upload" ? "📷 Photo Gallery" : "🔖 Shop Item"}
+                        {it.type === "user_upload" ? "Photo Gallery" : "Shop Item"}
                       </span>
                     </div>
 
