@@ -136,5 +136,18 @@
     }
   ],
   "etag": "BwZXZ_BAAnw=",
-  "version": 3
+  "version": 3,
+  "auditConfigs": [
+    {
+      "service": "storage.googleapis.com",
+      "auditLogConfigs": [
+        {
+          "logType": "DATA_READ"
+        },
+        {
+          "logType": "DATA_WRITE"
+        }
+      ]
+    }
+  ]
 }
