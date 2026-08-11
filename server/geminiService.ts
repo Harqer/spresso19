@@ -255,42 +255,40 @@ Respond strictly with a JSON object:
     }
   }
 
-  const defaultImages: Record<string, string> = {
-    "Sports Wear": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80",
-    "Smart Wearables": "https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&w=600&q=80",
-    "Winter Wear": "https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=600&q=80",
-    "Makeup & Beauty": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=600&q=80",
-    "Accessories": "https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=600&q=80",
-    "Electronics": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80",
-    "Home & Craft": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80"
-  };
-
-  const formattedProducts = liveProducts.map((p: any, idx: number) => {
-    const cat = p.category || "General";
-    const imgUrl = (p.image && p.image.startsWith("http")) 
-      ? p.image 
-      : (defaultImages[cat] || defaultImages["Sports Wear"]);
-
-    return {
-      id: p.id || `live-prod-${idx}-${Date.now()}`,
-      name: p.name || "Live Trend Product",
-      brand: p.brand || "Macy's / Top Merchant",
-      category: cat,
-      price: typeof p.price === "number" ? p.price : 99.00,
-      originalPrice: typeof p.originalPrice === "number" ? p.originalPrice : Math.round((p.price || 99) * 1.2),
-      currency: "USD",
-      stock: 25,
-      sku: `LIVE-DEAL-${idx + 101}`,
-      rating: p.rating || 4.8,
-      description: p.description || "Live product deal found via real-time web search research.",
-      image: imgUrl,
-      sourceUrl: p.sourceUrl || "https://www.macys.com",
-      virtualTryOnEligible: true,
-      mcpServerId: "live-web-research-node",
-      matchScore: p.matchScore || 96,
-      personalizationReason: p.personalizationReason || (searchKeywords ? `Matched from your recent search intent in "${searchKeywords}".` : "Daily top deal & consumer trend drop.")
+  if (!liveProducts || liveProducts.length === 0) {
+    return { 
+      success: false, 
+      products: [], 
+      error: "Live web research returned no verified product listings matching query context.",
+      source: "Gemini Google Search Grounding" 
     };
-  });
+  }
+
+  const formattedProducts = liveProducts
+    .filter((p: any) => p && typeof p.name === "string" && typeof p.price === "number")
+    .map((p: any, idx: number) => {
+      const cat = p.category || "General";
+      const imgUrl = (p.image && p.image.startsWith("http")) ? p.image : "";
+
+      return {
+        id: p.id || `live-prod-${idx}-${Date.now()}`,
+        name: p.name,
+        brand: p.brand || "Verified Merchant",
+        category: cat,
+        price: p.price,
+        originalPrice: typeof p.originalPrice === "number" ? p.originalPrice : Math.round(p.price * 1.2),
+        currency: "USD",
+        stock: p.stock || 10,
+        sku: p.sku || `LIVE-DEAL-${idx + 101}`,
+        rating: p.rating || 4.8,
+        description: p.description || "Live product deal found via real-time web search research.",
+        image: imgUrl,
+        sourceUrl: p.sourceUrl || "https://www.macys.com",
+        virtualTryOnEligible: true,
+        mcpServerId: "live-web-research-node",
+        personalizationReason: p.personalizationReason || (searchKeywords ? `Matched from your recent search intent in "${searchKeywords}".` : "Live web search trend result.")
+      };
+    });
 
   return { success: true, products: formattedProducts, source: "Live Gemini Google Search Grounding" };
 }
