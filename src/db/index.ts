@@ -34,10 +34,12 @@ export const initPool = () => {
     poolConfig = {
       ...poolConfig,
       host: `/cloudsql/${connectionName}`,
-      user,
-      password,
-      database,
+      user: user || "postgres",
+      database: database || "postgres",
     };
+    if (typeof password === "string" && password.length > 0) {
+      poolConfig.password = password;
+    }
   } else {
     const host = getPostgresHost() || "localhost";
     const port = process.env.PGPORT ? parseInt(process.env.PGPORT, 10) : 5432;
@@ -45,10 +47,12 @@ export const initPool = () => {
       ...poolConfig,
       host,
       port,
-      user,
-      password,
-      database,
+      user: user || "postgres",
+      database: database || "postgres",
     };
+    if (typeof password === "string" && password.length > 0) {
+      poolConfig.password = password;
+    }
   }
 
   pool = new Pool(poolConfig);
