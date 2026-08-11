@@ -32,7 +32,11 @@ interface PersonalAIShopperChatPageProps {
   userLocation?: string | null;
   userLatLng?: { lat?: number; lng?: number; latitude?: number; longitude?: number } | null;
   searchRadius?: number;
+  onRadiusChange?: (radius: number) => void;
   onRequestLocationPermission?: () => void;
+  pendingQuery?: { query: string; image?: string | null } | null;
+  onClearPendingQuery?: () => void;
+  showcaseProduct?: ProductItem | null;
   onClearShowcaseProduct?: () => void;
 }
 
