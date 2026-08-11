@@ -117,7 +117,7 @@ export default function App() {
   const [cartDrawerOpen, setCartDrawerOpen] = useState<boolean>(false);
 
   const [userLocation, setUserLocation] = useState<string | null>(null);
-  const [userLatLng, setUserLatLng] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [userLatLng, setUserLatLng] = useState<{ lat: number; lng: number; latitude: number; longitude: number } | null>(null);
   const [searchRadius, setSearchRadius] = useState<number>(25);
   const [locationModalOpen, setLocationModalOpen] = useState<boolean>(false);
   const [onboardingOpen, setOnboardingOpen] = useState<boolean>(false);
@@ -449,7 +449,7 @@ export default function App() {
         onCloseLocationModal={() => setLocationModalOpen(false)}
         onLocationGranted={(loc, coords, radius) => {
           setUserLocation(loc);
-          if (coords) setUserLatLng({ latitude: coords.lat, longitude: coords.lng });
+          if (coords) setUserLatLng({ lat: coords.lat, lng: coords.lng, latitude: coords.lat, longitude: coords.lng });
           if (radius) setSearchRadius(radius);
         }}
         onRadiusChange={setSearchRadius}
