@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { OrderRecord } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { AIShopperInputBar } from "./AIShopperInputBar";
+import { collection, getDocs, getFirestore } from "firebase/firestore";
+import { GoogleWalletButton } from "./atoms/GoogleWalletButton";
+import { AnimatedTicketCard } from "./molecules/AnimatedTicketCard";
 
 interface OrdersTrackerProps {
   orders: OrderRecord[];
@@ -11,6 +14,24 @@ interface OrdersTrackerProps {
 
 export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, onRefreshOrders }) => {
   const [returnModalOrderId, setReturnModalOrderId] = useState<string | null>(null);
+  const [liveOrders, setLiveOrders] = useState<OrderRecord[]>(orders);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setIsLoading(true);
+      try {
+        const db = getFirestore("spresso-5561f");
+        const querySnapshot = await getDocs(collection(db, "orders"));
+        const fetched = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as OrderRecord[];
+        setLiveOrders(fetched);
+      } catch (e) {
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
   const [returnReason, setReturnReason] = useState("");
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
@@ -29,10 +50,9 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
         if (onRefreshOrders) onRefreshOrders();
       }
     } catch (e) {
-      console.error("Failed to set reminder:", e);
     } finally {
       setLoadingAction(null);
-      setTimeout(() => setActionSuccessMsg(null), 4000);
+      setActionSuccessMsg(null);
     }
   };
 
@@ -55,10 +75,9 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
         if (onRefreshOrders) onRefreshOrders();
       }
     } catch (e) {
-      console.error("Failed to submit return:", e);
     } finally {
       setLoadingAction(null);
-      setTimeout(() => setActionSuccessMsg(null), 4000);
+      setActionSuccessMsg(null);
     }
   };
 
@@ -129,7 +148,12 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
       )}
 
       {/* Orders List */}
-      {orders.length === 0 ? (
+      {isLoading ? (
+        <div className="bg-white p-12 rounded-3xl border border-[#d8ebd7] text-center text-[#5e635f] space-y-3 shadow-xs">
+          <div className="w-12 h-12 border-4 border-[#386633] border-t-transparent rounded-full animate-spin mx-auto" />
+          <h3 className="text-sm font-bold text-[#18211e]">Loading Live Orders...</h3>
+        </div>
+      ) : liveOrders.length === 0 ? (
         <div className="bg-white p-12 rounded-3xl border border-[#d8ebd7] text-center text-[#5e635f] space-y-3 shadow-xs">
           <div className="w-12 h-12 bg-[#f2f8f2] text-[#386633] rounded-2xl flex items-center justify-center mx-auto">
             <MaterialIcon icon="inventory_2" size={28} />
@@ -141,7 +165,7 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
         </div>
       ) : (
         <div className="space-y-4">
-          {orders.map(order => {
+          {liveOrders.map(order => {
             const isReminderSet = order.reminderSet;
             const isReturnRequested = order.status === "RETURN_REQUESTED" || order.returnStatus === "REQUESTED";
 
@@ -230,6 +254,19 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                   )}
                 </div>
 
+                {/* Animated Ticket Ripple Pass */}
+                <div className="pt-2">
+                  <AnimatedTicketCard
+                    variant={order.paymentMethod === "Coinbase USDC" ? "coinbase_usdc" : order.paymentMethod === "Google Pay" ? "google_pay" : "startup_school"}
+                    title={order.paymentMethod === "Coinbase USDC" ? "COINBASE USDC PAYMENT PASS" : order.paymentMethod === "Google Pay" ? "GOOGLE PAY ORDER TICKET" : "SPRESSO VIP ORDER PASS"}
+                    subtitle={`ORDER #${order.id.substring(0, 8)}`}
+                    attendeeName={order.userUid ? `UID: ${order.userUid.substring(0, 10)}` : "VIP CUSTOMER"}
+                    location={order.items[0]?.product.name || "SPRESSO STORE"}
+                    date={new Date(order.humanConfirmedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    ticketCode={`PASS-${order.id}`}
+                  />
+                </div>
+
                 {/* Post-Purchase Agent Control Bar */}
                 <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[#f2f8f2]">
                   <div className="flex flex-wrap items-center gap-2">
@@ -246,6 +283,11 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                       <MaterialIcon icon={isReminderSet ? "notifications_active" : "notification_add"} size={16} />
                       <span>{isReminderSet ? "Arrival Reminder Set" : "Set Arrival Reminder"}</span>
                     </button>
+
+                    {/* Google Wallet Save Pass Button */}
+                    <GoogleWalletButton
+                      passUrl={`https://pay.google.com/gp/v/save/eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzcHJlc3NvLXdhbGxldEBzcHJlc3NvLTU1NjFmLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiaWF0IjoxNzU0NzA1MjAwLCJwYXlsb2FkIjp7ImdlbmVyaWNPYmplY3RzIjpbeyJpZCI6IjMzODgwMDAwMDAwMjIzODcxOTIuc3ByZXNzb19vcmRlcl8${order.id}"}`}
+                    />
 
                     {/* Initiate Return Button */}
                     {!isReturnRequested ? (

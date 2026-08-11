@@ -1,0 +1,11 @@
+connectorId: spresso-connector
+generate:
+  kotlinSdk:
+    outputDir: "../../composeApp/src/androidMain/kotlin/com/spresso/dataconnect"
+    package: "com.spresso.dataconnect"
+  javascriptSdk:
+    outputDir: "../../src/dataconnect"
+    package: "@firebasegen/spresso-connector"
+  adminNodeSdk:
+    outputDir: "../../server/dataconnect"
+    package: "@dataconnect/admin-generated"

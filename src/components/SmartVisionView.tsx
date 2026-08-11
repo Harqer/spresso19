@@ -17,25 +17,25 @@ const PRESET_CAMERA_FEEDS = [
   {
     id: "feed-1",
     label: "Smart Eyewear & Wearables",
-    image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&w=1000&q=80",
+    image: "",
     catalogMatchId: "prod-rayban-meta-01"
   },
   {
     id: "feed-2",
     label: "Tech Apparel & Outerwear",
-    image: "https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=1000&q=80",
+    image: "",
     catalogMatchId: "prod-cyber-jacket-02"
   },
   {
     id: "feed-3",
     label: "Footwear & Runners",
-    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1000&q=80",
+    image: "",
     catalogMatchId: "prod-neo-runner-03"
   },
   {
     id: "feed-4",
     label: "Audio & Headphones",
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1000&q=80",
+    image: "",
     catalogMatchId: "prod-synth-headphones-05"
   }
 ];
@@ -56,7 +56,7 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
   } | null>(null);
   const [itemThumbnails, setItemThumbnails] = useState<Record<number, string>>({});
 
-  const activeImage = customImage || selectedFeed.image;
+  const activeImage = customImage || selectedFeed.image || (products.find(p => p.id === selectedFeed.catalogMatchId)?.image || "");
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,7 +99,7 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
         setItemThumbnails(crops);
       }
     } catch (err) {
-      console.error("Vision scan failed:", err);
+      // Ignored
     } finally {
       setIsScanning(false);
     }
@@ -107,16 +107,16 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
 
   const handleTriggerHITL = (item: DetectedItem, thumbnail?: string) => {
     const prod = products.find(p => p.id === item.matchingCatalogId) || products[0];
-    const finalPrice = item.priceEstimate && item.priceEstimate > 0 ? item.priceEstimate : (prod?.price || 95);
+    const finalPrice = item.priceEstimate && item.priceEstimate > 0 ? item.priceEstimate : (prod?.price || 0);
     const finalImage = thumbnail || prod?.image || activeImage;
 
     const payload: HITLPayload = {
-      authorizationId: `ORDER-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      authorizationId: `ORDER-${Date.now().toString(36).toUpperCase()}`,
       product: {
         id: prod?.id || `prod-detected-${Date.now()}`,
-        name: item.detectedName || prod?.name || "Detected Product",
+        name: item.detectedName || prod?.name || "",
         price: finalPrice,
-        sku: prod?.sku || `VIS-${Math.floor(1000 + Math.random() * 9000)}`,
+        sku: prod?.sku || `VIS-${Date.now()}`,
         image: finalImage
       },
       quantity: 1,
@@ -124,7 +124,7 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
       currency: "USD",
       deviceSource: "WEB",
       inventoryConfirmed: true,
-      stockRemaining: prod?.stock || 15,
+      stockRemaining: prod?.stock ?? 0,
       humanInTheLoopChallenge: {
         title: "Confirm Purchase",
         message: `Confirm purchase of ${item.detectedName} for $${finalPrice.toFixed(2)}?`,
@@ -142,13 +142,13 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="bg-white p-5 rounded-3xl border border-[#d8ebd7] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-surface p-5 rounded-3xl border border-outline-variant shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <MaterialIcon icon="photo_camera" size={22} className="text-[#386633]" />
-            <h2 className="text-lg font-bold text-[#18211e] font-headline">Visual Camera Search</h2>
+            <MaterialIcon icon="photo_camera" size={22} className="text-primary" />
+            <h2 className="text-lg font-bold text-on-surface font-headline">Visual Camera Search</h2>
           </div>
-          <p className="text-xs text-[#5e635f] mt-0.5">
+          <p className="text-xs text-on-surface-variant mt-0.5">
             Point camera or upload image to perform visual product identification and instant checkout.
           </p>
         </div>
@@ -157,14 +157,14 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setLiveCameraOpen(true)}
-            className="px-3.5 py-2.5 bg-[#386633] hover:bg-[#2c5227] text-white font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1.5 text-xs"
+            className="px-3.5 py-2.5 bg-primary hover:bg-primary/90 text-on-primary font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1.5 text-xs"
             title="Use Live Camera"
           >
             <MaterialIcon icon="photo_camera" size={18} />
             <span>Open Live Camera</span>
           </button>
 
-          <label className="p-2.5 bg-[#f2f8f2] hover:bg-[#e8f3e8] text-[#18211e] font-bold rounded-xl border border-[#b0d4af] transition cursor-pointer flex items-center" title="Upload Image File">
+          <label className="p-2.5 bg-surface-container hover:bg-surface-container-high text-on-surface font-bold rounded-xl border border-outline transition cursor-pointer flex items-center" title="Upload Image File">
             <MaterialIcon icon="upload" size={18} />
             <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
           </label>
@@ -172,7 +172,7 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
           <button
             onClick={() => triggerVisionIdentify()}
             disabled={isScanning}
-            className="p-2.5 bg-[#f2f8f2] hover:bg-[#e8f3e8] text-[#18211e] rounded-xl border border-[#b0d4af] transition flex items-center cursor-pointer disabled:opacity-50"
+            className="p-2.5 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-xl border border-outline transition flex items-center cursor-pointer disabled:opacity-50"
             title="Rescan Frame"
           >
             <MaterialIcon icon="refresh" size={18} className={isScanning ? "animate-spin" : ""} />
@@ -196,7 +196,7 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
                 : "bg-white/60 border-[#d8ebd7] hover:bg-white"
             }`}
           >
-            <img src={feed.image} alt="" className="w-8 h-8 rounded-lg object-cover" />
+            <img src={feed.image || products.find(p => p.id === feed.catalogMatchId)?.image || ""} alt="" className="w-8 h-8 rounded-lg object-cover" />
             <span className="text-[11px] font-bold text-[#18211e] truncate">{feed.label}</span>
           </button>
         ))}
@@ -256,7 +256,7 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
                           </h4>
                           <div className="flex items-center space-x-2 mt-0.5">
                             <span className="text-sm font-extrabold text-[#386633]">
-                              ${(item.priceEstimate && item.priceEstimate > 0 ? item.priceEstimate : 95).toFixed(2)}
+                              ${(item.priceEstimate && item.priceEstimate > 0 ? item.priceEstimate : (matchedCatalogItem?.price || 0)).toFixed(2)}
                             </span>
                           </div>
                         </div>

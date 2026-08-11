@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { SpressoLogo } from "./SpressoLogo";
 import { MaterialIcon } from "./MaterialIcon";
-import { loginWithGoogle, loginWithEmail, registerWithEmail, loginAnonymously } from "../lib/firebase";
+import { loginWithGoogle, loginWithEmail, registerWithEmail, loginAnonymously, logToCrashlytics } from "../lib/firebase";
 
 interface AuthScreenProps {
   onSuccess?: () => void;
@@ -32,7 +32,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
       }
       if (onSuccess) onSuccess();
     } catch (err: any) {
-      console.error("Auth error:", err);
+      logToCrashlytics("error", "Auth error", { error: String(err) });
       let msg = "Unable to process authentication request. Please check your details and try again.";
       if (err?.code === "auth/invalid-credential" || err?.code === "auth/wrong-password" || err?.code === "auth/user-not-found") {
         msg = "Invalid email or password. Please verify your credentials.";
@@ -56,7 +56,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
         onSuccess();
       }
     } catch (err: any) {
-      console.warn("Google Auth note:", err);
+      logToCrashlytics("warn", "Google Auth note", { error: String(err) });
       setErrorMsg("Google sign-in popup was blocked by browser frame settings. You can click 'Continue as Guest' below or sign in with email.");
     } finally {
       setLoading(false);
@@ -70,7 +70,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
       await loginAnonymously();
       if (onSuccess) onSuccess();
     } catch (err: any) {
-      console.error("Guest Auth error:", err);
+      logToCrashlytics("error", "Guest Auth error", { error: String(err) });
       setErrorMsg("Unable to start guest session. Please try signing in.");
     } finally {
       setLoading(false);

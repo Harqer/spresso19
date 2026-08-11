@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem, DetectedItem } from "../types";
 import { cropImageSnippet } from "../utils/imageCropper";
+import { logToCrashlytics } from "../lib/firebase";
 
 interface CameraObjectDetectionModalProps {
   isOpen: boolean;
@@ -67,7 +68,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
         videoRef.current.srcObject = mediaStream;
       }
     } catch (err: any) {
-      console.warn("Camera error:", err);
+      logToCrashlytics("warn", "Camera error", { error: String(err) });
       if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
         setCameraError("Camera permission denied. You can upload a photo from your gallery.");
       } else {
@@ -201,7 +202,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
         }
       }
     } catch (err) {
-      console.error("Camera object detection error:", err);
+      logToCrashlytics("error", "Camera object detection error", { error: String(err) });
       setHudStatusText("Object detection completed.");
     } finally {
       setIsAnalyzing(false);
@@ -209,21 +210,21 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
   };
 
   const handleCreateListing = (item: DetectedItem) => {
-    const finalPrice = item.priceEstimate && item.priceEstimate > 0 ? item.priceEstimate : 95;
-    const finalImage = croppedThumbnail || capturedPhoto || "https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&w=1000&q=80";
+    const finalPrice = item.priceEstimate || null;
+    const finalImage = croppedThumbnail || capturedPhoto || "";
 
-    const newProduct: ProductItem = {
+    const newProduct: any = {
       id: item.matchingCatalogId || `prod-custom-${Date.now()}`,
       name: item.detectedName,
-      brand: item.brandGuess || "Spresso Verified",
+      brand: item.brandGuess || "",
       price: finalPrice,
       currency: "USD",
-      category: item.category || "Fashion",
+      category: item.category || "",
       description: `Camera Detected Product: ${item.detectedName}. Identified from object scan.`,
       image: finalImage,
-      stock: 12,
-      sku: `CAM-SCAN-${Math.floor(1000 + Math.random() * 9000)}`,
-      rating: 4.9,
+      stock: null,
+      sku: (item as any).sku || `SKU-SCAN-${Date.now()}`,
+      rating: null,
       virtualTryOnEligible: true,
       mcpServerId: "spresso-mcp-bargain-chef"
     };
@@ -498,7 +499,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
 
                     <div className="text-right shrink-0">
                       <span className="text-base font-extrabold text-emerald-400 block">
-                        ${(detectedItems[selectedIndex].priceEstimate && detectedItems[selectedIndex].priceEstimate > 0 ? detectedItems[selectedIndex].priceEstimate : 95).toFixed(2)}
+                        {detectedItems[selectedIndex].priceEstimate ? `$${detectedItems[selectedIndex].priceEstimate.toFixed(2)}` : null}
                       </span>
                     </div>
                   </div>
@@ -525,15 +526,15 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
                           onSelectTryOn({
                             id: activeItem.matchingCatalogId || `prod-custom-${Date.now()}`,
                             name: activeItem.detectedName,
-                            brand: activeItem.brandGuess || "Spresso",
-                            price: activeItem.priceEstimate && activeItem.priceEstimate > 0 ? activeItem.priceEstimate : 95,
+                            brand: activeItem.brandGuess || "",
+                            price: activeItem.priceEstimate || null as any,
                             currency: "USD",
-                            category: activeItem.category || "Fashion",
+                            category: activeItem.category || "",
                             description: activeItem.detectedName,
                             image: croppedThumbnail || capturedPhoto || "",
-                            stock: 10,
-                            sku: `SCAN-${Math.floor(1000 + Math.random() * 9000)}`,
-                            rating: 4.9,
+                            stock: null as any,
+                            sku: (activeItem as any).sku || null,
+                            rating: null as any,
                             virtualTryOnEligible: true,
                             mcpServerId: "spresso-mcp-bargain-chef"
                           });

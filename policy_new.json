@@ -1,0 +1,153 @@
+{
+  "bindings": [
+    {
+      "members": [
+        "serviceAccount:service-656500460421@gcp-sa-artifactregistry.iam.gserviceaccount.com"
+      ],
+      "role": "roles/artifactregistry.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:service-656500460421@gcp-sa-cloudaicompanion.iam.gserviceaccount.com"
+      ],
+      "role": "roles/cloudaicompanion.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:656500460421@cloudbuild.gserviceaccount.com"
+      ],
+      "role": "roles/cloudbuild.builds.builder"
+    },
+    {
+      "members": [
+        "serviceAccount:service-656500460421@gcp-sa-cloudbuild.iam.gserviceaccount.com"
+      ],
+      "role": "roles/cloudbuild.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:service-656500460421@gcf-admin-robot.iam.gserviceaccount.com"
+      ],
+      "role": "roles/cloudfunctions.serviceAgent"
+    },
+    {
+      "condition": {
+        "description": "Allow connection to AI Studio created Cloud SQL instances",
+        "expression": "resource.name.startsWith('projects/spresso-5561f/instances/ai-studio-') && resource.service == 'sqladmin.googleapis.com'",
+        "title": "AI studio cloudsql.client"
+      },
+      "members": [
+        "serviceAccount:ais-sandbox@ais-europe-west2-0587f4e2baa14.iam.gserviceaccount.com"
+      ],
+      "role": "roles/cloudsql.client"
+    },
+    {
+      "members": [
+        "serviceAccount:656500460421-compute@developer.gserviceaccount.com"
+      ],
+      "role": "roles/cloudtrace.agent"
+    },
+    {
+      "members": [
+        "serviceAccount:service-656500460421@containerregistry.iam.gserviceaccount.com"
+      ],
+      "role": "roles/containerregistry.ServiceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:656500460421-compute@developer.gserviceaccount.com",
+        "serviceAccount:656500460421@cloudservices.gserviceaccount.com",
+        "serviceAccount:spresso-5561f@appspot.gserviceaccount.com"
+      ],
+      "role": "roles/editor"
+    },
+    {
+      "members": [
+        "serviceAccount:service-656500460421@gcp-sa-firebase.iam.gserviceaccount.com"
+      ],
+      "role": "roles/firebase.managementServiceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:firebase-adminsdk-fbsvc@spresso-5561f.iam.gserviceaccount.com"
+      ],
+      "role": "roles/firebase.sdkAdminServiceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:service-656500460421@gcp-sa-firebasedataconnect.iam.gserviceaccount.com"
+      ],
+      "role": "roles/firebasedataconnect.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:service-656500460421@gcp-sa-firebasevertexai.iam.gserviceaccount.com"
+      ],
+      "role": "roles/firebaseml.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:service-656500460421@gcp-sa-firebasemods.iam.gserviceaccount.com"
+      ],
+      "role": "roles/firebasemods.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:service-656500460421@firebase-rules.iam.gserviceaccount.com"
+      ],
+      "role": "roles/firebaserules.system"
+    },
+    {
+      "members": [
+        "serviceAccount:service-656500460421@gcp-sa-firestore.iam.gserviceaccount.com"
+      ],
+      "role": "roles/firestore.serviceAgent"
+    },
+    {
+      "members": [
+        "serviceAccount:firebase-adminsdk-fbsvc@spresso-5561f.iam.gserviceaccount.com"
+      ],
+      "role": "roles/iam.serviceAccountTokenCreator"
+    },
+    {
+      "members": [
+        "serviceAccount:656500460421-compute@developer.gserviceaccount.com"
+      ],
+      "role": "roles/logging.logWriter"
+    },
+    {
+      "members": [
+        "serviceAccount:656500460421-compute@developer.gserviceaccount.com"
+      ],
+      "role": "roles/monitoring.metricWriter"
+    },
+    {
+      "members": [
+        "user:itbrginsnow01@gmail.com",
+        "user:mddlecloudy@gmail.com"
+      ],
+      "role": "roles/owner"
+    },
+    {
+      "members": [
+        "serviceAccount:service-656500460421@serverless-robot-prod.iam.gserviceaccount.com"
+      ],
+      "role": "roles/run.serviceAgent"
+    }
+  ],
+  "etag": "BwZXZ_BAAnw=",
+  "version": 3,
+  "auditConfigs": [
+    {
+      "service": "storage.googleapis.com",
+      "auditLogConfigs": [
+        {
+          "logType": "DATA_READ"
+        },
+        {
+          "logType": "DATA_WRITE"
+        }
+      ]
+    }
+  ]
+}

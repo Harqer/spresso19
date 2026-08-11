@@ -32,7 +32,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     const totalQuantity = cart.reduce((q, i) => q + i.quantity, 0);
 
     const payload: HITLPayload = {
-      authorizationId: `CART-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      authorizationId: `CART-${crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase()}`,
       product: {
         id: firstProduct.id,
         name: cart.length === 1 ? firstProduct.name : `${cart.length} Marketplace Items (${firstProduct.name} & more)`,
@@ -45,7 +45,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       currency: "USD",
       deviceSource: "WEB",
       inventoryConfirmed: true,
-      stockRemaining: firstProduct.stock,
+      stockRemaining: firstProduct.stock ?? 0,
       humanInTheLoopChallenge: {
         title: "Confirm Cart Purchase",
         message: `Authorize payment of $${subtotal.toFixed(2)} for ${cart.length} item(s) in your Spresso Cart?`,
@@ -92,12 +92,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           {cart.length === 0 ? (
             <div className="text-center py-12 px-4 space-y-4 flex flex-col items-center justify-center h-full">
               {/* High-quality shopping tote artwork image */}
-              <div className="relative w-32 h-32 rounded-3xl overflow-hidden shadow-xs border border-[#d8ebd7] bg-[#f2f8f2]">
-                <img
-                  src="https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=400&q=80"
-                  alt="Empty Shopping Cart"
-                  className="w-full h-full object-cover"
-                />
+              <div className="relative w-32 h-32 rounded-3xl overflow-hidden shadow-xs border border-[#d8ebd7] bg-[#f2f8f2] flex items-center justify-center">
+                <span className="material-symbols-outlined text-6xl text-[#446732] select-none">shopping_bag</span>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex items-end justify-center p-2">
                   <span className="px-2 py-0.5 bg-white/90 backdrop-blur-md rounded-full text-[10px] font-mono font-bold text-[#18211e] flex items-center space-x-1 shadow-xs">
                     <MaterialIcon icon="shopping_bag" size={12} className="text-[#386633]" />

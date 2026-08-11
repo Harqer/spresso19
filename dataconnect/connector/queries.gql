@@ -1,0 +1,12 @@
+query ListProducts @auth(level: PUBLIC, insecureReason: "Expose product catalog to public guests") {
+  products {
+    id
+    name
+    brand
+    category
+    price
+    image
+    description
+    likesCount
+  }
+}

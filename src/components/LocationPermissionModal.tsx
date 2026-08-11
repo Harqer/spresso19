@@ -47,7 +47,6 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
       },
       (err) => {
         setLoading(false);
-        console.warn("Geolocation error:", err);
         setErrorMsg("Location access denied. Please enter your city or ZIP code below.");
         setManualMode(true);
       },

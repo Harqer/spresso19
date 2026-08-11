@@ -1,7 +1,119 @@
-import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
-import { mockInventory, getProductById } from "./inventory.ts";
+import { GoogleGenAI, Type } from "@google/genai";
+import { initializeApp, getApps } from "firebase-admin/app";
+import { getDataConnect } from "firebase-admin/data-connect";
+import { connectorConfig, listProducts } from "./dataconnect/esm/index.esm.js";
 
-export { HarmCategory, HarmBlockThreshold };
+function getDc() {
+  if (getApps().length === 0) {
+    initializeApp({ projectId: "spresso-5561f" });
+  }
+  return getDataConnect(connectorConfig);
+}
+
+export const HarmCategory = {
+  HARM_CATEGORY_UNSPECIFIED: "HARM_CATEGORY_UNSPECIFIED",
+  HARM_CATEGORY_DEROGATORY: "HARM_CATEGORY_DEROGATORY",
+  HARM_CATEGORY_TOXICITY: "HARM_CATEGORY_TOXICITY",
+  HARM_CATEGORY_VIOLENCE: "HARM_CATEGORY_VIOLENCE",
+  HARM_CATEGORY_SEXUAL: "HARM_CATEGORY_SEXUAL",
+  HARM_CATEGORY_MEDICAL: "HARM_CATEGORY_MEDICAL",
+  HARM_CATEGORY_DANGEROUS: "HARM_CATEGORY_DANGEROUS",
+  HARM_CATEGORY_HARASSMENT: "HARM_CATEGORY_HARASSMENT",
+  HARM_CATEGORY_HATE_SPEECH: "HARM_CATEGORY_HATE_SPEECH",
+  HARM_CATEGORY_SEXUALLY_EXPLICIT: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+  HARM_CATEGORY_DANGEROUS_CONTENT: "HARM_CATEGORY_DANGEROUS_CONTENT",
+  HARM_CATEGORY_CIVIC_INTEGRITY: "HARM_CATEGORY_CIVIC_INTEGRITY"
+};
+
+export const HarmBlockThreshold = {
+  BLOCK_THRESHOLD_UNSPECIFIED: "BLOCK_THRESHOLD_UNSPECIFIED",
+  BLOCK_LOW_AND_ABOVE: "BLOCK_LOW_AND_ABOVE",
+  BLOCK_MEDIUM_AND_ABOVE: "BLOCK_MEDIUM_AND_ABOVE",
+  BLOCK_ONLY_HIGH: "BLOCK_ONLY_HIGH",
+  BLOCK_NONE: "BLOCK_NONE",
+  OFF: "OFF"
+};
+
+import { initPool } from "../src/db/index.ts";
+
+export async function getActiveInventory(): Promise<any[]> {
+  try {
+    const result = await listProducts(getDc());
+    if (result?.data?.products && result.data.products.length > 0) {
+      return result.data.products.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        brand: p.brand || "Spresso Store",
+        category: p.category || "Apparel",
+        price: typeof p.price === "number" ? p.price : parseFloat(p.price || "0"),
+        image: p.image || "",
+        description: p.description || "",
+        likesCount: p.likesCount || 0
+      }));
+    }
+  } catch (dcErr: any) {
+    // Data Connect service unavailable in non-deployed env; fallback to Postgres DB
+  }
+
+  try {
+    const pool = initPool();
+    const result = await pool.query('SELECT * FROM "Product"');
+    return result.rows.map((row: any) => ({
+      id: row.id || row.id_val || "",
+      name: row.name || "",
+      brand: row.brand || "Spresso Store",
+      category: row.category || "Apparel",
+      price: parseFloat(row.price || "0"),
+      image: row.imageUrl || row.image || "",
+      description: row.description || "",
+      likesCount: row.likesCount || 0
+    }));
+  } catch (err: any) {
+    console.error("Failed to query active inventory from PostgreSQL:", err.message);
+    return [];
+  }
+}
+
+export async function getActiveProductById(id: string): Promise<any | undefined> {
+  try {
+    const result = await listProducts(getDc());
+    const p = result?.data?.products?.find((item: any) => item.id === id);
+    if (p) {
+      return {
+        id: p.id,
+        name: p.name,
+        brand: p.brand || "Spresso Store",
+        category: p.category || "Apparel",
+        price: typeof p.price === "number" ? p.price : parseFloat(p.price || "0"),
+        image: p.image || "",
+        description: p.description || "",
+        likesCount: p.likesCount || 0
+      };
+    }
+  } catch (dcErr: any) {
+    // Data Connect service unavailable in non-deployed env; fallback to Postgres DB
+  }
+
+  try {
+    const pool = initPool();
+    const result = await pool.query('SELECT * FROM "Product" WHERE id = $1', [id]);
+    if (result.rows.length === 0) return undefined;
+    const row = result.rows[0];
+    return {
+      id: row.id || row.id_val || "",
+      name: row.name || "",
+      brand: row.brand || "Spresso Store",
+      category: row.category || "Apparel",
+      price: parseFloat(row.price || "0"),
+      image: row.imageUrl || row.image || "",
+      description: row.description || "",
+      likesCount: row.likesCount || 0
+    };
+  } catch (err: any) {
+    console.error("Failed to query product by ID from PostgreSQL:", err.message);
+    return undefined;
+  }
+}
 
 export const defaultSafetySettings = [
   {
@@ -25,19 +137,9 @@ export const defaultSafetySettings = [
 export const getGeminiAI = () => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.warn("GEMINI_API_KEY is not set.");
+    throw new Error("Critical Configuration Error: GEMINI_API_KEY is not set.");
   }
-  return new GoogleGenAI(
-    apiKey
-      ? { apiKey }
-      : {
-          httpOptions: {
-            headers: {
-              "User-Agent": "aistudio-build"
-            }
-          }
-        }
-  );
+  return new GoogleGenAI({ apiKey });
 };
 
 export async function getPersonalizedFeed(body: any) {
@@ -174,7 +276,8 @@ Respond strictly with a JSON object:
 }
 
 export async function getGenMediaKit(productId: string) {
-  const product = getProductById(productId) || mockInventory[0];
+  const product = await getActiveProductById(productId);
+  if (!product) throw new Error(`Product not found: ${productId}`);
   const ai = getGeminiAI();
 
   const prompt = `You are Google GenKit Media & Model Garden commerce asset generator.
@@ -338,9 +441,10 @@ Respond ONLY with valid JSON in this exact structure:
     fallbackBrand = "Oura Pro";
     fallbackPrice = 199;
   } else {
-    // Pick item from mockInventory matching prompt or random item other than mug
-    const nonMugInventory = mockInventory.filter(i => !i.name.toLowerCase().includes("mug"));
-    const selected = nonMugInventory[Math.floor(Math.random() * nonMugInventory.length)] || mockInventory[1] || mockInventory[0];
+    // Pick item from active catalog inventory matching prompt or random item other than mug
+    const activeInv = await getActiveInventory();
+    const nonMugInventory = activeInv.filter(i => !i.name.toLowerCase().includes("mug"));
+    const selected = nonMugInventory[Math.floor(Math.random() * nonMugInventory.length)] || activeInv[1] || activeInv[0];
     fallbackName = selected.name;
     fallbackBrand = selected.brand;
     matchedCategory = selected.category;
@@ -366,7 +470,8 @@ Respond ONLY with valid JSON in this exact structure:
 
 export async function runTryOnPipeline(productId: string, mediaType?: string, customNotes?: string) {
   const selectedMediaType = mediaType === "video" || mediaType === "360" ? mediaType : "image";
-  const product = getProductById(productId) || mockInventory[0];
+  const product = await getActiveProductById(productId);
+  if (!product) throw new Error(`Product not found: ${productId}`);
   const ai = getGeminiAI();
 
   const elmPrompt = `You are Google Cloud Virtual Try-On 001 & Genkit Persuasive Visual Pipeline Engine.
@@ -490,7 +595,7 @@ export interface ViTPoseOutput {
   skeletonWireframeMap: string; // OpenPose-compatible skeleton representation
 }
 
-import { extractViTPose } from "./actions/vitposeAction.js";
+import { extractViTPose } from "./actions/vitposeAction.ts";
 
 export async function extractViTPoseKeypoints(userImageBase64?: string): Promise<ViTPoseOutput> {
   if (!userImageBase64 || userImageBase64.length < 50) {
@@ -568,7 +673,7 @@ export async function orchestrateProductFitWithViTPose(
   const vitposeData = await extractViTPoseKeypoints(userImageBase64);
   const ai = getGeminiAI();
 
-  const catalog = mockInventory;
+  const catalog = await getActiveInventory();
   const prompt = `You are the Gemini Vision Spatial Fitting & Product Selection Orchestrator.
 I have a user's posture and body dimensions extracted via ViTPose plain Vision Transformer keypoint tracking:
 
@@ -843,7 +948,8 @@ export async function generateCreativeProductStudio(body: any) {
   const { productId, atmosphereId, productPrompt, atmospherePrompt, rating3D, mediaType } = body || {};
   const ai = getGeminiAI();
 
-  const product = getProductById(productId) || mockInventory[0];
+  const product = await getActiveProductById(productId);
+  if (!product) throw new Error(`Product not found: ${productId}`);
 
   const fullPrompt = `You are a World-Class E-Commerce Creative Director, Brand Strategist, and GenMedia Prompt Engineer using Gemini 2.5 Flash from Google Model Garden.
 Analyze this high-end product and creative atmosphere request:
@@ -909,7 +1015,7 @@ Using high-impact marketing, billboard, and branding industry language (e.g. min
 export async function runGenkitCreativePipeline(body: any) {
   const { productId, productName, brandName } = body || {};
   const ai = getGeminiAI();
-  const product = productId ? getProductById(productId) : null;
+  const product = productId ? await getActiveProductById(productId) : null;
   const targetName = productName || (product ? product.name : "Luxury Designer Item");
   const targetBrand = brandName || (product ? product.brand : "Spresso Select");
 

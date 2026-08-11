@@ -87,8 +87,8 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
         showToast("Removed from Liked Items");
       }
       localStorage.setItem("spresso_liked_products", JSON.stringify(likesArr));
-    } catch (err) {
-      console.error("Failed to update liked products", err);
+    } catch (_err) {
+      // localStorage error is non-fatal — like state remains optimistically updated in UI
     }
 
     if (onToggleLikeCallback) {
@@ -116,8 +116,8 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
         showToast("Removed from Bookmarks");
       }
       localStorage.setItem("spresso_wardrobe_items", JSON.stringify(bmsArr));
-    } catch (err) {
-      console.error("Failed to update bookmarks", err);
+    } catch (_err) {
+      // localStorage error is non-fatal — bookmark state remains optimistically updated in UI
     }
 
     if (onToggleBookmarkCallback) {

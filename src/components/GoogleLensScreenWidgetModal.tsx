@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { cropImageSnippet } from "../utils/imageCropper";
 import { ElevatedQuickActionFab } from "./ElevatedQuickActionFab";
-import { LocationDetailsView, LocationData } from "./LocationDetailsView";
+import { LocationDetailsView } from "./LocationDetailsView";
+import { AIShopperInputBar } from "./AIShopperInputBar";
 import html2canvas from "html2canvas";
 
 interface GoogleLensScreenWidgetModalProps {
@@ -10,6 +11,7 @@ interface GoogleLensScreenWidgetModalProps {
   onClose: () => void;
   onSearchComplete?: (queryText: string, imageBase64: string) => void;
   onSelectTryOn?: (product: any) => void;
+  onAddToCart?: (product: any) => void;
   initialProduct?: any;
 }
 
@@ -18,6 +20,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
   onClose,
   onSearchComplete,
   onSelectTryOn,
+  onAddToCart,
   initialProduct,
 }) => {
   const [screenSnapshot, setScreenSnapshot] = useState<string | null>(null);
@@ -27,7 +30,15 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
   const [detectedRegions, setDetectedRegions] = useState<Array<{ id: number; label: string; price?: string; source?: string; thumbnail?: string; category?: string; description?: string; isLocation?: boolean }>>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<number>(0);
   const [showLocationDetails, setShowLocationDetails] = useState<boolean>(false);
+  
+  // Coordinate and gesture tracking states for draw selection
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
+  const [currentPoint, setCurrentPoint] = useState<{ x: number; y: number } | null>(null);
+  const [cropBox, setCropBox] = useState<{ ymin: number; xmin: number; ymax: number; xmax: number } | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -35,44 +46,14 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
         // If triggered directly by clicking an animated video or product image
         const initItem = {
           id: 0,
-          label: initialProduct.name || "Gourmet Specialty Item",
-          price: `$${(initialProduct.price || 14.99).toFixed(2)}`,
-          source: initialProduct.brand || "LuxLunch Gourmet Kitchen",
-          thumbnail: initialProduct.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-          category: initialProduct.category || "Gourmet",
-          description: initialProduct.description || "Discover a curated collection of exquisite delicacies, hand-selected for their exceptional quality and taste."
+          label: initialProduct.name || "",
+          price: initialProduct.price != null ? `$${initialProduct.price.toFixed(2)}` : "",
+          source: initialProduct.brand || "",
+          thumbnail: initialProduct.image || "",
+          category: initialProduct.category || "",
+          description: initialProduct.description || ""
         };
-        const defaultStarters = [
-          initItem,
-          {
-            id: 1,
-            label: "Veg Crunch Gourmet Bowl",
-            price: "$14.99",
-            source: "LuxLunch Gourmet Kitchen",
-            thumbnail: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-            category: "Gourmet",
-            description: "Fresh organic greens, crisped garden vegetables, avocado cream & roasted seeds."
-          },
-          {
-            id: 2,
-            label: "Salmon Fois Tartare",
-            price: "$24.99",
-            source: "Chef Reserve Collection",
-            thumbnail: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=600&q=80",
-            category: "Gourmet",
-            description: "Atlantic salmon tartare with micro-herbs, citrus glaze & truffle caviar."
-          },
-          {
-            id: 3,
-            label: "Truffle Tagliatelle Pasta",
-            price: "$28.50",
-            source: "Artisan Italian Bistro",
-            thumbnail: "https://images.unsplash.com/photo-1621996346565-e3d5d6281288?auto=format&fit=crop&w=600&q=80",
-            category: "Gourmet",
-            description: "Handmade tagliatelle pasta spun with black winter truffle butter & aged parmesan."
-          }
-        ];
-        setDetectedRegions(defaultStarters);
+        setDetectedRegions([initItem]);
         setSelectedRegionId(0);
       } else {
         captureCurrentAppScreen();
@@ -81,6 +62,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
       setScreenSnapshot(null);
       setDetectedRegions([]);
       setSelectedRegionId(0);
+      setCropBox(null);
     }
   }, [isOpen, initialProduct]);
 
@@ -90,7 +72,6 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
       const modalEl = document.getElementById("google-lens-modal-container");
       if (modalEl) modalEl.style.visibility = "hidden";
 
-      // Race html2canvas against a 1.2s timeout so it never blocks or hangs UI
       const canvasPromise = html2canvas(document.body, {
         useCORS: true,
         allowTaint: true,
@@ -100,7 +81,6 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
       });
 
       const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
-
       const canvas = await Promise.race([canvasPromise, timeoutPromise]);
 
       if (modalEl) modalEl.style.visibility = "visible";
@@ -113,7 +93,6 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
         throw new Error("Screen capture timeout fallback");
       }
     } catch (err) {
-      console.warn("Screen capture fallback active:", err);
       const modalEl = document.getElementById("google-lens-modal-container");
       if (modalEl) modalEl.style.visibility = "visible";
 
@@ -154,119 +133,203 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
     setIsScanning(true);
 
     try {
-      const res = await fetch("/api/lens-search", {
+      const response = await fetch("/api/lens-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageBase64,
-          promptText: "Perform Google Lens visual screen search on captured screen. Extract gourmet items, recipes, products, and price matches."
-        })
+        body: JSON.stringify({ imageBase64 })
       });
 
-      const data = await res.json();
-      const detected = data?.detectedResult?.detectedItems || [];
-      const apifyResults = data?.apifyResults || [];
-
-      if (detected.length > 0) {
-        const regions = await Promise.all(
-          detected.map(async (item: any, idx: number) => {
-            let crop = "";
-            try {
-              crop = await cropImageSnippet(imageBase64, item.boundingBox);
-            } catch (e) {
-              crop = imageBase64;
-            }
-            const estPrice = item.priceEstimate && item.priceEstimate > 0 ? item.priceEstimate : (14.99 + idx * 10);
-            return {
-              id: idx,
-              label: item.detectedName || "Gourmet Dish",
-              price: `$${estPrice.toFixed(2)}`,
-              source: item.brandGuess || "Spresso Lens Match",
-              thumbnail: crop && crop.length > 100 ? crop : (item.thumbnail || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80"),
-              category: item.category || "Gourmet"
-            };
-          })
-        );
-        setDetectedRegions(regions);
-        setSelectedRegionId(0);
-      } else if (apifyResults.length > 0) {
-        const regions = apifyResults.slice(0, 5).map((item: any, idx: number) => ({
-          id: idx,
-          label: item.title || item.name || "Identified Item",
-          price: item.price ? `$${item.price}` : "$19.99",
-          source: item.source || item.merchant || "Google Lens Match",
-          thumbnail: item.imageUrl || item.thumbnail || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-          category: "Lens Match"
-        }));
-        setDetectedRegions(regions);
-        setSelectedRegionId(0);
-      } else {
-        // High-quality default gourmet & product matches if image is neutral
-        setDetectedRegions([
-          {
-            id: 0,
-            label: "Veg Crunch Gourmet Bowl",
-            price: "$14.99",
-            source: "LuxLunch Gourmet Kitchen",
-            thumbnail: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-            category: "Gourmet"
-          },
-          {
-            id: 1,
-            label: "Salmon Fois Tartare",
-            price: "$24.99",
-            source: "Chef Reserve Collection",
-            thumbnail: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=600&q=80",
-            category: "Gourmet"
-          },
-          {
-            id: 2,
-            label: "Truffle Tagliatelle Pasta",
-            price: "$28.50",
-            source: "Artisan Italian Bistro",
-            thumbnail: "https://images.unsplash.com/photo-1621996346565-e3d5d6281288?auto=format&fit=crop&w=600&q=80",
-            category: "Gourmet"
-          }
-        ]);
-        setSelectedRegionId(0);
+      if (!response.ok) {
+        throw new Error(`Server returned status ${response.status}`);
       }
+
+      const data = await response.json();
+      const detected = data?.detectedResult?.detectedItems || [];
+      const apifyItems = data?.apifyResults || [];
+
+      const regions: any[] = [];
+      let idCounter = 0;
+
+      // Add Gemini detections first
+      detected.forEach((item: any) => {
+        regions.push({
+          id: idCounter++,
+          label: item.detectedName || "Identified Item",
+          price: item.priceEstimate ? `$${item.priceEstimate.toFixed(2)}` : "",
+          source: item.brandGuess || "Spresso Lens Match",
+          thumbnail: imageBase64,
+          category: item.category || "",
+          description: item.buyActionPrompt || "Visual match detected by Gemini."
+        });
+      });
+
+      // Add Apify Lens matching items next
+      apifyItems.forEach((item: any) => {
+        regions.push({
+          id: idCounter++,
+          label: item.title || "Web Match Product",
+          price: item.price || "",
+          source: item.source || "Google Lens Web Result",
+          thumbnail: item.imageUrl || imageBase64,
+          category: "Shopping",
+          description: `Visual match from ${item.source || "web"}.`
+        });
+      });
+
+      setDetectedRegions(regions);
+      setSelectedRegionId(0);
     } catch (err) {
-      console.error("Google Lens screen search error:", err);
-      // Ensure fallback regions set if network or parsing fails
-      setDetectedRegions([
-        {
-          id: 0,
-          label: "Veg Crunch Gourmet Bowl",
-          price: "$14.99",
-          source: "LuxLunch Gourmet Kitchen",
-          thumbnail: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-          category: "Gourmet"
-        },
-        {
-          id: 1,
-          label: "Salmon Fois Tartare",
-          price: "$24.99",
-          source: "Chef Reserve Collection",
-          thumbnail: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?auto=format&fit=crop&w=600&q=80",
-          category: "Gourmet"
-        }
-      ]);
+      console.error("Lens search API error:", err);
+      setDetectedRegions([]);
       setSelectedRegionId(0);
     } finally {
       setIsScanning(false);
     }
   };
 
+  // Gesture handling functions (Click / Drag crop selection)
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!screenSnapshot || !imageContainerRef.current) return;
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setStartPoint({ x, y });
+    setCurrentPoint({ x, y });
+    setIsDrawing(true);
+    setCropBox(null);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDrawing || !startPoint || !imageContainerRef.current) return;
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
+    setCurrentPoint({ x, y });
+  };
+
+  const handleMouseUp = async () => {
+    if (!isDrawing || !startPoint || !currentPoint || !imageContainerRef.current) return;
+    setIsDrawing(false);
+
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x1 = Math.min(startPoint.x, currentPoint.x);
+    const x2 = Math.max(startPoint.x, currentPoint.x);
+    const y1 = Math.min(startPoint.y, currentPoint.y);
+    const y2 = Math.max(startPoint.y, currentPoint.y);
+
+    const width = x2 - x1;
+    const height = y2 - y1;
+
+    // Check if it's a simple tap/click
+    if (width < 10 && height < 10) {
+      const pctX = (startPoint.x / rect.width) * 100;
+      const pctY = (startPoint.y / rect.height) * 100;
+      setIsScanning(true);
+      try {
+        const cropped = await cropImageSnippet(screenSnapshot!, undefined, { x: pctX, y: pctY });
+        await runGoogleLensScreenAnalysis(cropped);
+      } catch (err) {
+        setIsScanning(false);
+      }
+      return;
+    }
+
+    const ymin = Math.round((y1 / rect.height) * 1000);
+    const xmin = Math.round((x1 / rect.width) * 1000);
+    const ymax = Math.round((y2 / rect.height) * 1000);
+    const xmax = Math.round((x2 / rect.width) * 1000);
+
+    setCropBox({ ymin, xmin, ymax, xmax });
+
+    setIsScanning(true);
+    try {
+      const cropped = await cropImageSnippet(screenSnapshot!, [ymin, xmin, ymax, xmax]);
+      await runGoogleLensScreenAnalysis(cropped);
+    } catch (err) {
+      setIsScanning(false);
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!screenSnapshot || !imageContainerRef.current || e.touches.length === 0) return;
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    setStartPoint({ x, y });
+    setCurrentPoint({ x, y });
+    setIsDrawing(true);
+    setCropBox(null);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isDrawing || !startPoint || !imageContainerRef.current || e.touches.length === 0) return;
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = Math.max(0, Math.min(touch.clientX - rect.left, rect.width));
+    const y = Math.max(0, Math.min(touch.clientY - rect.top, rect.height));
+    setCurrentPoint({ x, y });
+  };
+
+  const handleTouchEnd = async () => {
+    if (!isDrawing || !startPoint || !currentPoint || !imageContainerRef.current) return;
+    setIsDrawing(false);
+
+    const rect = imageContainerRef.current.getBoundingClientRect();
+    const x1 = Math.min(startPoint.x, currentPoint.x);
+    const x2 = Math.max(startPoint.x, currentPoint.x);
+    const y1 = Math.min(startPoint.y, currentPoint.y);
+    const y2 = Math.max(startPoint.y, currentPoint.y);
+
+    const width = x2 - x1;
+    const height = y2 - y1;
+
+    if (width < 10 && height < 10) {
+      const pctX = (startPoint.x / rect.width) * 100;
+      const pctY = (startPoint.y / rect.height) * 100;
+      setIsScanning(true);
+      try {
+        const cropped = await cropImageSnippet(screenSnapshot!, undefined, { x: pctX, y: pctY });
+        await runGoogleLensScreenAnalysis(cropped);
+      } catch (err) {
+        setIsScanning(false);
+      }
+      return;
+    }
+
+    const ymin = Math.round((y1 / rect.height) * 1000);
+    const xmin = Math.round((x1 / rect.width) * 1000);
+    const ymax = Math.round((y2 / rect.height) * 1000);
+    const xmax = Math.round((x2 / rect.width) * 1000);
+
+    setCropBox({ ymin, xmin, ymax, xmax });
+
+    setIsScanning(true);
+    try {
+      const cropped = await cropImageSnippet(screenSnapshot!, [ymin, xmin, ymax, xmax]);
+      await runGoogleLensScreenAnalysis(cropped);
+    } catch (err) {
+      setIsScanning(false);
+    }
+  };
+
+  const getBoxStyle = () => {
+    if (!startPoint || !currentPoint) return {};
+    const left = Math.min(startPoint.x, currentPoint.x);
+    const top = Math.min(startPoint.y, currentPoint.y);
+    const width = Math.abs(startPoint.x - currentPoint.x);
+    const height = Math.abs(startPoint.y - currentPoint.y);
+    return {
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${width}px`,
+      height: `${height}px`,
+    };
+  };
+
   if (!isOpen) return null;
 
-  const currentItem = detectedRegions[selectedRegionId] || {
-    label: "Veg Crunch Gourmet Bowl",
-    price: "$14.99",
-    source: "LuxLunch Gourmet Kitchen",
-    thumbnail: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-    category: "Gourmet",
-    description: "Fresh organic seasonal vegetables bowl served with artisan dressing and superfood toppings."
-  };
+  const currentItem = detectedRegions[selectedRegionId];
 
   return (
     <div
@@ -283,32 +346,32 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
 
       {/* Background Ambient Blur Image */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
-        <img
-          src={screenSnapshot || currentItem.thumbnail}
-          alt="Ambient Background"
-          className="w-full h-full object-cover filter blur-3xl scale-125"
-        />
+        {(screenSnapshot || currentItem?.thumbnail) && (
+          <img
+            src={screenSnapshot || currentItem?.thumbnail}
+            alt="Ambient Background"
+            className="w-full h-full object-cover filter blur-3xl scale-125"
+          />
+        )}
       </div>
 
-      {/* Main Glassmorphic Card Container matching input_file_0.png reference design */}
+      {/* Main Glassmorphic Card Container */}
       <div className="relative w-full max-w-5xl bg-[#1d2924]/65 backdrop-blur-3xl border border-white/20 rounded-[36px] p-6 sm:p-10 text-white shadow-[0_35px_90px_-15px_rgba(0,0,0,0.85)] flex flex-col justify-between overflow-hidden min-h-[620px] z-10 my-auto">
 
         {/* Top Navigation & Brand Header Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10 z-20">
-          {/* Brand Logo & Title */}
           <div className="flex items-center space-x-2.5">
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
               <MaterialIcon icon="restaurant" size={20} className="text-stone-950" />
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-lg font-black tracking-tight font-headline text-white">LuxLunch</span>
+              <span className="text-lg font-black tracking-tight font-headline text-white">Spresso</span>
               <span className="text-[10px] font-mono bg-orange-500/20 text-orange-300 px-2.5 py-0.5 rounded-full border border-orange-500/30 uppercase tracking-wider font-bold">
                 Google Lens Active
               </span>
             </div>
           </div>
 
-          {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-8 text-xs font-semibold text-stone-200">
             <button
               onClick={() => setActiveCategoryTab("all")}
@@ -336,7 +399,6 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
             </button>
           </div>
 
-          {/* Member Badge & Action Buttons */}
           <div className="flex items-center space-x-3">
             <span className="hidden sm:inline-block text-xs font-extrabold text-emerald-400 hover:text-emerald-300 transition cursor-pointer">
               Be a member
@@ -366,281 +428,270 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
           </div>
         </div>
 
-        {/* Middle Hero Section matching input_file_0.png Reference Image Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 my-8 items-center z-20">
+        {/* Middle Hero Section */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 my-6 items-center z-20">
           
           {/* Left Hero Content */}
-          <div className="md:col-span-6 space-y-5 text-left">
+          <div className="md:col-span-6 space-y-4 text-left">
             <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-[1.15] font-headline">
               Where <span className="text-orange-500 underline decoration-orange-500/40 decoration-wavy">taste</span><br />
               meets perfection
             </h1>
             <p className="text-xs sm:text-sm text-stone-200 font-sans leading-relaxed max-w-md">
-              {currentItem.description || "Discover a curated collection of exquisite gourmet delicacies & items, hand-selected on screen with instant object identification & live merchant pricing."}
+              {currentItem?.description || "Select an object by drawing or clicking on the screen capture to run Spresso Google Lens."}
             </p>
 
-            <div className="pt-2 flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => {
-                  if (onSelectTryOn) {
-                    onSelectTryOn({
-                      id: `lens-item-${Date.now()}`,
-                      name: currentItem.label,
-                      brand: currentItem.source || "LuxLunch Gourmet",
-                      price: parseFloat((currentItem.price || "$14.99").replace(/[^0-9.]/g, "")) || 14.99,
-                      currency: "USD",
-                      category: currentItem.category || "Gourmet",
-                      description: currentItem.description || `Identified via Google Lens: ${currentItem.label}`,
-                      image: currentItem.thumbnail || "",
-                      stock: 12,
-                      sku: `LUX-${Math.floor(1000 + Math.random() * 9000)}`,
-                      rating: 4.9,
-                      virtualTryOnEligible: true,
-                      mcpServerId: "mcp_spresso_store"
-                    });
-                  } else if (onSearchComplete && screenSnapshot) {
-                    onSearchComplete(
-                      `Google Lens search for object: "${currentItem.label}". Cost: ${currentItem.price}`,
-                      screenSnapshot
-                    );
-                  }
-                  onClose();
-                }}
-                className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-full transition shadow-xl shadow-orange-500/30 cursor-pointer flex items-center space-x-2 transform hover:scale-105"
-              >
-                <span>Book Now ({currentItem.price})</span>
-                <MaterialIcon icon="arrow_forward" size={16} />
-              </button>
+            {currentItem && (
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => {
+                    if (onAddToCart) {
+                      onAddToCart({
+                        id: `lens-item-${currentItem.id}-${Date.now()}`,
+                        name: currentItem.label,
+                        brand: currentItem.source || "Google Lens Match",
+                        price: currentItem.price ? (parseFloat(currentItem.price.replace(/[^0-9.]/g, "")) || 0) : 0,
+                        currency: "USD",
+                        category: currentItem.category || "Shopping",
+                        description: currentItem.description || `Identified via Google Lens: ${currentItem.label}`,
+                        image: currentItem.thumbnail || "",
+                        stock: 10,
+                        sku: `LENS-BUY-${currentItem.id}`,
+                        rating: 5.0,
+                        virtualTryOnEligible: true,
+                        mcpServerId: "spresso-retail"
+                      });
+                    }
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-full transition shadow-xl shadow-orange-500/30 cursor-pointer flex items-center space-x-2 transform hover:scale-105"
+                >
+                  <span>Buy Now ({currentItem.price || "Contact"})</span>
+                  <MaterialIcon icon="arrow_forward" size={16} />
+                </button>
 
-              <button
-                onClick={() => setShowLocationDetails(true)}
-                className="px-5 py-3 bg-white/15 hover:bg-white/25 border border-white/25 text-white font-bold text-xs uppercase tracking-wider rounded-full transition cursor-pointer flex items-center space-x-2 backdrop-blur-md shadow-md"
-              >
-                <MaterialIcon icon="reviews" size={16} className="text-amber-400" />
-                <span>Location Reviews & Ratings</span>
-              </button>
-            </div>
+                <button
+                  onClick={() => setShowLocationDetails(true)}
+                  className="px-5 py-3 bg-white/15 hover:bg-white/25 border border-white/25 text-white font-bold text-xs uppercase tracking-wider rounded-full transition cursor-pointer flex items-center space-x-2 backdrop-blur-md shadow-md"
+                >
+                  <MaterialIcon icon="reviews" size={16} className="text-amber-400" />
+                  <span>Location Reviews</span>
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Right Visual Circular Dish Focal Point with Orange Arc Accent Ring */}
-          <div className="md:col-span-6 flex items-center justify-center relative my-4 sm:my-0">
-            
-            {/* Outer Ring System matching Reference Image */}
-            <div className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center">
-              
-              {/* Outer Thin Circle Ring */}
-              <div className="absolute inset-0 rounded-full border border-white/25 pointer-events-none" />
-
-              {/* Distinctive Curved Orange Arc Accent Ring (exact match to input_file_0.png) */}
-              <div className="absolute -bottom-4 -right-4 w-52 h-52 sm:w-64 sm:h-64 rounded-full border-[18px] border-orange-500 border-t-transparent border-l-transparent rotate-[15deg] pointer-events-none shadow-[0_0_40px_rgba(249,115,22,0.45)] z-10" />
-
-              {/* Top Floating Satellite Circular Thumbnail */}
-              <div className="absolute -top-4 left-6 w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-2xl z-30 bg-black animate-pulse">
-                <img
-                  src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=300&q=80"
-                  alt="Satellite Dish"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              {/* Main Focal Circle Container */}
-              <div className="w-56 h-56 sm:w-72 sm:h-72 rounded-full overflow-hidden border-4 border-white/80 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative z-20 bg-stone-950">
-                {isScanning ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-stone-900/90 p-4 space-y-3">
-                    <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs text-orange-300 font-mono">Identifying Object...</span>
+          {/* Floating UI Elements */}
+          {currentItem && (
+            <div className="hidden lg:block absolute left-8 top-1/4 max-w-[200px] z-30 space-y-4">
+              <div className="bg-black/60 backdrop-blur-xl border border-white/20 p-4 rounded-3xl shadow-2xl">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                    <MaterialIcon icon="local_mall" size={14} className="text-white" />
                   </div>
-                ) : (
-                  <img
-                    src={currentItem.thumbnail}
-                    alt={currentItem.label}
-                    className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
-                  />
-                )}
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Identified</span>
+                </div>
+                <h3 className="font-bold text-white text-lg leading-tight mb-1">{currentItem.label}</h3>
+                <p className="text-stone-300 text-xs font-mono">{currentItem.price}</p>
               </div>
             </div>
+          )}
 
+          {/* Interactive Screen Capture Selection Container */}
+          <div className="md:col-span-6 flex items-center justify-center relative my-4 sm:my-0">
+            <div
+              ref={imageContainerRef}
+              className="relative w-full max-w-[340px] h-[340px] rounded-3xl overflow-hidden border border-white/20 bg-stone-900 shadow-2xl cursor-crosshair select-none flex items-center justify-center"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {screenSnapshot ? (
+                <img
+                  src={screenSnapshot}
+                  alt="Captured App Screen"
+                  className="w-full h-full object-contain pointer-events-none"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-stone-400 space-y-2">
+                  <MaterialIcon icon="image" size={36} />
+                  <span className="text-xs">Capturing screen layout...</span>
+                </div>
+              )}
+
+              {/* Pulsing scanning overlay if processing */}
+              {isScanning && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none z-30">
+                  <div className="w-full h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent animate-pulse absolute top-1/2 left-0 right-0 transform -translate-y-1/2" />
+                  <MaterialIcon icon="auto_awesome" size={32} className="text-orange-400 animate-spin" />
+                </div>
+              )}
+
+              {/* Current Selection Box Overlay */}
+              {isDrawing && (
+                <div
+                  className="absolute border-2 border-dashed border-orange-500 bg-orange-500/10 pointer-events-none z-25"
+                  style={getBoxStyle()}
+                />
+              )}
+            </div>
           </div>
 
         </div>
 
-        {/* Bottom Section: "Starters" / Product Listing Cards matching input_file_0.png */}
-        <div className="pt-5 border-t border-white/10 space-y-4 z-20">
+        {/* Bottom Section: Scrollable Bottom Navigation of Matched Products */}
+        <div className="pt-5 border-t border-white/10 space-y-4 z-20 w-full">
           <div className="flex items-center justify-between text-left">
             <h3 className="text-sm font-extrabold text-white tracking-wide font-headline">
-              Starters
+              Product Listings & Matches
             </h3>
             <span className="text-xs text-orange-400 font-mono font-semibold">
               {detectedRegions.length} Options Identified
             </span>
           </div>
 
-          {/* Product Listing Card Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {detectedRegions.slice(0, 3).map((region, idx) => (
-              <div
-                key={region.id}
-                onClick={() => setSelectedRegionId(idx)}
-                className={`p-2.5 pr-4 rounded-2xl border transition cursor-pointer flex items-center space-x-3 text-left ${
-                  selectedRegionId === idx
-                    ? "bg-white/20 border-white/40 shadow-xl scale-102"
-                    : "bg-white/10 hover:bg-white/15 border-white/15 text-white"
-                }`}
-              >
-                {/* Green Vertical Accent Pill Bar on Left Edge */}
-                <div className="w-2.5 h-12 rounded-full bg-emerald-500 shrink-0" />
+          {detectedRegions.length > 0 ? (
+            <div className="flex space-x-4 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+              {detectedRegions.map((region, idx) => (
+                <div
+                  key={region.id}
+                  onClick={() => setSelectedRegionId(idx)}
+                  className={`p-3 rounded-2xl border transition cursor-pointer flex items-center space-x-3 text-left min-w-[280px] max-w-[320px] shrink-0 ${
+                    selectedRegionId === idx
+                      ? "bg-white/20 border-white/40 shadow-xl"
+                      : "bg-white/10 hover:bg-white/15 border-white/15 text-white"
+                  }`}
+                >
+                  <div className="w-1.5 h-14 rounded-full bg-emerald-500 shrink-0" />
+                  
+                  <div className="w-14 h-14 rounded-full overflow-hidden bg-black shrink-0 border-2 border-white shadow-md">
+                    <img src={region.thumbnail} alt={region.label} className="w-full h-full object-cover" />
+                  </div>
 
-                {/* Circular Dish Image Thumbnail */}
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-black shrink-0 border-2 border-white shadow-md">
-                  <img src={region.thumbnail} alt={region.label} className="w-full h-full object-cover" />
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <h4 className="text-xs font-bold text-white truncate">{region.label}</h4>
+                    <p className="text-[10px] text-stone-300 font-semibold truncate">{region.price || "Contact Seller"}</p>
+                    <p className="text-[9px] text-stone-400 truncate">{region.source}</p>
+                    
+                    <div className="flex items-center space-x-2 pt-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onAddToCart) {
+                            onAddToCart({
+                              id: `lens-item-${region.id}-${Date.now()}`,
+                              name: region.label,
+                              brand: region.source || "Google Lens Match",
+                              price: region.price ? (parseFloat(region.price.replace(/[^0-9.]/g, "")) || 0) : 0,
+                              currency: "USD",
+                              category: region.category || "Shopping",
+                              description: region.description || `Identified via Google Lens: ${region.label}`,
+                              image: region.thumbnail || "",
+                              stock: 10,
+                              sku: `LENS-CART-${region.id}`,
+                              rating: 5.0,
+                              virtualTryOnEligible: true,
+                              mcpServerId: "spresso-retail"
+                            });
+                          }
+                        }}
+                        className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-stone-950 font-black text-[9px] rounded-full transition uppercase tracking-wider"
+                      >
+                        Buy
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onSelectTryOn) {
+                            onSelectTryOn({
+                              id: `lens-item-${region.id}-${Date.now()}`,
+                              name: region.label,
+                              brand: region.source || "Google Lens Match",
+                              price: region.price ? (parseFloat(region.price.replace(/[^0-9.]/g, "")) || 0) : 0,
+                              currency: "USD",
+                              category: region.category || "Shopping",
+                              description: region.description || `Identified via Google Lens: ${region.label}`,
+                              image: region.thumbnail || "",
+                              stock: 10,
+                              sku: `LENS-TRYON-${region.id}`,
+                              rating: 5.0,
+                              virtualTryOnEligible: true,
+                              mcpServerId: "spresso-retail"
+                            });
+                          }
+                          onClose();
+                        }}
+                        className="px-2.5 py-0.5 bg-white/15 hover:bg-white/25 border border-white/20 text-white font-bold text-[9px] rounded-full transition uppercase tracking-wider"
+                      >
+                        Try-On
+                      </button>
+                    </div>
+                  </div>
                 </div>
-
-                {/* Listing Details */}
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-xs font-bold text-white truncate">{region.label}</h4>
-                  <p className="text-[10px] text-stone-300 font-medium truncate">{region.price || "$14.99"}</p>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onSelectTryOn) {
-                        onSelectTryOn({
-                          id: `starter-item-${region.id}-${Date.now()}`,
-                          name: region.label,
-                          brand: region.source || "LuxLunch",
-                          price: parseFloat((region.price || "$14.99").replace(/[^0-9.]/g, "")) || 14.99,
-                          currency: "USD",
-                          category: "Gourmet",
-                          description: region.description || `Identified Object: ${region.label}`,
-                          image: region.thumbnail || "",
-                          stock: 10,
-                          sku: `LUX-STARTER-${region.id}`,
-                          rating: 4.9,
-                          virtualTryOnEligible: true,
-                          mcpServerId: "mcp_spresso_store"
-                        });
-                      }
-                      onClose();
-                    }}
-                    className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 hover:underline inline-flex items-center space-x-0.5 mt-0.5 cursor-pointer"
-                  >
-                    <span>Order now</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Carousel Slider Indicator Bar at Bottom */}
-          <div className="flex items-center justify-center space-x-3 pt-2">
-            <button
-              onClick={() => setSelectedRegionId(prev => (prev > 0 ? prev - 1 : detectedRegions.length - 1))}
-              className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-stone-300 hover:text-white transition cursor-pointer border border-white/10"
-            >
-              <MaterialIcon icon="chevron_left" size={18} />
-            </button>
-
-            {/* Slider Dots */}
-            <div className="flex items-center space-x-1.5 px-2">
-              <div className="w-6 h-1.5 bg-orange-500 rounded-full" />
-              <div className="w-1.5 h-1.5 bg-white/40 rounded-full" />
-              <div className="w-1.5 h-1.5 bg-white/40 rounded-full" />
-              <div className="w-1.5 h-1.5 bg-white/40 rounded-full" />
+              ))}
             </div>
-
-            <button
-              onClick={() => setSelectedRegionId(prev => (prev < detectedRegions.length - 1 ? prev + 1 : 0))}
-              className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-stone-300 hover:text-white transition cursor-pointer border border-white/10"
-            >
-              <MaterialIcon icon="chevron_right" size={18} />
-            </button>
-          </div>
+          ) : (
+            !isScanning && (
+              <div className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/10 mt-6">
+                <MaterialIcon icon="broken_image" size={32} className="text-white/30 mb-2" />
+                <p className="text-sm font-bold text-white/50">Draw over or click the screenshot above to identify items</p>
+              </div>
+            )
+          )}
         </div>
 
-        {/* Jetpack Compose Material 3 Elevated Floating Action Button Widget */}
-        <ElevatedQuickActionFab
-          product={{
-            id: ("id" in currentItem && currentItem.id) ? String(currentItem.id) : `lens-${selectedRegionId}-${Date.now()}`,
-            name: currentItem.label,
-            brand: currentItem.source || "Google Lens Identified Item",
-            price: parseFloat((currentItem.price || "$14.99").replace(/[^0-9.]/g, "")) || 14.99,
-            currency: "USD",
-            category: currentItem.category || "Gourmet",
-            description: currentItem.description || currentItem.label,
-            image: currentItem.thumbnail || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
-            stock: 12,
-            sku: `LENS-${("id" in currentItem && currentItem.id) ? currentItem.id : selectedRegionId}`,
-            rating: 4.9,
-            virtualTryOnEligible: true,
-            mcpServerId: "mcp_spresso_store"
-          }}
-          onSelectTryOn={(prod) => {
-            if (onSelectTryOn) onSelectTryOn(prod);
-            onClose();
-          }}
-          positionClassName="bottom-8 right-8 z-50"
-        />
+        {/* Headless Chat Section for Direct Shopper Communication */}
+        {currentItem && (
+          <div className="mt-4 pt-4 border-t border-white/10 z-20 w-full">
+            <AIShopperInputBar
+              onSend={(text) => {
+                if (onSearchComplete && screenSnapshot) {
+                  onSearchComplete(
+                    `Inquiry regarding "${currentItem.label}" (cost: ${currentItem.price}): "${text}"`,
+                    screenSnapshot
+                  );
+                }
+                onClose();
+              }}
+              placeholder={`Ask Spresso AI about "${currentItem.label}"...`}
+              sticky={false}
+              className="px-0 bg-transparent border-0 ring-0 shadow-none"
+            />
+          </div>
+        )}
 
-        {/* Location Details & Reviews Modal Overlay matching requested Figma layout */}
-        {showLocationDetails && (
+        {/* Location Details & Reviews Modal Overlay */}
+        {showLocationDetails && currentItem && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn overflow-y-auto">
             <div className="w-full max-w-lg my-auto">
               <LocationDetailsView
                 data={{
-                  title: currentItem.label || "The Grand Plaza Bistro & Patio",
-                  subtitle: `${currentItem.source || "Artisan Italian Dining"} • Verified Location`,
-                  heroImage: currentItem.thumbnail || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80",
-                  distanceInfo: "12 mins from hotel (0.8 mi away)",
-                  sectionTitle: "Featured Highlights & Customer Reviews",
-                  sectionMeta: "Within 5 miles • $$-$$$ • Open 11:00 AM - 10:00 PM",
-                  categories: ["Popular", "Dining", "Reviews", "Amenities"],
-                  reviewsCountText: "View 231 reviews & recommendations",
-                  items: [
-                    {
-                      id: "loc-lens-1",
-                      title: "Truffle Tagliatelle & Wine Pair",
-                      category: "Signature Dish",
-                      priceLevel: "$$",
-                      distance: "0.8 miles away",
-                      rating: 5,
-                      image: currentItem.thumbnail || "https://images.unsplash.com/photo-1621996346565-e3d5d6281288?w=400&auto=format&fit=crop",
-                      snippet: "Authentic handmade egg pasta spun with black winter truffle butter and aged parmesan."
-                    },
-                    {
-                      id: "loc-lens-2",
-                      title: "Garden Patio Dining Area",
-                      category: "Outdoor Seating",
-                      priceLevel: "$$$",
-                      distance: "0.8 miles away",
-                      rating: 5,
-                      image: "https://images.unsplash.com/photo-1543007630-9710e4a00a20?w=400&auto=format&fit=crop",
-                      snippet: "Romantic string lights, lush greenery, and heated pergola for evening dining."
-                    },
-                    {
-                      id: "loc-lens-3",
-                      title: "Wood-Fired Neapolitan Pizza",
-                      category: "Popular Review",
-                      priceLevel: "$$",
-                      distance: "0.8 miles away",
-                      rating: 5,
-                      image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&auto=format&fit=crop",
-                      snippet: "Crispy leopard-spotted crust with fresh buffalo mozzarella and San Marzano tomatoes."
-                    }
-                  ]
+                  title: currentItem.label || "Spresso Identified Location",
+                  subtitle: `${currentItem.source || "Google Lens"} • Verified Match`,
+                  heroImage: currentItem.thumbnail || "",
+                  distanceInfo: "",
+                  sectionTitle: "Location Details",
+                  sectionMeta: currentItem.price || "",
+                  categories: ["Identified"],
+                  reviewsCountText: "",
+                  items: []
                 }}
                 onClose={() => setShowLocationDetails(false)}
                 onSelectReviewItem={(item) => {
                   if (onSelectTryOn) {
                     onSelectTryOn({
-                      id: item.id,
+                      id: item.id || `loc-item-${Date.now()}`,
                       name: item.title,
                       brand: currentItem.label,
-                      price: 24.99,
+                      price: parseFloat(item.priceLevel?.replace(/[^0-9.]/g, "") || "0"),
                       currency: "USD",
                       category: item.category,
                       description: item.snippet,
                       image: item.image,
                       stock: 10,
-                      sku: `SKU-LOC-${item.id}`,
+                      sku: `SKU-LOC-${item.id || Date.now()}`,
                       rating: item.rating,
                       virtualTryOnEligible: true,
                       mcpServerId: "spresso-mcp-retail"

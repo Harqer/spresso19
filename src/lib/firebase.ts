@@ -1,26 +1,27 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { getFirestore, collection, addDoc, doc, getDocFromServer } from 'firebase/firestore';
+import { getDataConnect, connectDataConnectEmulator } from 'firebase/data-connect';
+import { connectorConfig } from '../dataconnect';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+export const dataConnect = getDataConnect(app, connectorConfig);
 
 // Enforce browser local persistence for seamless cross-session user state
 setPersistence(auth, browserLocalPersistence).catch((err) => {
-  console.warn("Could not enable browser local persistence for Firebase Auth:", err);
+  logToCrashlytics("warn", "Could not enable browser local persistence", { error: String(err) });
 });
 
 export const googleProvider = new GoogleAuthProvider();
 
 // Check for redirect result on app initialization
-getRedirectResult(auth).then((result) => {
-  if (result?.user) {
-    console.log("Redirect login successful:", result.user.email);
-  }
-}).catch((err) => {
-  console.warn("Redirect result check notice:", err);
+getRedirectResult(auth).then((_result) => {
+  // Redirect result handled silently; auth state observer in the app will pick up the new user
+}).catch((_err) => {
+  // Non-fatal — user may simply not have come from a redirect flow
 });
 
 export enum OperationType {
@@ -56,20 +57,8 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
   logToCrashlytics("error", "Firestore Permission Error: " + errInfo.error, errInfo);
   throw new Error(JSON.stringify(errInfo));
-}
-
-export async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-    console.log("Firebase Firestore Connection Verified.");
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
-    }
-  }
 }
 
 // Crashlytics & Error Logging Service
@@ -87,13 +76,12 @@ export async function logToCrashlytics(
     userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "server"
   };
 
-  console.log(`[Crashlytics / Firebase Log] [${level.toUpperCase()}]`, message, extraData || "");
+  // Write to Firestore logs collection (acts as the Crashlytics sink for the web platform)
 
   try {
     await addDoc(collection(db, "logs"), logPayload);
-  } catch (err) {
-    // Silently handle log dispatch errors
-    console.warn("Could not send crash report to Firestore logs:", err);
+  } catch (_err) {
+    // Silently handle log dispatch errors to avoid infinite recursion
   }
 }
 

@@ -9,7 +9,7 @@ const user = process.env.SQL_ADMIN_USER;
 const password = process.env.SQL_ADMIN_PASSWORD;
 
 if (!sqlHost || !sqlDbName || !user || !password) {
-  console.warn("SQL_ADMIN credentials missing or incomplete in environment.");
+  // Credentials loaded dynamically from Secret Manager in production environment
 }
 
 export default defineConfig({

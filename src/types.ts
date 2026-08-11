@@ -131,3 +131,39 @@ export interface MCPToolInfo {
   description: string;
   inputSchema: any;
 }
+
+export type WardrobeCategory = "TOP" | "BOTTOM" | "SWEATER_OUTERWEAR" | "SHOES" | "ACCESSORY" | "DRESS";
+export type WeatherSuitability = "SUMMER_HEAT" | "MILD_SPRING_AUTUMN" | "WINTER_COLD" | "ALL_WEATHER" | "HOT_SUMMER" | "COLD_WINTER";
+
+export interface CustomWardrobeItem {
+  id: string;
+  type?: string;
+  name: string;
+  category: WardrobeCategory;
+  weatherSuitability: WeatherSuitability;
+  image: string;
+  brand?: string;
+  price?: number;
+  productId?: string;
+  addedAt: number;
+  color?: string;
+}
+
+export interface GeneratedOutfit {
+  id: string;
+  title: string;
+  weatherCondition: WeatherSuitability;
+  temperatureText: string;
+  items: CustomWardrobeItem[];
+  stylingAdvice: string;
+  weatherMatchScore: number;
+  savedAt?: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: "user" | "ai";
+  text: string;
+}
+
+

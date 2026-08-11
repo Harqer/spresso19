@@ -1,8 +1,8 @@
 import { genkit, z } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { HfInference } from '@huggingface/inference';
-import { getGeminiAI } from '../geminiService.js';
-import { vitposePlugin } from '../plugins/vitposePlugin.js';
+import { getGeminiAI } from '../geminiService.ts';
+import { vitposePlugin } from '../plugins/vitposePlugin.ts';
 
 export const ai = genkit({
   plugins: [

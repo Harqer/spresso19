@@ -1,5 +1,5 @@
-import { mockInventory } from "./inventory.ts";
-import { ProductItem } from "../src/types.ts";
+import { getActiveInventory } from "./geminiService.ts";
+import type { ProductItem } from "../src/types.ts";
 
 export interface ApifyActorInput {
   category?: string;
@@ -70,7 +70,6 @@ export async function runGoogleLensActor(imageUrlOrBase64: string) {
       return { success: true, actor: "borderline~google-lens", results: items };
     }
 
-    // Async fallback
     const runUrl = `https://api.apify.com/v2/actors/borderline~google-lens/runs?token=${token}`;
     const runRes = await fetch(runUrl, {
       method: "POST",
@@ -86,7 +85,7 @@ export async function runGoogleLensActor(imageUrlOrBase64: string) {
 }
 
 /**
- * Apify Specialized Feeds Engine for:
+ * Fetches Apify-curated product feeds for the front-end catalog:
  * - deals (Live discount actor)
  * - trending (Viral trending items actor)
  * - hot_drops (Limited drop releases actor)
@@ -100,6 +99,7 @@ export async function getApifyCategoryFeed(input: ApifyActorInput) {
   const feedType = input.feedType || "trending";
   const bookmarked = input.bookmarkedItemIds || [];
   const liked = input.likedItemIds || [];
+  const liveInventory = await getActiveInventory();
 
   // 1. FOR YOU FEED - Tied directly to user bookmarks & likes
   if (feedType === "for_you") {
@@ -114,7 +114,7 @@ export async function getApifyCategoryFeed(input: ApifyActorInput) {
     }
 
     // Retrieve full items for user's bookmarked / liked IDs
-    const userFavorites = mockInventory.filter(p => bookmarked.includes(p.id) || liked.includes(p.id));
+    const userFavorites = liveInventory.filter(p => bookmarked.includes(p.id) || liked.includes(p.id));
     return {
       success: true,
       feedType: "for_you",
@@ -126,7 +126,7 @@ export async function getApifyCategoryFeed(input: ApifyActorInput) {
 
   // 2. DEALS FEED - Filter for items with MSRP discount
   if (feedType === "deals") {
-    const dealItems = mockInventory.map(p => ({
+    const dealItems = liveInventory.map(p => ({
       ...p,
       originalPrice: Math.round(p.price * 1.25),
       dealTag: "APIFY HOT DEAL - SAVE 20%"
@@ -141,7 +141,7 @@ export async function getApifyCategoryFeed(input: ApifyActorInput) {
 
   // 3. HOT DROPS FEED - Filter for rare/low stock drops
   if (feedType === "hot_drops") {
-    const hotDrops = mockInventory.filter(p => p.stock < 20).map(p => ({
+    const hotDrops = liveInventory.filter(p => (p.stock || 20) < 20).map(p => ({
       ...p,
       dropTag: "LIMITED DROP - RARE STOCK"
     }));
@@ -154,7 +154,7 @@ export async function getApifyCategoryFeed(input: ApifyActorInput) {
   }
 
   // 4. TRENDING FEED - High rating items
-  const trendingItems = mockInventory.filter(p => p.rating >= 4.8);
+  const trendingItems = liveInventory.filter(p => (p.rating || 4.8) >= 4.8);
   return {
     success: true,
     feedType: "trending",

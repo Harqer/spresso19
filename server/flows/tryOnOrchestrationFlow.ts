@@ -1,5 +1,5 @@
 import { z } from 'genkit';
-import { extractViTPose, ai } from '../actions/vitposeAction.js';
+import { extractViTPose, ai } from '../actions/vitposeAction.ts';
 import { googleAI } from '@genkit-ai/google-genai';
 
 export const tryOnFlow = ai.defineFlow(

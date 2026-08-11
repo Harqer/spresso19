@@ -13,11 +13,7 @@ interface VirtualTryOnModalProps {
 }
 
 const DEFAULT_AVATARS = [
-  { id: "avatar-1", name: "Model A (Studio)", url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" },
-  { id: "avatar-2", name: "Model B (Urban)", url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80" },
-  { id: "avatar-3", name: "Model C (Casual)", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80" },
-  { id: "avatar-4", name: "Model D (Minimal)", url: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80" },
-  { id: "avatar-5", name: "Model E (High Fashion)", url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80" }
+  // To adhere to the strict no-mock policy, we require the user to provide their own photo.
 ];
 
 const GENMEDIA_BACKGROUNDS = [
@@ -35,7 +31,7 @@ export const PRODUCT_ANIMATION_OPTIONS = [
   { id: "anim-studio", name: "Cinematic Studio Turn", icon: "movie", description: "High-contrast studio slow-motion turn with softbox directional fill" }
 ];
 
-const getRandomItem = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+const getFirstItem = <T,>(arr: T[]): T => arr[0];
 
 export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   product,
@@ -47,9 +43,9 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
 
   const [modeChosen, setModeChosen] = useState<boolean>(true);
   const [selectedMediaType, setSelectedMediaType] = useState<"image" | "video">("video");
-  const [selectedAvatar, setSelectedAvatar] = useState(() => getRandomItem(DEFAULT_AVATARS));
-  const [selectedBg, setSelectedBg] = useState(() => getRandomItem(GENMEDIA_BACKGROUNDS));
-  const [selectedAnimation, setSelectedAnimation] = useState(() => getRandomItem(PRODUCT_ANIMATION_OPTIONS));
+  const [selectedAvatar, setSelectedAvatar] = useState<any>(null);
+  const [selectedBg, setSelectedBg] = useState(() => getFirstItem(GENMEDIA_BACKGROUNDS));
+  const [selectedAnimation, setSelectedAnimation] = useState(() => getFirstItem(PRODUCT_ANIMATION_OPTIONS));
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
@@ -74,29 +70,20 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     }
   });
 
-  // Randomly select default video animation options on modal load or product change
   useEffect(() => {
     if (product) {
-      const randomAvatar = getRandomItem(DEFAULT_AVATARS);
-      const randomBg = getRandomItem(GENMEDIA_BACKGROUNDS);
-      const randomAnim = getRandomItem(PRODUCT_ANIMATION_OPTIONS);
-
-      setSelectedAvatar(randomAvatar);
-      setSelectedBg(randomBg);
-      setSelectedAnimation(randomAnim);
+      setSelectedAvatar(null);
+      setSelectedBg(GENMEDIA_BACKGROUNDS[0]);
+      setSelectedAnimation(PRODUCT_ANIMATION_OPTIONS[0]);
       setSelectedMediaType("video");
       setModeChosen(true);
     }
   }, [product?.id]);
 
   const handleRandomizeOptions = () => {
-    const randomAvatar = getRandomItem(DEFAULT_AVATARS);
-    const randomBg = getRandomItem(GENMEDIA_BACKGROUNDS);
-    const randomAnim = getRandomItem(PRODUCT_ANIMATION_OPTIONS);
-
-    setSelectedAvatar(randomAvatar);
-    setSelectedBg(randomBg);
-    setSelectedAnimation(randomAnim);
+    setSelectedAvatar(null);
+    setSelectedBg(GENMEDIA_BACKGROUNDS[0]);
+    setSelectedAnimation(PRODUCT_ANIMATION_OPTIONS[0]);
     runTryOnAnalysis("video");
   };
 
@@ -109,7 +96,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             productId: product.id,
-            userPhotoBase64: customAvatar || selectedAvatar.url,
+            userPhotoBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
             customNotes: `Render in ${selectedBg.name} using ${selectedAnimation.name}`,
             mediaType
           })
@@ -118,7 +105,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userImageBase64: customAvatar || selectedAvatar.url,
+            userImageBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
             desiredFitStyle: selectedAnimation.name,
             preferredCategory: product.category
           })
@@ -168,7 +155,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
 
   const handleCheckout = () => {
     const payload: HITLPayload = {
-      authorizationId: `ORDER-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      authorizationId: `ORDER-${crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase()}`,
       product: {
         id: product.id,
         name: product.name,
@@ -186,7 +173,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
         title: "Confirm Purchase",
         message: `Authorize $${product.price.toFixed(2)} for ${product.name}?`,
         safetyChecks: [
-          `Virtual Try-On 001 fit score verified (98% in ${selectedMediaType.toUpperCase()} mode)`,
+          `Virtual Try-On 001 fit verified in ${selectedMediaType.toUpperCase()} mode`,
           "In stock and ready to ship",
           "Includes free express delivery & returns"
         ]
@@ -197,7 +184,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     onClose();
   };
 
-  const activePersonImage = customAvatar || selectedAvatar.url;
+  const activePersonImage = customAvatar || (selectedAvatar ? selectedAvatar.url : null);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
@@ -341,17 +328,24 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                 >
                   {/* Product & Model Composited Preview */}
                   <div className="relative w-full h-full flex items-center justify-center p-2">
-                    <img
-                      src={activePersonImage}
-                      alt="Person Model"
-                      className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 group-hover/canvas:scale-105 ${
-                        isProcessing
-                          ? "opacity-30 blur-sm"
-                          : selectedMediaType === "video" && isVideoPlaying
-                          ? "animate-pulse opacity-100 scale-105"
-                          : "opacity-100"
-                      }`}
-                    />
+                    {activePersonImage ? (
+                      <img
+                        src={activePersonImage}
+                        alt="Person Model"
+                        className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 group-hover/canvas:scale-105 ${
+                          isProcessing
+                            ? "opacity-30 blur-sm"
+                            : selectedMediaType === "video" && isVideoPlaying
+                            ? "animate-pulse opacity-100 scale-105"
+                            : "opacity-100"
+                        }`}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 opacity-50">
+                         <MaterialIcon icon="person" size={64} className="text-[#386633]" />
+                         <span className="text-xs font-bold text-[#18211e]">Upload photo to start Try-On</span>
+                      </div>
+                    )}
                     
                     {/* Garment / Product Overlay preview */}
                     <div className={`absolute bottom-3 right-3 w-28 h-28 bg-white/90 backdrop-blur-md rounded-2xl p-1.5 border border-[#d8ebd7] shadow-lg transition duration-300 ${isProcessing ? "scale-95 opacity-50" : "scale-100"}`}>
@@ -369,10 +363,10 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     </span>
                   </div>
 
-                  {/* Fit Score Badge */}
+                  {/* Fit Status Badge */}
                   <div className="absolute top-3 left-3 px-3 py-1 bg-white/90 backdrop-blur-md border border-[#d8ebd7] text-[#386633] text-xs font-bold rounded-full flex items-center space-x-1.5 shadow-xs">
                     <MaterialIcon icon="check_circle" size={16} className="text-[#386633]" />
-                    <span>Fit Match: {tryOnMeta.fitScore}%</span>
+                    <span>3D Avatar Fitted</span>
                   </div>
 
                   {/* Active Animation Style Badge Overlay */}
@@ -501,7 +495,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                             runTryOnAnalysis();
                           }}
                           className={`p-1 rounded-xl border transition text-center cursor-pointer ${
-                            selectedAvatar.id === avatar.id && !customAvatar
+                            selectedAvatar?.id === avatar.id && !customAvatar
                               ? "border-[#386633] bg-white shadow-xs ring-1 ring-[#386633]/20"
                               : "border-[#d8ebd7] bg-[#f2f8f2] hover:bg-[#e8f3e8]"
                           }`}

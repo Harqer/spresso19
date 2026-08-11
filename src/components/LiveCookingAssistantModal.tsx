@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { M3ExpressiveCircularProgress } from "./M3ExpressiveCircularProgress";
+import { logToCrashlytics } from "../lib/firebase";
 
 interface LiveCookingAssistantModalProps {
   isOpen: boolean;
@@ -21,7 +22,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
-  const [statusText, setStatusText] = useState("Connecting to Bargain Chef AI Live Agent...");
+  const [statusText, setStatusText] = useState("Connecting to Chef AI Live Agent...");
   const [transcript, setTranscript] = useState<{ sender: "user" | "ai"; text: string }[]>([]);
   const [aiIsSpeaking, setAiIsSpeaking] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -61,7 +62,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
         videoRef.current.srcObject = mediaStream;
       }
     } catch (err: any) {
-      console.warn("Media devices error:", err);
+      logToCrashlytics("warn", "Media devices error", { error: String(err) });
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setStream(mediaStream);
@@ -69,30 +70,50 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
           videoRef.current.srcObject = mediaStream;
         }
       } catch (err2: any) {
-        console.warn("Fallback media devices error:", err2);
+        logToCrashlytics("warn", "Fallback media devices error", { error: String(err2) });
         setErrorMsg("Camera or microphone permission was denied. Please allow camera & mic access to use the Live Cooking Agent.");
         setIsConnecting(false);
         return;
       }
     }
 
-    // Connect to WebSocket endpoint
+    // Connect to WebSocket endpoint directly to Gemini Live API
     setStatusText("Establishing real-time voice & video connection...");
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/api/live-chef`;
+    
+    // Fallback to empty string for safety if env is missing
+    const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "YOUR_API_KEY";
+    const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
 
     try {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("[Live Cooking Modal] Connected to Live Chef WebSocket");
+        logToCrashlytics("info", "[Live Cooking Modal] Connected to Gemini Live WebSocket");
         setIsConnected(true);
         setIsConnecting(false);
         setStatusText("Live Agent Ready — Speak or show your kitchen!");
         
+        // Send Setup message to Gemini
+        ws.send(JSON.stringify({
+          setup: {
+            model: "models/gemini-2.0-flash-exp",
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } },
+              }
+            },
+            systemInstruction: {
+              parts: [{ text: "You are Chef AI, a real-time voice and video cooking assistant. You observe the user's kitchen counter or cooking ingredients via camera video stream, listen to their questions via live mic audio, and speak back with friendly, real-time step-by-step culinary guidance, ingredient substitutions, and local bargain grocery tips." }]
+            }
+          }
+        }));
+
         if (recipeContext) {
-          ws.send(JSON.stringify({ text: `Current cooking context / recipe requested: ${recipeContext}` }));
+          ws.send(JSON.stringify({
+             clientContent: { turns: [{ role: "user", parts: [{ text: `Current cooking context / recipe requested: ${recipeContext}` }] }], turnComplete: true }
+          }));
         }
 
         startMediaPipelines(mediaStream!, ws);
@@ -101,40 +122,38 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "ready") {
-            setStatusText("Bargain Chef AI is listening & watching live");
-          } else if (data.type === "audio" && data.audio) {
-            setAiIsSpeaking(true);
-            playPCMChunk(data.audio);
-          } else if (data.type === "text" && data.text) {
-            setTranscript(prev => {
-              const last = prev[prev.length - 1];
-              if (last && last.sender === "ai") {
-                return [...prev.slice(0, -1), { sender: "ai", text: last.text + " " + data.text }];
-              }
-              return [...prev, { sender: "ai", text: data.text }];
-            });
-          } else if (data.type === "interrupted") {
-            setAiIsSpeaking(false);
-            if (outputAudioCtxRef.current) {
-              queueTimeRef.current = outputAudioCtxRef.current.currentTime;
-            }
-          } else if (data.type === "error") {
-            setErrorMsg(data.error || "Real-time AI connection issue");
+          
+          if (data.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data) {
+             setAiIsSpeaking(true);
+             playPCMChunk(data.serverContent.modelTurn.parts[0].inlineData.data);
+          } else if (data.serverContent?.modelTurn?.parts?.[0]?.text) {
+             const text = data.serverContent.modelTurn.parts[0].text;
+             setTranscript(prev => {
+                const last = prev[prev.length - 1];
+                if (last && last.sender === "ai") {
+                  return [...prev.slice(0, -1), { sender: "ai", text: last.text + " " + text }];
+                }
+                return [...prev, { sender: "ai", text: text }];
+             });
+          } else if (data.serverContent?.interrupted) {
+             setAiIsSpeaking(false);
+             if (outputAudioCtxRef.current) {
+                queueTimeRef.current = outputAudioCtxRef.current.currentTime;
+             }
           }
         } catch (e) {
-          console.warn("[Live Cooking Modal] Error parsing message:", e);
+          logToCrashlytics("warn", "[Live Cooking Modal] Error parsing message", { error: String(e) });
         }
       };
 
       ws.onerror = (e) => {
-        console.warn("[Live Cooking Modal] WS error:", e);
+        logToCrashlytics("warn", "[Live Cooking Modal] WS error", { error: String(e) });
         setErrorMsg("Unable to connect to live voice server. Retrying...");
         setIsConnecting(false);
       };
 
       ws.onclose = () => {
-        console.log("[Live Cooking Modal] WS closed");
+        logToCrashlytics("info", "[Live Cooking Modal] WS closed");
         setIsConnected(false);
         setIsConnecting(false);
       };
@@ -162,11 +181,13 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
         if (ws.readyState === WebSocket.OPEN && !isMicMuted) {
           const inputData = e.inputBuffer.getChannelData(0);
           const pcmBase64 = convertFloat32ToPCM16(inputData);
-          ws.send(JSON.stringify({ audio: pcmBase64 }));
+          ws.send(JSON.stringify({ 
+             realtimeInput: { mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: pcmBase64 }] }
+          }));
         }
       };
     } catch (e) {
-      console.warn("Error setting up mic input stream:", e);
+      logToCrashlytics("warn", "Error setting up mic input stream", { error: String(e) });
     }
 
     // 2. Audio Output (24kHz PCM model playback)
@@ -175,7 +196,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
       outputAudioCtxRef.current = outputCtx;
       queueTimeRef.current = outputCtx.currentTime;
     } catch (e) {
-      console.warn("Error setting up audio output context:", e);
+      logToCrashlytics("warn", "Error setting up audio output context", { error: String(e) });
     }
 
     // 3. Video Stream (1 FPS JPEG frame capture)
@@ -190,7 +211,10 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
         if (ctx && video.videoWidth > 0) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
-          ws.send(JSON.stringify({ image: dataUrl }));
+          const base64Img = dataUrl.split(",")[1];
+          ws.send(JSON.stringify({
+             realtimeInput: { mediaChunks: [{ mimeType: "image/jpeg", data: base64Img }] }
+          }));
         }
       }
     }, 1000); // 1 Frame Per Second as recommended by skill
@@ -249,7 +273,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
         }
       };
     } catch (err) {
-      console.warn("PCM playback error:", err);
+      logToCrashlytics("warn", "PCM playback error", { error: String(err) });
     }
   };
 

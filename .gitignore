@@ -6,3 +6,12 @@ coverage/
 *.log
 .env*
 !.env.example
+local.properties
+google-services.json
+GoogleService-Info.plist
+*.pem
+*.key
+service-account*.json
+.gradle/
+kotlin-js-store/
+*.apk

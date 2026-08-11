@@ -1,6 +1,6 @@
 import React from "react";
 import { MaterialIcon } from "./MaterialIcon";
-import { CustomWardrobeItem } from "./WardrobeView";
+import { CustomWardrobeItem } from "../types";
 
 export interface SeasonalCategorySectionProps {
   title: string;

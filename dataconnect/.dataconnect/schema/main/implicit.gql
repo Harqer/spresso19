@@ -1,0 +1,12 @@
+extend type Order {
+  """
+  ✨ Implicit foreign key field based on `Order`.`product`. It must match the value of `Product`.`id`. See `@ref` for how to customize it.
+  """
+  productId: UUID! @fdc_generated(from: "Order.product", purpose: IMPLICIT_REF_FIELD)
+}
+extend type UserLike {
+  """
+  ✨ Implicit foreign key field based on `UserLike`.`product`. It must match the value of `Product`.`id`. See `@ref` for how to customize it.
+  """
+  productId: UUID! @fdc_generated(from: "UserLike.product", purpose: IMPLICIT_REF_FIELD)
+}

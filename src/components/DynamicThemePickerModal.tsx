@@ -47,7 +47,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
   };
 
   const handleShuffle = () => {
-    const randomColor = "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0");
+    const randomColor = "#" + (Date.now() % 16777215).toString(16).padStart(6, "0");
     setCustomHex(randomColor);
     handleApplySeed(randomColor);
   };

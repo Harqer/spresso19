@@ -1,0 +1,20 @@
+mutation ToggleLike($productId: String!) @auth(level: USER) {
+  userLike_upsert(data: { userUid_expr: "auth.uid", productId: $productId })
+}
+
+mutation CreateOrder(
+  $authorizationId: String!
+  $productId: String!
+  $quantity: Int!
+  $deviceSource: String!
+  $paymentMethod: String!
+) @auth(level: USER) {
+  order_insert(data: {
+    authorizationId: $authorizationId,
+    userUid_expr: "auth.uid",
+    productId: $productId,
+    quantity: $quantity,
+    deviceSource: $deviceSource,
+    paymentMethod: $paymentMethod
+  })
+}

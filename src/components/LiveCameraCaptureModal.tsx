@@ -69,7 +69,6 @@ export const LiveCameraCaptureModal: React.FC<LiveCameraCaptureModalProps> = ({
         videoRef.current.srcObject = mediaStream;
       }
     } catch (err: any) {
-      console.warn("Camera stream access error:", err);
       if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
         setCameraError("Camera access permission was denied. Please allow camera access in your browser or upload a photo.");
       } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {

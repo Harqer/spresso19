@@ -232,6 +232,8 @@ export const AIShopperInputBar: React.FC<AIShopperInputBarProps> = ({
         onSearchComplete={(queryText, imageBase64) => {
           onSend(queryText, imageBase64);
         }}
+        onSelectTryOn={onSelectTryOn}
+        onAddToCart={onAddToCart}
       />
 
       {/* Camera Object Detection Modal (For Product Listings) */}

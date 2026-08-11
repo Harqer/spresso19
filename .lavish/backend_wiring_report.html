@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="luxury">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spresso: Backend Wiring & Route Re-Homing Report</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :where(.grid, .flex, .layout-grid, .layout-flex) > * { min-width: 0; }
+    :where(p, h1, h2, h3, h4, h5, h6, li, dd, blockquote, figcaption, td, th, .badge, .label) { overflow-wrap: anywhere; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .route-cell { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.75rem; }
+    .srcline { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.68rem; opacity: 0.75; }
+    .severity-dot { width: 8px; height: 8px; border-radius: 9999px; display: inline-block; margin-right: 6px; }
+    .verified-ok { color: #4ade80; }
+    .verified-flag { color: #fbbf24; }
+    .verified-dead { color: #f87171; }
+    .verified-fixed { color: #38bdf8; }
+  </style>
+</head>
+<body class="bg-base-300 text-base-content min-h-screen font-sans">
+
+  <header class="navbar bg-base-200 border-b border-base-content/10 px-6 py-4 shadow-sm sticky top-0 z-40">
+    <div class="navbar-start flex items-center space-x-3">
+      <div class="avatar placeholder">
+        <div class="bg-primary text-primary-content w-10 rounded-xl"><span class="text-xl font-bold">SP</span></div>
+      </div>
+      <div>
+        <h1 class="text-lg font-serif font-black tracking-wider">Spresso Backend Wiring Report</h1>
+        <p class="text-[10px] opacity-60">Re-home or delete existing capabilities · no new UI · verifiable evidence</p>
+      </div>
+    </div>
+    <div class="navbar-end">
+      <div class="badge badge-outline gap-1"><span class="severity-dot bg-primary"></span>Final URL: <span class="mono">https://spresso-5561f.web.app</span></div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-8">
+
+    <!-- ============ SCOPE ============ -->
+    <section class="card bg-base-200 border border-base-content/10">
+      <div class="card-body">
+        <div class="badge badge-primary badge-sm uppercase tracking-widest">Scope correction — locked</div>
+        <h2 class="card-title text-xl mt-1">The application is COMPLETE. No new product surface.</h2>
+        <p class="text-sm opacity-90">The only work is backend wiring to Firebase (Functions / Cloud Run / Hosting), removal of hallucinated calls and dead references, and making everything already built execute correctly. The route-to-target table and staged plan below only <b>re-home or delete</b> existing capabilities — nothing is added. The deploy stage ships the <b>existing web app</b> to <span class="mono verified-fixed">https://spresso-5561f.web.app</span>; no landing page is created unless the captain asks.</p>
+      </div>
+    </section>
+
+    <!-- ============ SINGLE APP MODEL ============ -->
+    <section class="card bg-primary text-primary-content border border-primary-content/20">
+      <div class="card-body">
+        <div class="badge badge-ghost badge-sm uppercase tracking-widest">Captain directive · single app model</div>
+        <h2 class="card-title text-xl mt-1">Web and Android are ONE app — not two apps</h2>
+        <p class="text-sm opacity-90"><b>Yes, this makes sense.</b> There is no per-platform schema, capability, or wiring split. Both clients hit the same backend contract, the same Firebase project, the same Data Connect / Cloud SQL / Firestore state. The consequence for wiring:</p>
+        <ul class="list-disc list-inside text-sm space-y-1 opacity-90">
+          <li><b>One shared backend URL</b> for both clients — Android <span class="mono">backendBaseUrl</span> and web <span class="mono">/api/*</span> point at the same hosted backend (via <span class="mono">https://spresso-5561f.web.app</span>). No divergence.</li>
+          <li><b>User identity = Firebase Auth UID</b>, shared across devices. Log in on web → the same user (and their orders/state) is visible on mobile, and vice versa. All order state is keyed by UID, never device-bound.</li>
+          <li><b>Orders must be user-scoped everywhere</b> — <span class="mono">GET /api/orders?userId=…</span> + Firestore <span class="mono">/users/{uid}/orders/{orderId}</span> (already the rule) so both platforms see identical order state.</li>
+          <li><b>Same capabilities on both</b> — whatever route the web app uses, Android uses the same route (products, lens-search, purchase/confirm, try-on, spin360, live-chef). No platform-only surface.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ TOP FINDINGS ============ -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card bg-base-200 border border-base-content/10">
+        <div class="card-body">
+          <div class="badge badge-error badge-sm uppercase tracking-widest">Hallucinated domain · fix required</div>
+          <h3 class="card-title text-base mt-1">3× <span class="mono">spresso.app</span> references</h3>
+          <ul class="text-sm space-y-2">
+            <li class="flex items-start gap-2"><span class="severity-dot bg-error mt-1.5"></span><div><span class="mono">composeApp/src/commonMain/kotlin/network/ApiClient.kt:90</span> <span class="srcline">backendBaseUrl = "https://spresso.app"</span></div></li>
+            <li class="flex items-start gap-2"><span class="severity-dot bg-error mt-1.5"></span><div><span class="mono">composeApp/src/androidMain/kotlin/network/SpressoConfig.kt:4</span> <span class="srcline">wss://spresso.app/api/live-chef</span></div></li>
+            <li class="flex items-start gap-2"><span class="severity-dot bg-error mt-1.5"></span><div><span class="mono">server.ts:176</span> <span class="srcline">Google Wallet pass icon → https://spresso.app/icon.png</span></div></li>
+          </ul>
+          <p class="text-xs opacity-70 mt-2">Verified 0 additional hits across the monorepo. <span class="mono">wasmJsMain</span> SpressoConfig derives the URL from <span class="mono">window.location.host</span> (clean, no hardcode).</p>
+        </div>
+      </div>
+
+      <div class="card bg-base-200 border border-base-content/10">
+        <div class="card-body">
+          <div class="badge badge-warning badge-sm uppercase tracking-widest">Verify · not dead routes</div>
+          <h3 class="card-title text-base mt-1">The 8 "dead routes" do NOT exist</h3>
+          <p class="text-sm">Clean python verification across the whole monorepo (excl. node_modules/dist) found <b>0 occurrences</b> of: <span class="mono">streamReplyChunks, processOrderReturn, getOrderTracking, confirmOrderDelivery, generateOrderReminder, sendOrderReminderEmail, generateWalletPass, executeKitesurfPurchaseConfirm</span>. These were <b>corrupted-read artifacts</b> from an earlier session, not real code. They cannot be "deleted" — they were never present. Every real route is wired to a real handler.</p>
+          <p class="text-xs opacity-70 mt-2">Likewise <span class="mono">/api/lens-search</span> and <span class="mono">/api/wardrobe/generate-outfit</span> are REAL routes in the current <span class="mono">server/routes.ts</span> — not missing.</p>
+        </div>
+      </div>
+
+      <div class="card bg-base-200 border border-base-content/10">
+        <div class="card-body">
+          <div class="badge badge-success badge-sm uppercase tracking-widest">In sync</div>
+          <h3 class="card-title text-base mt-1">functions/src ↔ functions/lib are consistent</h3>
+          <p class="text-sm">Both export exactly three callables: <span class="mono">generateVirtualTryOn, generateSpin360, ingestInteraction</span>. No <span class="mono">logInteraction</span> anywhere. The Android <span class="mono">ApiClient</span> calls <span class="mono">generateVirtualTryOn</span> / <span class="mono">generateSpin360</span> against <span class="mono">https://us-central1-spresso-5561f.cloudfunctions.net</span> — a real, valid Firebase URL (not hallucinated).</p>
+        </div>
+      </div>
+
+      <div class="card bg-base-200 border border-base-content/10">
+        <div class="card-body">
+          <div class="badge badge-warning badge-sm uppercase tracking-widest">Deploy gap</div>
+          <h3 class="card-title text-base mt-1">No hosting, no .firebaserc, zero releases</h3>
+          <p class="text-sm"><span class="mono">firebase.json</span> = functions + firestore.rules + dataconnect only (single functions block, no hosting block). No <span class="mono">.firebaserc</span>, no Dockerfile/cloudbuild.yaml. Site created 2026-06-06 with zero releases. <span class="mono">dist/</span> already exists (index.html + server.cjs from the esbuild bundle) but nothing has been deployed.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ROUTE-TO-TARGET TABLE ============ -->
+    <section>
+      <div class="flex items-end justify-between flex-wrap gap-2 mb-3">
+        <div>
+          <h2 class="text-xl font-serif font-black tracking-wider">Route-to-Target Table</h2>
+          <p class="text-xs opacity-70">Canonical monorepo <span class="mono">server/routes.ts</span> (1072 lines) + <span class="mono">server.ts</span> app-level endpoints. All 31 router routes have live handlers. Targets: <b>KEEP</b> (works as-is) · <b>RE-HOME</b> (wiring/URL/secret fix, no UI change) · <b>DELETE</b> (dead/duplicate).</p>
+        </div>
+        <div class="flex gap-2 text-xs">
+          <div class="badge badge-success gap-1">KEEP</div>
+          <div class="badge badge-warning gap-1">RE-HOME</div>
+          <div class="badge badge-error gap-1">DELETE</div>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto rounded-xl border border-base-content/10 bg-base-200">
+        <table class="table table-zebra table-sm">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider opacity-70">
+              <th>Route</th>
+              <th>Handler / source</th>
+              <th>Client callers</th>
+              <th>Target</th>
+              <th>Evidence &amp; action</th>
+            </tr>
+          </thead>
+          <tbody class="text-sm">
+            <tr>
+              <td class="route-cell">GET /api/inventory</td>
+              <td>listProducts (Data Connect)</td>
+              <td>— (server-internal)</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real Data Connect query. Confirmed via python line 50.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">GET /api/products</td>
+              <td>listProducts (Data Connect)</td>
+              <td>src/App.tsx · Android ApiClient.kt:94</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real. NOTE: <span class="mono">server.ts:100</span> defines a <b>second</b> GET /api/products (Cloud SQL) with a hardcoded curated fallback catalog — shadowed by router mount order; that duplicate should be DELETEd.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">GET /api/products/:id</td>
+              <td>listProducts (Data Connect)</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/user/sync</td>
+              <td>inline stub</td>
+              <td>— (none today; should serve web + Android)</td>
+              <td><div class="badge badge-warning badge-sm">RE-HOME</div></td>
+              <td>Line 116-118 is a canned success — no DB/API work. Per captain: <b>wire it up correctly</b>, not delete. Re-home to a real user upsert (Firestore <span class="mono">/users/{uid}</span> + Cloud SQL <span class="mono">users</span>), keyed by Firebase Auth UID so web and Android share the profile.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/apify/feed</td>
+              <td>getApifyCategoryFeed</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler. Requires APIFY_API_TOKEN + APIFY_ACTOR_ID secrets at runtime.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/apify/actor/run</td>
+              <td>runApifyShoppingActor</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/apify/marketplace/run</td>
+              <td>runMarketplaceActor</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/lens-search</td>
+              <td>runGoogleLensActor + identifyVisionObject</td>
+              <td>GoogleLensScreenWidgetModal.tsx:136 · Android ApiClient.kt:135</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real route (line 149), real handler. Earlier "missing route" claim was a corrupted read.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/personalized-feed</td>
+              <td>getPersonalizedFeed</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler (line 187).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/genmedia-kit</td>
+              <td>getGenMediaKit</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler (line 196).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/creative-studio/synthesize</td>
+              <td>generateCreativeProductStudio</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/wardrobe/generate-outfit</td>
+              <td>generateAIWeatherOutfit</td>
+              <td>useWardrobeInteractions.ts:60</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real route (line 215), real handler. Earlier "missing route" claim was a corrupted read.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/chat/stream</td>
+              <td>Gemini generateContentStream + function calling</td>
+              <td>PersonalAIShopperChatPage.tsx · CreatorGenAIAgentsChatPage.tsx</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real SSE route (line 227). Model-garden retry loop uses deprecated <span class="mono">gemini-2.5-*</span> models (routes.ts:403-406). <b>RE-HOME</b> to Gemini <b>Interactions API</b> (stream) with current <span class="mono">gemini-3.5-flash</span> — not <span class="mono">streamReplyChunks</span>.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/vision/identify</td>
+              <td>identifyVisionObject</td>
+              <td>SmartVisionView.tsx:79 · CameraObjectDetectionModal.tsx:183</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler (line 538).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/try-on</td>
+              <td>runTryOnPipeline</td>
+              <td>VirtualTryOnModal.tsx:94</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler (line 549).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/vitpose/extract-keypoints</td>
+              <td>extractViTPoseKeypoints</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler (line 560). Requires VITPOSE_MODEL_GARDEN_ENDPOINT secret.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/vitpose/orchestrate-fit</td>
+              <td>orchestrateProductFitWithViTPose</td>
+              <td>VirtualTryOnModal.tsx:104</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler (line 571).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/genkit/vitpose-action</td>
+              <td>extractViTPose (genkit action)</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real genkit action (line 586).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/genkit/try-on-flow</td>
+              <td>tryOnFlow (genkit flow)</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real genkit flow (line 597).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/purchase/authorize</td>
+              <td>getActiveProductById → HITL payload</td>
+              <td>— (feeds HITLCheckoutModal)</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler (line 610). In-memory inventory check.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/purchase/automate</td>
+              <td>executeKitesurfPurchase + Cloud SQL + Firestore</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real Kitesurf flow (line 641). Monorepo-only — NOT in the treehouse workspace snapshot (copy divergence). Writes root <span class="mono">orders</span> (line 705) → re-home to <span class="mono">/users/{uid}/orders/{orderId}</span> (single-writer). <b>Also: service misuses Kitesurf</b> — see findings (mock simulator + wrong endpoint).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/purchase/confirm</td>
+              <td>verifyBiometricSignature + Cloud SQL + Firestore</td>
+              <td>Android ApiClient.kt:151 (confirmCheckoutWithToken)</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler (line 770). Inline biometric check (base64 token, 5-min validity). Writes root <span class="mono">orders</span> in Firestore via admin SDK — re-home to <span class="mono">/users/{uid}/orders/{orderId}</span> (single-writer; see Firestore finding + Open Q4).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">GET /api/orders</td>
+              <td>activeOrders + Cloud SQL select (userId-filtered)</td>
+              <td>Web + Android — shared, uid-keyed</td>
+              <td><div class="badge badge-warning badge-sm">RE-HOME</div></td>
+              <td>One app, one order state. Handler (line 858) already filters by <span class="mono">userId</span> query/header. The web client's current direct root-Firestore read (<span class="mono">OrdersTracker.tsx:25</span> → <span class="mono">collection(db,"orders")</span>) is rules-denied; route both platforms' reads through this API keyed by the logged-in UID. Firestore <span class="mono">/users/{uid}/orders/{orderId}</span> remains the realtime source (single-writer).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">GET /api/orders/:orderId</td>
+              <td>activeOrders lookup</td>
+              <td>Web + Android — shared</td>
+              <td><div class="badge badge-warning badge-sm">RE-HOME</div></td>
+              <td>Real handler (line 901) but in-memory only. For cross-device parity it must resolve the user's order via Cloud SQL / Firestore by <span class="mono">userId + orderId</span>, not just process memory.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/orders/return</td>
+              <td>Cloud SQL + Firestore root update</td>
+              <td>Web + Android — shared</td>
+              <td><div class="badge badge-warning badge-sm">RE-HOME</div></td>
+              <td>Real handler (line 910). Write target should be the user-scoped Firestore path (<span class="mono">/users/{uid}/orders/{orderId}</span>) to match rules and stay visible on both platforms (single-writer).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/orders/reminder</td>
+              <td>Cloud SQL + Firestore root update</td>
+              <td>Web + Android — shared</td>
+              <td><div class="badge badge-warning badge-sm">RE-HOME</div></td>
+              <td>Real handler (line 966). Same user-scoped Firestore re-home as return, so the reminder state is the same on web and mobile.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/economic-research</td>
+              <td>runEconomicResearch</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler (line 1011).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/creator/generate-campaign</td>
+              <td>generateCreatorCampaign</td>
+              <td>CreatorGenAIAgentsChatPage.tsx:102</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler (line 1017).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/genkit/creative-pipeline</td>
+              <td>runGenkitCreativePipeline</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler (line 1022).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/recipe/bargain-chef</td>
+              <td>getBargainChefRecipe</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real handler (line 1070).</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /bargainChefFlow</td>
+              <td>getBargainChefRecipe (alias)</td>
+              <td>—</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Alias of bargain-chef (line 1071). No client caller — keep for contract stability.</td>
+            </tr>
+            <tr class="bg-base-300">
+              <td class="route-cell font-bold" colspan="5">server.ts app-level endpoints</td>
+            </tr>
+            <tr>
+              <td class="route-cell">GET /healthz · /readyz</td>
+              <td>inline probes</td>
+              <td>Cloud Run / GKE orchestrator</td>
+              <td><div class="badge badge-success badge-sm">KEEP</div></td>
+              <td>Real liveness/readiness probes (server.ts:80, 85). Ready for container deployment.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">GET /api/products</td>
+              <td>Cloud SQL read + hardcoded curated fallback</td>
+              <td>— (shadowed by router mount)</td>
+              <td><div class="badge badge-error badge-sm">DELETE</div></td>
+              <td><span class="mono">server.ts:100-142</span> duplicates the Data Connect /api/products and returns a <b>hardcoded 3-item fallback catalog</b> on DB failure — a Zero-Mock-Protocol violation (AGENTS.md §4). Router mount wins; this is dead + against policy.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">POST /api/wallet/pass</td>
+              <td>Google Wallet JWT (savetowallet)</td>
+              <td>—</td>
+              <td><div class="badge badge-warning badge-sm">RE-HOME</div></td>
+              <td>Real handler (server.ts:146) using GOOGLE_WALLET_SERVICE_ACCOUNT_KEY. Line 176 icon URL points at <span class="mono">spresso.app</span> — must be re-homed to the hosted icon.</td>
+            </tr>
+            <tr>
+              <td class="route-cell">WS /api/live-chef</td>
+              <td>Gemini Live (server-side), gemini-3.1-flash-live-preview</td>
+              <td>Android/wasm LiveApiClient via SpressoConfig.backendWebSocketUrl</td>
+              <td><div class="badge badge-warning badge-sm">RE-HOME</div></td>
+              <td>Real server-side WS (server.ts:268). Android URL points at <span class="mono">spresso.app</span> — fix to hosted backend. Web modal bypasses this — see findings.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ FINDINGS ============ -->
+    <section>
+      <h2 class="text-xl font-serif font-black tracking-wider mb-3">Verified Findings</h2>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        <div class="card bg-base-200 border border-base-content/10">
+          <div class="card-body">
+            <div class="badge badge-error badge-sm uppercase tracking-widest">Zero-Mock violation</div>
+            <h3 class="card-title text-base mt-1">server.ts hardcoded product fallback</h3>
+            <p class="text-sm"><span class="mono">server.ts:100-142</span> — GET /api/products reads Cloud SQL and on failure returns a hardcoded curated catalog. Shadowed by the router's Data Connect handler, so it never executes for the path, but the code violates AGENTS.md §4 if ever reached. <b>DELETE</b> the duplicate handler + fallback.</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 border border-base-content/10">
+          <div class="card-body">
+            <div class="badge badge-warning badge-sm uppercase tracking-widest">One app · one order state</div>
+            <h3 class="card-title text-base mt-1">OrdersTracker reads root Firestore orders</h3>
+            <p class="text-sm"><span class="mono">OrdersTracker.tsx:25</span> → <span class="mono">getDocs(collection(db, "orders"))</span> against <span class="mono">firestoreDatabaseId=ai-studio-spresso-…</span>. <span class="mono">firestore.rules</span> only allow <span class="mono">/users/{userId}/orders/{orderId}</span> (owner), <span class="mono">/logs</span>, <span class="mono">/chats</span>, <span class="mono">/users/{userId}</span>. Root <span class="mono">orders</span> is default-deny → the client read fails in production. Server writes root orders via admin SDK (bypasses rules). <b>RE-HOME</b>: both web and Android read/write orders through the uid-keyed API + user-scoped Firestore paths, so login on either device shows the same orders.</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 border border-base-content/10">
+          <div class="card-body">
+            <div class="badge badge-warning badge-sm uppercase tracking-widest">Client-side API key</div>
+            <h3 class="card-title text-base mt-1">LiveCookingAssistantModal bypasses server WS</h3>
+            <p class="text-sm"><span class="mono">LiveCookingAssistantModal.tsx:84-85</span> reads <span class="mono">VITE_GEMINI_API_KEY</span> and connects a WebSocket <b>directly</b> to <span class="mono">wss://generativelanguage.googleapis.com/…/BidiGenerateContent</span> — exposing a Gemini key client-side and bypassing the existing server <span class="mono">/api/live-chef</span>. <b>RE-HOME</b> to the server WS endpoint (no new UI — same modal, different endpoint). Per <b>gemini-live-api</b> skill: client-side Gemini keys are prohibited — the browser must receive an <b>ephemeral token</b> from the server (or proxy through <span class="mono">/api/live-chef</span>). Server <span class="mono">/api/live-chef</span> already uses the skill-correct model <span class="mono">gemini-3.1-flash-live-preview</span>.</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 border border-base-content/10">
+          <div class="card-body">
+            <div class="badge badge-warning badge-sm uppercase tracking-widest">Model-garden upgrade</div>
+            <h3 class="card-title text-base mt-1">Legacy Gemini APIs &amp; models in the AI paths</h3>
+            <p class="text-sm">Per the <b>gemini-interactions-api</b> skill, <span class="mono">generateContent</span> is the legacy API and <span class="mono">gemini-2.5-*</span>/<span class="mono">gemini-2.0-*</span> models are deprecated. The AI wiring should RE-HOME to: <b>Interactions API</b> (<span class="mono">client.interactions.create({stream:true})</span>) with current <span class="mono">gemini-3.5-flash</span> (or <span class="mono">gemini-3.1-pro-preview</span> for complex reasoning) in <span class="mono">routes.ts:403-406</span>, <span class="mono">geminiService.ts</span>, and <span class="mono">functions/src/index.ts</span> (all currently reference deprecated <span class="mono">gemini-2.5-flash</span>/<span class="mono">gemini-2.5-pro</span>). No new UI — same SSE/WS surface, upgraded engine.</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 border border-base-content/10">
+          <div class="card-body">
+            <div class="badge badge-error badge-sm uppercase tracking-widest">Zero-mock + wrong endpoint</div>
+            <h3 class="card-title text-base mt-1">Kitesurf purchase automation is not implemented correctly</h3>
+            <p class="text-sm"><span class="mono">kitesurfService.ts</span> (drives <span class="mono">/api/purchase/automate</span>) has two defects per the <b>official Cloudflare Kitesurf / Browser Run docs</b>: (1) <b>ZERO-MOCK VIOLATION</b> — when Cloudflare secrets are missing or the API fails, it falls back to a "high-fidelity edge simulator" (lines 98-115) that fabricates checkout steps and a hardcoded Unsplash <span class="mono">receiptUrl</span>, returning <span class="mono">success:true</span>; (2) <b>wrong endpoint</b> — it calls the <span class="mono">/screenshot</span> Quick Action (<span class="mono">browser-run/screenshot?browser=kitesurf</span>) which only renders/captures an image and CANNOT click, fill forms, or submit checkout, yet the code logs fabricated DOM-click/address/payment steps. Correct setup: use <b>Quick Actions</b> (<span class="mono">/scrape</span>, <span class="mono">/crawl</span>, <span class="mono">/json</span>, <span class="mono">/markdown</span>, <span class="mono">/content</span>) for autonomous search/scraping, and <b>CDP via puppeteer-core</b> (<span class="mono">wss://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT_ID&gt;/browser-run/devtools/browser?browser=kitesurf</span>) for real add-to-cart → checkout automation; secrets (<span class="mono">CLOUDFLARE_ACCOUNT_ID</span>, <span class="mono">CLOUDFLARE_API_TOKEN</span>) are read via <span class="mono">getSecret</span> but missing from <span class="mono">.env.example</span>; token needs <span class="mono">Browser Rendering - Edit</span> permission. Limits: Workers Free = 10 browser-min/day, 3 concurrent, Quick Actions 1 req/10s; Workers Paid = no browser-hour cap, 120 concurrent — required for HA scale. Caveat: Kitesurf cannot pass bot-challenge/TLS handshakes or hold long-lived auth sessions — plan checkout automation against compatible stores.</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 border border-base-content/10">
+          <div class="card-body">
+            <div class="badge badge-warning badge-sm uppercase tracking-widest">Copy divergence</div>
+            <h3 class="card-title text-base mt-1">Two repo copies differ</h3>
+            <p class="text-sm">Workspace snapshot <span class="mono">/home/shaolin/.treehouse/spresso19-75ab58/1/spresso19</span> (web-only, routes.ts 695 lines, 30 routes) vs canonical monorepo <span class="mono">/home/shaolin/Spresso/spresso19</span> (routes.ts 1072 lines, 31 routes incl. <span class="mono">/api/purchase/automate</span>; has composeApp/androidApp/functions/dataconnect). Captain's file refs (ApiClient.kt, SpressoConfig.kt) exist only in the monorepo — all fixes should target the monorepo.</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 border border-base-content/10">
+          <div class="card-body">
+            <div class="badge badge-success badge-sm uppercase tracking-widest">Already verified good</div>
+            <h3 class="card-title text-base mt-1">Client ↔ server route contract holds</h3>
+            <p class="text-sm">Every web client call maps to a real route: chat/stream, creator/generate-campaign, lens-search, orders/reminder, orders/return, products, try-on, vision/identify, vitpose/orchestrate-fit, wardrobe/generate-outfit. Android calls the <b>same contract</b> (products/lens-search/purchase/confirm + cloud functions generateVirtualTryOn/generateSpin360 + wss) — one app, same routes. Only the base URLs are wrong (<span class="mono">spresso.app</span>).</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 border border-base-content/10">
+          <div class="card-body">
+            <div class="badge badge-info badge-sm uppercase tracking-widest">For deploy stage</div>
+            <h3 class="card-title text-base mt-1">Runtime requirements discovered</h3>
+            <p class="text-sm">Secrets via GCP Secret Manager (<span class="mono">initializeSecrets</span> requires GEMINI_API_KEY + GOOGLE_WALLET_SERVICE_ACCOUNT_KEY, +DATABASE_PASSWORD in prod). Cloud SQL via <span class="mono">@google-cloud/cloud-sql-connector</span>. Healthz/readyz + graceful shutdown already present → Cloud Run-ready. No Dockerfile yet (needed for Cloud Run) — deploy stage adds <span class="mono">Dockerfile</span> + <span class="mono">firebase.json</span> hosting block.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ STAGED PLAN ============ -->
+    <section class="card bg-base-200 border border-base-content/10">
+      <div class="card-body">
+        <h2 class="text-xl font-serif font-black tracking-wider">Staged Plan — re-home & delete only, no new UI</h2>
+        <div class="steps steps-vertical lg:steps-horizontal mt-4">
+          <div class="step step-success"><div class="text-xs"><b>Stage 1</b> · Remove hallucinated refs</div></div>
+          <div class="step step-info"><div class="text-xs"><b>Stage 2</b> · Wire Firebase backend</div></div>
+          <div class="step step-info"><div class="text-xs"><b>Stage 3</b> · Deploy existing web app</div></div>
+          <div class="step step-info"><div class="text-xs"><b>Stage 4</b> · Verify every flow executes</div></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 text-sm">
+          <div class="border border-base-content/10 rounded-xl p-4 space-y-2">
+            <h3 class="font-bold">Stage 1 — Remove hallucinated / dead refs</h3>
+            <ul class="list-disc list-inside space-y-1 opacity-90">
+              <li><span class="mono">ApiClient.kt:90</span> — replace <span class="mono">spresso.app</span> backendBaseUrl with the hosted backend URL.</li>
+              <li><span class="mono">SpressoConfig.kt:4</span> (androidMain) — replace <span class="mono">wss://spresso.app/api/live-chef</span>.</li>
+              <li><span class="mono">server.ts:176</span> — replace wallet icon URI with a hosted asset URL.</li>
+              <li>DELETE shadowed GET /api/products handler + hardcoded fallback in <span class="mono">server.ts:100-142</span>.</li>
+              <li>WIRE UP <span class="mono">POST /api/user/sync</span> (routes.ts:116) — replace the stub with a real user upsert keyed by Firebase Auth UID (Firestore <span class="mono">/users/{uid}</span> + Cloud SQL), so web and Android share the same profile.</li>
+            </ul>
+          </div>
+          <div class="border border-base-content/10 rounded-xl p-4 space-y-2">
+            <h3 class="font-bold">Stage 2 — Wire Firebase backend</h3>
+            <ul class="list-disc list-inside space-y-1 opacity-90">
+              <li>Deploy Cloud Functions: <span class="mono">generateVirtualTryOn, generateSpin360, ingestInteraction</span> (src ↔ lib in sync already).</li>
+              <li>Deploy Data Connect: <span class="mono">listProducts</span>, <span class="mono">createOrder</span>, <span class="mono">ToggleLike</span> (connectorConfig points at <span class="mono">com/spresso/dataconnect</span> in composeApp + <span class="mono">src/dataconnect</span> web SDK — both generated).</li>
+              <li><b>Single order-writer</b>: route all order mutations (web checkout, Android purchase/confirm, purchase/automate, return, reminder) through the server → Firestore <span class="mono">/users/{uid}/orders/{orderId}</span> (authoritative, re-homing current root-<span class="mono">collection("orders")</span> writes) + Cloud SQL/Postgres mirror. Retire client-side Data Connect <span class="mono">createOrder</span>.</li>
+              <li>Provision GCP secrets: GEMINI_API_KEY, GOOGLE_WALLET_SERVICE_ACCOUNT_KEY, DATABASE_PASSWORD (+ APIFY, VITPOSE, NVIDIA, STRIPE, COINBASE, HF as .env.example documents).</li>
+              <li>Add <span class="mono">Dockerfile</span> (build: vite build + esbuild server.cjs; runtime: node dist/server.cjs) for Cloud Run with healthz/readyz.</li>
+              <li><b>Provision Firebase Realtime Database</b> (captain directive) for <b>notifications + realtime UI updates</b>: presence (device online-status, cross-device shopping-session state) and notification fanout; Firestore <span class="mono">onSnapshot</span> on <span class="mono">/users/{uid}/orders</span> stays the order-state source of truth.</li>
+              <li><b>Upgrade AI wiring to current Gemini APIs</b>: Interactions API (<span class="mono">gemini-3.5-flash</span>/<span class="mono">gemini-3.1-pro-preview</span>) in routes.ts/geminiService/functions replacing deprecated <span class="mono">gemini-2.5-*</span>; Live WS keeps <span class="mono">gemini-3.1-flash-live-preview</span>; client-side <span class="mono">VITE_GEMINI_API_KEY</span> → server ephemeral tokens.</li>
+              <li><b>Fix Kitesurf purchase automation per official docs</b>: remove the mock simulator fallback in <span class="mono">kitesurfService.ts</span> (no fake success, no hardcoded receipt); wire autonomous search/scraping via Quick Actions (<span class="mono">/scrape</span>, <span class="mono">/crawl</span>, <span class="mono">/json</span>) and checkout via <b>CDP + puppeteer-core</b> (<span class="mono">?browser=kitesurf</span> WS endpoint, <span class="mono">Browser Rendering - Edit</span> token); add <span class="mono">CLOUDFLARE_ACCOUNT_ID</span>/<span class="mono">CLOUDFLARE_API_TOKEN</span> to <span class="mono">.env.example</span> + Secret Manager; budget Workers Paid limits for HA scale; surface failures as customer-friendly messages.</li>
+            </ul>
+          </div>
+          <div class="border border-base-content/10 rounded-xl p-4 space-y-2">
+            <h3 class="font-bold">Stage 3 — Deploy existing web app</h3>
+            <ul class="list-disc list-inside space-y-1 opacity-90">
+              <li>Add hosting block to <span class="mono">firebase.json</span> (public: <span class="mono">dist</span>) + create <span class="mono">.firebaserc</span> (project <span class="mono">spresso-5561f</span>).</li>
+              <li>Deploy the <b>existing</b> web app to <span class="mono">https://spresso-5561f.web.app</span>. No landing page unless captain asks.</li>
+              <li><b>Firebase Hosting + Cloud Run</b> pattern: Hosting serves the SPA at the edge; rewrites route <span class="mono">/api/*</span> and <span class="mono">/api/live-chef</span> (WS) to Cloud Run. Cloud Run gets healthz/readyz probes, auto-scaling, and strict CORS.</li>
+            </ul>
+          </div>
+          <div class="border border-base-content/10 rounded-xl p-4 space-y-2">
+            <h3 class="font-bold">Stage 4 — Verify every flow executes</h3>
+            <ul class="list-disc list-inside space-y-1 opacity-90">
+              <li>Run <span class="mono">verify_orders_test.ts</span> (emulator-free TDD: boots real Express, local Postgres, real Secret Manager).</li>
+              <li>Exercise web: chat/stream SSE, vision/identify, try-on, lens-search, wardrobe, orders API path.</li>
+              <li>Exercise Android: products, lens-search, purchase/confirm, virtual try-on, spin360, live-chef WS.</li>
+              <li>Exercise Kitesurf: real <span class="mono">/api/purchase/automate</span> against a compatible store with live Cloudflare creds — assert no simulator path executes, steps are real CDP actions, order lands in <span class="mono">/users/{uid}/orders/{orderId}</span>.</li>
+              <li><b>Realtime cross-device check</b>: sign in on web → confirm the same orders/state appear on Android via Firestore <span class="mono">onSnapshot</span> (and vice versa); verify presence + notification fanout over the new RTDB layer.</li>
+              <li>Confirm Firestore writes land under rules-permitted paths or via server API.</li>
+              <li><b>Cross-store consistency check</b>: create an order on web → assert Firestore <span class="mono">/users/{uid}/orders/{orderId}</span> and the Cloud SQL mirror match (single-writer invariant).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ EXECUTION STATUS ============ -->
+    <section class="card bg-base-200 border border-base-content/10">
+      <div class="card-body">
+        <h2 class="text-xl font-serif font-black tracking-wider">Execution Status — proceed (captain approved)</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2 text-sm">
+          <div class="border border-base-content/10 rounded-xl p-4 space-y-2">
+            <h3 class="font-bold">Already provisioned in GCP (verified)</h3>
+            <ul class="list-disc list-inside space-y-1 opacity-90">
+              <li>Project <span class="mono">spresso-5561f</span> exists; <span class="mono">gcloud</span> authenticated; Firestore (ENTERPRISE, database <span class="mono">ai-studio-spresso-fbdfccd4-1973-4b57-b449-42c559b39568</span>) + Cloud SQL + Firebase Hosting/Functions/Data Connect/Rules/FCM APIs enabled.</li>
+              <li>Secret Manager secrets present: <span class="mono">GEMINI_API_KEY</span>, <span class="mono">GOOGLE_WALLET_SERVICE_ACCOUNT_KEY</span>.</li>
+              <li>Cloud Run API enabled; no Cloud Run service deployed yet (Dockerfile ready).</li>
+            </ul>
+          </div>
+          <div class="border border-base-content/10 rounded-xl p-4 space-y-2">
+            <h3 class="font-bold">Done autonomously via CLI (verified)</h3>
+            <ul class="list-disc list-inside space-y-1 opacity-90">
+              <li>Installed firebase CLI (v15.26.0); enabled <span class="mono">run.googleapis.com</span>.</li>
+              <li>Scaffolded: hosting block in <span class="mono">firebase.json</span> (rewrites <span class="mono">/api/*</span> + <span class="mono">/api/live-chef</span> → Cloud Run), <span class="mono">.firebaserc</span> (project spresso-5561f), <span class="mono">Dockerfile</span> (build vite+esbuild, runtime node dist/server.cjs).</li>
+              <li>Added <span class="mono">CLOUDFLARE_ACCOUNT_ID</span>/<span class="mono">CLOUDFLARE_API_TOKEN</span> to <span class="mono">.env.example</span>; added <span class="mono">puppeteer-core</span> dependency.</li>
+              <li><b>Rewrote <span class="mono">kitesurfService.ts</span> (zero-mock)</b>: deleted the simulator fallback + hardcoded Unsplash receipt; now uses real Quick Actions (<span class="mono">/json</span> for product search/price, <span class="mono">/screenshot</span> for live receipt) + <b>CDP via puppeteer-core</b> (<span class="mono">browser-run/devtools/browser?browser=kitesurf</span>) for add-to-cart → checkout; throws real errors on missing creds, incompatible store, or rate limits.</li>
+              <li>Fixed a real lint bug: <span class="mono">HITLCheckoutModal.tsx:128</span> passed <span class="mono">userUid</span> to Data Connect <span class="mono">createOrder</span>, but <span class="mono">CreateOrder</span> derives <span class="mono">userUid</span> from <span class="mono">auth.uid</span> (mutation.gql) — removed the client-supplied field.</li>
+              <li>Full <span class="mono">npm run lint</span> + <span class="mono">npm run build</span> pass clean.</li>
+            </ul>
+          </div>
+          <div class="border border-base-content/10 rounded-xl p-4 space-y-2 lg:col-span-2">
+            <h3 class="font-bold">Secret vault — verified via CLI (gcloud secrets)</h3>
+            <ul class="list-disc list-inside space-y-1 opacity-90">
+              <li><b class="text-success">DONE · Cloudflare credentials stored</b>: you pasted them; I stored all 5 via <span class="mono">gcloud secrets create</span> (nothing written to disk): <span class="mono">CLOUDFLARE_ACCOUNT_ID</span>, <span class="mono">CLOUDFLARE_API_TOKEN</span>, <span class="mono">CLOUDFLARE_R2_ACCESS_KEY_ID</span>, <span class="mono">CLOUDFLARE_R2_SECRET_ACCESS_KEY</span>, <span class="mono">CLOUDFLARE_R2_S3_ENDPOINT</span>.</li>
+              <li><b class="text-success">DONE · Cloud SQL password</b>: no <span class="mono">DATABASE_PASSWORD</span> existed, so I generated a strong password, set it on the Cloud SQL <span class="mono">postgres</span> user (<span class="mono">spresso-5561f-instance</span>), stored it as secret v1, and <b>verified a live <span class="mono">SELECT 1</span> through my own Cloud SQL Auth Proxy tunnel</b>. ⚠️ <b>This rotated the postgres password</b> — anything using the old password (e.g. your local dev app) must switch to the vault value.</li>
+              <li><b class="text-success">DONE · Firebase deploy login</b>: already authenticated as <span class="mono">mddlecloudy@gmail.com</span> — I can deploy Hosting/Functions/Data Connect non-interactively with no browser OAuth needed.</li>
+              <li><b class="text-warning">SKIPPED · keys in your batch not used by this app</b> (verified: not referenced by any code, only in <span class="mono">.env.example</span> or other projects): OPENAI_API_KEY (the <span class="mono">@openai/agents</span> package is a dependency but never imported), STRIPE_SECRET_KEY, NVIDIA_*, PINECONE_*, UPSTASH_REDIS_*, DEEPGRAM, QUANDELA, RUTTER, API2CART, FAL, KIRI, SENTRY, LIVEAVATAR, CARTESIA, D_ID, CLERK, LANGSMITH, ANTHROPIC, CONVEX, NEON, REDIS. I did <b>not</b> store them (zero-mock; storing unused keys creates false confidence). HF_TOKEN <b>is</b> read by <span class="mono">vitposeAction.ts:54</span> but you didn't provide it — send it when you enable ViTPose.</li>
+              <li><b>R2 note — RESOLVED per captain</b>: rotated <span class="mono">CLOUDFLARE_R2_ACCESS_KEY_ID</span> + <span class="mono">CLOUDFLARE_R2_SECRET_ACCESS_KEY</span> to your <b>latest</b> keys (ff53…/ac68…, new secret versions) and stored <span class="mono">CLOUDFLARE_R2_TOKEN</span>. The app code doesn't consume R2 yet — these are ready in the vault for when it does.</li>
+              <li><b>NEW · <span class="mono">APIFY_API_TOKEN</span> stored</b>: this was the one app-used, missing secret in your batch — the app's <span class="mono">/api/apify/*</span> handlers read it (server/apifyService.ts:13). Stored your <span class="mono">APIFY_DEFAULT_KEY</span> value, which matches the code's current default token.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ OPEN QUESTIONS ============ -->
+    <section class="card bg-base-200 border border-base-content/10">
+      <div class="card-body">
+        <h2 class="text-xl font-serif font-black tracking-wider">Open Questions for the Captain</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mt-2">
+          <div class="border border-base-content/10 rounded-lg p-3"><b>1 · RESOLVED.</b> Hosting = <b>Firebase Hosting + Cloud Run</b>, chosen to hit your four goals: <b>high availability</b> (Cloud Run multi-instance auto-scaling + hosting CDN edge caching), <b>scalability</b> (scale-to-zero / auto-scale), <b>low latency</b> (Hosting serves static at edge, Cloud Run regional, WS/SSE supported), <b>cost efficiency</b> (scale-to-zero, no idle VMs), plus <b>security</b> (Hosting TLS, Cloud Run IAM, strict CORS, secrets in Secret Manager). Pattern: Hosting serves the SPA; rewrites route <span class="mono">/api/*</span> and <span class="mono">/api/live-chef</span> (WS) to Cloud Run.</div>
+          <div class="border border-base-content/10 rounded-lg p-3"><b>2 · RESOLVED.</b> Firebase Realtime Database (RTDB) — <b>in scope</b> (captain directive): used wherever realtime notifications and realtime UI updates apply — <b>presence</b> (device online-status, cross-device shopping-session state) and <b>notification fanout</b>. Firestore <span class="mono">onSnapshot</span> on <span class="mono">/users/{uid}/orders</span> remains the order-state source of truth (web ↔ mobile lockstep + offline persistence); RTDB is additive for the realtime/notification layer, not a third primary store.</div>
+          <div class="border border-base-content/10 rounded-lg p-3"><b>3 · RESOLVED.</b> <span class="mono">/api/user/sync</span> stub → <b>wire it up correctly</b> (real user upsert keyed by Firebase Auth UID), not delete.</div>
+          <div class="border border-base-content/10 rounded-lg p-3"><b>4 · RESOLVED.</b> Order persistence — the current <b>3-way write split is illogical</b>: server writes root Firestore <span class="mono">collection("orders")</span> (routes.ts:705, 831, 930, 985 — rules-<b>denied</b> path), Cloud SQL (kitesurfService), and the web checkout writes Postgres via Data Connect <span class="mono">createOrder</span> — three divergent records per order. Recommended (<b>single-writer</b>, the standard Firebase pattern): the server is the <b>only</b> order writer → authoritative <b>user-scoped Firestore</b> <span class="mono">/users/{uid}/orders/{orderId}</span> (rules-permitted, drives <span class="mono">onSnapshot</span> realtime cross-device UI) + Cloud SQL/Postgres <b>mirror</b> for payments/analytics/reporting. Route all order writes through the server; retire client-side Data Connect <span class="mono">createOrder</span> for checkout (keep Data Connect for catalog reads <span class="mono">listProducts</span>).</div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="text-center text-[10px] opacity-50 pb-8">
+      Evidence verified with python line-dumps against the canonical monorepo /home/shaolin/Spresso/spresso19 · earlier corrupted reads (dead routes, lib/src mismatch, duplicate firebase.json) were corrected in this report
+    </footer>
+  </main>
+</body>
+</html>

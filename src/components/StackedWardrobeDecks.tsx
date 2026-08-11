@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ProductItem, HITLPayload } from "../types";
-import { CustomWardrobeItem, GeneratedOutfit } from "./WardrobeView";
+import { ProductItem, HITLPayload, CustomWardrobeItem, GeneratedOutfit } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { ArcFanLayout } from "./ArcFanLayout";
 
@@ -50,9 +49,9 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
       name: p.name || "Liked Fashion Piece",
       category: p.category?.toUpperCase()?.includes("SHOE") ? "SHOES" : p.name?.toLowerCase()?.includes("pant") ? "BOTTOM" : "TOP",
       weatherSuitability: "ALL_WEATHER",
-      image: p.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
+      image: p.image || "",
       brand: p.brand || "Liked Product",
-      price: typeof p.price === "number" ? p.price : 49.99,
+      price: typeof p.price === "number" ? p.price : p.price ? Number(p.price) : undefined,
       productId: p.id || p.sku,
       addedAt: Date.now() - idx * 1000,
     }));
@@ -74,7 +73,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
 
       const pickOne = (arr: CustomWardrobeItem[], fallbackIndex: number) => {
         if (arr.length === 0) return poolItems[fallbackIndex % Math.max(1, poolItems.length)];
-        const idx = Math.floor(Math.random() * arr.length);
+        const idx = Math.floor(arr.length / 2); // deterministic mid-point selection
         return arr[idx];
       };
 
@@ -89,7 +88,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
       const uniqueItems = Array.from(new Map(selected.map((item) => [item.id, item])).values());
 
       return {
-        id: `fit-${Math.random().toString(36).substr(2, 9)}`,
+        id: `fit-${crypto.randomUUID().replace(/-/g, '').substring(0, 9)}`,
         title,
         weatherCondition: "MILD_SPRING_AUTUMN",
         temperatureText: weatherText,
@@ -449,7 +448,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
                             </span>
                             <span className="text-[10px] font-mono font-bold text-[#386633] flex items-center space-x-1">
                               <MaterialIcon icon="check_circle" size={12} />
-                              <span>{outfit.weatherMatchScore}% Match</span>
+                              <span>Weather Ready</span>
                             </span>
                           </div>
 
@@ -555,7 +554,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
             <div className="flex items-center justify-between border-b border-[#f2f8f2] pb-3">
               <div>
                 <span className="px-2.5 py-0.5 bg-[#386633] text-white text-[10px] font-mono font-bold rounded-full">
-                  {selectedOutfitDetail.weatherMatchScore}% AI Style Match
+                  AI Styled Outfit
                 </span>
                 <h3 className="text-lg font-bold text-[#18211e] font-headline mt-1">
                   {selectedOutfitDetail.title}
@@ -599,7 +598,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
                           if (p) {
                             setSelectedOutfitDetail(null);
                             onRequestHITLCheckout({
-                              authorizationId: `ORDER-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+                              authorizationId: `ORDER-${crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase()}`,
                               product: { id: p.id, name: p.name, price: p.price, sku: p.sku, image: p.image },
                               quantity: 1,
                               totalAmount: p.price,
@@ -621,7 +620,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
                         }}
                         className="w-full py-1 bg-[#386633] text-white rounded-lg text-[10px] font-bold hover:bg-[#2c5227] transition cursor-pointer text-center"
                       >
-                        Buy ${it.price?.toFixed(2)}
+                        {it.price != null ? `Buy $${it.price.toFixed(2)}` : "Buy Item"}
                       </button>
                     )}
                   </div>

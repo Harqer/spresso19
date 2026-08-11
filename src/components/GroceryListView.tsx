@@ -21,60 +21,7 @@ interface GroceryListViewProps {
   onRadiusChange?: (radius: number) => void;
 }
 
-const DEFAULT_GROCERY_ITEMS: GroceryItem[] = [
-  {
-    id: "g-1",
-    name: "Organic Garlic Cloves",
-    quantity: 2,
-    unit: "cloves",
-    category: "Produce",
-    estimatedPrice: 0.89,
-    checked: false,
-    storeNote: "Kunisaki Farms • $0.89 ea"
-  },
-  {
-    id: "g-2",
-    name: "Fresh Raspberries",
-    quantity: 1,
-    unit: "pint",
-    category: "Produce",
-    estimatedPrice: 3.99,
-    checked: false,
-    storeNote: "Bernal Growers • $3.99/pint"
-  },
-  {
-    id: "g-3",
-    name: "Organic Whole Milk",
-    quantity: 1,
-    unit: "gallon",
-    category: "Dairy",
-    estimatedPrice: 4.99,
-    checked: true,
-    storeNote: "Organic Valley • $4.99/gal"
-  },
-  {
-    id: "g-4",
-    name: "Hass Avocados",
-    quantity: 3,
-    unit: "items",
-    category: "Produce",
-    estimatedPrice: 3.49,
-    checked: false,
-    storeNote: "Sun Valley • $3.49 3-pack"
-  },
-  {
-    id: "g-5",
-    name: "Artisanal Sourdough Bread",
-    quantity: 1,
-    unit: "loaf",
-    category: "Bakery",
-    estimatedPrice: 5.99,
-    checked: false,
-    storeNote: "Hearthside Bakers • $5.99"
-  }
-];
-
-export function GroceryListView({ onAddToCart, onAskAI }: GroceryListViewProps) {
+export function GroceryListView({ onAddToCart, products = [], onAskAI }: GroceryListViewProps) {
   const [items, setItems] = useState<GroceryItem[]>(() => {
     try {
       const saved = localStorage.getItem("spresso_vertical_grocery_list");
@@ -83,7 +30,16 @@ export function GroceryListView({ onAddToCart, onAskAI }: GroceryListViewProps) 
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {}
-    return DEFAULT_GROCERY_ITEMS;
+    return (products || []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      quantity: 1,
+      unit: "item",
+      category: p.category ? p.category.replace(/^Grocery\s*-\s*/, '') : "Produce",
+      estimatedPrice: p.price,
+      checked: false,
+      storeNote: p.brand ? `${p.brand} • $${p.price.toFixed(2)}` : undefined
+    }));
   });
 
   const [newItemName, setNewItemName] = useState("");
@@ -126,9 +82,8 @@ export function GroceryListView({ onAddToCart, onAskAI }: GroceryListViewProps) 
       quantity: 1,
       unit: "item",
       category: newItemCategory,
-      estimatedPrice: 2.50,
-      checked: false,
-      storeNote: "Aggregated Local Market Item"
+      estimatedPrice: 0,
+      checked: false
     };
 
     setItems(prev => [newItem, ...prev]);
@@ -140,15 +95,15 @@ export function GroceryListView({ onAddToCart, onAskAI }: GroceryListViewProps) 
       onAddToCart({
         id: item.id,
         name: item.name,
-        brand: "Local Organic Market",
+        brand: item.storeNote || "",
         price: item.estimatedPrice * item.quantity,
         currency: "USD",
         category: `Grocery - ${item.category}`,
         description: `Grocery List Item: ${item.quantity} ${item.unit}(s) of ${item.name}`,
-        image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop",
-        stock: 50,
+        image: "",
+        stock: 0,
         sku: `GROC-${item.id.toUpperCase()}`,
-        rating: 4.8,
+        rating: 0,
         virtualTryOnEligible: false,
         mcpServerId: "spresso-mcp-grocery"
       });

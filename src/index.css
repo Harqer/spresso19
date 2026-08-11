@@ -9,51 +9,77 @@
   --font-serif: 'Instrument Serif', Georgia, Cambria, "Times New Roman", Times, serif;
   --font-headline: 'Instrument Serif', Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  --color-primary: var(--md-sys-color-primary);
+  --color-on-primary: var(--md-sys-color-on-primary);
+  --color-primary-container: var(--md-sys-color-primary-container);
+  --color-on-primary-container: var(--md-sys-color-on-primary-container);
+
+  --color-secondary: var(--md-sys-color-secondary);
+  --color-on-secondary: var(--md-sys-color-on-secondary);
+  --color-secondary-container: var(--md-sys-color-secondary-container);
+  --color-on-secondary-container: var(--md-sys-color-on-secondary-container);
+
+  --color-surface: var(--md-sys-color-surface);
+  --color-on-surface: var(--md-sys-color-on-surface);
+  --color-surface-variant: var(--md-sys-color-surface-variant);
+  --color-on-surface-variant: var(--md-sys-color-on-surface-variant);
+
+  --color-surface-container-low: var(--md-sys-color-surface-container-low);
+  --color-surface-container: var(--md-sys-color-surface-container);
+  --color-surface-container-high: var(--md-sys-color-surface-container-high);
+  --color-surface-container-highest: var(--md-sys-color-surface-container-highest);
+
+  --color-background: var(--md-sys-color-background);
+  --color-on-background: var(--md-sys-color-on-background);
+
+  --color-outline: var(--md-sys-color-outline);
+  --color-outline-variant: var(--md-sys-color-outline-variant);
 }
 
 /* Material 3 Dynamic Light & Dark Theme Tokens & Tonal Elevation */
 :root {
   /* Default Light Theme Tokens */
-  --md-sys-color-primary: #1e90ff;
+  --md-sys-color-primary: #386633;
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #e0f2fe;
-  --md-sys-color-on-primary-container: #0369a1;
+  --md-sys-color-primary-container: #e8f3e8;
+  --md-sys-color-on-primary-container: #18211e;
 
-  --md-sys-color-secondary: #ff5722;
-  --md-sys-color-on-secondary: #ffffff;
-  --md-sys-color-secondary-container: #ffedd5;
-  --md-sys-color-on-secondary-container: #9a3412;
+  --md-sys-color-secondary: #84cc16;
+  --md-sys-color-on-secondary: #18211e;
+  --md-sys-color-secondary-container: #ecfccb;
+  --md-sys-color-on-secondary-container: #365314;
 
-  --md-sys-color-tertiary: #0284c7;
+  --md-sys-color-tertiary: #16a34a;
   --md-sys-color-on-tertiary: #ffffff;
-  --md-sys-color-tertiary-container: #e0f2fe;
-  --md-sys-color-on-tertiary-container: #0369a1;
+  --md-sys-color-tertiary-container: #dcfce7;
+  --md-sys-color-on-tertiary-container: #14532d;
 
-  --md-sys-color-background: #f8fafc;
-  --md-sys-color-on-background: #0f172a;
+  --md-sys-color-background: #f8faf8;
+  --md-sys-color-on-background: #18211e;
   --md-sys-color-surface: #ffffff;
-  --md-sys-color-on-surface: #0f172a;
-  --md-sys-color-surface-variant: #f1f5f9;
-  --md-sys-color-on-surface-variant: #475569;
+  --md-sys-color-on-surface: #18211e;
+  --md-sys-color-surface-variant: #f2f8f2;
+  --md-sys-color-on-surface-variant: #556258;
 
   /* Tonal Surface Elevation Levels */
-  --md-sys-color-surface-dim: #f1f5f9;
+  --md-sys-color-surface-dim: #f2f8f2;
   --md-sys-color-surface-bright: #ffffff;
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #f8fafc;
-  --md-sys-color-surface-container: #f1f5f9;
-  --md-sys-color-surface-container-high: #e2e8f0;
-  --md-sys-color-surface-container-highest: #cbd5e1;
+  --md-sys-color-surface-container-low: #f8faf8;
+  --md-sys-color-surface-container: #f2f8f2;
+  --md-sys-color-surface-container-high: #e2efe2;
+  --md-sys-color-surface-container-highest: #d8ebd7;
 
-  --md-sys-color-outline: #94a3b8;
-  --md-sys-color-outline-variant: #e2e8f0;
+  --md-sys-color-outline: #c4d6c3;
+  --md-sys-color-outline-variant: #e2efe2;
 
   /* Legacy aliases for backwards compatibility */
   --color-brand-primary: var(--md-sys-color-primary);
-  --color-brand-hover: #0284c7;
+  --color-brand-hover: #2d5229;
   --color-brand-light: var(--md-sys-color-primary-container);
   --color-brand-soft: var(--md-sys-color-surface-container-low);
-  --color-accent-orange: #ff5722;
+  --color-accent-orange: #ff5e1a;
   --color-accent-orange-hover: #e04e0d;
   --bg-main: var(--md-sys-color-background);
   --bg-surface: var(--md-sys-color-surface-container-lowest);
@@ -65,46 +91,46 @@
 }
 
 .dark {
-  /* Android E-Commerce Spec Dark Theme (#121212 background, #1e1e1e/#242424 cards, #e0e0e0 text, #1e90ff electric blue primary) */
-  --md-sys-color-primary: #1e90ff;
-  --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #172554;
-  --md-sys-color-on-primary-container: #bfdbfe;
+  /* Charcoal Slate (#18211e) & Lime Green (#84cc16) Spec Dark Theme */
+  --md-sys-color-primary: #84cc16;
+  --md-sys-color-on-primary: #18211e;
+  --md-sys-color-primary-container: #284024;
+  --md-sys-color-on-primary-container: #e8f3e8;
 
-  --md-sys-color-secondary: #ff5722;
+  --md-sys-color-secondary: #386633;
   --md-sys-color-on-secondary: #ffffff;
-  --md-sys-color-secondary-container: #7c2d12;
-  --md-sys-color-on-secondary-container: #ffedd5;
+  --md-sys-color-secondary-container: #1e331b;
+  --md-sys-color-on-secondary-container: #ecfccb;
 
-  --md-sys-color-tertiary: #38bdf8;
-  --md-sys-color-on-tertiary: #0c4a6e;
-  --md-sys-color-tertiary-container: #0369a1;
-  --md-sys-color-on-tertiary-container: #e0f2fe;
+  --md-sys-color-tertiary: #4ade80;
+  --md-sys-color-on-tertiary: #052e16;
+  --md-sys-color-tertiary-container: #14532d;
+  --md-sys-color-on-tertiary-container: #dcfce7;
 
-  --md-sys-color-background: #121212;
-  --md-sys-color-on-background: #e0e0e0;
-  --md-sys-color-surface: #121212;
-  --md-sys-color-on-surface: #e0e0e0;
-  --md-sys-color-surface-variant: #1e1e1e;
-  --md-sys-color-on-surface-variant: #a0a0a0;
+  --md-sys-color-background: #18211e;
+  --md-sys-color-on-background: #f8faf8;
+  --md-sys-color-surface: #18211e;
+  --md-sys-color-on-surface: #f8faf8;
+  --md-sys-color-surface-variant: #222924;
+  --md-sys-color-on-surface-variant: #c4d6c3;
 
-  /* Tonal Surface Elevation Levels (Android E-Commerce Dark Spec) */
-  --md-sys-color-surface-dim: #121212;
-  --md-sys-color-surface-bright: #2c2c2c;
-  --md-sys-color-surface-container-lowest: #181818;
-  --md-sys-color-surface-container-low: #1e1e1e;
-  --md-sys-color-surface-container: #242424;
-  --md-sys-color-surface-container-high: #2c2c2c;
-  --md-sys-color-surface-container-highest: #383838;
+  /* Tonal Surface Elevation Levels */
+  --md-sys-color-surface-dim: #121816;
+  --md-sys-color-surface-bright: #2d3830;
+  --md-sys-color-surface-container-lowest: #141b18;
+  --md-sys-color-surface-container-low: #1c2420;
+  --md-sys-color-surface-container: #222924;
+  --md-sys-color-surface-container-high: #2d3830;
+  --md-sys-color-surface-container-highest: #3d4a40;
 
-  --md-sys-color-outline: #757575;
-  --md-sys-color-outline-variant: #2c2c2c;
+  --md-sys-color-outline: #556258;
+  --md-sys-color-outline-variant: #2d3830;
 
   --color-brand-primary: var(--md-sys-color-primary);
-  --color-brand-hover: #60a5fa;
+  --color-brand-hover: #a3e635;
   --color-brand-light: var(--md-sys-color-primary-container);
   --color-brand-soft: var(--md-sys-color-surface-container-low);
-  --color-accent-orange: #ff5722;
+  --color-accent-orange: #ff5e1a;
   --color-accent-orange-hover: #e04e0d;
   --bg-main: var(--md-sys-color-background);
   --bg-surface: var(--md-sys-color-surface-container-low);

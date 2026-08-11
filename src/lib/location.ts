@@ -30,8 +30,8 @@ export async function getCleanLocationName(latitude: number, longitude: number):
         return parts[0];
       }
     }
-  } catch (err) {
-    console.warn("Reverse geocode lookup exception/timeout:", err);
+  } catch (_err) {
+    // Reverse geocode timeout or network error — fallback label is applied below
   }
 
   // Fallback clean city naming logic without ever showing raw coordinates

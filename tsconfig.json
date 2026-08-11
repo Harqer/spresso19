@@ -23,6 +23,6 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["src/**/*", "server.ts"],
+  "include": ["src/**/*", "server/**/*", "server.ts", "verify_orders_test.ts"],
   "exclude": ["temp_openai_sdk", "dist", "node_modules"]
 }

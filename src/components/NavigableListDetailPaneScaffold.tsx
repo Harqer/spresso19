@@ -18,6 +18,7 @@ export interface NavigableListDetailPaneScaffoldProps {
   onSelectTryOn?: (product: ProductItem) => void;
   onAddToCart?: (product: ProductItem) => void;
   onAskAI?: (text: string, image?: string | null) => void;
+  onRefresh?: () => Promise<void>;
 }
 
 export const NavigableListDetailPaneScaffold: React.FC<NavigableListDetailPaneScaffoldProps> = ({
@@ -25,7 +26,8 @@ export const NavigableListDetailPaneScaffold: React.FC<NavigableListDetailPaneSc
   orders = [],
   onSelectTryOn,
   onAddToCart,
-  onAskAI
+  onAskAI,
+  onRefresh
 }) => {
   // Navigation & Layout State
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("ListDetail");
@@ -42,7 +44,9 @@ export const NavigableListDetailPaneScaffold: React.FC<NavigableListDetailPaneSc
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    if (onRefresh) {
+      await onRefresh();
+    }
     setIsRefreshing(false);
   };
 
@@ -427,15 +431,8 @@ export const NavigableListDetailPaneScaffold: React.FC<NavigableListDetailPaneSc
 
               <div className="space-y-3 text-xs">
                 <p className="text-[#43483e] dark:text-[#c3c8bb]">
-                  The optional Extra Pane provides contextual information such as AI shopper insights, real-time inventory across nearby stores, or customer reviews.
+                  The optional Extra Pane provides contextual information such as real-time inventory across nearby stores, or customer reviews.
                 </p>
-
-                <div className="p-3 bg-[#f2f5ea] dark:bg-[#282b24] rounded-xl border border-[#dfe4d7] dark:border-[#43483e] space-y-1">
-                  <span className="font-bold text-[#446732] dark:text-[#a9d291]">AI Shopper Analysis</span>
-                  <p className="text-[11px] text-[#43483e] dark:text-[#c3c8bb]">
-                    Matches 98% with your recent fashion preferences & seasonal climate.
-                  </p>
-                </div>
               </div>
             </div>
           )}

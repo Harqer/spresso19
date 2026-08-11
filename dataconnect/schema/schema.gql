@@ -1,0 +1,28 @@
+type Product @table(key: "id") {
+  id: String!
+  name: String!
+  brand: String
+  category: String
+  price: Float!
+  image: String
+  description: String
+  likesCount: Int! @default(value: 0)
+}
+
+type UserLike @table(key: ["userUid", "product"]) {
+  userUid: String!
+  product: Product!
+  timestamp: Timestamp! @default(expr: "request.time")
+}
+
+type Order @table {
+  id: UUID! @default(expr: "uuidV4()")
+  authorizationId: String!
+  userUid: String!
+  product: Product!
+  quantity: Int!
+  deviceSource: String!
+  paymentMethod: String!
+  status: String! @default(value: "CONFIRMED")
+  createdAt: Timestamp! @default(expr: "request.time")
+}

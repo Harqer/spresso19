@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { ProductItem, HITLPayload, OrderRecord, CartItem } from "./types";
-import { PersonalAIShopperChat } from "./components/PersonalAIShopperChat";
+import { PersonalAIShopperChatPage as PersonalAIShopperChat } from "./components/pages/PersonalAIShopperChatPage";
 import { SmartVisionView } from "./components/SmartVisionView";
-import { ProductCatalog } from "./components/ProductCatalog";
-import { WardrobeView } from "./components/WardrobeView";
+import { ProductCatalogPage as ProductCatalog } from "./components/pages/ProductCatalogPage";
+import { WardrobeViewPage as WardrobeView } from "./components/pages/WardrobeViewPage";
 import { VirtualTryOnModal } from "./components/VirtualTryOnModal";
 import { HITLCheckoutModal } from "./components/HITLCheckoutModal";
 import { OrdersTracker } from "./components/OrdersTracker";
 import { GroceryListView } from "./components/GroceryListView";
-import { CreatorGenAIAgentsChat } from "./components/CreatorGenAIAgentsChat";
+import { CreatorGenAIAgentsChatPage as CreatorGenAIAgentsChat } from "./components/pages/CreatorGenAIAgentsChatPage";
 import { NavigableListDetailPaneScaffold } from "./components/NavigableListDetailPaneScaffold";
 import { CartDrawer } from "./components/CartDrawer";
 import { LocationPermissionModal } from "./components/LocationPermissionModal";
@@ -20,15 +20,40 @@ import { MaterialIcon } from "./components/MaterialIcon";
 import { AuthScreen } from "./components/AuthScreen";
 import { DynamicThemePickerModal } from "./components/DynamicThemePickerModal";
 import { applyDynamicThemeToDocument } from "./lib/dynamicColorEngine";
-import { testConnection, auth, loginWithGoogle, loginAnonymously, logoutUser, db as firestoreDb } from "./lib/firebase";
+import { auth, loginWithGoogle, loginAnonymously, logoutUser, db as firestoreDb } from "./lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
+import { dataConnect } from "./lib/firebase";
+import { listProducts } from "./dataconnect";
+import { MainAppPage } from "./components/pages/MainAppPage";
+import { AppModalManager } from "./components/organisms/AppModalManager";
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>("chat");
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const hash = window.location.hash.replace("#", "");
+    const validTabs = ["chat", "products", "scaffold", "vision", "wardrobe", "orders", "grocery", "creator"];
+    return validTabs.includes(hash) ? hash : "chat";
+  });
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [pendingChatQuery, setPendingChatQuery] = useState<{ query: string; image?: string | null } | null>(null);
+
+  // Synchronize activeTab with URL Hash
+  useEffect(() => {
+    window.location.hash = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "");
+      const validTabs = ["chat", "products", "scaffold", "vision", "wardrobe", "orders", "grocery", "creator"];
+      if (validTabs.includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   // Dynamic Light / Dark Theme & Material You Seed State
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -100,20 +125,15 @@ export default function App() {
   useEffect(() => {
     const isCompleted = localStorage.getItem("spresso_onboarding_completed");
     if (!isCompleted) {
-      const timer = setTimeout(() => {
-        setOnboardingOpen(true);
-      }, 600);
-      return () => clearTimeout(timer);
+      setOnboardingOpen(true);
     }
   }, []);
 
-  const [tryOnProduct, setTryOnProduct] = useState<ProductItem | null>(null);
   const [showcaseProduct, setShowcaseProduct] = useState<ProductItem | null>(null);
   const [productDetailsModalItem, setProductDetailsModalItem] = useState<ProductItem | null>(null);
   const [lensModalOpen, setLensModalOpen] = useState<boolean>(false);
   const [lensInitialProduct, setLensInitialProduct] = useState<ProductItem | null>(null);
   const [hitlPayload, setHitlPayload] = useState<HITLPayload | null>(null);
-  const [floatingChatOpen, setFloatingChatOpen] = useState<boolean>(false);
 
   const handleOpenLens = (product?: ProductItem | null) => {
     setLensInitialProduct(product || null);
@@ -162,46 +182,71 @@ export default function App() {
 
   const totalCartCount = cart.reduce((total, item) => total + item.quantity, 0);
 
-  // Load Inventory & Orders from Express Server / Cloud SQL
+  // Load Inventory & Orders from Data Connect / Cloud SQL
   const fetchInventoryAndOrders = async (targetUid?: string) => {
     try {
-      const invRes = await fetch("/api/inventory");
-      if (invRes.ok) {
-        const contentType = invRes.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const invData = await invRes.json();
-          if (invData.success && invData.products) {
-            setProducts(invData.products);
-          }
-        }
-      }
-
-      const orderUrl = targetUid ? `/api/orders?userId=${encodeURIComponent(targetUid)}` : "/api/orders";
-      const ordRes = await fetch(orderUrl);
-      if (ordRes.ok) {
-        const contentType = ordRes.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const ordData = await ordRes.json();
-          if (ordData.success && ordData.orders) {
-            setOrders(ordData.orders);
-          }
+      const res = await fetch("/api/products");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.products && data.products.length > 0) {
+          const fetchedProducts = data.products.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            description: p.description || "",
+            price: p.price,
+            likesCount: p.likesCount || 0,
+            image: p.image || p.imageUrl || "",
+            category: p.category || "",
+            tags: p.tags || [],
+            brand: p.brand || "Spresso Store",
+            currency: p.currency || "USD",
+            sku: p.sku || `SKU-${p.id}`,
+            rating: p.rating || 5.0,
+            virtualTryOnEligible: true,
+            mcpServerId: "spresso-mcp-retail"
+          }));
+          setProducts(fetchedProducts);
+          setOrders([]);
+          return;
         }
       }
     } catch (err) {
-      console.error("Error fetching data:", err);
+      console.warn("Express products fetch failed, attempting Firebase:", err);
+    }
+
+    try {
+      const response = await listProducts(dataConnect);
+      if (response.data && response.data.products) {
+        const dcProducts = response.data.products.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description || "",
+          price: p.price,
+          likesCount: p.likesCount,
+          image: p.imageUrl || p.image || "",
+          category: p.category || "",
+          tags: p.tags || [],
+          brand: p.brand || "Spresso Store",
+          currency: p.currency || "USD",
+          sku: p.sku || `SKU-${p.id}`,
+          rating: p.rating || 0,
+          virtualTryOnEligible: true,
+          mcpServerId: "spresso-mcp-retail"
+        })) as unknown as ProductItem[];
+        setProducts(dcProducts);
+      }
+      setOrders([]);
+    } catch (_err) {
+      // Errors fetching products are logged by the Crashlytics sink in firebase.ts
     }
   };
 
   useEffect(() => {
-    testConnection();
-    
     // Auto-prompt location modal on initial load if location is not yet set
-    const timer = setTimeout(() => {
-      if (!userLocation && !localStorage.getItem("spresso_loc_prompted")) {
-        setLocationModalOpen(true);
-        localStorage.setItem("spresso_loc_prompted", "true");
-      }
-    }, 1200);
+    if (!userLocation && !localStorage.getItem("spresso_loc_prompted")) {
+      setLocationModalOpen(true);
+      localStorage.setItem("spresso_loc_prompted", "true");
+    }
 
     // Subscribe to Firebase Auth state
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -211,19 +256,7 @@ export default function App() {
 
         const displayName = currentUser.displayName || (currentUser.email ? currentUser.email.split("@")[0] : `User_${currentUser.uid.slice(0, 5)}`);
         try {
-          // Sync profile to Cloud SQL backend
-          await fetch("/api/user/sync", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              uid: currentUser.uid,
-              email: currentUser.email || "",
-              name: displayName,
-              isAnonymous: currentUser.isAnonymous
-            })
-          });
-
-          // Sync profile to Firestore
+          // Sync profile to Cloud SQL backend (Now using Firestore directly as planned)
           await setDoc(doc(firestoreDb, "users", currentUser.uid), {
             uid: currentUser.uid,
             email: currentUser.email || "",
@@ -232,8 +265,8 @@ export default function App() {
             isAnonymous: currentUser.isAnonymous,
             lastLoginAt: new Date().toISOString()
           }, { merge: true });
-        } catch (err) {
-          console.error("User profile sync error:", err);
+        } catch (_err) {
+          // Profile sync errors are non-fatal; user remains authenticated
         }
         fetchInventoryAndOrders(currentUser.uid);
       } else {
@@ -245,7 +278,6 @@ export default function App() {
     });
 
     return () => {
-      clearTimeout(timer);
       unsubscribe();
     };
   }, []);
@@ -284,205 +316,26 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--md-sys-color-background)] text-[var(--md-sys-color-on-background)] font-sans selection:bg-[#ff5e1a] selection:text-white transition-colors duration-300">
-      {/* Top AppBar */}
-      <header className="fixed top-0 w-full z-30 bg-[var(--md-sys-color-surface-container-lowest)]/90 backdrop-blur-md border-b border-[var(--md-sys-color-outline-variant)] transition-colors duration-300">
-        <div className="flex justify-between items-center px-4 md:px-6 h-16 w-full max-w-7xl mx-auto">
-          <div className="flex items-center space-x-3">
-            {/* Mobile Menu Open Toggle Button */}
-            <button
-              onClick={() => setMobileMenuOpen(prev => !prev)}
-              className="md:hidden p-2 text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container)] rounded-xl transition cursor-pointer flex items-center justify-center"
-              title="Toggle Navigation Menu"
-              aria-label="Toggle Navigation Menu"
-            >
-              <MaterialIcon icon={mobileMenuOpen ? "close" : "menu"} size={22} />
-            </button>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            {/* Theme Toggle Button */}
-            <button
-              onClick={toggleTheme}
-              className="p-2.5 rounded-xl hover:bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-primary)] transition cursor-pointer flex items-center justify-center"
-              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              aria-label="Toggle Theme Mode"
-            >
-              <MaterialIcon
-                icon={theme === 'dark' ? "light_mode" : "dark_mode"}
-                size={20}
-              />
-            </button>
-
-            {/* Location & Search Radius Icon Button */}
-            <button
-              onClick={() => setLocationModalOpen(prev => !prev)}
-              className="relative p-2.5 rounded-xl hover:bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-primary)] transition cursor-pointer flex items-center justify-center"
-              title={userLocation ? `Location: ${userLocation} (${searchRadius} mi)` : "Set location and search radius"}
-              aria-label="Set Location and Radius"
-            >
-              <MaterialIcon icon="location_on" size={20} />
-              {userLocation && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[var(--md-sys-color-primary)]" />
-              )}
-            </button>
-
-            {/* Shopping Cart Button */}
-            <button
-              onClick={() => setCartDrawerOpen(true)}
-              className="relative p-2.5 rounded-xl bg-[var(--md-sys-color-surface-container-lowest)] border border-[var(--md-sys-color-outline-variant)] hover:bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-on-surface)] transition cursor-pointer flex items-center justify-center shadow-xs"
-              title="Shopping Cart"
-              aria-label="Shopping Cart"
-            >
-              <MaterialIcon icon="shopping_bag" size={20} className="text-[var(--md-sys-color-primary)]" />
-              {totalCartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-[#ff5e1a] dark:bg-[#ff6b00] text-white font-mono text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs">
-                  {totalCartCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile Drawer Overlay Backdrop */}
-      {mobileMenuOpen && (
-        <div
-          onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-40 md:hidden transition-opacity"
-        />
-      )}
-
-      {/* Navigation Drawer Sidebar */}
-      <aside
-        className={`h-full fixed left-0 top-0 bg-[var(--md-sys-color-surface-container-low)] border-r border-[var(--md-sys-color-outline-variant)] transition-all duration-300 flex flex-col p-3 pt-3 space-y-3 ${
-          mobileMenuOpen ? "translate-x-0 w-64 shadow-2xl z-50" : "-translate-x-full md:translate-x-0 z-40"
-        } ${sidebarOpen ? "md:w-64" : "md:w-16"}`}
-      >
-        {/* Sidebar Header with Spresso Logo & Toggle/Close Icon */}
-        <div className="flex items-center justify-between pb-2 border-b border-[var(--md-sys-color-outline-variant)] min-h-14">
-          {/* Mobile View Header: Full Logo + Close Button */}
-          <div className="flex md:hidden items-center justify-between w-full">
-            <SpressoLogo variant="full" showTextLeft={true} width={80} height={48} />
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="p-1.5 text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container)] rounded-xl transition cursor-pointer"
-              title="Close Menu"
-              aria-label="Close Menu"
-            >
-              <MaterialIcon icon="close" size={22} />
-            </button>
-          </div>
-
-          {/* Desktop View Header: Full Logo or Icon depending on sidebarOpen state */}
-          <div className="hidden md:flex items-center justify-between w-full">
-            {sidebarOpen ? (
-              <div className="flex items-center justify-between w-full">
-                <SpressoLogo variant="full" showTextLeft={true} width={80} height={48} />
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="p-1.5 text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container)] rounded-xl transition cursor-pointer"
-                  title="Collapse Sidebar"
-                  aria-label="Collapse Sidebar"
-                >
-                  <MaterialIcon icon="menu_open" size={22} />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="w-full flex items-center justify-center p-1 text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container)] rounded-xl transition cursor-pointer"
-                title="Expand Sidebar"
-                aria-label="Expand Sidebar"
-              >
-                <SpressoLogo variant="icon" size="sm" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <nav className="flex-1 space-y-1 overflow-y-auto pr-1 chat-scrollbar">
-          {navItems.map(item => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center ${
-                  sidebarOpen ? "justify-between px-3" : "md:justify-center px-3 md:px-0"
-                } py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  isActive
-                    ? "bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] font-bold shadow-xs"
-                    : "text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container)] hover:text-[var(--md-sys-color-on-surface)]"
-                }`}
-                title={item.label}
-              >
-                <div className="flex items-center space-x-3">
-                  <MaterialIcon icon={item.icon} size={20} className={isActive ? "text-[var(--md-sys-color-on-primary)]" : "text-[var(--md-sys-color-primary)]"} />
-                  <span className={`block ${sidebarOpen ? "md:block" : "md:hidden"}`}>{item.label}</span>
-                </div>
-
-                {item.count !== undefined && item.count > 0 && (
-                  <span
-                    className={`px-1.5 py-0.5 text-[10px] font-mono rounded-full font-bold ${
-                      isActive ? "bg-[#ff5e1a] dark:bg-[#ff6b00] text-white" : "bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)]"
-                    } ${sidebarOpen ? "md:inline-block" : "md:hidden"}`}
-                  >
-                    {item.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* User Profile Footer */}
-        <div className="mt-auto pt-3 border-t border-[var(--md-sys-color-outline-variant)]">
-          {user ? (
-            <div className={`flex items-center justify-between ${sidebarOpen ? "p-2 bg-[var(--md-sys-color-surface-container)]" : "md:justify-center p-2 bg-transparent"} rounded-2xl`}>
-              <div className="flex items-center space-x-2.5 overflow-hidden">
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="User Avatar" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-[var(--md-sys-color-outline-variant)]" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 shadow-xs">
-                    {(user.displayName || user.email || "S").charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div className={`overflow-hidden min-w-0 ${sidebarOpen ? "md:block" : "md:hidden"}`}>
-                  <p className="text-xs font-bold text-[var(--md-sys-color-on-surface)] truncate">{user.displayName || "Spresso Shopper"}</p>
-                  <p className="text-[10px] text-[var(--md-sys-color-on-surface-variant)] truncate">{user.email}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => logoutUser()}
-                title="Sign Out"
-                className={`p-1.5 text-[var(--md-sys-color-on-surface-variant)] hover:text-red-400 hover:bg-red-950/20 rounded-lg transition-colors flex-shrink-0 ml-1 ${sidebarOpen ? "md:block" : "md:hidden"}`}
-              >
-                <MaterialIcon icon="logout" size={18} />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => loginWithGoogle()}
-              className={`w-full flex items-center ${sidebarOpen ? "justify-center space-x-2 px-3 py-2" : "md:justify-center p-2"} bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] rounded-2xl text-xs font-semibold hover:opacity-90 transition-all shadow-xs`}
-            >
-              <MaterialIcon icon="login" size={18} />
-              <span className={`block ${sidebarOpen ? "md:block" : "md:hidden"}`}>Sign in with Google</span>
-            </button>
-          )}
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <main
-        className={`transition-all duration-300 ${
-          sidebarOpen ? "md:ml-64" : "md:ml-16"
-        } pt-20 px-4 md:px-8 pb-12 min-h-screen`}
-      >
-        <div className="max-w-4xl mx-auto">
+    <MainAppPage
+      navItems={navItems}
+      activeTab={activeTab}
+      sidebarOpen={sidebarOpen}
+      mobileMenuOpen={mobileMenuOpen}
+      userLocation={userLocation}
+      searchRadius={searchRadius}
+      totalCartCount={totalCartCount}
+      theme={theme}
+      user={user}
+      onSelectTab={setActiveTab}
+      onToggleSidebar={() => setSidebarOpen(prev => !prev)}
+      onToggleMobileMenu={(open) => setMobileMenuOpen(open !== undefined ? open : !mobileMenuOpen)}
+      onToggleTheme={toggleTheme}
+      onOpenDynamicThemeModal={() => setDynamicThemeModalOpen(true)}
+      onOpenLocationModal={() => setLocationModalOpen(true)}
+      onOpenCartDrawer={() => setCartDrawerOpen(true)}
+      onLogout={() => logoutUser()}
+    >
+      <div className="max-w-4xl mx-auto">
           {activeTab === "chat" && (
             <PersonalAIShopperChat
               user={user}
@@ -529,6 +382,7 @@ export default function App() {
               onSelectTryOn={handleSelectTryOn}
               onAddToCart={handleAddToCart}
               onAskAI={handleAskAI}
+              onRefresh={fetchInventoryAndOrders}
             />
           )}
 
@@ -580,167 +434,47 @@ export default function App() {
             />
           )}
         </div>
-      </main>
 
-      {/* Modals */}
-      <VirtualTryOnModal
-        product={tryOnProduct}
-        onClose={() => setTryOnProduct(null)}
-        onRequestHITLCheckout={payload => setHitlPayload(payload)}
-        onOpenLens={handleOpenLens}
-        deviceMode="WEB"
-      />
-
-      <GoogleLensScreenWidgetModal
-        isOpen={lensModalOpen}
-        onClose={() => setLensModalOpen(false)}
-        initialProduct={lensInitialProduct}
-        onSelectTryOn={(prod) => {
-          setProductDetailsModalItem(prod);
-          setLensModalOpen(false);
-        }}
-      />
-
-      <HITLCheckoutModal
-        payload={hitlPayload}
-        onClose={() => setHitlPayload(null)}
-        onSuccess={handleOrderSuccess}
-      />
-
-      <LocationPermissionModal
-        isOpen={locationModalOpen}
-        onClose={() => setLocationModalOpen(false)}
-        currentRadius={searchRadius}
-        onRadiusChange={setSearchRadius}
-        onLocationGranted={(loc, coords, radius) => {
-          setUserLocation(loc);
-          if (coords) {
-            setUserLatLng({ latitude: coords.lat, longitude: coords.lng });
-          }
-          if (radius) {
-            setSearchRadius(radius);
-          }
-        }}
-      />
-
-      <CartDrawer
-        isOpen={cartDrawerOpen}
-        onClose={() => setCartDrawerOpen(false)}
+      <AppModalManager
         cart={cart}
-        onUpdateQuantity={handleUpdateCartQuantity}
-        onRemoveItem={handleRemoveCartItem}
+        cartDrawerOpen={cartDrawerOpen}
+        onCloseCartDrawer={() => setCartDrawerOpen(false)}
+        onUpdateCartQuantity={handleUpdateCartQuantity}
+        onRemoveCartItem={handleRemoveCartItem}
         onClearCart={handleClearCart}
         onRequestHITLCheckout={payload => setHitlPayload(payload)}
-      />
-
-      {/* Persistent Reusable AI Shopper Floating Button (Visible on all screens except full Chat view) */}
-      {activeTab !== "chat" && (
-        <div className="fixed bottom-6 right-6 z-40">
-          <button
-            onClick={() => setFloatingChatOpen(true)}
-            className="flex items-center space-x-2 px-4 py-3 bg-neutral-900 hover:bg-neutral-800 text-white rounded-full shadow-2xl border border-neutral-700/60 transition cursor-pointer group hover:scale-105"
-            title="Open AI Personal Shopper Assistant"
-          >
-            <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-              <MaterialIcon icon="auto_awesome" size={16} className="group-hover:rotate-12 transition-transform" />
-            </div>
-            <span className="text-xs font-medium tracking-wide">AI Personal Shopper</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          </button>
-        </div>
-      )}
-
-      {/* Floating AI Shopper Overlay Drawer */}
-      {floatingChatOpen && activeTab !== "chat" && (
-        <div className="fixed inset-0 z-50 bg-neutral-950/60 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-lg bg-neutral-900 h-full shadow-2xl flex flex-col border-l border-neutral-800 animate-in slide-in-from-right duration-200">
-            <div className="p-4 bg-neutral-900 border-b border-neutral-800 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <MaterialIcon icon="auto_awesome" size={18} className="text-emerald-400" />
-                <span className="text-sm font-medium text-white">Spresso AI Personal Shopper</span>
-              </div>
-              <button
-                onClick={() => setFloatingChatOpen(false)}
-                className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition cursor-pointer"
-              >
-                <MaterialIcon icon="close" size={20} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              <PersonalAIShopperChat
-                user={user}
-                userName={user?.displayName ? user.displayName.split(" ")[0] : (user?.email ? user.email.split("@")[0] : undefined)}
-                products={products}
-                onSelectTryOn={prod => {
-                  handleSelectTryOn(prod);
-                  setFloatingChatOpen(false);
-                }}
-                onRequestHITLCheckout={payload => {
-                  setHitlPayload(payload);
-                  setFloatingChatOpen(false);
-                }}
-                onAddToCart={handleAddToCart}
-                onOpenVisionSearch={() => {
-                  setActiveTab("vision");
-                  setFloatingChatOpen(false);
-                }}
-                onSelectTab={tabId => {
-                  setActiveTab(tabId);
-                  setFloatingChatOpen(false);
-                }}
-                userLocation={userLocation}
-                userLatLng={userLatLng}
-                onRequestLocationPermission={() => setLocationModalOpen(true)}
-                deviceMode="WEB"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Global Product Details Sheet Modal */}
-      <ProductDetailsModal
-        isOpen={!!productDetailsModalItem}
-        onClose={() => setProductDetailsModalItem(null)}
-        product={productDetailsModalItem}
-        onAddToCart={(prod, qty, sz) => {
-          for (let i = 0; i < qty; i++) {
-            handleAddToCart({
-              ...prod,
-              name: sz ? `${prod.name} (${sz})` : prod.name
-            });
-          }
+        locationModalOpen={locationModalOpen}
+        userLocation={userLocation}
+        searchRadius={searchRadius}
+        onCloseLocationModal={() => setLocationModalOpen(false)}
+        onLocationGranted={(loc, coords, radius) => {
+          setUserLocation(loc);
+          if (coords) setUserLatLng({ latitude: coords.lat, longitude: coords.lng });
+          if (radius) setSearchRadius(radius);
         }}
-        onRequestHITLCheckout={payload => setHitlPayload(payload)}
-      />
-
-      {/* Gamified Onboarding Experience Modal */}
-      <GamifiedOnboardingModal
-        isOpen={onboardingOpen}
-        onClose={() => setOnboardingOpen(false)}
-        onComplete={(prefs) => {
-          if (prefs.radius) {
-            setSearchRadius(prefs.radius);
-          }
-          if (prefs.locationEnabled && !userLocation) {
-            setLocationModalOpen(true);
-          }
-        }}
-      />
-
-      {/* Material You Dynamic Theme Builder Modal */}
-      <DynamicThemePickerModal
-        isOpen={dynamicThemeModalOpen}
-        onClose={() => setDynamicThemeModalOpen(false)}
-        currentSeedHex={seedHex}
-        currentSecondaryHex={secondarySeedHex}
+        onRadiusChange={setSearchRadius}
+        productDetailsModalItem={productDetailsModalItem}
+        onCloseProductDetailsModal={() => setProductDetailsModalItem(null)}
+        onAddToCart={handleAddToCart}
+        lensModalOpen={lensModalOpen}
+        lensInitialProduct={lensInitialProduct}
+        onCloseLensModal={() => setLensModalOpen(false)}
+        onboardingOpen={onboardingOpen}
+        onCloseOnboarding={() => setOnboardingOpen(false)}
+        onAskAI={handleAskAI}
+        hitlPayload={hitlPayload}
+        onCloseHITLCheckout={() => setHitlPayload(null)}
+        dynamicThemeModalOpen={dynamicThemeModalOpen}
+        theme={theme}
+        seedHex={seedHex}
+        secondarySeedHex={secondarySeedHex}
+        onCloseDynamicThemeModal={() => setDynamicThemeModalOpen(false)}
         onSelectSeedHex={(hex, secHex) => {
           setSeedHex(hex);
           setSecondarySeedHex(secHex);
         }}
-        mode={theme}
-        onToggleMode={toggleTheme}
+        onToggleTheme={toggleTheme}
       />
-    </div>
+    </MainAppPage>
   );
 }

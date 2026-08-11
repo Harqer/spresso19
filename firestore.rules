@@ -7,6 +7,7 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
@@ -19,32 +20,51 @@ service cloud.firestore {
       return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
     // Logs collection for Crashlytics / error tracking
     match /logs/{logId} {
       allow create: if isValidId(logId) &&
-        request.resource.data.level is string &&
-        request.resource.data.message is string &&
-        request.resource.data.message.size() <= 2000;
+        isValidString(request.resource.data.level, 1, 20) &&
+        isValidString(request.resource.data.message, 1, 2000) &&
+        (request.resource.data.timestamp is timestamp || request.resource.data.timestamp == null);
       allow read: if isSignedIn();
     }
 
-    // User profile documents
+    // User profile documents (strict ownership & size limits)
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) &&
+        (!('displayName' in request.resource.data) || isValidString(request.resource.data.displayName, 0, 100)) &&
+        (!('email' in request.resource.data) || isValidString(request.resource.data.email, 0, 200));
     }
 
-    // User specific orders
+    // User specific orders (strict state machine & immutability checks)
     match /users/{userId}/orders/{orderId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId) &&
+        isValidId(orderId) &&
         request.resource.data.totalAmount is number &&
-        request.resource.data.status is string;
-      allow update: if isOwner(userId);
+        request.resource.data.totalAmount >= 0 &&
+        isValidString(request.resource.data.status, 1, 50);
+      allow update: if isOwner(userId) &&
+        request.resource.data.totalAmount == resource.data.totalAmount &&
+        isValidString(request.resource.data.status, 1, 50);
     }
 
-    // Chat messages
+    // Chat sessions (authenticated user isolation)
     match /chats/{chatId} {
-      allow read, write: if true; // Allows public chat & simulation sessions
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.isPublic == true);
+      allow create: if isSignedIn() &&
+        isValidId(chatId) &&
+        request.resource.data.userId == request.auth.uid &&
+        isValidString(request.resource.data.title, 1, 200);
+      allow update: if isSignedIn() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
   }
 }

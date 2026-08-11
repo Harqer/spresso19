@@ -44,14 +44,12 @@ export const LocationDetailsView: React.FC<LocationDetailsViewProps> = ({
 }) => {
   const [isItineraryAdded, setIsItineraryAdded] = useState(!!data.itineraryAdded);
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    data.categories && data.categories.length > 0 ? data.categories[0] : "All"
+    data.categories && data.categories.length > 0 ? data.categories[0] : ""
   );
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [showAllItems, setShowAllItems] = useState(false);
 
-  const categories = data.categories && data.categories.length > 0
-    ? data.categories
-    : ["Popular", "Reviews", "Dining", "Amenities"];
+  const categories = data.categories || [];
 
   const toggleFavorite = (itemId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -73,7 +71,7 @@ export const LocationDetailsView: React.FC<LocationDetailsViewProps> = ({
       {/* 1. Hero Header Banner */}
       <div className="relative w-full h-64 sm:h-72 bg-neutral-900 overflow-hidden">
         <img
-          src={data.heroImage || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80"}
+          src={data.heroImage || ""}
           alt={data.title}
           className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
         />
@@ -138,12 +136,16 @@ export const LocationDetailsView: React.FC<LocationDetailsViewProps> = ({
       {/* 2. Main Section Title & Sub-header */}
       <div className="p-5 sm:p-6 space-y-4">
         <div className="text-center sm:text-left space-y-0.5">
-          <h3 className="text-lg sm:text-xl font-bold tracking-tight text-[var(--md-sys-color-on-surface,#1c1b1f)]">
-            {data.sectionTitle || "Featured Highlights & Reviews"}
-          </h3>
-          <p className="text-xs text-[var(--md-sys-color-outline,#79747e)] font-medium">
-            {data.sectionMeta || "Within 5 miles • $$-$$$"}
-          </p>
+          {data.sectionTitle && (
+            <h3 className="text-lg sm:text-xl font-bold tracking-tight text-[var(--md-sys-color-on-surface,#1c1b1f)]">
+              {data.sectionTitle}
+            </h3>
+          )}
+          {data.sectionMeta && (
+            <p className="text-xs text-[var(--md-sys-color-outline,#79747e)] font-medium">
+              {data.sectionMeta}
+            </p>
+          )}
         </div>
 
         {/* 3. Category Filter Tabs */}
@@ -180,7 +182,7 @@ export const LocationDetailsView: React.FC<LocationDetailsViewProps> = ({
                 {/* Thumbnail Image with Rounded Organic Corner */}
                 <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shrink-0 bg-neutral-100 dark:bg-neutral-800">
                   <img
-                    src={item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80"}
+                    src={item.image || ""}
                     alt={item.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
@@ -222,7 +224,7 @@ export const LocationDetailsView: React.FC<LocationDetailsViewProps> = ({
 
                   {/* Category & Meta info line */}
                   <p className="text-[11px] sm:text-xs text-[var(--md-sys-color-outline,#79747e)] font-medium truncate">
-                    {item.category} • {item.priceLevel || "$$"} • {item.distance || "Nearby"}
+                    {[item.category, item.priceLevel, item.distance].filter(Boolean).join(" • ")}
                   </p>
 
                   {/* Supporting Review Snippet Line */}

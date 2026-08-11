@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="luxury">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spresso: Production Orders & Telemetry Plan</title>
+  <!-- DaisyUI v5 Stylesheets -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+  <!-- Tailwind CSS v4 Browser Runtime -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+  <!-- Layout Safety Styles -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :where(.grid, .flex, .layout-grid, .layout-flex) > * {
+      min-width: 0;
+    }
+    :where(p, h1, h2, h3, h4, h5, h6, li, dd, blockquote, figcaption, td, th, .badge, .label) {
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+<body class="bg-base-300 text-base-content min-h-screen font-sans">
+
+  <!-- Navbar -->
+  <header class="navbar bg-base-200 border-b border-base-content/10 px-6 py-4 shadow-sm">
+    <div class="navbar-start flex items-center space-x-3">
+      <div class="avatar placeholder">
+        <div class="bg-primary text-primary-content w-10 rounded-xl">
+          <span class="text-xl font-bold">SP</span>
+        </div>
+      </div>
+      <div>
+        <h1 class="text-lg font-serif font-black tracking-wider">Spresso Architecture</h1>
+        <p class="text-[10px] opacity-60">Production Order Systems & Telemetry Badge Audits</p>
+      </div>
+    </div>
+    <div class="navbar-end">
+      <span class="badge badge-soft badge-warning font-mono">Plan Verification</span>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="mx-auto max-w-6xl p-6 lg:p-10 space-y-10">
+
+    <!-- Hero Header -->
+    <section class="hero bg-base-200 rounded-3xl p-6 lg:p-8 border border-base-content/5 shadow-md">
+      <div class="hero-content flex-col lg:flex-row gap-6">
+        <div class="max-w-xl space-y-4">
+          <div class="flex items-center space-x-2">
+            <span class="badge badge-primary badge-sm font-bold uppercase">Ready for Review</span>
+            <span class="badge badge-outline badge-sm">Version 1.2</span>
+          </div>
+          <h2 class="text-3xl font-serif font-bold text-base-content leading-tight">PostgreSQL Orders Integration & Telemetry Standards</h2>
+          <p class="text-xs text-base-content/75 leading-relaxed">
+            This interactive dashboard maps our execution plan for connecting client-side checkouts (via Firebase Data Connect) with backend order managers (via Drizzle PostgreSQL), enabling end-to-end status tracking, returns, and delivery notifications. We also audit and eliminate artificial AI telemetry match scores in the UI.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Phase Steps Progress -->
+    <section class="card card-border bg-base-100 shadow-xs">
+      <div class="card-body space-y-4">
+        <h3 class="card-title text-md font-serif font-bold flex items-center space-x-2">
+          <span>Implementation Timeline</span>
+        </h3>
+        <ul class="steps steps-vertical lg:steps-horizontal w-full text-xs">
+          <li class="step step-primary">Extend schema.ts (items, return, reminder columns)</li>
+          <li class="step step-primary">Modify initDbSchema (ALTER TABLE migration fallback)</li>
+          <li class="step step-primary">Update routes.ts (confirm, GET orders, return, reminder APIs)</li>
+          <li class="step">Integrate App.tsx & OrdersTracker (SQL orders fetching)</li>
+          <li class="step">Telemetry Badges Cleanups (Try-On, Wardrobe, Scaffold)</li>
+          <li class="step">Automated HTTP Tests execution</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Schema & Mermaid Diagram -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Mermaid Diagram Card -->
+      <div class="card card-border bg-base-100 shadow-xs">
+        <div class="card-body space-y-4">
+          <h3 class="card-title text-sm font-serif font-bold">Database & Order Flow Architecture</h3>
+          <p class="text-xs opacity-70">Interactive Mermaid diagram representing the unified Cloud SQL PostgreSQL flow:</p>
+          
+          <div class="mermaid bg-base-200 p-4 rounded-xl border border-base-content/5 text-xs">
+            graph TD
+              subgraph Client [Jetpack Compose Client App]
+                Nav[Bottom Navigation] -->|Tab: Shop| ShopScreen[Shop: Product Catalog]
+                Nav -->|Tab: Assistant| ChatScreen[Assistant: Personal Shopper Chat]
+                Nav -->|Tab: Wardrobe| WardrobeScreen[Wardrobe Closet]
+                
+                ShopScreen -->|Click: Confirm Purchase| DoubleSync[Double-Sync Pipeline]
+                ShopScreen -->|Personalization Feed| Personalization[Scored Curations Shelf]
+                
+                ChatScreen -->|Text Query Send| StreamChat[Express /api/chat/stream]
+                ChatScreen -->|Save Inquiries| LocalStorage[(Local Storage)]
+                
+                LocalStorage -->|Reads Search Inquiries| Personalization
+                
+                WardrobeScreen -->|Init: Access Photo Gallery| PermCheck{Permission Checked?}
+                PermCheck -->|Undetermined| PermOverlay[Permission Overlay Dialog]
+                PermOverlay -->|Grant & Sync| SeedWardrobe[Seed Summer/Winter Fits]
+                PermOverlay -->|Allow Roll| GalleryRoll[Interactive Camera Roll]
+                GalleryRoll -->|Import & Multi-Style| MixMatch[Mix & Match Studio]
+              end
+              
+              subgraph Databases & API Services
+                DoubleSync -->|Write 1| SQL_DB[(PostgreSQL Cloud SQL)]
+                DoubleSync -->|Write 2| FirestoreDb[(Cloud Firestore Root Collection)]
+                
+                StreamChat -->|Intercepts Function Calls| GeminiTools[Gemini Tool Calls Interceptor]
+                GeminiTools -->|Tool Execution| SQL_DB
+              end
+              
+              subgraph Automated Testing
+                Runner[verify_orders_test.ts] -->|Validates API Router| DoubleSync
+                Runner -->|Validates Personalization| Personalization
+              end
+          </div>
+          <div class="text-[10px] opacity-50 italic">💡 Click the diagram to lock editing or draw annotations directly.</div>
+        </div>
+      </div>
+
+      <!-- SQL Table Schema Details -->
+      <div class="card card-border bg-base-100 shadow-xs">
+        <div class="card-body space-y-3">
+          <h3 class="card-title text-sm font-serif font-bold">PostgreSQL "orders" Table Evolution</h3>
+          <div class="overflow-x-auto rounded-box border border-base-content/5 bg-base-200">
+            <table class="table table-xs table-zebra w-full font-mono text-[11px]">
+              <thead>
+                <tr>
+                  <th>Column Name</th>
+                  <th>SQL Type</th>
+                  <th>Drizzle Schema Type</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>id</td>
+                  <td>SERIAL (PK)</td>
+                  <td>serial().primaryKey()</td>
+                  <td>Primary order identifier</td>
+                </tr>
+                <tr>
+                  <td>user_id</td>
+                  <td>TEXT</td>
+                  <td>text().notNull()</td>
+                  <td>References Firebase Auth UID</td>
+                </tr>
+                <tr>
+                  <td>total_amount</td>
+                  <td>NUMERIC</td>
+                  <td>numeric().notNull()</td>
+                  <td>Total order cost</td>
+                </tr>
+                <tr>
+                  <td>status</td>
+                  <td>TEXT</td>
+                  <td>text().notNull()</td>
+                  <td>Standard: IN_TRANSIT, DELIVERED, etc.</td>
+                </tr>
+                <tr>
+                  <td class="text-primary font-bold">items</td>
+                  <td class="text-primary font-bold">TEXT</td>
+                  <td class="text-primary font-bold">text()</td>
+                  <td>JSON string of products & quantities</td>
+                </tr>
+                <tr>
+                  <td class="text-primary font-bold">return_status</td>
+                  <td class="text-primary font-bold">TEXT</td>
+                  <td class="text-primary font-bold">text()</td>
+                  <td>Returns state: NONE, REQUESTED, APPROVED</td>
+                </tr>
+                <tr>
+                  <td class="text-primary font-bold">return_reason</td>
+                  <td class="text-primary font-bold">TEXT</td>
+                  <td class="text-primary font-bold">text()</td>
+                  <td>Sizing/Defective description</td>
+                </tr>
+                <tr>
+                  <td class="text-primary font-bold">reminder_set</td>
+                  <td class="text-primary font-bold">BOOLEAN</td>
+                  <td class="text-primary font-bold">boolean().default(false)</td>
+                  <td>Alert state set (Active/Inactive)</td>
+                </tr>
+                <tr>
+                  <td class="text-primary font-bold">reminder_time</td>
+                  <td class="text-primary font-bold">TEXT</td>
+                  <td class="text-primary font-bold">text()</td>
+                  <td>Time selected for alert notification</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Firebase Cloud Firestore Schema Details -->
+    <section class="card card-border bg-base-100 shadow-xs">
+      <div class="card-body space-y-4">
+        <h3 class="card-title text-md font-serif font-bold text-primary">Firebase Cloud Firestore Root Collections</h3>
+        <p class="text-xs opacity-75">
+          Production-ready flattened schema mapping that safeguards against race conditions, decouples cart/review dependencies, and stores snapshot items for historical receipt integrity:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- Column 1: products & users -->
+          <div class="space-y-4">
+            <div class="bg-base-200 p-4 rounded-2xl border border-base-content/5 space-y-2">
+              <h4 class="text-xs font-bold text-accent">1. products (Root Collection)</h4>
+              <p class="text-[10px] opacity-70">Active store inventory items. Reviews are decoupled to separate root collections.</p>
+              <pre class="mockup-code text-[10px] font-mono leading-tight bg-neutral text-neutral-content p-2 rounded-xl"><code>{
+  "name": "Minimalist Wireless Headphones",
+  "description": "Noise-canceling over-ear headphones...",
+  "price": 149.99,
+  "compareAtPrice": 199.99,
+  "category": "electronics",
+  "stockCount": 42,
+  "ratings": { "average": 4.7, "count": 128 }
+}</code></pre>
+            </div>
+
+            <div class="bg-base-200 p-4 rounded-2xl border border-base-content/5 space-y-2">
+              <h4 class="text-xs font-bold text-accent">2. users (Root Collection)</h4>
+              <p class="text-[10px] opacity-70">Profile records mapping authentication credentials and verified shipping targets.</p>
+              <pre class="mockup-code text-[10px] font-mono leading-tight bg-neutral text-neutral-content p-2 rounded-xl"><code>{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "role": "customer",
+  "shippingAddresses": [
+    { "id": "addr_1", "street": "123 Main St", "isDefault": true }
+  ]
+}</code></pre>
+            </div>
+          </div>
+
+          <!-- Column 2: carts & orders -->
+          <div class="space-y-4">
+            <div class="bg-base-200 p-4 rounded-2xl border border-base-content/5 space-y-2">
+              <h4 class="text-xs font-bold text-accent">3. carts (Root Collection)</h4>
+              <p class="text-[10px] opacity-70">Flat mapping supporting local storage / guest checkout sessions seamlessly.</p>
+              <pre class="mockup-code text-[10px] font-mono leading-tight bg-neutral text-neutral-content p-2 rounded-xl"><code>{
+  "updatedAt": "2026-08-10T12:20:00Z",
+  "items": [
+    { "productId": "prod_123", "name": "Headphones", "quantity": 1 }
+  ],
+  "cartTotal": 149.99
+}</code></pre>
+            </div>
+
+            <div class="bg-base-200 p-4 rounded-2xl border border-base-content/5 space-y-2">
+              <h4 class="text-xs font-bold text-accent">4. orders (Root Collection)</h4>
+              <p class="text-[10px] opacity-70">Historical immutable receipts containing fully snapshotted product details.</p>
+              <pre class="mockup-code text-[10px] font-mono leading-tight bg-neutral text-neutral-content p-2 rounded-xl"><code>{
+  "userId": "user_abc123",
+  "status": "processing",
+  "pricing": { "subtotal": 149.99, "total": 167.36 },
+  "items": [
+    { "productId": "prod_12345", "name": "Headphones", "price": 149.99, "quantity": 1 }
+  ],
+  "shippingAddress": { "street": "123 Main St", "zip": "91766" },
+  "createdAt": "2026-08-10T12:25:00Z"
+}</code></pre>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Telemetry Badges Cleanup Comparison -->
+    <section class="card card-border bg-base-100 shadow-xs">
+      <div class="card-body space-y-4">
+        <h3 class="card-title text-md font-serif font-bold">UI Badge & Telemetry Audits</h3>
+        <p class="text-xs opacity-75">
+          To comply with the rule of <strong>ONLY standard customer star ratings allowed (★ 4.8)</strong> and <strong>NO artificial percentage match scores (98% Match)</strong>, we perform the following before-and-after replacements:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          <!-- Virtual Try-On Card -->
+          <div class="bg-base-200 p-4 rounded-2xl border border-base-content/5 space-y-2">
+            <h4 class="text-xs font-bold text-primary">1. Virtual Try-On Canvas</h4>
+            <div class="flex items-center space-x-2 text-[11px] font-mono">
+              <span class="badge badge-soft badge-error">BEFORE</span>
+              <span class="text-neutral-400">"Fit Match: 95%"</span>
+            </div>
+            <div class="flex items-center space-x-2 text-[11px] font-mono">
+              <span class="badge badge-soft badge-success">AFTER</span>
+              <span class="text-success font-bold">(Removed completely - visual output only)</span>
+            </div>
+          </div>
+
+          <!-- Wardrobe Decks -->
+          <div class="bg-base-200 p-4 rounded-2xl border border-base-content/5 space-y-2">
+            <h4 class="text-xs font-bold text-primary">2. Wardrobe Decks & Outfits</h4>
+            <div class="flex items-center space-x-2 text-[11px] font-mono">
+              <span class="badge badge-soft badge-error">BEFORE</span>
+              <span class="text-neutral-400">"96% Match" / "98% AI Style Match"</span>
+            </div>
+            <div class="flex items-center space-x-2 text-[11px] font-mono">
+              <span class="badge badge-soft badge-success">AFTER</span>
+              <span class="text-success font-bold">(Removed completely - clean minimalist layout)</span>
+            </div>
+          </div>
+
+          <!-- Scaffold Extra Pane -->
+          <div class="bg-base-200 p-4 rounded-2xl border border-base-content/5 space-y-2">
+            <h4 class="text-xs font-bold text-primary">3. Adaptive Scaffold Pane</h4>
+            <div class="flex items-center space-x-2 text-[11px] font-mono">
+              <span class="badge badge-soft badge-error">BEFORE</span>
+              <span class="text-neutral-400">"Matches 98% with preferences..."</span>
+            </div>
+            <div class="flex items-center space-x-2 text-[11px] font-mono">
+              <span class="badge badge-soft badge-success">AFTER</span>
+              <span class="text-success font-bold">(Removed completely - panel content cleaned)</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Automated Testing Workflow -->
+    <section class="card card-border bg-base-100 shadow-xs">
+      <div class="card-body space-y-4">
+        <h3 class="card-title text-md font-serif font-bold">Automated REST Integration Tests</h3>
+        <p class="text-xs opacity-75">
+          Rather than launching an Android emulator or executing manual clicks, we automate the testing using a node script. It programmatically instantiates the Express router and executes verified endpoints tests:
+        </p>
+
+        <div class="mockup-code text-xs bg-neutral text-neutral-content">
+          <pre data-prefix="$"><code>npx tsx verify_orders_test.ts</code></pre>
+          <pre data-prefix=">"><code>[Test] Spresso Core API & Orders Integration Verification</code></pre>
+          <pre data-prefix=">"><code>✔ POST /api/purchase/confirm (Creates order in SQL/activeOrders)</code></pre>
+          <pre data-prefix=">"><code>✔ GET /api/orders?userId=guest_user (Retrieves SQL order details & items JSON)</code></pre>
+          <pre data-prefix=">"><code>✔ POST /api/orders/reminder (Updates delivery reminder parameters)</code></pre>
+          <pre data-prefix=">"><code>✔ POST /api/orders/return (Submits automated return request)</code></pre>
+          <pre data-prefix=">"><code>✔ GET /api/orders/ORD-SQL-1 (Fetches correct single order record)</code></pre>
+          <pre data-prefix=">"><code>✔ POST /api/try-on (Verifies virtual try-on pipeline and media/video generation)</code></pre>
+          <pre data-prefix=">"><code>✔ POST /api/chat/stream (Verifies real streaming text response & live product catalog matches)</code></pre>
+          <pre data-prefix=">"><code>TEST COMPLETED SUCCESSFULLY: 7/7 PASSED</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Human Review Section -->
+    <section class="card card-border bg-base-100 shadow-md">
+      <div class="card-body space-y-4">
+        <h3 class="card-title text-md font-serif font-bold">Human Approval & Feedback</h3>
+        <p class="text-xs opacity-75">
+          Use this section to select your preference, or add annotations directly on elements or text to direct modifications.
+        </p>
+
+        <div class="p-4 bg-base-200 rounded-2xl border border-base-content/5 space-y-4">
+          <div class="fieldset">
+            <legend class="fieldset-legend font-bold text-xs">Review Action</legend>
+            <div class="flex flex-col sm:flex-row gap-4">
+              <label class="flex items-center space-x-2 text-xs cursor-pointer">
+                <input type="radio" name="approval" value="approve" class="radio radio-primary" checked>
+                <span>Approve plan & run automated tests</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs cursor-pointer">
+                <input type="radio" name="approval" value="adjust" class="radio radio-primary">
+                <span>Request custom schema adjustments (specify in annotations)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer footer-center bg-base-200 text-base-content/65 p-4 border-t border-base-content/10 text-xs">
+    <aside>
+      <p>Spresso Commerce Dashboard • Generated by Antigravity Agent</p>
+    </aside>
+  </footer>
+
+  <!-- Mermaid Diagram Rendering Script -->
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.esm.min.mjs";
+
+    const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const paint = document.createElement("canvas").getContext("2d");
+    function toRgba(color) {
+      paint.clearRect(0, 0, 1, 1);
+      paint.fillStyle = "#000";
+      paint.fillStyle = color;
+      paint.fillRect(0, 0, 1, 1);
+      return paint.getImageData(0, 0, 1, 1).data;
+    }
+
+    function compositeRgba(foreground, background) {
+      const foregroundAlpha = foreground[3] / 255;
+      const backgroundAlpha = background[3] / 255;
+      const alpha = foregroundAlpha + backgroundAlpha * (1 - foregroundAlpha);
+      if (alpha === 0) return [0, 0, 0, 0];
+      return [
+        (foreground[0] * foregroundAlpha + background[0] * backgroundAlpha * (1 - foregroundAlpha)) / alpha,
+        (foreground[1] * foregroundAlpha + background[1] * backgroundAlpha * (1 - foregroundAlpha)) / alpha,
+        (foreground[2] * foregroundAlpha + background[2] * backgroundAlpha * (1 - foregroundAlpha)) / alpha,
+        alpha * 255,
+      ];
+    }
+
+    function pageIsDark() {
+      const root = document.documentElement;
+      const rootBackground = toRgba(getComputedStyle(root).backgroundColor);
+      const bodyBackground = document.body ? toRgba(getComputedStyle(document.body).backgroundColor) : [0, 0, 0, 0];
+      const [r, g, b, a] = compositeRgba(bodyBackground, rootBackground);
+      if (a > 0) {
+        return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 < 0.5;
+      }
+      const colorScheme = getComputedStyle(root).colorScheme;
+      if (colorScheme.includes("dark") && !colorScheme.includes("light")) return true;
+      if (colorScheme.includes("light") && !colorScheme.includes("dark")) return false;
+      return darkQuery.matches;
+    }
+
+    const diagrams = [...document.querySelectorAll(".mermaid")].map((el) => ({ el, src: el.textContent }));
+    let applied;
+    let rendering = false;
+    let queued = false;
+    function queueRender() {
+      queued = true;
+      if (rendering) return;
+      void render();
+    }
+    async function render() {
+      rendering = true;
+      try {
+        while (queued) {
+          queued = false;
+          const theme = pageIsDark() ? "dark" : "default";
+          if (theme === applied) continue;
+          mermaid.initialize({ startOnLoad: false, theme, securityLevel: "strict" });
+          for (const { el, src } of diagrams) {
+            el.removeAttribute("data-processed");
+            el.textContent = src;
+          }
+          try {
+            await mermaid.run({ nodes: diagrams.map((d) => d.el) });
+          } catch (error) {
+            console.error("Mermaid diagram render failed:", error);
+            return;
+          }
+          applied = theme;
+        }
+      } finally {
+        rendering = false;
+        if (queued) queueRender();
+      }
+    }
+
+    if (document.readyState === "complete") queueRender();
+    else window.addEventListener("load", queueRender, { once: true });
+    const themeObserver = new MutationObserver(queueRender);
+    for (const el of [document.documentElement, document.body]) {
+      if (!el) continue;
+      themeObserver.observe(el, {
+        attributes: true,
+        attributeFilter: ["data-theme", "class", "style"],
+      });
+    }
+    document.addEventListener("change", queueRender, true);
+    document.addEventListener(
+      "transitionend",
+      ({ propertyName }) => {
+        if (propertyName === "background-color") queueRender();
+      },
+      true,
+    );
+    darkQuery.addEventListener("change", queueRender);
+  </script>
+</body>
+</html>

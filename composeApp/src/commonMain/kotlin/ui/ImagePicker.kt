@@ -1,0 +1,6 @@
+package ui
+
+import androidx.compose.runtime.Composable
+
+@Composable
+expect fun rememberImagePicker(onImagePicked: (ByteArray?) -> Unit): () -> Unit

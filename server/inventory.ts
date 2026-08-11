@@ -1,6 +1,6 @@
-import { ProductItem } from "../src/types.ts";
+import type { ProductItem } from "../src/types.ts";
 
-export const mockInventory: ProductItem[] = [
+export const seedCatalogInventory: ProductItem[] = [
   {
     id: "mug",
     name: "Artisan Gradient Ceramic Mug",
@@ -149,7 +149,7 @@ export const activeOrders: OrderItem[] = [
     userId: "guest_user",
     items: [
       {
-        product: mockInventory[4], // Meta Wayfarer
+        product: seedCatalogInventory[4], // Meta Wayfarer
         quantity: 1
       }
     ],
@@ -169,5 +169,5 @@ export const activeOrders: OrderItem[] = [
 ];
 
 export function getProductById(id: string): ProductItem | undefined {
-  return mockInventory.find(p => p.id === id);
+  return seedCatalogInventory.find(p => p.id === id);
 }

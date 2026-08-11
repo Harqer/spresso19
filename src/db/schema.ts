@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { integer, pgTable, serial, text, timestamp, numeric } from 'drizzle-orm/pg-core';
+import { integer, pgTable, serial, text, timestamp, numeric, boolean } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -15,6 +15,11 @@ export const orders = pgTable('orders', {
   totalAmount: numeric('total_amount').notNull(),
   status: text('status').notNull(),
   deviceSource: text('device_source'),
+  items: text('items'), // serialized JSON array
+  returnStatus: text('return_status'),
+  returnReason: text('return_reason'),
+  reminderSet: boolean('reminder_set').default(false),
+  reminderTime: text('reminder_time'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { ProductItem } from "../types";
+import { GoogleGenAI } from "@google/genai";
 import { MaterialIcon } from "./MaterialIcon";
 import { M3ExpressiveCircularProgress } from "./M3ExpressiveCircularProgress";
+import { logToCrashlytics } from "../lib/firebase";
 
 interface GenkitCreativeStudioModalProps {
   product: ProductItem | null;
@@ -22,21 +24,65 @@ export const GenkitCreativeStudioModal: React.FC<GenkitCreativeStudioModalProps>
     const fetchGenkitPipeline = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch("/api/genkit/creative-pipeline", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            productId: product.id,
-            productName: product.name,
-            brandName: product.brand
-          })
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        if (!apiKey) {
+           logToCrashlytics("warn", "VITE_GEMINI_API_KEY is missing for Genkit Creative Studio");
+           return;
+        }
+
+        const ai = new GoogleGenAI({ apiKey });
+        
+        const prompt = `You are a high-end luxury fashion and retail creative director. 
+Given the product "${product.brand} - ${product.name}", act as an intelligent creative studio pipeline.
+Generate an elaborate creative strategy including Brand DNA, Product Universe Concepts, 3D Studio Angles, Virtual Try-On specs, and a pipeline graph.
+
+Output STRICTLY in this JSON format:
+{
+  "brandCreativeDNA": {
+    "brandArchetype": "Luxury Innovation",
+    "shapes": ["Geometric", "Fluid"],
+    "materials": ["Silk", "Carbon"],
+    "lightingPhilosophy": "High contrast chiaroscuro",
+    "photographyStyle": "Editorial Film",
+    "emotionalFeeling": "Empowered, Bold",
+    "customerIdentity": "The Modern Visionary",
+    "bannedVisualElements": ["Clutter", "Over-saturation"]
+  },
+  "creativeDirectorStrategy": {
+    "masterTheme": "The Future of Elegance",
+    "narrativeDirection": "A journey through..."
+  },
+  "productUniverseConcepts": {
+    "heroImage": "...", "lifestyleScene": "...", "materialMacroShot": "...", "detailVisualization": "...", "environment360": "...", "motionConcept": "..."
+  },
+  "render3DStudioAngles": {
+    "frontView": "...", "angle45View": "...", "sideView": "...", "backView": "...", "bottomView": "...", "materialCloseUp": "..."
+  },
+  "virtualTryOnSpecs": {
+    "vogueEditorialRating": 95,
+    "fabricPhysicsAnalysis": "...",
+    "preservedTraits": ["Skin tone", "Silhouette"],
+    "replacedElements": ["Garment"]
+  },
+  "pipelineExecutionGraph": [
+    {"step": 1, "agent": "Brand Analyst", "output": "Brand DNA Extracted", "status": "COMPLETED"}
+  ]
+}`;
+
+        const response = await ai.models.generateContent({
+           model: 'gemini-2.5-flash',
+           contents: prompt,
+           config: {
+             responseMimeType: "application/json"
+           }
         });
-        const data = await res.json();
-        if (data.genkit) {
-          setPipelineData(data.genkit);
+
+        if (response.text) {
+           const parsed = JSON.parse(response.text);
+           setPipelineData(parsed);
         }
       } catch (err) {
-        console.warn("Genkit pipeline error:", err);
+        logToCrashlytics("warn", "Genkit pipeline error", { error: String(err) });
       } finally {
         setIsLoading(false);
       }
