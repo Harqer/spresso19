@@ -91,7 +91,18 @@ class ApiClient {
     
     suspend fun getInventory(): List<ProductItem> {
         return try {
-            client.get("$backendBaseUrl/api/products").body()
+            val response: JsonObject = client.get("$backendBaseUrl/api/products").body()
+            val productsArray = response["products"]?.jsonArray
+            productsArray?.mapNotNull { item ->
+                val obj = item.jsonObject
+                val id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
+                val name = obj["name"]?.jsonPrimitive?.content ?: "Product"
+                val brand = obj["brand"]?.jsonPrimitive?.content ?: "Spresso Store"
+                val category = obj["category"]?.jsonPrimitive?.content ?: "Apparel"
+                val price = obj["price"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0
+                val imageUrl = obj["image"]?.jsonPrimitive?.content ?: obj["imageUrl"]?.jsonPrimitive?.content ?: ""
+                ProductItem(id, name, brand, category, price, imageUrl)
+            } ?: emptyList()
         } catch (e: Exception) {
             emptyList()
         }
