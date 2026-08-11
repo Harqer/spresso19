@@ -9,7 +9,8 @@ import { GoogleWalletButton } from "./atoms/GoogleWalletButton";
 interface HITLCheckoutModalProps {
   payload: HITLPayload | null;
   onClose: () => void;
-  onSuccess: (order: any) => void;
+  onSuccess?: (order: any) => void;
+  onOrderConfirmed?: () => void;
 }
 
 const GOOGLE_PAY_MERCHANT_ID = "BCR2DN6DTK6ZNGLF";

@@ -98,8 +98,6 @@ fun App(
                         label = { Text("Shop") },
                         icon = { Icon(Icons.Default.ShoppingBag, contentDescription = "Shop") }
                     )
-import androidx.compose.material.icons.automirrored.filled.Chat
-
                     NavigationBarItem(
                         selected = currentTab == Tab.Assistant,
                         onClick = { currentTab = Tab.Assistant },

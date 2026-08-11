@@ -11,10 +11,11 @@ import {
 } from "../lib/dynamicColorEngine";
 
 interface DynamicThemePickerModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   currentSeedHex: string;
   currentSecondaryHex?: string;
+  currentSecondarySeedHex?: string;
   onSelectSeedHex: (hex: string, secondaryHex?: string) => void;
   mode: "light" | "dark";
   onToggleMode: () => void;

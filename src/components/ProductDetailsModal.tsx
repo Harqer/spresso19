@@ -3,11 +3,12 @@ import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem, HITLPayload } from "../types";
 
 interface ProductDetailsModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   product: ProductItem | null;
-  onAddToCart?: (product: ProductItem, quantity: number, selectedSize?: string) => void;
+  onAddToCart?: (product: ProductItem, quantity?: number, selectedSize?: string) => void;
   onRequestHITLCheckout?: (payload: HITLPayload) => void;
+  onOpenLens?: () => void;
 }
 
 export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({

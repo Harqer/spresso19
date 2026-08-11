@@ -59,6 +59,8 @@ export interface OrderRecord {
   returnReason?: string;
   reminderSet?: boolean;
   reminderTime?: string;
+  paymentMethod?: string;
+  userUid?: string;
 }
 
 export interface HITLPayload {
@@ -164,6 +166,10 @@ export interface ChatMessage {
   id: string;
   sender: "user" | "ai";
   text: string;
+  isStreaming?: boolean;
+  products?: ProductItem[];
+  locationData?: any;
+  audioUrl?: string;
 }
 
 

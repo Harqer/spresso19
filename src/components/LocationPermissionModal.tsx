@@ -4,10 +4,11 @@ import { MaterialIcon } from "./MaterialIcon";
 import { getCleanLocationName } from "../lib/location";
 
 interface LocationPermissionModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   onLocationGranted: (locationName: string, coords?: { lat: number; lng: number }, searchRadius?: number) => void;
   currentRadius?: number;
+  searchRadius?: number;
   onRadiusChange?: (radius: number) => void;
   userLocation?: string | null;
 }

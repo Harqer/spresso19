@@ -7,11 +7,16 @@ import { ProductItem } from "../types";
 
 export interface AIShopperInputBarProps {
   onSend: (text: string, attachedImage?: string | null) => void;
+  value?: string;
+  onChange?: (value: string) => void;
   isTyping?: boolean;
   placeholder?: string;
   className?: string;
   onSelectTryOn?: (product: ProductItem) => void;
   onAddToCart?: (product: ProductItem) => void;
+  onOpenLiveCamera?: () => void;
+  onOpenObjectDetection?: () => void;
+  onOpenLensWidget?: () => void;
   // Bi-directional voice props
   isVoiceActive?: boolean;
   isSpeaking?: boolean;

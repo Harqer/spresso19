@@ -6,9 +6,11 @@ import { SpressoLogo } from "./SpressoLogo";
 import { AnimatedTicketCard } from "./molecules/AnimatedTicketCard";
 
 interface GamifiedOnboardingModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
-  onComplete: (userPreferences: { vibes: string[]; radius: number; locationEnabled: boolean }) => void;
+  onComplete?: (userPreferences: { vibes: string[]; radius: number; locationEnabled: boolean }) => void;
+  onAskAI?: (query: string, image?: string) => void;
+  onSelectTryOn?: (product: any) => void;
 }
 
 const STYLE_VIBES = [

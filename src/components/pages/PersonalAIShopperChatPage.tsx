@@ -30,8 +30,10 @@ interface PersonalAIShopperChatPageProps {
   onOpenVisionSearch?: () => void;
   onSelectTab?: (tabId: string) => void;
   userLocation?: string | null;
+  userLatLng?: { lat: number; lng: number } | null;
   searchRadius?: number;
   onRequestLocationPermission?: () => void;
+  onClearShowcaseProduct?: () => void;
 }
 
 export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps> = ({

@@ -7,7 +7,7 @@ import { AIShopperInputBar } from "./AIShopperInputBar";
 import html2canvas from "html2canvas";
 
 interface GoogleLensScreenWidgetModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   onSearchComplete?: (queryText: string, imageBase64: string) => void;
   onSelectTryOn?: (product: any) => void;

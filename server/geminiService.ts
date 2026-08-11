@@ -36,8 +36,6 @@ export const HarmBlockThreshold = {
   OFF: "OFF"
 };
 
-import { initPool } from "../src/db/index.ts";
-
 export async function getActiveInventory(): Promise<any[]> {
   try {
     const result = await listProducts(getDc());

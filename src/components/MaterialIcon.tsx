@@ -1,7 +1,8 @@
 import React from "react";
 
 interface MaterialIconProps {
-  icon: string;
+  icon?: string;
+  name?: string;
   className?: string;
   filled?: boolean;
   size?: string | number;
@@ -10,12 +11,14 @@ interface MaterialIconProps {
 
 export const MaterialIcon: React.FC<MaterialIconProps> = ({
   icon,
+  name,
   className = "",
   filled = false,
   size,
   title
 }) => {
-  if (icon === "deployed_code_account" || icon === "genai_agent") {
+  const iconName = icon || name || "help";
+  if (iconName === "deployed_code_account" || iconName === "genai_agent") {
     const pixelSize = typeof size === "number" ? size : (size ? parseInt(String(size)) || 20 : 20);
     return (
       <svg
@@ -334,7 +337,7 @@ export const MaterialIcon: React.FC<MaterialIconProps> = ({
       style={style}
       title={title}
     >
-      {icon}
+      {iconName}
     </span>
   );
 };
