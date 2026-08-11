@@ -346,8 +346,9 @@ export const WardrobeViewPage: React.FC<WardrobeViewProps> = ({
 
           {/* Imported Gallery Items Grid */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-[#5e635f] uppercase tracking-wider font-mono">
-              👔 Personal Closet (Imported Photo Uploads)
+            <h4 className="text-xs font-bold text-[#5e635f] uppercase tracking-wider font-mono flex items-center space-x-1.5">
+              <MaterialIcon icon="checkroom" size={16} className="text-[#386633]" />
+              <span>Personal Closet (Imported Photo Uploads)</span>
             </h4>
             <WardrobeItemGrid
               items={state.userUploadedItems}

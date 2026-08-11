@@ -84,25 +84,15 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
     const promptToUse = customGenPrompt.trim() || t.promptExample;
     setIsGeneratingMedia(true); setGeneratedResult(null);
 
-    // Choose corresponding beautiful Unsplash image for visual representation
-    let matchingImage = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop";
-    if (t.id === "tmpl-1") {
-      matchingImage = "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600&auto=format&fit=crop";
-    } else if (t.id === "tmpl-2") {
-      matchingImage = "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=600&auto=format&fit=crop";
-    } else if (t.id === "tmpl-3") {
-      matchingImage = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop";
-    } else if (t.id === "tmpl-4") {
-      matchingImage = "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop";
-    } else if (t.id === "tmpl-5") {
-      matchingImage = "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=600&auto=format&fit=crop";
-    }
-
     try {
       const res = await fetch("/api/creator/generate-campaign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storeName: `${userName}'s ${t.name}`, category: t.category, productFeatures: promptToUse, targetAudience: "E-Commerce Shoppers" }) });
       const data = await res.json();
-      setGeneratedResult({ prompt: promptToUse, templateName: t.name, imageUrl: matchingImage, videoConcept: `${data.campaign?.marketingCampaign?.socialCopy || `Genkit 60fps dynamic video render applied.`}` });
-    } catch { setGeneratedResult({ prompt: promptToUse, templateName: t.name, imageUrl: matchingImage, videoConcept: `Genkit 60fps dynamic video render applied using reference template [${t.name}].` }); } finally { setIsGeneratingMedia(false); }
+      setGeneratedResult({ prompt: promptToUse, templateName: t.name, imageUrl: data.imageUrl || "", videoConcept: `${data.campaign?.marketingCampaign?.socialCopy || `Creative studio render synthesized.`}` });
+    } catch { 
+      setGeneratedResult({ prompt: promptToUse, templateName: t.name, imageUrl: "", videoConcept: `Creative studio processing completed using reference template [${t.name}].` }); 
+    } finally { 
+      setIsGeneratingMedia(false); 
+    }
   };
 
   const filteredTemplates = CREATIVE_TEMPLATES.filter(tmpl => (templateCategory === "ALL" || tmpl.category === templateCategory) && (!searchQuery.trim() || tmpl.name.toLowerCase().includes(searchQuery.toLowerCase()) || tmpl.creator.toLowerCase().includes(searchQuery.toLowerCase()) || tmpl.description.toLowerCase().includes(searchQuery.toLowerCase())));

@@ -103,18 +103,18 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
 
     // 1. AI Curated Fits Deck
     const aiFits: GeneratedOutfit[] = [
-      pickRandomFit("✨ Elevated Minimalist Streetwear", "everyday urban elegance", "72°F Sunny & Breeze", 98),
-      pickRandomFit("🌸 Vernal Chic & Silk Promenade", "breezy outdoor lunch", "68°F Spring Bloom", 95),
-      pickRandomFit("❄️ Alpine Wool & Cashmere Layering", "cozy coffee & chilly autumn walks", "45°F Crisp Air", 99),
-      pickRandomFit("☀️ Solstice Resort & Resortwear", "warm coastal vacations", "84°F Tropical Sun", 94),
-      pickRandomFit("🖤 Monochrome Minimalist Fit", "contemporary evening gallery outings", "65°F Mild Evening", 97),
+      pickRandomFit("Elevated Minimalist Streetwear", "everyday urban elegance", "72°F Sunny & Breeze", 98),
+      pickRandomFit("Vernal Chic & Silk Promenade", "breezy outdoor lunch", "68°F Spring Bloom", 95),
+      pickRandomFit("Alpine Wool & Cashmere Layering", "cozy coffee & chilly autumn walks", "45°F Crisp Air", 99),
+      pickRandomFit("Solstice Resort & Resortwear", "warm coastal vacations", "84°F Tropical Sun", 94),
+      pickRandomFit("Monochrome Minimalist Fit", "contemporary evening gallery outings", "65°F Mild Evening", 97),
     ];
 
     // 2. Liked Outfits Deck
     const likedFits: GeneratedOutfit[] = [
       {
         id: "liked-fit-1",
-        title: "❤️ Community Liked Best Look",
+        title: "Community Liked Best Look",
         weatherCondition: "MILD_SPRING_AUTUMN",
         temperatureText: "Community Hot Favorite",
         items: likedWardrobeItems.length > 0 ? likedWardrobeItems.slice(0, 3) : poolItems.slice(0, 3),
@@ -124,7 +124,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
       },
       {
         id: "liked-fit-2",
-        title: "🔥 Trending Liked Capsule",
+        title: "Trending Liked Capsule",
         weatherCondition: "HOT_SUMMER",
         temperatureText: "78°F Warm Afternoon",
         items: likedWardrobeItems.length > 2 ? likedWardrobeItems.slice(1, 4) : poolItems.slice(1, 4),
