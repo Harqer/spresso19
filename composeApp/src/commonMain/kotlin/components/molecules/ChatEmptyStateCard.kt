@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -23,13 +25,16 @@ import components.atoms.ChatSuggestionChip
 
 @Composable
 fun ChatEmptyStateCard(
+    userName: String = "Shopper",
     onSelectSuggestion: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val greetingHeader = "Hey $userName, good morning!"
+
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         )
     ) {
         Column(
@@ -48,12 +53,12 @@ fun ChatEmptyStateCard(
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = "Welcome to Spresso AI Shopper",
+                    text = greetingHeader,
                     style = MaterialTheme.typography.titleMedium
                 )
             }
             Text(
-                text = "Ask questions, scan products with CameraX, or select a suggestion below to begin shopping.",
+                text = "I'm your Spresso AI Personal Shopper. How can I help you find outfits, ingredients, or local retail deals today?",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -71,6 +76,22 @@ fun ChatEmptyStateCard(
                     label = "Outfit ideas",
                     icon = Icons.Default.Lightbulb,
                     onClick = { onSelectSuggestion("Recommend summer outfit ideas") }
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ChatSuggestionChip(
+                    label = "Local deals",
+                    icon = Icons.Default.LocalOffer,
+                    onClick = { onSelectSuggestion("Show top local retail deals near me") }
+                )
+                ChatSuggestionChip(
+                    label = "Recipe items",
+                    icon = Icons.Default.Restaurant,
+                    onClick = { onSelectSuggestion("Find ingredients for a healthy dinner") }
                 )
             }
         }

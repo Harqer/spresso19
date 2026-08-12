@@ -24,7 +24,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -32,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import components.atoms.ChatBubbleText
 import components.molecules.AIShopperInputBar
+import components.molecules.ChatEmptyStateCard
 import components.molecules.ChatMessageHeader
 
 @Composable
@@ -54,7 +54,7 @@ fun PersonalAIShopperChatPanel(
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
+            listState.animateScrollToItem(messages.size)
         }
     }
 
@@ -155,7 +155,7 @@ fun PersonalAIShopperChatPanel(
             }
         }
 
-        // Message History Container
+        // Message History Container with Dynamic User Greeting Card at top
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -163,6 +163,14 @@ fun PersonalAIShopperChatPanel(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            item {
+                ChatEmptyStateCard(
+                    userName = "Shopper",
+                    onSelectSuggestion = onSendMessage,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
             items(messages) { message ->
                 val isUser = message.second
                 Column(
