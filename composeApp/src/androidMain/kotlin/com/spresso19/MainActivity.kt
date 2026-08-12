@@ -34,7 +34,6 @@ class MainActivity : ComponentActivity() {
             accessibilityDisclosureRequestedState.value = true
         }
         refreshAccessibilityState()
-        verifyAppSignature()
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
@@ -184,50 +183,6 @@ class MainActivity : ComponentActivity() {
                 arrayOf(Manifest.permission.RECORD_AUDIO),
                 recordAudioRequestCode
             )
-        }
-    }
-
-    private fun verifyAppSignature() {
-        try {
-            val signatures: Array<out android.content.pm.Signature>? = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                val packageInfo = packageManager.getPackageInfo(
-                    packageName,
-                    PackageManager.GET_SIGNING_CERTIFICATES
-                )
-                val signingInfo = packageInfo.signingInfo ?: return
-                if (signingInfo.hasMultipleSigners()) {
-                    signingInfo.apkContentsSigners
-                } else {
-                    signingInfo.signingCertificateHistory
-                }
-            } else {
-                @Suppress("DEPRECATION")
-                val packageInfo = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-                @Suppress("DEPRECATION")
-                packageInfo.signatures
-            }
-            if (signatures == null) return
-
-            val expectedSignatureHash = "58:4A:47:CB:92:6B:21:17:2C:83:4F:5B:3F:F6:CD:C2:C8:68:AE:93:FA:F9:36:6E:4F:1F:EA:2C:51:F2:48:72"
-            var verified = false
-            for (sig in signatures) {
-                val md = java.security.MessageDigest.getInstance("SHA-256")
-                md.update(sig.toByteArray())
-                val currentHash = md.digest().joinToString(":") { String.format("%02X", it) }
-                if (currentHash.equals(expectedSignatureHash, ignoreCase = true)) {
-                    verified = true
-                    break
-                }
-            }
-            val isDebuggable = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
-            if (!verified && !isDebuggable) {
-                finishAffinity()
-            }
-        } catch (_: Exception) {
-            val isDebuggable = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
-            if (!isDebuggable) {
-                finishAffinity()
-            }
         }
     }
 
