@@ -42,7 +42,13 @@ enum class Tab {
 fun App(
     onShare: (String) -> Unit = {},
     isAccessibilityEnabled: Boolean = false,
-    onToggleAccessibility: (() -> Unit)? = null
+    hasAccessibilityConsent: Boolean = false,
+    showAccessibilityDisclosure: Boolean = false,
+    onToggleAccessibility: (() -> Unit)? = null,
+    onAccessibilityConsentAccepted: (() -> Unit)? = null,
+    onDismissAccessibilityDisclosure: (() -> Unit)? = null,
+    onRevokeAccessibilityConsent: (() -> Unit)? = null,
+    onRequestAccessibilityScan: (() -> Unit)? = null
 ) {
     AppTheme {
         val scope = rememberCoroutineScope()
@@ -189,7 +195,13 @@ fun App(
                             liveTranscript = liveTranscript,
                             errorMessage = errorMessage,
                             isAccessibilityEnabled = isAccessibilityEnabled,
+                            hasAccessibilityConsent = hasAccessibilityConsent,
+                            showAccessibilityDisclosure = showAccessibilityDisclosure,
                             onToggleAccessibility = onToggleAccessibility,
+                            onAccessibilityConsentAccepted = onAccessibilityConsentAccepted,
+                            onDismissAccessibilityDisclosure = onDismissAccessibilityDisclosure,
+                            onRevokeAccessibilityConsent = onRevokeAccessibilityConsent,
+                            onRequestAccessibilityScan = onRequestAccessibilityScan,
                             onLaunchCamera = { pickImage() }
                         )
                     }

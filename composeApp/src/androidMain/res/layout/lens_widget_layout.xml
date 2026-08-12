@@ -11,6 +11,6 @@
         android:layout_width="56dp"
         android:layout_height="56dp"
         android:background="@android:drawable/btn_default"
-        android:contentDescription="Spresso Google Lens Search"
+        android:contentDescription="Open Spresso screen search disclosure"
         android:src="@android:drawable/ic_menu_camera" />
 </LinearLayout>

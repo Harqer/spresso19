@@ -17,7 +17,8 @@ class SpressoLensWidgetProvider : AppWidgetProvider() {
         for (appWidgetId in appWidgetIds) {
             val intent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("open_lens", true)
+                // The widget only opens the in-app disclosure; it never requests a capture.
+                putExtra(MainActivity.EXTRA_OPEN_ACCESSIBILITY_DISCLOSURE, true)
             }
             val pendingIntent = PendingIntent.getActivity(
                 context,

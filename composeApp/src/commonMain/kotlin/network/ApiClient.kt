@@ -4,8 +4,10 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.http.HttpHeaders
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
@@ -147,7 +149,20 @@ class ApiClient {
                 contentType(ContentType.Application.Json)
                 setBody(mapOf("imageBase64" to base64Image))
             }.body()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
+            LensSearchResponse(success = false)
+        }
+    }
+
+    suspend fun performAccessibilityLensSearch(base64Image: String): LensSearchResponse {
+        val authToken = getCurrentUserIdToken() ?: return LensSearchResponse(success = false)
+        return try {
+            client.post("$backendBaseUrl/api/accessibility/lens-search") {
+                contentType(ContentType.Application.Json)
+                header(HttpHeaders.Authorization, "Bearer $authToken")
+                setBody(mapOf("imageBase64" to base64Image))
+            }.body()
+        } catch (_: Exception) {
             LensSearchResponse(success = false)
         }
     }

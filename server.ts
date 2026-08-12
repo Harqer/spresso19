@@ -10,7 +10,7 @@ import jwt from "jsonwebtoken";
 import { router } from "./server/routes.ts";
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "6mb", strict: true }));
 app.use(router);
 
 // Structured JSON Logging & PII Masking Service for Stackdriver compatibility

@@ -9,3 +9,5 @@ package network
 private external fun readFirebaseUidFromJs(): String?
 
 actual fun getCurrentUserUid(): String? = readFirebaseUidFromJs()
+
+actual suspend fun getCurrentUserIdToken(): String? = null

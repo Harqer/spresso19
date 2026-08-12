@@ -350,7 +350,12 @@ Provide structured JSON:
   return { success: true, genMediaKit };
 }
 
-export async function identifyVisionObject(imageBase64: string, deviceContext?: string, promptText?: string) {
+export async function identifyVisionObject(
+  imageBase64: string,
+  deviceContext?: string,
+  promptText?: string,
+  allowSyntheticFallback = true
+) {
   const ai = getGeminiAI();
   const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
 
@@ -429,7 +434,11 @@ Respond ONLY with valid JSON in this exact structure:
     }
   }
 
-  // Dynamic context matching if model fails or offline
+  if (!allowSyntheticFallback) {
+    return null;
+  }
+
+  // Dynamic context matching for the existing non-accessibility camera flows.
   const lowerPrompt = (promptText || "").toLowerCase();
   let matchedCategory = "Tops";
   let fallbackName = "Isolated Fashion Garment";

@@ -3,17 +3,35 @@ package components.pages
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import components.atoms.ChatBubbleText
 import components.organisms.ChatbotCanvas
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.automirrored.filled.Send
 
 @Composable
 fun PersonalAIShopperChatPage(
@@ -22,12 +40,18 @@ fun PersonalAIShopperChatPage(
     liveTranscript: String,
     errorMessage: String? = null,
     isAccessibilityEnabled: Boolean = false,
+    hasAccessibilityConsent: Boolean = false,
+    showAccessibilityDisclosure: Boolean = false,
     onToggleAccessibility: (() -> Unit)? = null,
+    onAccessibilityConsentAccepted: (() -> Unit)? = null,
+    onDismissAccessibilityDisclosure: (() -> Unit)? = null,
+    onRevokeAccessibilityConsent: (() -> Unit)? = null,
+    onRequestAccessibilityScan: (() -> Unit)? = null,
     onLaunchCamera: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val messages = remember { mutableStateListOf<Pair<String, Boolean>>() }
-    
+
     LaunchedEffect(liveTranscript) {
         if (liveTranscript.isNotEmpty()) {
             messages.clear()
@@ -36,10 +60,54 @@ fun PersonalAIShopperChatPage(
             messages.add(liveTranscript to false)
         }
     }
-    
+
     if (messages.isEmpty()) {
         messages.add("Hi there! I am your AI Shopper Assistant." to false)
         messages.add("How can I assist you with Spresso e-commerce today?" to false)
+    }
+
+    if (showAccessibilityDisclosure) {
+        var acknowledged by remember(showAccessibilityDisclosure) { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = { onDismissAccessibilityDisclosure?.invoke() },
+            title = { Text("Screen search access") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "Spresso can capture the current app window or screen only after you tap Scan current screen or the system accessibility button. It does not capture at service startup, from screen changes, or in the background."
+                    )
+                    Text(
+                        "A capture may include text, account details, messages, notifications, or anything else visible on that screen. Do not scan passwords, one-time codes, payment or banking forms, health apps, private messages, or authentication screens."
+                    )
+                    Text(
+                        "For visual shopping search, the one-time image is sent over HTTPS to Spresso's visual-search service and processors including Google Gemini and Apify. Spresso does not save the raw image to your device, chat history, analytics, or a persistent account record; transient request data is discarded after processing. External processors handle the submitted image under their own published processing and retention terms."
+                    )
+                    Text(
+                        "You can decline now or revoke consent later in Spresso or Android accessibility settings. Turning the Android service on is separate from this consent."
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = acknowledged,
+                            onCheckedChange = { acknowledged = it }
+                        )
+                        Text("I understand and agree to screen capture and transfer for visual shopping search.")
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    enabled = acknowledged && onAccessibilityConsentAccepted != null,
+                    onClick = { onAccessibilityConsentAccepted?.invoke() }
+                ) {
+                    Text("I understand and continue")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onDismissAccessibilityDisclosure?.invoke() }) {
+                    Text("Decline")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -61,7 +129,6 @@ fun PersonalAIShopperChatPage(
                     style = MaterialTheme.typography.titleLarge
                 )
 
-                // Native CameraX Visual Search & Smart Camera Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -102,7 +169,50 @@ fun PersonalAIShopperChatPage(
                         }
                     }
                 }
-                
+
+                if (onToggleAccessibility != null) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("Screen search", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                "Find products in the screen you are viewing with a one-time, user-requested scan.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                "Consent: ${if (hasAccessibilityConsent) "granted" else "not granted"}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                "Android service: ${if (isAccessibilityEnabled) "enabled" else "not enabled"}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(onClick = { onToggleAccessibility() }) {
+                                    Text(if (hasAccessibilityConsent) "Manage Android settings" else "Review access")
+                                }
+                                if (hasAccessibilityConsent && isAccessibilityEnabled && onRequestAccessibilityScan != null) {
+                                    Button(onClick = { onRequestAccessibilityScan() }) {
+                                        Text("Scan current screen")
+                                    }
+                                }
+                            }
+                            if (hasAccessibilityConsent && onRevokeAccessibilityConsent != null) {
+                                TextButton(onClick = { onRevokeAccessibilityConsent() }) {
+                                    Text("Revoke consent")
+                                }
+                            }
+                        }
+                    }
+                }
+
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -117,9 +227,8 @@ fun PersonalAIShopperChatPage(
                         }
                     }
                 }
-                
+
                 var userPrompt by remember { mutableStateOf("") }
-                
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -146,10 +255,10 @@ fun PersonalAIShopperChatPage(
                         Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send message")
                     }
                 }
-                
+
                 if (errorMessage != null) {
                     Text(
-                        text = errorMessage!!,
+                        text = errorMessage,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(bottom = 8.dp)

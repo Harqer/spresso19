@@ -45,6 +45,11 @@ kotlin {
             implementation(libs.androidx.camera.view)
             implementation(libs.androidx.camera.extensions)
         }
+        val androidUnitTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
