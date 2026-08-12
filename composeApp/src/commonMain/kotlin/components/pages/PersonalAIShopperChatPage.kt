@@ -22,7 +22,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import components.organisms.ChatbotCanvas
 import components.organisms.PersonalAIShopperChatPanel
 
 @Composable
@@ -31,6 +30,7 @@ fun PersonalAIShopperChatPage(
     isVoiceRecording: Boolean,
     liveTranscript: String,
     errorMessage: String? = null,
+    userLocation: String? = null,
     isAccessibilityEnabled: Boolean = false,
     hasAccessibilityConsent: Boolean = false,
     showAccessibilityDisclosure: Boolean = false,
@@ -48,15 +48,13 @@ fun PersonalAIShopperChatPage(
     LaunchedEffect(liveTranscript) {
         if (liveTranscript.isNotEmpty()) {
             messages.clear()
-            messages.add("Hi there! I am your AI Shopper Assistant." to false)
-            messages.add("How can I assist you with Spresso e-commerce today?" to false)
+            messages.add("Hello Shopper! I'm your Spresso AI Personal Shopper. How can I help you find outfits, ingredients, or local retail deals today?" to false)
             messages.add(liveTranscript to false)
         }
     }
 
     if (messages.isEmpty()) {
-        messages.add("Hi there! I am your AI Shopper Assistant." to false)
-        messages.add("How can I assist you with Spresso e-commerce today?" to false)
+        messages.add("Hello Shopper! I'm your Spresso AI Personal Shopper. How can I help you find outfits, ingredients, or local retail deals today?" to false)
     }
 
     if (showAccessibilityDisclosure) {
@@ -92,24 +90,20 @@ fun PersonalAIShopperChatPage(
     }
 
     Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
-        ChatbotCanvas(
-            isVideoPlaying = isVideoPlaying,
+        PersonalAIShopperChatPanel(
+            messages = messages,
+            onSendMessage = { prompt -> messages.add(prompt to true) },
+            errorMessage = errorMessage,
+            userLocation = userLocation,
+            isAccessibilityEnabled = isAccessibilityEnabled,
+            hasAccessibilityConsent = hasAccessibilityConsent,
+            onToggleAccessibility = onToggleAccessibility,
+            onRequestAccessibilityScan = onRequestAccessibilityScan,
+            onRevokeAccessibilityConsent = onRevokeAccessibilityConsent,
+            onLaunchCamera = onLaunchCamera,
             isVoiceRecording = isVoiceRecording,
+            onToggleVoiceRecording = onToggleVoiceRecording,
             modifier = Modifier.padding(innerPadding)
-        ) {
-            PersonalAIShopperChatPanel(
-                messages = messages,
-                onSendMessage = { prompt -> messages.add(prompt to true) },
-                errorMessage = errorMessage,
-                isAccessibilityEnabled = isAccessibilityEnabled,
-                hasAccessibilityConsent = hasAccessibilityConsent,
-                onToggleAccessibility = onToggleAccessibility,
-                onRequestAccessibilityScan = onRequestAccessibilityScan,
-                onRevokeAccessibilityConsent = onRevokeAccessibilityConsent,
-                onLaunchCamera = onLaunchCamera,
-                isVoiceRecording = isVoiceRecording,
-                onToggleVoiceRecording = onToggleVoiceRecording
-            )
-        }
+        )
     }
 }

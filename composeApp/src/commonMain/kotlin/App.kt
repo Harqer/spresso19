@@ -56,7 +56,7 @@ fun App(
         val liveApiClient = remember { LiveApiClient() }
         val audioRecorder = remember { AudioRecorder() }
         
-        var currentTab by rememberSaveable { mutableStateOf(Tab.Shop) }
+        var currentTab by rememberSaveable { mutableStateOf(Tab.Assistant) }
         var isVideoPlaying by remember { mutableStateOf(false) }
         var displayMediaUrl by remember { mutableStateOf<String?>(null) }
         var isVoiceRecording by remember { mutableStateOf(false) }
