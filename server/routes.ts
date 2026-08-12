@@ -31,6 +31,7 @@ import { eq } from "drizzle-orm";
 import { executeKitesurfPurchase } from "./kitesurfService.ts";
 import { initializeApp, getApps, getApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
 if (getApps().length === 0) {
   initializeApp({ projectId: "spresso-5561f" });
@@ -271,6 +272,106 @@ router.post("/api/apify/marketplace/run", async (req, res) => {
   }
   const result = await runMarketplaceActor(platform, query);
   res.json(result);
+});
+
+const MAX_ACCESSIBILITY_IMAGE_BYTES = 1_500_000;
+const MAX_ACCESSIBILITY_BASE64_CHARS = 2_100_000;
+
+function readJpegDimensions(bytes: Buffer): { width: number; height: number } | null {
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  let offset = 2;
+  const startOfFrameMarkers = new Set([
+    0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7,
+    0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf
+  ]);
+
+  while (offset + 9 < bytes.length) {
+    if (bytes[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;
+    const marker = bytes[offset++];
+    if (marker === undefined || marker === 0xd9) return null;
+    if ((marker >= 0xd0 && marker <= 0xd8) || marker === 0x01) continue;
+    if (offset + 2 > bytes.length) return null;
+    const segmentLength = bytes.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > bytes.length) return null;
+    if (startOfFrameMarkers.has(marker)) {
+      if (segmentLength < 7) return null;
+      return {
+        height: bytes.readUInt16BE(offset + 3),
+        width: bytes.readUInt16BE(offset + 5)
+      };
+    }
+    offset += segmentLength;
+  }
+  return null;
+}
+
+function validateAccessibilityJpeg(value: unknown): string | null {
+  if (typeof value !== "string" || value.length === 0 || value.length > MAX_ACCESSIBILITY_BASE64_CHARS) {
+    return null;
+  }
+  const cleanBase64 = value.replace(/^data:image\/jpeg;base64,/i, "");
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(cleanBase64)) return null;
+
+  const bytes = Buffer.from(cleanBase64, "base64");
+  const isJpeg = bytes.length >= 4 && bytes[0] === 0xff && bytes[1] === 0xd8 &&
+    bytes[bytes.length - 2] === 0xff && bytes[bytes.length - 1] === 0xd9;
+  const dimensions = readJpegDimensions(bytes);
+  if (!isJpeg || bytes.length > MAX_ACCESSIBILITY_IMAGE_BYTES || !dimensions) return null;
+  if (dimensions.width < 1 || dimensions.height < 1 || dimensions.width > 2_048 ||
+    dimensions.height > 2_048 || dimensions.width * dimensions.height > 4_000_000) {
+    return null;
+  }
+  return cleanBase64;
+}
+
+/**
+ * Authenticated endpoint used only by the user-triggered Android screen-search
+ * path. The browser-facing legacy lens route is intentionally separate.
+ */
+router.post("/api/accessibility/lens-search", async (req, res) => {
+  const authorization = req.get("authorization") || "";
+  const tokenMatch = authorization.match(/^Bearer\s+(.+)$/i);
+  if (!tokenMatch) {
+    return res.status(401).json({ success: false, error: "Authentication required" });
+  }
+
+  try {
+    await getAuth(getApp()).verifyIdToken(tokenMatch[1]);
+  } catch (_error) {
+    return res.status(401).json({ success: false, error: "Authentication required" });
+  }
+
+  const imageBase64 = validateAccessibilityJpeg(req.body?.imageBase64);
+  if (!imageBase64) {
+    return res.status(413).json({ success: false, error: "Screen image is too large or unsupported" });
+  }
+
+  const [apifyRes, visionRes] = await Promise.allSettled([
+    runGoogleLensActor(imageBase64),
+    identifyVisionObject(
+      imageBase64,
+      "User-requested accessibility screen search",
+      "Identify shopping products visible in this user-requested screen image. Do not identify people, accounts, messages, or sensitive information.",
+      false
+    )
+  ]);
+
+  const apifyData = apifyRes.status === "fulfilled" && apifyRes.value.success &&
+    Array.isArray(apifyRes.value.results) ? apifyRes.value : null;
+  const visionData = visionRes.status === "fulfilled" ? visionRes.value : null;
+  if (!apifyData && !visionData) {
+    return res.status(502).json({ success: false, error: "Unable to search this screen right now" });
+  }
+
+  return res.json({
+    success: true,
+    apifyResults: apifyData?.results || [],
+    detectedResult: visionData || null
+  });
 });
 
 router.post("/api/lens-search", async (req, res) => {

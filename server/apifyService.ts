@@ -10,16 +10,23 @@ export interface ApifyActorInput {
   feedType?: "deals" | "trending" | "hot_drops" | "for_you";
 }
 
-const APIFY_TOKEN = process.env.APIFY_API_TOKEN || "apify_api_w4MmMqjLAbvC9nNOl7VJBBy1jJni7W0EVhKG";
+function getApifyToken(): string | null {
+  const token = process.env.APIFY_API_TOKEN;
+  return token && token.trim().length > 0 ? token.trim() : null;
+}
 
 export async function runApifyShoppingActor(actorId: string, input: any) {
-  const token = process.env.APIFY_API_TOKEN || APIFY_TOKEN;
-  const url = `https://api.apify.com/v2/actors/${encodeURIComponent(actorId)}/runs?token=${token}`;
+  const token = getApifyToken();
+  if (!token) return { success: false, error: "Apify is not configured" };
+  const url = `https://api.apify.com/v2/actors/${encodeURIComponent(actorId)}/runs`;
 
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
       body: JSON.stringify(input || {})
     });
     const data = await response.json();
@@ -50,7 +57,8 @@ export async function runMarketplaceActor(platform: "amazon" | "walmart" | "etsy
 }
 
 export async function runGoogleLensActor(imageUrlOrBase64: string) {
-  const token = process.env.APIFY_API_TOKEN || APIFY_TOKEN;
+  const token = getApifyToken();
+  if (!token) return { success: false, error: "Apify is not configured" };
   const actorInput = {
     imageUrl: imageUrlOrBase64,
     startUrls: [{ url: imageUrlOrBase64 }],
@@ -58,10 +66,13 @@ export async function runGoogleLensActor(imageUrlOrBase64: string) {
   };
 
   try {
-    const syncUrl = `https://api.apify.com/v2/actors/borderline~google-lens/run-sync-get-dataset-items?token=${token}`;
+    const syncUrl = "https://api.apify.com/v2/actors/borderline~google-lens/run-sync-get-dataset-items";
     const response = await fetch(syncUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
       body: JSON.stringify(actorInput)
     });
 
@@ -70,13 +81,19 @@ export async function runGoogleLensActor(imageUrlOrBase64: string) {
       return { success: true, actor: "borderline~google-lens", results: items };
     }
 
-    const runUrl = `https://api.apify.com/v2/actors/borderline~google-lens/runs?token=${token}`;
+    const runUrl = "https://api.apify.com/v2/actors/borderline~google-lens/runs";
     const runRes = await fetch(runUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
       body: JSON.stringify(actorInput)
     });
     const runData = await runRes.json();
+    if (!runRes.ok) {
+      return { success: false, error: "Apify visual search failed" };
+    }
     return { success: true, actor: "borderline~google-lens", asyncRun: runData.data || runData };
   } catch (err: any) {
     console.error("Google Lens actor error:", err);

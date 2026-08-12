@@ -57,6 +57,18 @@ The frontend communicates with the backend via several REST endpoints and WebSoc
   - `POST /api/economic-research`
   - `POST /api/creator/generate-campaign`
 
+## Android Accessibility screen search
+
+The Android app retains a non-tool AccessibilityService for shopping only. Its policy-sensitive path is intentionally narrow:
+
+- `isAccessibilityTool` is not set. The app shows a dedicated in-app disclosure before Android accessibility settings and stores versioned app consent separately from the exact system-enabled component state.
+- Screen search is one-shot and user-triggered through the visible scan action or the system accessibility button. The service does not capture at startup, from accessibility events, widgets, timers, or background work.
+- API 34+ uses the focused window screenshot API where available. The service rejects protected windows and platform-sensitive accessibility nodes, bounds JPEG dimensions/bytes, keeps raw pixels in memory only, and cancels its request scope on teardown.
+- The authenticated `/api/accessibility/lens-search` route accepts only bounded JPEG data and returns truthful failure responses. It does not persist the raw capture; visual-search processor handling is disclosed in the in-app notice.
+- Android service metadata is kept to screenshot access, focused-window inspection, and the user accessibility-button trigger. The service-specific settings activity provides a consent revocation path.
+
+Play Console declarations, listing text, demo video, and any public privacy-policy publication remain external release artifacts; this repository does not claim those external states.
+
 ## UI Badge & Overstatement Elimination Standard
 - **ONLY Product & Restaurant Star Ratings Allowed**: Standard customer star ratings (`★ 4.8`) are preserved on product/restaurant cards (FriendlyEats standard).
 - **NO Artificial Telemetry Badges**: All percentage match badges (`98% Match`), elevation status labels, and grounding badges (`✓ Google Search Grounded`) have been permanently removed.
