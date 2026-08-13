@@ -1,20 +1,52 @@
-mutation ToggleLike($productId: String!) @auth(level: USER) {
-  userLike_upsert(data: { userUid_expr: "auth.uid", productId: $productId })
+mutation UpsertUserProfile(
+  $email: String
+  $displayName: String
+  $avatarUrl: String
+) @auth(level: USER) {
+  user_upsert(data: {
+    id_expr: "auth.uid"
+    email: $email
+    displayName: $displayName
+    avatarUrl: $avatarUrl
+  })
 }
 
 mutation CreateOrder(
   $authorizationId: String!
   $productId: String!
   $quantity: Int!
+  $totalAmount: Float!
+  $shippingAddress: String
   $deviceSource: String!
   $paymentMethod: String!
+  $userConfirmedToken: String
 ) @auth(level: USER) {
   order_insert(data: {
     authorizationId: $authorizationId,
     userUid_expr: "auth.uid",
     productId: $productId,
     quantity: $quantity,
+    totalAmount: $totalAmount,
+    shippingAddress: $shippingAddress,
     deviceSource: $deviceSource,
-    paymentMethod: $paymentMethod
+    paymentMethod: $paymentMethod,
+    userConfirmedToken: $userConfirmedToken
   })
+}
+
+mutation AddVideo(
+  $productId: String
+  $videoUrl: String!
+  $videoType: String!
+) @auth(level: USER) {
+  video_insert(data: {
+    userUid_expr: "auth.uid"
+    productId: $productId
+    videoUrl: $videoUrl
+    videoType: $videoType
+  })
+}
+
+mutation ToggleLike($productId: String!) @auth(level: USER) {
+  userLike_upsert(data: { userUid_expr: "auth.uid", productId: $productId })
 }

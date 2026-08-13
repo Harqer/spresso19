@@ -128,6 +128,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
         authorizationId: authId,
         productId: payload.product.id,
         quantity: payload.quantity,
+        totalAmount: payload.totalAmount || (payload.product.price * payload.quantity),
         deviceSource: payload.deviceSource,
         paymentMethod: selectedPaymentLabel
       });

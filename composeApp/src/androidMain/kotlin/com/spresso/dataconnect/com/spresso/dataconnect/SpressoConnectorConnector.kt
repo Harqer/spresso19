@@ -19,11 +19,25 @@ public interface SpressoConnectorConnector : com.google.firebase.dataconnect.gen
   override val dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect
 
   
+    public val addVideo: AddVideoMutation
+  
     public val createOrder: CreateOrderMutation
+  
+    public val getProductById: GetProductByIdQuery
+  
+    public val getUserCart: GetUserCartQuery
+  
+    public val getUserOrders: GetUserOrdersQuery
+  
+    public val getUserProfile: GetUserProfileQuery
+  
+    public val getUserVideos: GetUserVideosQuery
   
     public val listProducts: ListProductsQuery
   
     public val toggleLike: ToggleLikeMutation
+  
+    public val upsertUserProfile: UpsertUserProfileMutation
   
 
   public companion object {
@@ -68,8 +82,32 @@ private class SpressoConnectorConnectorImpl(
   override val dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect
 ) : SpressoConnectorConnector {
   
+    override val addVideo by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      AddVideoMutationImpl(this)
+    }
+  
     override val createOrder by lazy(LazyThreadSafetyMode.PUBLICATION) {
       CreateOrderMutationImpl(this)
+    }
+  
+    override val getProductById by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetProductByIdQueryImpl(this)
+    }
+  
+    override val getUserCart by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetUserCartQueryImpl(this)
+    }
+  
+    override val getUserOrders by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetUserOrdersQueryImpl(this)
+    }
+  
+    override val getUserProfile by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetUserProfileQueryImpl(this)
+    }
+  
+    override val getUserVideos by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetUserVideosQueryImpl(this)
     }
   
     override val listProducts by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -80,6 +118,10 @@ private class SpressoConnectorConnectorImpl(
       ToggleLikeMutationImpl(this)
     }
   
+    override val upsertUserProfile by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      UpsertUserProfileMutationImpl(this)
+    }
+  
 
   @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
   override fun operations(): List<com.google.firebase.dataconnect.generated.GeneratedOperation<SpressoConnectorConnector, *, *>> =
@@ -88,15 +130,22 @@ private class SpressoConnectorConnectorImpl(
   @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
   override fun mutations(): List<com.google.firebase.dataconnect.generated.GeneratedMutation<SpressoConnectorConnector, *, *>> =
     listOf(
-      createOrder,
+      addVideo,
+        createOrder,
         toggleLike,
+        upsertUserProfile,
         
     )
 
   @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
   override fun queries(): List<com.google.firebase.dataconnect.generated.GeneratedQuery<SpressoConnectorConnector, *, *>> =
     listOf(
-      listProducts,
+      getProductById,
+        getUserCart,
+        getUserOrders,
+        getUserProfile,
+        getUserVideos,
+        listProducts,
         
     )
 
@@ -232,6 +281,21 @@ private open class SpressoConnectorConnectorGeneratedMutationImpl<Data, Variable
 
 
 
+private class AddVideoMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  AddVideoMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      AddVideoMutation.Data,
+      AddVideoMutation.Variables
+  >(
+    connector,
+    AddVideoMutation.Companion.operationName,
+    AddVideoMutation.Companion.dataDeserializer,
+    AddVideoMutation.Companion.variablesSerializer,
+  )
+
+
 private class CreateOrderMutationImpl(
   connector: SpressoConnectorConnector
 ):
@@ -244,6 +308,81 @@ private class CreateOrderMutationImpl(
     CreateOrderMutation.Companion.operationName,
     CreateOrderMutation.Companion.dataDeserializer,
     CreateOrderMutation.Companion.variablesSerializer,
+  )
+
+
+private class GetProductByIdQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetProductByIdQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetProductByIdQuery.Data,
+      GetProductByIdQuery.Variables
+  >(
+    connector,
+    GetProductByIdQuery.Companion.operationName,
+    GetProductByIdQuery.Companion.dataDeserializer,
+    GetProductByIdQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetUserCartQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetUserCartQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetUserCartQuery.Data,
+      Unit
+  >(
+    connector,
+    GetUserCartQuery.Companion.operationName,
+    GetUserCartQuery.Companion.dataDeserializer,
+    GetUserCartQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetUserOrdersQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetUserOrdersQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetUserOrdersQuery.Data,
+      Unit
+  >(
+    connector,
+    GetUserOrdersQuery.Companion.operationName,
+    GetUserOrdersQuery.Companion.dataDeserializer,
+    GetUserOrdersQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetUserProfileQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetUserProfileQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetUserProfileQuery.Data,
+      Unit
+  >(
+    connector,
+    GetUserProfileQuery.Companion.operationName,
+    GetUserProfileQuery.Companion.dataDeserializer,
+    GetUserProfileQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetUserVideosQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetUserVideosQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetUserVideosQuery.Data,
+      Unit
+  >(
+    connector,
+    GetUserVideosQuery.Companion.operationName,
+    GetUserVideosQuery.Companion.dataDeserializer,
+    GetUserVideosQuery.Companion.variablesSerializer,
   )
 
 
@@ -274,6 +413,21 @@ private class ToggleLikeMutationImpl(
     ToggleLikeMutation.Companion.operationName,
     ToggleLikeMutation.Companion.dataDeserializer,
     ToggleLikeMutation.Companion.variablesSerializer,
+  )
+
+
+private class UpsertUserProfileMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  UpsertUserProfileMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      UpsertUserProfileMutation.Data,
+      UpsertUserProfileMutation.Variables
+  >(
+    connector,
+    UpsertUserProfileMutation.Companion.operationName,
+    UpsertUserProfileMutation.Companion.dataDeserializer,
+    UpsertUserProfileMutation.Companion.variablesSerializer,
   )
 
 

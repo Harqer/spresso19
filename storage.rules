@@ -1,0 +1,56 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Default deny catch-all
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidImage() {
+      return request.resource.size < 10 * 1024 * 1024 // 10 MB limit
+        && request.resource.contentType.matches('image/(jpeg|png|webp|gif)');
+    }
+
+    function isValidVideo() {
+      return request.resource.size < 100 * 1024 * 1024 // 100 MB limit
+        && request.resource.contentType.matches('video/(mp4|webm|quicktime)');
+    }
+
+    // Public product images (read-only for guests, write restricted to admin)
+    match /products/{productId}/{fileName} {
+      allow read: if true;
+      allow write: if false; // Uploads managed via Cloud Functions / Admin SDK
+    }
+
+    // User avatars and profile media
+    match /users/{userId}/avatars/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && isValidImage();
+      allow delete: if isOwner(userId);
+    }
+
+    // User interactive videos (spin 360, virtual try-on renders)
+    match /users/{userId}/videos/{videoId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) && (isValidImage() || isValidVideo());
+      allow delete: if isOwner(userId);
+    }
+
+    // Temporary upload scratch folder for visual search
+    match /scratch/{userId}/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isValidImage();
+      allow delete: if isOwner(userId);
+    }
+  }
+}

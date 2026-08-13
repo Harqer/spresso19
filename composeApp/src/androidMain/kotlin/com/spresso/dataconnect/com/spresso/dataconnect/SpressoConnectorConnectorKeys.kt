@@ -24,11 +24,31 @@ package com.spresso.dataconnect
   }
 
   @kotlinx.serialization.Serializable
+  public data class UserKey(
+  
+    val id: String,
+  
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
   public data class UserLikeKey(
   
     val userUid: String,
   
     val productId: String,
+  
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
+  public data class VideoKey(
+  
+    val id: @kotlinx.serialization.Serializable(with = com.google.firebase.dataconnect.serializers.UUIDSerializer::class) java.util.UUID,
   
   ) {
     

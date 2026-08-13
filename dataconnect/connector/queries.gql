@@ -10,3 +10,64 @@ query ListProducts @auth(level: PUBLIC, insecureReason: "Expose product catalog 
     likesCount
   }
 }
+
+query GetProductById($id: String!) @auth(level: PUBLIC, insecureReason: "Public product details view") {
+  product(id: $id) {
+    id
+    name
+    brand
+    category
+    price
+    image
+    description
+    likesCount
+  }
+}
+
+query GetUserProfile @auth(level: USER) {
+  user(key: { id_expr: "auth.uid" }) {
+    id
+    email
+    displayName
+    avatarUrl
+    createdAt
+  }
+}
+
+query GetUserOrders @auth(level: USER) {
+  orders(where: { userUid: { eq_expr: "auth.uid" } }, orderBy: [{ createdAt: DESC }]) {
+    id
+    authorizationId
+    product {
+      id
+      name
+      price
+      image
+    }
+    quantity
+    totalAmount
+    shippingAddress
+    deviceSource
+    paymentMethod
+    status
+    createdAt
+  }
+}
+
+query GetUserVideos @auth(level: USER) {
+  videos(where: { userUid: { eq_expr: "auth.uid" } }, orderBy: [{ createdAt: DESC }]) {
+    id
+    productId
+    videoUrl
+    videoType
+    status
+    createdAt
+  }
+}
+
+query GetUserCart @auth(level: USER) {
+  carts(where: { userUid: { eq_expr: "auth.uid" } }) {
+    id
+    updatedAt
+  }
+}

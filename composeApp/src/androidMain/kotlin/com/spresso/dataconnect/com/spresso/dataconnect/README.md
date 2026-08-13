@@ -80,21 +80,21 @@ val connector: SpressoConnectorConnector = SpressoConnectorConnector.getInstance
 ### SpressoConnectorConnector - Query and Mutation Properties
 
 The `spresso-connector` Data Connect connector defines
-1 queries and
-2 mutations,
-a total of 3 operations.
+6 queries and
+4 mutations,
+a total of 10 operations.
 Each of these operations is exposed
 as a property of [SpressoConnectorConnector].
 
 
 An example of the property for a query
-is the query named "ListProducts",
-which can be accessed via the [SpressoConnectorConnector.listProducts] property.
+is the query named "GetProductById",
+which can be accessed via the [SpressoConnectorConnector.getProductById] property.
 
 
 An example of the property for a mutation
-is the mutation named "CreateOrder",
-which can be accessed via the [SpressoConnectorConnector.createOrder] property.
+is the mutation named "AddVideo",
+which can be accessed via the [SpressoConnectorConnector.addVideo] property.
 
 
 ### SpressoConnectorConnector - The `dataConnect` Property
@@ -172,18 +172,32 @@ last argument of the `execute()` method.
 If a query has no variables then it can be easily executed
 by calling the `execute()` method with no arguments.
 
-For example, the "ListProducts" query has no variables
+For example, the "GetUserCart" query has no variables
 and can be executed via the
-[SpressoConnectorConnector.listProducts]
+[SpressoConnectorConnector.getUserCart]
 property as follows:
 
 ```kotlin
 val connector = SpressoConnectorConnector.instance
-val queryResult = connector.listProducts.execute()
-println("ListProducts query returned: ${queryResult.data}")
+val queryResult = connector.getUserCart.execute()
+println("GetUserCart query returned: ${queryResult.data}")
 ```
 
 
+### Executing Queries with Required Variables
+
+If a query has _required_ variables then they must be specified as
+arguments to the `execute()` method.
+
+For example, the "GetProductById" query has 1 required variable ("id")
+and can be executed via the [SpressoConnectorConnector.getProductById]
+property as follows:
+
+```kotlin
+val connector = SpressoConnectorConnector.instance
+val queryResult = connector.getProductById.execute(id="corge")
+println("GetProductById query returned: ${queryResult.data}")
+```
 
 
 
@@ -207,15 +221,36 @@ last argument of the `execute()` method.
 If a mutation has _required_ variables then they must be specified as
 arguments to the `execute()` method.
 
-For example, the "CreateOrder" mutation has 5 required variables ("authorizationId", "productId", "quantity", "deviceSource", and "paymentMethod")
+For example, the "CreateOrder" mutation has 6 required variables ("authorizationId", "productId", "quantity", "totalAmount", "deviceSource", and "paymentMethod")
 and can be executed via the [SpressoConnectorConnector.createOrder]
 property as follows:
 
 ```kotlin
 val connector = SpressoConnectorConnector.instance
-val mutationResult = connector.createOrder.execute(authorizationId="thud", productId="bar", quantity=5523, deviceSource="garply", paymentMethod="fred")
+val mutationResult = connector.createOrder.execute(authorizationId="thud", productId="bar", quantity=5523, totalAmount=4238.42, deviceSource="garply", paymentMethod="fred")
 println("CreateOrder mutation returned: ${mutationResult.data}")
 ```
 
 
+### Executing Mutations with Optional Variables
+
+If a mutation has _optional_ variables then, by definition,
+they are _not_ required to be specified to the `execute()` method;
+however, if they _are_ specified,
+then they are specified in a Kotlin DSL block as the last argument
+of the `execute()` method.
+
+For example, the "UpsertUserProfile" mutation has 3 optional variables ("email", "displayName", and "avatarUrl")
+and can be executed via the [SpressoConnectorConnector.upsertUserProfile]
+property as follows:
+
+```kotlin
+val connector = SpressoConnectorConnector.instance
+val mutationResult = connector.upsertUserProfile.execute {
+  email = "qux"
+  displayName = "garply"
+  avatarUrl = "garply"
+}
+println("UpsertUserProfile mutation returned: ${mutationResult.data}")
+```
 

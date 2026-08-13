@@ -40,6 +40,9 @@
   "firestore": {
     "rules": "firestore.rules"
   },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "auth": {
     "authorizedDomains": ["localhost", "spresso-5561f.web.app", "spresso-5561f.firebaseapp.com"],
     "providers": {

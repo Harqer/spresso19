@@ -24,7 +24,11 @@ service cloud.firestore {
       return val is string && val.size() >= minLen && val.size() <= maxLen;
     }
 
-    // Logs collection for Crashlytics / error tracking
+    function isValidUrl(urlStr) {
+      return isValidString(urlStr, 8, 2048) && (urlStr.matches('^https://.*') || urlStr.matches('^gs://.*'));
+    }
+
+    // System logs for telemetry & error tracking
     match /logs/{logId} {
       allow create: if isValidId(logId) &&
         isValidString(request.resource.data.level, 1, 20) &&
@@ -33,15 +37,16 @@ service cloud.firestore {
       allow read: if isSignedIn();
     }
 
-    // User profile documents (strict ownership & size limits)
+    // User profile documents (strict ownership, size limits & field validation)
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow create, update: if isOwner(userId) &&
         (!('displayName' in request.resource.data) || isValidString(request.resource.data.displayName, 0, 100)) &&
-        (!('email' in request.resource.data) || isValidString(request.resource.data.email, 0, 200));
+        (!('email' in request.resource.data) || isValidString(request.resource.data.email, 0, 200)) &&
+        (!('avatarUrl' in request.resource.data) || isValidUrl(request.resource.data.avatarUrl));
     }
 
-    // User specific orders (strict state machine & immutability checks)
+    // User purchases and orders (state machine & immutability checks)
     match /users/{userId}/orders/{orderId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId) &&
@@ -51,7 +56,32 @@ service cloud.firestore {
         isValidString(request.resource.data.status, 1, 50);
       allow update: if isOwner(userId) &&
         request.resource.data.totalAmount == resource.data.totalAmount &&
+        request.resource.data.productId == resource.data.productId &&
         isValidString(request.resource.data.status, 1, 50);
+    }
+
+    // User interactive video collection (spin 360, virtual try-on, creator videos)
+    match /users/{userId}/videos/{videoId} {
+      allow read: if isSignedIn() && (isOwner(userId) || resource.data.isPublic == true);
+      allow create: if isOwner(userId) &&
+        isValidId(videoId) &&
+        isValidUrl(request.resource.data.videoUrl) &&
+        isValidString(request.resource.data.videoType, 1, 50);
+      allow update: if isOwner(userId) &&
+        request.resource.data.videoUrl == resource.data.videoUrl &&
+        isValidString(request.resource.data.videoType, 1, 50);
+      allow delete: if isOwner(userId);
+    }
+
+    // Shopping cart collection (authenticated user UID isolation)
+    match /users/{userId}/cart/{itemId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) &&
+        isValidId(itemId) &&
+        request.resource.data.quantity is int &&
+        request.resource.data.quantity > 0 &&
+        isValidString(request.resource.data.productId, 1, 100);
+      allow delete: if isOwner(userId);
     }
 
     // Chat sessions (authenticated user isolation)

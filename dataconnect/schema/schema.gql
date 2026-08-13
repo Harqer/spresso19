@@ -1,3 +1,11 @@
+type User @table(key: "id") {
+  id: String!
+  email: String
+  displayName: String
+  avatarUrl: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
 type Product @table(key: "id") {
   id: String!
   name: String!
@@ -9,10 +17,30 @@ type Product @table(key: "id") {
   likesCount: Int! @default(value: 0)
 }
 
-type UserLike @table(key: ["userUid", "product"]) {
+type Video @table {
+  id: UUID! @default(expr: "uuidV4()")
   userUid: String!
+  productId: String
+  videoUrl: String!
+  videoType: String!
+  status: String! @default(value: "READY")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type Cart @table {
+  id: UUID! @default(expr: "uuidV4()")
+  userUid: String! @unique
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type CartItem @table {
+  id: UUID! @default(expr: "uuidV4()")
+  cart: Cart!
   product: Product!
-  timestamp: Timestamp! @default(expr: "request.time")
+  quantity: Int! @default(value: 1)
+  selectedSize: String
+  selectedColor: String
+  createdAt: Timestamp! @default(expr: "request.time")
 }
 
 type Order @table {
@@ -21,8 +49,17 @@ type Order @table {
   userUid: String!
   product: Product!
   quantity: Int!
+  totalAmount: Float! @default(value: 0.0)
+  shippingAddress: String
   deviceSource: String!
   paymentMethod: String!
   status: String! @default(value: "CONFIRMED")
+  userConfirmedToken: String
   createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type UserLike @table(key: ["userUid", "product"]) {
+  userUid: String!
+  product: Product!
+  timestamp: Timestamp! @default(expr: "request.time")
 }
