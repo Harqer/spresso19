@@ -170,6 +170,8 @@ export interface ChatMessage {
   products?: ProductItem[];
   locationData?: any;
   audioUrl?: string;
+  thought?: string;
+  sources?: any[];
 }
 
 
