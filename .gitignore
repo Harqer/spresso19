@@ -1,17 +1,36 @@
+# Dependencies & Artifacts
 node_modules/
 build/
 dist/
 coverage/
-.DS_Store
+.gradle/
+kotlin-js-store/
 *.log
-.env*
+*.apk
+*.zip
+
+# Environment Files (All variations)
+.env
+.env.*
+*.env
 !.env.example
+
+# Arbitrary Dotfiles Agnostic Protection (Block hidden dotfiles by default, except infrastructure)
+.*
+!.gitignore
+!.gitattributes
+!.github/
+!.firebaserc
+!.agents/
+!.env.example
+!.editorconfig
+
+# Sensitive Credentials & Keys
 local.properties
 google-services.json
 GoogleService-Info.plist
 *.pem
 *.key
 service-account*.json
-.gradle/
-kotlin-js-store/
-*.apk
+*.keystore
+*.jks

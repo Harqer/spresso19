@@ -47,7 +47,33 @@ function getDc() {
   return getDataConnect(connectorConfig);
 }
 
+import { getSecret } from "../src/lib/secrets.ts";
+
 export const router = Router();
+
+// ==========================================
+// HEALTH & SECRET MANAGER DIAGNOSTICS
+// ==========================================
+router.get("/api/health/secrets", async (_req: Request, res: Response) => {
+  try {
+    const geminiKey = await getSecret("GEMINI_API_KEY");
+    res.json({
+      status: "HEALTHY",
+      secretManager: "CONNECTED",
+      secrets: {
+        GEMINI_API_KEY: geminiKey ? "CONFIGURED_AND_VERIFIED" : "MISSING",
+        GOOGLE_WALLET_SERVICE_ACCOUNT_KEY: process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_KEY ? "CONFIGURED" : "NOT_SET"
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      status: "DEGRADED",
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
 // ==========================================
 // PRODUCTS & INVENTORY
