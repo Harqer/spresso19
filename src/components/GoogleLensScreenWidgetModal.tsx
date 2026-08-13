@@ -4,6 +4,7 @@ import { cropImageSnippet } from "../utils/imageCropper";
 import { ElevatedQuickActionFab } from "./ElevatedQuickActionFab";
 import { LocationDetailsView } from "./LocationDetailsView";
 import { AIShopperInputBar } from "./AIShopperInputBar";
+import { authFetch } from "../lib/firebase";
 import html2canvas from "html2canvas";
 
 interface GoogleLensScreenWidgetModalProps {
@@ -133,7 +134,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
     setIsScanning(true);
 
     try {
-      const response = await fetch("/api/lens-search", {
+      const response = await authFetch("/api/lens-search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64 })

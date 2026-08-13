@@ -9,6 +9,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import theme.AppTheme
 
 @Composable
 fun AgentTemplateCard(
@@ -60,6 +65,22 @@ fun AgentTemplateCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+@Preview
+@Composable
+fun AgentTemplateCardPreview() {
+    AppTheme {
+        androidx.compose.foundation.layout.Box(modifier = Modifier.padding(16.dp)) {
+            AgentTemplateCard(
+                title = "Cinematic Product Reveal",
+                description = "A dramatic 60fps slow-pan across luxury textures.",
+                icon = Icons.Default.PlayArrow,
+                isSelected = false,
+                onSelect = {}
+            )
         }
     }
 }

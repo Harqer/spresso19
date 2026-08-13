@@ -1248,45 +1248,55 @@ export async function getBargainChefRecipe(body: any) {
     ? `User Coordinates: Latitude ${latLng.latitude}, Longitude ${latLng.longitude}${userLocation ? ` (${userLocation})` : ''}`
     : userLocation
     ? `User City/Region: "${userLocation}"`
-    : "United States (Nationwide Grocery Deals)";
+    : "United States (Nationwide Supermarket Deals)";
 
-  const prompt = `You are Bargain Chef AI, an intelligent personal chef and deal finder integrated into Spresso AI Commerce.
+  const prompt = `You are Master Bargain Chef AI, a world-class executive chef with Gordon Ramsay level passion, technique, and culinary authority, integrated into Spresso AI Commerce.
+
 Task:
-User Craving: "${craving || 'something warm with chicken'}"
-${locationContext}
+- User Craving / Meal Intent: "${craving || 'something warm with chicken'}"
+- ${locationContext}
 
 INSTRUCTIONS:
-1. Conduct live web search research for real, currently active weekly supermarket deals, grocery prices, and sales near the user's location (e.g. Trader Joe's, Target, Whole Foods, Kroger, Safeway, Walmart, Aldi).
-2. Create an delicious, easy-to-follow recipe built around on-sale grocery ingredients. Mark ingredients that are currently on sale with onSale: true.
-3. Calculate estimated prices per ingredient in USD.
-4. Respond STRICTLY with a valid JSON object matching this schema:
+1. Conduct live web search research for real, currently active weekly supermarket deals, grocery sales, and on-sale ingredients near the user's location (e.g. Trader Joe's, Target, Whole Foods, Kroger, Safeway, Walmart, Aldi).
+2. Create an extraordinary, mouthwatering, restaurant-grade recipe built around on-sale grocery ingredients. Mark ingredients that are on sale with onSale: true.
+3. Include explicit cooking timers (in seconds) for every active cooking step (e.g., searing, simmering, baking, resting).
+4. Provide a passionate "Chef Technique Tip" for perfecting the dish.
+5. Respond STRICTLY with a valid JSON object matching this schema:
 {
-  "title": "Recipe Title",
-  "description": "Short mouthwatering summary emphasizing savings and local store deals",
+  "title": "Recipe Title (e.g. Pan-Seared Crisp Skin Chicken Thighs with Garlic Butter Reduction)",
+  "description": "Mouthwatering Gordon Ramsay style culinary breakdown emphasizing techniques and local grocery savings",
+  "chefPersonaNotes": "Chef's Technique Tip: Always pat the protein dry before searing to achieve an unbeatable golden crust!",
   "servings": 4,
   "estimatedCost": 12.50,
-  "localStore": "Trader Joe's / Local Supermarket",
+  "localStore": "Trader Joe's / Local Supermarket Deals",
   "ingredients": [
     {
-      "name": "Chicken Thighs",
+      "name": "Organic Chicken Thighs",
       "quantity": "1.5 lbs",
       "onSale": true,
       "estimatedPrice": 4.99,
       "category": "Meat & Seafood",
-      "farmOrBrand": "Organic Valley / Local Deal"
+      "farmOrBrand": "Organic Valley / Weekly Supermarket Special"
     },
     {
-      "name": "Fresh Garlic Clove",
-      "quantity": "3 cloves",
+      "name": "Fresh Garlic Cloves",
+      "quantity": "4 cloves",
       "onSale": false,
       "estimatedPrice": 0.89,
       "category": "Produce",
-      "farmOrBrand": "Kunisaki Farms"
+      "farmOrBrand": "Local Organic Farm"
     }
   ],
   "steps": [
-    "Step 1 prep instructions...",
-    "Step 2 cooking instructions..."
+    "Pat chicken dry with paper towels. Season aggressively with sea salt and cracked black pepper.",
+    "Sear chicken skin-side down in a hot cast-iron skillet for 6 minutes until crispy and golden.",
+    "Baste with garlic butter, turn over, and roast in skillet for 12 minutes until internal temp reaches 165°F.",
+    "Rest protein on warm board for 5 minutes before serving."
+  ],
+  "cookingTimers": [
+    { "stepIndex": 1, "durationSeconds": 360, "label": "Sear Skin-Side Down (Crispy Crust)" },
+    { "stepIndex": 2, "durationSeconds": 720, "label": "Roast & Baste in Oven" },
+    { "stepIndex": 3, "durationSeconds": 300, "label": "Rest Protein Before Carving" }
   ]
 }`;
 
@@ -1321,22 +1331,29 @@ INSTRUCTIONS:
     }
   }
 
-  // Fallback Recipe
+  // Fallback Gourmet Recipe with Gordon Ramsay Persona & Timers
   return {
-    title: `Bargain Chef ${craving || 'Gourmet Meal'}`,
-    description: `Chef-crafted economic recipe customized for ${craving || 'your taste'} with local weekly supermarket savings.`,
+    title: `Pan-Seared ${craving || 'Gourmet Chicken'} with Garlic Butter Glaze`,
+    description: `Master Chef crafted economic recipe for ${craving || 'your craving'} utilizing weekly supermarket deals and precise temperature control.`,
+    chefPersonaNotes: "Chef's Technique Tip: Don't overcrowd the pan! Give the protein space to sear, not steam.",
     servings: 4,
     estimatedCost: 11.95,
     localStore: "Trader Joe's / Safeway Local Deals",
     ingredients: [
-      { name: "Fresh Produce / Protein Base", quantity: "1.5 lbs", onSale: true, estimatedPrice: 5.49, category: "Fresh Food", farmOrBrand: "Local Market Special" },
-      { name: "Organic Aromatic Herbs & Seasonings", quantity: "1 pkg", onSale: true, estimatedPrice: 2.99, category: "Pantry", farmOrBrand: "Supermarket Select" },
+      { name: "Fresh Protein Base", quantity: "1.5 lbs", onSale: true, estimatedPrice: 5.49, category: "Meat & Seafood", farmOrBrand: "Supermarket Weekly Deal" },
+      { name: "Organic Garlic & Herb Aromatics", quantity: "1 pkg", onSale: true, estimatedPrice: 2.99, category: "Produce", farmOrBrand: "Fresh Local Harvest" },
       { name: "Artisanal Grains / Side", quantity: "1.0 lb", onSale: false, estimatedPrice: 3.47, category: "Dry Goods", farmOrBrand: "Pantry Staples" }
     ],
     steps: [
-      "Prepare ingredients and marinate or season lightly with olive oil and fresh herbs.",
-      "Sauté protein base over medium-high heat until golden brown and aromatic.",
-      "Combine seasonings and simmer together for 12-15 minutes until tender and flavorful. Serve warm!"
+      "Pat protein thoroughly dry. Season generously with sea salt and cracked black pepper.",
+      "Sear in hot skillet over medium-high heat for 5 minutes until deep golden brown.",
+      "Add garlic butter, lower heat, and simmer for 10 minutes to render pan sauce.",
+      "Rest on warm cutting board for 5 minutes to lock in natural juices."
+    ],
+    cookingTimers: [
+      { stepIndex: 1, durationSeconds: 300, label: "Golden Pan Sear" },
+      { stepIndex: 2, durationSeconds: 600, label: "Simmer Pan Sauce" },
+      { stepIndex: 3, durationSeconds: 300, label: "Rest Protein Before Serving" }
     ]
   };
 }

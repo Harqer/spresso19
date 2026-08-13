@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { User } from "firebase/auth";
+import { authFetch } from "../../lib/firebase";
 import { MaterialIcon } from "../MaterialIcon";
 import { ProductItem } from "../../types";
 import { AgentTemplateCard } from "../molecules/AgentTemplateCard";
@@ -59,7 +60,7 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
     if (!customText) setInputPrompt("");
     setIsGenerating(true);
     try {
-      const response = await fetch("/api/chat/stream", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: textToSend, userName, location: userLocation, agentType: selectedAgent }) });
+      const response = await authFetch("/api/chat/stream", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: textToSend, userName, location: userLocation, agentType: selectedAgent }) });
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let accumulatedText = "";
@@ -85,7 +86,7 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
     setIsGeneratingMedia(true); setGeneratedResult(null);
 
     try {
-      const res = await fetch("/api/creator/generate-campaign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storeName: `${userName}'s ${t.name}`, category: t.category, productFeatures: promptToUse, targetAudience: "E-Commerce Shoppers" }) });
+      const res = await authFetch("/api/creator/generate-campaign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storeName: `${userName}'s ${t.name}`, category: t.category, productFeatures: promptToUse, targetAudience: "E-Commerce Shoppers" }) });
       const data = await res.json();
       setGeneratedResult({ prompt: promptToUse, templateName: t.name, imageUrl: data.imageUrl || "", videoConcept: `${data.campaign?.marketingCampaign?.socialCopy || `Creative studio render synthesized.`}` });
     } catch { 

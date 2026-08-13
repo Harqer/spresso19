@@ -21,3 +21,7 @@ actual suspend fun getCurrentUserIdToken(): String? = suspendCancellableCoroutin
             if (continuation.isActive) continuation.resume(null)
         }
 }
+
+actual fun signOut() {
+    FirebaseAuth.getInstance().signOut()
+}

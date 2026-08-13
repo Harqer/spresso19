@@ -1,34 +1,30 @@
 package components.molecules
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AcUnit
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.filled.Watch
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
-data class CategoryTile(
-    val id: String,
-    val label: String,
-    val icon: ImageVector
-)
+data class CategoryTile(val id: String, val label: String, val icon: ImageVector)
 
 @Composable
 fun CategoryTilesBar(
@@ -37,37 +33,31 @@ fun CategoryTilesBar(
     modifier: Modifier = Modifier
 ) {
     val categories = listOf(
-        CategoryTile("all", "All Items", Icons.Default.ShoppingBag),
-        CategoryTile("trending", "Trending", Icons.Default.AutoAwesome),
-        CategoryTile("winter", "Winter Wear", Icons.Default.AcUnit),
-        CategoryTile("sports", "Sports Wear", Icons.Default.FitnessCenter),
-        CategoryTile("accessories", "Accessories", Icons.Default.Watch)
+        CategoryTile("ALL", "All Items", Icons.Default.GridView),
+        CategoryTile("Apparel", "Apparel", Icons.Default.AcUnit),
+        CategoryTile("Footwear", "Footwear", Icons.Default.FitnessCenter),
+        CategoryTile("Accessories", "Accessories", Icons.Default.Watch),
+        CategoryTile("Electronics", "Electronics", Icons.Default.Headphones),
+        CategoryTile("Trending", "Trending", Icons.Default.LocalFireDepartment)
     )
 
-    LazyRow(
-        modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    LazyRow(modifier = modifier, contentPadding = PaddingValues(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(categories) { category ->
             val isSelected = selectedCategoryId == category.id
-            FilterChip(
-                selected = isSelected,
-                onClick = { onCategorySelected(category.id) },
-                label = { Text(category.label, style = MaterialTheme.typography.labelMedium) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = category.icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
+            Column(
+                modifier = Modifier.width(80.dp).clip(RoundedCornerShape(16.dp))
+                    .background(if (isSelected) Color(0xFF386633) else Color(0xFFF2F8F2))
+                    .border(1.dp, if (isSelected) Color(0xFF386633) else Color(0xFFD8EBD7), RoundedCornerShape(16.dp))
+                    .clickable { onCategorySelected(category.id) }.padding(vertical = 12.dp, horizontal = 4.dp)
+                    .then(if (isSelected) Modifier.scale(1.05f) else Modifier),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(modifier = Modifier.size(40.dp).background(if (isSelected) Color.White.copy(alpha = 0.2f) else Color.White, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(category.icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = if (isSelected) Color.White else Color(0xFF386633))
+                }
+                Text(category.label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center), color = if (isSelected) Color.White else Color(0xFF18211E), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
     }
 }
+

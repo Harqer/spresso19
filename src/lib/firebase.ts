@@ -160,3 +160,36 @@ export const logoutUser = async () => {
     logToCrashlytics("error", `Sign out failed: ${error.message}`);
   }
 };
+
+/**
+ * Helper to get the current user's ID token for authenticated API requests.
+ * Following best practices from the firebase-auth-basics skill.
+ */
+export const getAuthToken = async (): Promise<string | null> => {
+  if (!auth.currentUser) return null;
+  try {
+    return await auth.currentUser.getIdToken();
+  } catch (err) {
+    console.error("Failed to get auth token", err);
+    return null;
+  }
+};
+
+/**
+ * Authenticated Fetch Wrapper
+ * Automatically injects the Firebase ID token into the Authorization header.
+ * Following best practices from the firebase-auth-basics skill.
+ */
+export const authFetch = async (url: string, options: RequestInit = {}) => {
+  const token = await getAuthToken();
+  const headers = new Headers(options.headers || {});
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+};

@@ -9,7 +9,9 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.cjs",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:integration": "tsx scripts/verify-integration.ts",
+    "lavish": "tsx scripts/lavish.ts"
   },
   "dependencies": {
     "@genkit-ai/ai": "^1.40.1",

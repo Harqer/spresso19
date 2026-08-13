@@ -5,6 +5,7 @@ import { AIShopperInputBar } from "../AIShopperInputBar";
 import { LiveCameraCaptureModal } from "../LiveCameraCaptureModal";
 import { CameraObjectDetectionModal } from "../CameraObjectDetectionModal";
 import { GoogleLensScreenWidgetModal } from "../GoogleLensScreenWidgetModal";
+import { auth, authFetch } from "../../lib/firebase";
 import { ChatBubbleText } from "../atoms/ChatBubbleText";
 import { ChatMessageHeader } from "../molecules/ChatMessageHeader";
 import { ChatProductCard } from "../molecules/ChatProductCard";
@@ -89,7 +90,7 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
     setIsGenerating(true);
 
     try {
-      const response = await fetch("/api/chat/stream", {
+      const response = await authFetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

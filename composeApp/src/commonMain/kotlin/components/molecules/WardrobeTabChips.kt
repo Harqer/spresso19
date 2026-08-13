@@ -20,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import theme.AppTheme
 
 data class WardrobeSubTab(
     val id: String,
@@ -66,5 +68,16 @@ fun WardrobeTabChips(
                 )
             )
         }
+    }
+}
+
+@Preview
+@Composable
+fun WardrobeTabChipsPreview() {
+    AppTheme {
+        WardrobeTabChips(
+            selectedTabId = "ai_outfits",
+            onTabSelected = {}
+        )
     }
 }

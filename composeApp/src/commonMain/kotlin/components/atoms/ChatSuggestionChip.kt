@@ -10,6 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import theme.AppTheme
 
 @Composable
 fun ChatSuggestionChip(
@@ -31,4 +33,15 @@ fun ChatSuggestionChip(
         ),
         modifier = modifier
     )
+}
+
+@Preview
+@Composable
+fun ChatSuggestionChipPreview() {
+    AppTheme {
+        ChatSuggestionChip(
+            label = "Summer Outfits",
+            onClick = {}
+        )
+    }
 }

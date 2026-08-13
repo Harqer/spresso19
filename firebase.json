@@ -8,7 +8,7 @@
     ],
     "rewrites": [
       {
-        "source": "/api/*",
+        "source": "/api/**",
         "run": {
           "serviceId": "spresso-api",
           "region": "us-central1"
@@ -39,6 +39,17 @@
   },
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "auth": {
+    "authorizedDomains": ["localhost", "spresso-5561f.web.app", "spresso-5561f.firebaseapp.com"],
+    "providers": {
+      "anonymous": true,
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Spresso AI",
+        "supportEmail": "shaolin@spresso.ai"
+      }
+    }
   },
   "dataconnect": {
     "source": "dataconnect"

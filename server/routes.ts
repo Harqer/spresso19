@@ -1,4 +1,5 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
+import { verifyFirebaseToken, AuthRequest } from "./authMiddleware.ts";
 import { tryOnFlow } from "./flows/tryOnOrchestrationFlow.ts";
 import { extractViTPose } from "./actions/vitposeAction.ts";
 import { activeOrders } from "./inventory.ts";
@@ -53,7 +54,7 @@ export const router = Router();
 // ==========================================
 import { seedCatalogInventory, getProductById } from "./inventory.ts";
 
-router.get("/api/inventory", async (req, res) => {
+router.get("/api/inventory", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const result = await listProducts(getDc());
     if (result?.data?.products && result.data.products.length > 0) {
@@ -96,7 +97,7 @@ router.get("/api/inventory", async (req, res) => {
   return res.json({ success: true, products: seedCatalogInventory });
 });
 
-router.get("/api/products", async (req, res) => {
+router.get("/api/products", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const category = req.query.category as string;
   try {
     const result = await listProducts(getDc());
@@ -150,7 +151,7 @@ router.get("/api/products", async (req, res) => {
   return res.json({ success: true, products: items });
 });
 
-router.get("/api/products/:id", async (req, res) => {
+router.get("/api/products/:id", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const id = req.params.id;
   try {
     const result = await listProducts(getDc());
@@ -200,10 +201,11 @@ router.get("/api/products/:id", async (req, res) => {
   return res.status(404).json({ success: false, error: "Product not found" });
 });
 
-router.post("/api/user/sync", async (req, res) => {
-  const { uid, email, name } = req.body || {};
+router.post("/api/user/sync", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const { email, name } = req.body || {};
+  const uid = req.user?.uid;
   if (!uid || !email) {
-    return res.status(400).json({ success: false, error: "uid and email are required" });
+    return res.status(400).json({ success: false, error: "uid (from token) and email are required" });
   }
 
   try {
@@ -249,7 +251,7 @@ router.post("/api/user/sync", async (req, res) => {
 // APIFY SPECIALIZED CATEGORY FEEDS & ACTORS
 // (Deals, Trending, Hot Drops, For You)
 // ==========================================
-router.post("/api/apify/feed", async (req, res) => {
+router.post("/api/apify/feed", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const result = await getApifyCategoryFeed(req.body || {});
     res.json(result);
@@ -258,14 +260,14 @@ router.post("/api/apify/feed", async (req, res) => {
   }
 });
 
-router.post("/api/apify/actor/run", async (req, res) => {
+router.post("/api/apify/actor/run", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const { actorId, input } = req.body || {};
   const targetActor = actorId || process.env.APIFY_ACTOR_ID || "lucid_boiler~my-actor";
   const result = await runApifyShoppingActor(targetActor, input);
   res.json(result);
 });
 
-router.post("/api/apify/marketplace/run", async (req, res) => {
+router.post("/api/apify/marketplace/run", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const { platform, query } = req.body || {};
   if (!platform || !query) {
     return res.status(400).json({ error: "Platform (amazon, walmart, etsy, tiktok, amazon_reviews, ebay) and query required" });
@@ -332,19 +334,7 @@ function validateAccessibilityJpeg(value: unknown): string | null {
  * Authenticated endpoint used only by the user-triggered Android screen-search
  * path. The browser-facing legacy lens route is intentionally separate.
  */
-router.post("/api/accessibility/lens-search", async (req, res) => {
-  const authorization = req.get("authorization") || "";
-  const tokenMatch = authorization.match(/^Bearer\s+(.+)$/i);
-  if (!tokenMatch) {
-    return res.status(401).json({ success: false, error: "Authentication required" });
-  }
-
-  try {
-    await getAuth(getApp()).verifyIdToken(tokenMatch[1]);
-  } catch (_error) {
-    return res.status(401).json({ success: false, error: "Authentication required" });
-  }
-
+router.post("/api/accessibility/lens-search", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const imageBase64 = validateAccessibilityJpeg(req.body?.imageBase64);
   if (!imageBase64) {
     return res.status(413).json({ success: false, error: "Screen image is too large or unsupported" });
@@ -374,7 +364,7 @@ router.post("/api/accessibility/lens-search", async (req, res) => {
   });
 });
 
-router.post("/api/lens-search", async (req, res) => {
+router.post("/api/lens-search", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const { imageUrl, imageBase64, promptText } = req.body || {};
   const targetUrl = imageUrl || imageBase64;
   if (!targetUrl) {
@@ -412,7 +402,7 @@ router.post("/api/lens-search", async (req, res) => {
 // ==========================================
 // GEMINI 2.5 FLASH PERSONALIZED FEED & GENMEDIA
 // ==========================================
-router.post("/api/personalized-feed", async (req, res) => {
+router.post("/api/personalized-feed", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const result = await getPersonalizedFeed(req.body);
     res.json(result);
@@ -421,7 +411,7 @@ router.post("/api/personalized-feed", async (req, res) => {
   }
 });
 
-router.post("/api/genmedia-kit", async (req, res) => {
+router.post("/api/genmedia-kit", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const { productId } = req.body || {};
     const result = await getGenMediaKit(productId);
@@ -431,7 +421,7 @@ router.post("/api/genmedia-kit", async (req, res) => {
   }
 });
 
-router.post("/api/creative-studio/synthesize", async (req, res) => {
+router.post("/api/creative-studio/synthesize", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const result = await generateCreativeProductStudio(req.body);
     res.json(result);
@@ -440,7 +430,7 @@ router.post("/api/creative-studio/synthesize", async (req, res) => {
   }
 });
 
-router.post("/api/wardrobe/generate-outfit", async (req, res) => {
+router.post("/api/wardrobe/generate-outfit", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const result = await generateAIWeatherOutfit(req.body);
     res.json({ success: true, result });
@@ -452,7 +442,7 @@ router.post("/api/wardrobe/generate-outfit", async (req, res) => {
 // ==========================================
 // GEMINI STREAMING CHAT (SEARCH/MAPS GROUNDING)
 // ==========================================
-router.post("/api/chat/stream", async (req, res) => {
+router.post("/api/chat/stream", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -763,7 +753,7 @@ STRICT GOOGLE CONCISE RESPONSE GUIDELINES (MAX 80-100 WORDS EXPLANATION):
 // ==========================================
 // VISION, TRY-ON & HITL CHECKOUT
 // ==========================================
-router.post("/api/vision/identify", async (req, res) => {
+router.post("/api/vision/identify", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const { imageBase64, deviceContext, promptText } = req.body;
     if (!imageBase64) return res.status(400).json({ error: "Image base64 required" });
@@ -774,7 +764,7 @@ router.post("/api/vision/identify", async (req, res) => {
   }
 });
 
-router.post("/api/try-on", async (req, res) => {
+router.post("/api/try-on", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const { productId, mediaType, customNotes } = req.body;
     const result = await runTryOnPipeline(productId, mediaType, customNotes);
@@ -785,7 +775,7 @@ router.post("/api/try-on", async (req, res) => {
 });
 
 // ViTPose 2D Keypoint Extraction Endpoint
-router.post("/api/vitpose/extract-keypoints", async (req, res) => {
+router.post("/api/vitpose/extract-keypoints", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const { userImageBase64 } = req.body;
     const vitposeData = await extractViTPoseKeypoints(userImageBase64);
@@ -796,7 +786,7 @@ router.post("/api/vitpose/extract-keypoints", async (req, res) => {
 });
 
 // ViTPose + Gemini Vision Product Selection & Spatial Fit Orchestration Endpoint
-router.post("/api/vitpose/orchestrate-fit", async (req, res) => {
+router.post("/api/vitpose/orchestrate-fit", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const { userImageBase64, desiredFitStyle, preferredCategory } = req.body;
     const result = await orchestrateProductFitWithViTPose(
@@ -811,7 +801,7 @@ router.post("/api/vitpose/orchestrate-fit", async (req, res) => {
 });
 
 // Genkit Native Action Endpoint for ViTPose
-router.post("/api/genkit/vitpose-action", async (req, res) => {
+router.post("/api/genkit/vitpose-action", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const { userImageBase64 } = req.body;
     const poseData = await extractViTPose({ userImageBase64: userImageBase64 || "" });
@@ -822,7 +812,7 @@ router.post("/api/genkit/vitpose-action", async (req, res) => {
 });
 
 // Genkit Native Flow Endpoint for Try-On & Veo 360 Spin Orchestration
-router.post("/api/genkit/try-on-flow", async (req, res) => {
+router.post("/api/genkit/try-on-flow", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const { userImageBase64, garmentImageUrl } = req.body;
     const flowResult = await tryOnFlow({
@@ -835,7 +825,7 @@ router.post("/api/genkit/try-on-flow", async (req, res) => {
   }
 });
 
-router.post("/api/purchase/authorize", async (req, res) => {
+router.post("/api/purchase/authorize", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const { productId, quantity, deviceSource } = req.body;
   const product = await getActiveProductById(productId);
   if (!product) return res.status(404).json({ error: "Product not found" });
@@ -866,9 +856,10 @@ router.post("/api/purchase/authorize", async (req, res) => {
   res.json({ success: true, authorizationPayload: hitlPayload });
 });
 
-router.post("/api/purchase/automate", async (req, res) => {
+router.post("/api/purchase/automate", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { productId, quantity, deviceSource, userId, shippingAddress, biometricAuthorized, merchantUrl } = req.body;
+    const { productId, quantity, deviceSource, shippingAddress, biometricAuthorized, merchantUrl } = req.body;
+    const userId = req.user?.uid;
     
     if (!biometricAuthorized) {
       return res.status(400).json({ error: "Biometric verification is required to authorize e-commerce automation." });
@@ -995,8 +986,9 @@ function verifyBiometricSignature(
   }
 }
 
-router.post("/api/purchase/confirm", async (req, res) => {
-  const { productId, quantity, deviceSource, userConfirmedToken, userId } = req.body;
+router.post("/api/purchase/confirm", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const { productId, quantity, deviceSource, userConfirmedToken } = req.body;
+  const userId = req.user?.uid;
   const product = await getActiveProductById(productId);
   if (!product) return res.status(404).json({ error: "Product not found" });
 
@@ -1083,8 +1075,8 @@ router.post("/api/purchase/confirm", async (req, res) => {
   res.json({ success: true, message: "Purchase authorized!", order: newOrder });
 });
 
-router.get("/api/orders", async (req, res) => {
-  const userId = (req.query.userId as string) || (req.headers["x-user-id"] as string);
+router.get("/api/orders", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.uid;
   let userFilteredOrders = activeOrders;
   if (userId) {
     userFilteredOrders = activeOrders.filter(o => !o.userId || o.userId === userId);
@@ -1126,7 +1118,7 @@ router.get("/api/orders", async (req, res) => {
 });
 
 // Post-Purchase Shopping Concierge Agent Endpoints
-router.get("/api/orders/:orderId", (req, res) => {
+router.get("/api/orders/:orderId", verifyFirebaseToken, (req: AuthRequest, res: Response) => {
   const { orderId } = req.params;
   const targetOrder = activeOrders.find(o => o.id.toLowerCase() === orderId.toLowerCase());
   if (!targetOrder) {
@@ -1135,8 +1127,9 @@ router.get("/api/orders/:orderId", (req, res) => {
   res.json({ success: true, order: targetOrder });
 });
 
-router.post("/api/orders/return", async (req, res) => {
+router.post("/api/orders/return", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const { orderId, reason } = req.body || {};
+  const userId = req.user?.uid;
   if (!orderId) {
     return res.status(400).json({ success: false, error: "orderId is required to initiate return." });
   }
@@ -1191,7 +1184,7 @@ router.post("/api/orders/return", async (req, res) => {
   });
 });
 
-router.post("/api/orders/reminder", async (req, res) => {
+router.post("/api/orders/reminder", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const { orderId, reminderTime } = req.body || {};
   const targetOrder = activeOrders.find(o => !orderId || o.id.toLowerCase() === orderId.toLowerCase()) || activeOrders[0];
 
@@ -1236,18 +1229,18 @@ router.post("/api/orders/reminder", async (req, res) => {
 // ==========================================
 // ECONOMIC RESEARCH & CREATOR CAMPAIGN
 // ==========================================
-router.post("/api/economic-research", async (req, res) => {
+router.post("/api/economic-research", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const { query, sector } = req.body;
   const research = await runEconomicResearch(query, sector);
   res.json({ success: true, research });
 });
 
-router.post("/api/creator/generate-campaign", async (req, res) => {
+router.post("/api/creator/generate-campaign", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const campaign = await generateCreatorCampaign(req.body);
   res.json({ success: true, campaign });
 });
 
-router.post("/api/genkit/creative-pipeline", async (req, res) => {
+router.post("/api/genkit/creative-pipeline", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const result = await runGenkitCreativePipeline(req.body);
   res.json(result);
 });
@@ -1295,6 +1288,6 @@ const handleBargainChefRequest = async (req: any, res: any) => {
   }
 };
 
-router.post("/api/recipe/bargain-chef", handleBargainChefRequest);
-router.post("/bargainChefFlow", handleBargainChefRequest);
+router.post("/api/recipe/bargain-chef", verifyFirebaseToken, handleBargainChefRequest);
+router.post("/bargainChefFlow", verifyFirebaseToken, handleBargainChefRequest);
 

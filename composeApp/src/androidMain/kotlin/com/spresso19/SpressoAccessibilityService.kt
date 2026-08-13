@@ -237,6 +237,11 @@ class SpressoAccessibilityService : AccessibilityService() {
 
             if (response?.success == true) {
                 notifyUser("Screen search complete.")
+                val resultIntent = Intent("com.spresso19.ACTION_SCAN_RESULT").apply {
+                    setPackage(packageName)
+                    putExtra("imageBase64", base64Image)
+                }
+                sendBroadcast(resultIntent)
             } else {
                 notifyUser("Unable to search this screen. Please try again.")
             }

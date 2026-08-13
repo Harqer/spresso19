@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { authFetch } from "../lib/firebase";
 import { ProductItem, HITLPayload } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { ElevatedQuickActionFab } from "./ElevatedQuickActionFab";
@@ -91,7 +92,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     setIsProcessing(true);
     try {
       const [resTryOn, resVitpose] = await Promise.all([
-        fetch("/api/try-on", {
+        authFetch("/api/try-on", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -101,7 +102,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
             mediaType
           })
         }),
-        fetch("/api/vitpose/orchestrate-fit", {
+        authFetch("/api/vitpose/orchestrate-fit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

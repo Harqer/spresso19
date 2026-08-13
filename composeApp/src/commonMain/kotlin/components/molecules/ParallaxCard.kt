@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import theme.AppTheme
 
 @Composable
 fun ParallaxCard(
@@ -62,6 +64,18 @@ fun ParallaxCard(
                 .padding(16.dp)
         ) {
             content()
+        }
+    }
+}
+
+@Preview
+@Composable
+fun ParallaxCardPreview() {
+    AppTheme {
+        androidx.compose.foundation.layout.Box(modifier = Modifier.padding(16.dp)) {
+            ParallaxCard(scrollOffset = 100f) {
+                androidx.compose.material3.Text("Parallax Content")
+            }
         }
     }
 }

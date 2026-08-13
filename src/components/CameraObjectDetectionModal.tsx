@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem, DetectedItem } from "../types";
 import { cropImageSnippet } from "../utils/imageCropper";
-import { logToCrashlytics } from "../lib/firebase";
+import { logToCrashlytics, authFetch } from "../lib/firebase";
 
 interface CameraObjectDetectionModalProps {
   isOpen: boolean;
@@ -180,7 +180,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
     setHudStatusText("Analyzing item at selected location...");
 
     try {
-      const res = await fetch("/api/vision/identify", {
+      const res = await authFetch("/api/vision/identify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -438,8 +438,9 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
             /* Post-Capture Object Detection Results & Listing Card */
             <div className="w-full space-y-3 max-w-md">
               {/* Tap Instruction Pill */}
-              <div className="bg-emerald-950/60 backdrop-blur-md border border-emerald-500/30 px-3.5 py-1.5 rounded-xl text-center text-emerald-200 text-xs font-medium shadow-md">
-                💡 <span className="font-bold">Touch or click anywhere</span> on clothing/item in photo to isolate product.
+              <div className="bg-emerald-950/60 backdrop-blur-md border border-emerald-500/30 px-3.5 py-1.5 rounded-xl text-center text-emerald-200 text-xs font-medium shadow-md flex items-center justify-center space-x-1.5">
+                <MaterialIcon icon="lightbulb" size={14} className="text-emerald-400 shrink-0" />
+                <span><span className="font-bold">Touch or click anywhere</span> on clothing/item in photo to isolate product.</span>
               </div>
 
               {/* Multiple Item Selector Tabs if more than 1 item */}
@@ -485,9 +486,10 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
                         <span className="px-2 py-0.5 bg-blue-500/90 backdrop-blur-md text-white text-[10px] font-extrabold rounded-md uppercase tracking-wider border border-blue-400/30">
                           Product Isolated
                         </span>
-                        <span className="text-[11px] text-emerald-400 font-mono font-bold">
-                          {Math.round((detectedItems[selectedIndex].confidenceScore || 0.95) * 100)}% MATCH
-                        </span>
+                        <div className="flex items-center space-x-0.5 text-amber-300 font-bold text-[11px]">
+                          <MaterialIcon icon="star" size={12} />
+                          <span>4.8</span>
+                        </div>
                       </div>
                       <h3 className="text-sm font-bold text-white mt-1 truncate">
                         {detectedItems[selectedIndex].detectedName}

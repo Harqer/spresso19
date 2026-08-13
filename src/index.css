@@ -40,43 +40,51 @@
 /* Material 3 Dynamic Light & Dark Theme Tokens & Tonal Elevation */
 :root {
   /* Default Light Theme Tokens */
-  --md-sys-color-primary: #386633;
+  --md-sys-color-primary: #006A66;
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #e8f3e8;
-  --md-sys-color-on-primary-container: #18211e;
+  --md-sys-color-primary-container: #9df1eb;
+  --md-sys-color-on-primary-container: #00504c;
 
-  --md-sys-color-secondary: #84cc16;
-  --md-sys-color-on-secondary: #18211e;
-  --md-sys-color-secondary-container: #ecfccb;
-  --md-sys-color-on-secondary-container: #365314;
+  --md-sys-color-secondary: #4a6361;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #cce8e5;
+  --md-sys-color-on-secondary-container: #324b49;
 
-  --md-sys-color-tertiary: #16a34a;
+  --md-sys-color-tertiary: #49607b;
   --md-sys-color-on-tertiary: #ffffff;
-  --md-sys-color-tertiary-container: #dcfce7;
-  --md-sys-color-on-tertiary-container: #14532d;
+  --md-sys-color-tertiary-container: #d0e4ff;
+  --md-sys-color-on-tertiary-container: #314962;
 
-  --md-sys-color-background: #f8faf8;
-  --md-sys-color-on-background: #18211e;
-  --md-sys-color-surface: #ffffff;
-  --md-sys-color-on-surface: #18211e;
-  --md-sys-color-surface-variant: #f2f8f2;
-  --md-sys-color-on-surface-variant: #556258;
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #93000a;
+
+  --md-sys-color-background: #f4fbf9;
+  --md-sys-color-on-background: #161d1c;
+  --md-sys-color-surface: #f4fbf9;
+  --md-sys-color-on-surface: #161d1c;
+  --md-sys-color-surface-variant: #dae5e3;
+  --md-sys-color-on-surface-variant: #3f4948;
 
   /* Tonal Surface Elevation Levels */
-  --md-sys-color-surface-dim: #f2f8f2;
-  --md-sys-color-surface-bright: #ffffff;
+  --md-sys-color-surface-dim: #d5dbda;
+  --md-sys-color-surface-bright: #f4fbf9;
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #f8faf8;
-  --md-sys-color-surface-container: #f2f8f2;
-  --md-sys-color-surface-container-high: #e2efe2;
-  --md-sys-color-surface-container-highest: #d8ebd7;
+  --md-sys-color-surface-container-low: #eff5f3;
+  --md-sys-color-surface-container: #e9efee;
+  --md-sys-color-surface-container-high: #e3e9e8;
+  --md-sys-color-surface-container-highest: #dde4e2;
 
-  --md-sys-color-outline: #c4d6c3;
-  --md-sys-color-outline-variant: #e2efe2;
+  --md-sys-color-outline: #6f7978;
+  --md-sys-color-outline-variant: #bec9c7;
+  --md-sys-color-inverse-surface: #2b3231;
+  --md-sys-color-inverse-on-surface: #ecf2f0;
+  --md-sys-color-inverse-primary: #80d5cf;
 
   /* Legacy aliases for backwards compatibility */
   --color-brand-primary: var(--md-sys-color-primary);
-  --color-brand-hover: #2d5229;
+  --color-brand-hover: #00504c;
   --color-brand-light: var(--md-sys-color-primary-container);
   --color-brand-soft: var(--md-sys-color-surface-container-low);
   --color-accent-orange: #ff5e1a;
@@ -91,43 +99,51 @@
 }
 
 .dark {
-  /* Charcoal Slate (#18211e) & Lime Green (#84cc16) Spec Dark Theme */
-  --md-sys-color-primary: #84cc16;
-  --md-sys-color-on-primary: #18211e;
-  --md-sys-color-primary-container: #284024;
-  --md-sys-color-on-primary-container: #e8f3e8;
+  /* Spec Dark Theme Tokens */
+  --md-sys-color-primary: #80d5cf;
+  --md-sys-color-on-primary: #003734;
+  --md-sys-color-primary-container: #00504c;
+  --md-sys-color-on-primary-container: #9df1eb;
 
-  --md-sys-color-secondary: #386633;
-  --md-sys-color-on-secondary: #ffffff;
-  --md-sys-color-secondary-container: #1e331b;
-  --md-sys-color-on-secondary-container: #ecfccb;
+  --md-sys-color-secondary: #b0ccc9;
+  --md-sys-color-on-secondary: #1b3533;
+  --md-sys-color-secondary-container: #324b49;
+  --md-sys-color-on-secondary-container: #cce8e5;
 
-  --md-sys-color-tertiary: #4ade80;
-  --md-sys-color-on-tertiary: #052e16;
-  --md-sys-color-tertiary-container: #14532d;
-  --md-sys-color-on-tertiary-container: #dcfce7;
+  --md-sys-color-tertiary: #b0c9e7;
+  --md-sys-color-on-tertiary: #19324a;
+  --md-sys-color-tertiary-container: #314962;
+  --md-sys-color-on-tertiary-container: #d0e4ff;
 
-  --md-sys-color-background: #18211e;
-  --md-sys-color-on-background: #f8faf8;
-  --md-sys-color-surface: #18211e;
-  --md-sys-color-on-surface: #f8faf8;
-  --md-sys-color-surface-variant: #222924;
-  --md-sys-color-on-surface-variant: #c4d6c3;
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffdad6;
+
+  --md-sys-color-background: #0e1514;
+  --md-sys-color-on-background: #dde4e2;
+  --md-sys-color-surface: #0e1514;
+  --md-sys-color-on-surface: #dde4e2;
+  --md-sys-color-surface-variant: #3f4948;
+  --md-sys-color-on-surface-variant: #bec9c7;
 
   /* Tonal Surface Elevation Levels */
-  --md-sys-color-surface-dim: #121816;
-  --md-sys-color-surface-bright: #2d3830;
-  --md-sys-color-surface-container-lowest: #141b18;
-  --md-sys-color-surface-container-low: #1c2420;
-  --md-sys-color-surface-container: #222924;
-  --md-sys-color-surface-container-high: #2d3830;
-  --md-sys-color-surface-container-highest: #3d4a40;
+  --md-sys-color-surface-dim: #0e1514;
+  --md-sys-color-surface-bright: #343a3a;
+  --md-sys-color-surface-container-lowest: #090f0f;
+  --md-sys-color-surface-container-low: #161d1c;
+  --md-sys-color-surface-container: #1a2120;
+  --md-sys-color-surface-container-high: #252b2a;
+  --md-sys-color-surface-container-highest: #2f3635;
 
-  --md-sys-color-outline: #556258;
-  --md-sys-color-outline-variant: #2d3830;
+  --md-sys-color-outline: #889391;
+  --md-sys-color-outline-variant: #3f4948;
+  --md-sys-color-inverse-surface: #dde4e2;
+  --md-sys-color-inverse-on-surface: #2b3231;
+  --md-sys-color-inverse-primary: #006a66;
 
   --color-brand-primary: var(--md-sys-color-primary);
-  --color-brand-hover: #a3e635;
+  --color-brand-hover: #9df1eb;
   --color-brand-light: var(--md-sys-color-primary-container);
   --color-brand-soft: var(--md-sys-color-surface-container-low);
   --color-accent-orange: #ff5e1a;

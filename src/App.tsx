@@ -20,7 +20,7 @@ import { MaterialIcon } from "./components/MaterialIcon";
 import { AuthScreen } from "./components/AuthScreen";
 import { DynamicThemePickerModal } from "./components/DynamicThemePickerModal";
 import { applyDynamicThemeToDocument } from "./lib/dynamicColorEngine";
-import { auth, loginWithGoogle, loginAnonymously, logoutUser, db as firestoreDb } from "./lib/firebase";
+import { auth, loginWithGoogle, loginAnonymously, logoutUser, db as firestoreDb, authFetch } from "./lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { dataConnect } from "./lib/firebase";
@@ -185,7 +185,7 @@ export default function App() {
   // Load Inventory & Orders from Data Connect / Cloud SQL
   const fetchInventoryAndOrders = async (targetUid?: string) => {
     try {
-      const res = await fetch("/api/products");
+      const res = await authFetch("/api/products");
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.products && data.products.length > 0) {
@@ -256,7 +256,17 @@ export default function App() {
 
         const displayName = currentUser.displayName || (currentUser.email ? currentUser.email.split("@")[0] : `User_${currentUser.uid.slice(0, 5)}`);
         try {
-          // Sync profile to Cloud SQL backend (Now using Firestore directly as planned)
+          // 1. Sync profile to Cloud SQL backend via authenticated API
+          await authFetch("/api/user/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: currentUser.email || "",
+              name: displayName
+            })
+          });
+
+          // 2. Sync profile to Firestore directly for client-side reactive access
           await setDoc(doc(firestoreDb, "users", currentUser.uid), {
             uid: currentUser.uid,
             email: currentUser.email || "",

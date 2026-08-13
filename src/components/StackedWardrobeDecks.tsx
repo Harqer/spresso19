@@ -241,8 +241,9 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
                 {poolItems.length} Curated Items Pool
               </span>
             </div>
-            <h2 className="text-xl md:text-2xl font-bold font-headline text-white">
-              🎴 Stacked Wardrobe Cards & AI Smart Fits
+            <h2 className="text-xl md:text-2xl font-bold font-headline text-white flex items-center space-x-2">
+              <MaterialIcon icon="style" size={24} className="text-emerald-400" />
+              <span>Stacked Wardrobe Cards & AI Smart Fits</span>
             </h2>
             <p className="text-xs text-stone-300 leading-relaxed">
               Tap any stacked card deck to fan out and explore AI-curated fashion looks generated from your <span className="text-amber-300 font-bold">Photo Gallery</span>, <span className="text-rose-300 font-bold">Liked Items</span>, and <span className="text-emerald-300 font-bold">Store Bookmarks</span>!

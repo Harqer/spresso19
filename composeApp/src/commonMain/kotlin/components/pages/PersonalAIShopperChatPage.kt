@@ -1,28 +1,16 @@
 package components.pages
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import components.organisms.PersonalAIShopperChatPanel
+import viewmodels.ChatViewModel
+import kotlinx.coroutines.launch
+import network.ChatMessage
+import network.ProductItem
 
 @Composable
 fun PersonalAIShopperChatPage(
@@ -41,20 +29,30 @@ fun PersonalAIShopperChatPage(
     onRequestAccessibilityScan: (() -> Unit)? = null,
     onLaunchCamera: (() -> Unit)? = null,
     onToggleVoiceRecording: (() -> Unit)? = null,
+    onAddToCart: (ProductItem) -> Unit = {},
+    onSelectTryOn: (ProductItem) -> Unit = {},
+    initialPrompt: String? = null,
+    initialImage: String? = null,
+    apiClient: network.ApiClient = remember { network.ApiClient() },
     modifier: Modifier = Modifier
 ) {
-    val messages = remember { mutableStateListOf<Pair<String, Boolean>>() }
+    val scope = rememberCoroutineScope()
+    val viewModel = remember { ChatViewModel(apiClient, scope) }
+    val messages = viewModel.messages
+    val isGenerating = viewModel.isGenerating
 
-    LaunchedEffect(liveTranscript) {
-        if (liveTranscript.isNotEmpty()) {
-            messages.clear()
-            messages.add("Hello Shopper! I'm your Spresso AI Personal Shopper. How can I help you find outfits, ingredients, or local retail deals today?" to false)
-            messages.add(liveTranscript to false)
+    LaunchedEffect(initialPrompt, initialImage) {
+        if (!initialImage.isNullOrBlank()) {
+            viewModel.sendCameraSnapshot(initialImage, prompt = initialPrompt)
+        } else if (!initialPrompt.isNullOrBlank() && (messages.isEmpty() || messages.last().text != initialPrompt)) {
+            viewModel.sendMessage(prompt = initialPrompt, location = userLocation, agentType = "SHOPPING_CONCIERGE")
         }
     }
 
-    if (messages.isEmpty()) {
-        messages.add("Hello Shopper! I'm your Spresso AI Personal Shopper. How can I help you find outfits, ingredients, or local retail deals today?" to false)
+    LaunchedEffect(liveTranscript) {
+        if (liveTranscript.isNotEmpty()) {
+            messages.add(ChatMessage(id = "live-" + messages.size, text = liveTranscript, isUser = false))
+        }
     }
 
     if (showAccessibilityDisclosure) {
@@ -64,36 +62,25 @@ fun PersonalAIShopperChatPage(
             title = { Text("Screen search access") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Spresso can capture the current app window or screen only after you tap Scan current screen...")
-                    Text("A capture may include text, account details... Do not scan passwords, one-time codes, payment forms...")
-                    Text("For visual shopping search, the image is processed via HTTPS... Raw images are not saved to disk...")
+                    Text("Spresso can capture current app screen after you tap Scan...")
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = acknowledged, onCheckedChange = { acknowledged = it })
                         Text("I agree to screen capture and transfer for visual shopping search.")
                     }
                 }
             },
-            confirmButton = {
-                Button(
-                    enabled = acknowledged && onAccessibilityConsentAccepted != null,
-                    onClick = { onAccessibilityConsentAccepted?.invoke() }
-                ) {
-                    Text("I understand and continue")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { onDismissAccessibilityDisclosure?.invoke() }) {
-                    Text("Decline")
-                }
-            }
+            confirmButton = { Button(enabled = acknowledged && onAccessibilityConsentAccepted != null, onClick = { onAccessibilityConsentAccepted?.invoke() }) { Text("I understand") } },
+            dismissButton = { TextButton(onClick = { onDismissAccessibilityDisclosure?.invoke() }) { Text("Decline") } }
         )
     }
 
     Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
         PersonalAIShopperChatPanel(
             messages = messages,
-            onSendMessage = { prompt -> messages.add(prompt to true) },
-            errorMessage = errorMessage,
+            onSendMessage = { viewModel.sendMessage(prompt = it, location = userLocation, agentType = "SHOPPING_CONCIERGE") },
+            onAddToCart = onAddToCart,
+            onSelectTryOn = onSelectTryOn,
+            errorMessage = errorMessage ?: viewModel.errorMessage,
             userLocation = userLocation,
             isAccessibilityEnabled = isAccessibilityEnabled,
             hasAccessibilityConsent = hasAccessibilityConsent,
@@ -101,9 +88,15 @@ fun PersonalAIShopperChatPage(
             onRequestAccessibilityScan = onRequestAccessibilityScan,
             onRevokeAccessibilityConsent = onRevokeAccessibilityConsent,
             onLaunchCamera = onLaunchCamera,
-            isVoiceRecording = isVoiceRecording,
-            onToggleVoiceRecording = onToggleVoiceRecording,
+            isVoiceRecording = isVoiceRecording || viewModel.isVoiceActive,
+            onToggleVoiceRecording = onToggleVoiceRecording ?: { viewModel.toggleVoiceStream() },
+            isSpeaking = viewModel.isVoiceSpeaking,
+            isListening = viewModel.isVoiceListening,
+            onStopVoice = { viewModel.stopVoiceStream() },
+            isGenerating = isGenerating,
+            httpClient = apiClient.client,
             modifier = Modifier.padding(innerPadding)
         )
     }
 }
+

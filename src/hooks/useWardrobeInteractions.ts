@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { CustomWardrobeItem, GeneratedOutfit, WardrobeCategory, WeatherSuitability } from "../types";
+import { authFetch } from "../lib/firebase";
 
 export function useWardrobeInteractions(allWardrobeItems: CustomWardrobeItem[], setUserUploadedItems: React.Dispatch<React.SetStateAction<CustomWardrobeItem[]>>, setCurrentOutfit: React.Dispatch<React.SetStateAction<GeneratedOutfit | null>>) {
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
@@ -57,7 +58,7 @@ export function useWardrobeInteractions(allWardrobeItems: CustomWardrobeItem[], 
   const handleGenerateAIOutfit = async (mode = selectedWeatherMode, tempText = temperaturePrompt) => {
     setIsGeneratingOutfit(true);
     try {
-      const response = await fetch("/api/wardrobe/generate-outfit", {
+      const response = await authFetch("/api/wardrobe/generate-outfit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

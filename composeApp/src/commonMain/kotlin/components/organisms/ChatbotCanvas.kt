@@ -23,6 +23,8 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import components.molecules.ParallaxCard
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import theme.AppTheme
 
 @Composable
 fun ChatbotCanvas(
@@ -110,6 +112,16 @@ fun ChatbotCanvas(
             )
 
             Box(modifier = Modifier.height(1000.dp))
+        }
+    }
+}
+
+@Preview
+@Composable
+fun ChatbotCanvasPreview() {
+    AppTheme {
+        ChatbotCanvas(isVideoPlaying = false) {
+            androidx.compose.material3.Text("AI Conversation Canvas")
         }
     }
 }

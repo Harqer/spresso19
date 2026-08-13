@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { authFetch } from "../lib/firebase";
 import { DetectedItem, HITLPayload, ProductItem } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { CameraObjectDetectionModal } from "./CameraObjectDetectionModal";
@@ -76,7 +77,7 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
     const targetImage = imgDataUrl || activeImage;
 
     try {
-      const res = await fetch("/api/vision/identify", {
+      const res = await authFetch("/api/vision/identify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -236,8 +237,9 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
                   }}
                 >
                   <div className="w-full h-full border-2 border-[#386633] bg-[#386633]/10 rounded-xl relative shadow-lg">
-                    <span className="absolute -top-3 -left-1 px-2 py-0.5 bg-[#386633] text-white text-[10px] font-extrabold rounded-md shadow-md">
-                      {(item.confidenceScore * 100).toFixed(0)}% MATCH
+                    <span className="absolute -top-3 -left-1 px-2 py-0.5 bg-[#386633] text-white text-[10px] font-extrabold rounded-md shadow-md flex items-center space-x-1">
+                      <MaterialIcon icon="star" size={12} className="text-amber-300" />
+                      <span>4.8</span>
                     </span>
 
                     <div className="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-md p-2.5 rounded-xl border border-[#d8ebd7] text-[#18211e] shadow-xl text-left pointer-events-auto">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { authFetch } from "../lib/firebase";
 import { OrderRecord } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { AIShopperInputBar } from "./AIShopperInputBar";
@@ -39,7 +40,7 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
   const handleSetReminder = async (orderId: string) => {
     setLoadingAction(`reminder-${orderId}`);
     try {
-      const res = await fetch("/api/orders/reminder", {
+      const res = await authFetch("/api/orders/reminder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId, reminderTime: "Today at 5:00 PM (Arrival Alert)" })
@@ -62,7 +63,7 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
 
     setLoadingAction(`return-${returnModalOrderId}`);
     try {
-      const res = await fetch("/api/orders/return", {
+      const res = await authFetch("/api/orders/return", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId: returnModalOrderId, reason: returnReason || "Customer return request" })

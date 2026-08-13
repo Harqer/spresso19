@@ -18,6 +18,21 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import java.util.UUID
 
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.UserProfileChangeRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+
 class MainActivity : ComponentActivity() {
 
     private val recordAudioRequestCode = 101
@@ -50,8 +65,21 @@ class MainActivity : ComponentActivity() {
             val isAccessEnabled by isAccessibilityEnabledState
             val hasConsent by hasAccessibilityConsentState
             val showDisclosure by accessibilityDisclosureRequestedState
+            
+            var user by remember { mutableStateOf(FirebaseAuth.getInstance().currentUser) }
+            
+            DisposableEffect(Unit) {
+                val listener = FirebaseAuth.AuthStateListener { auth ->
+                    user = auth.currentUser
+                }
+                FirebaseAuth.getInstance().addAuthStateListener(listener)
+                onDispose {
+                    FirebaseAuth.getInstance().removeAuthStateListener(listener)
+                }
+            }
 
             App(
+                currentUserUid = user?.uid,
                 onShare = { productId ->
                     val sendIntent = Intent().apply {
                         action = Intent.ACTION_SEND
@@ -69,7 +97,54 @@ class MainActivity : ComponentActivity() {
                     accessibilityDisclosureRequestedState.value = false
                 },
                 onRevokeAccessibilityConsent = ::revokeAccessibilityConsent,
-                onRequestAccessibilityScan = ::requestOneShotScreenScan
+                onRequestAccessibilityScan = ::requestOneShotScreenScan,
+                onGoogleSignInRequested = {
+                    val credentialManager = CredentialManager.create(this@MainActivity)
+                    val googleIdOption = GetGoogleIdOption.Builder()
+                        .setFilterByAuthorizedAccounts(false)
+                        .setServerClientId("656500460421-f02h94qsiq3s5hvltdak54r932bvgbnm.apps.googleusercontent.com")
+                        .setAutoSelectEnabled(true)
+                        .build()
+
+                    val request = GetCredentialRequest.Builder()
+                        .addCredentialOption(googleIdOption)
+                        .build()
+
+                    CoroutineScope(Dispatchers.Main).launch {
+                        try {
+                            val result = credentialManager.getCredential(
+                                context = this@MainActivity,
+                                request = request
+                            )
+                            val credential = result.credential
+                            if (credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                                val firebaseCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
+                                FirebaseAuth.getInstance().signInWithCredential(firebaseCredential)
+                            }
+                        } catch (e: Exception) {
+                            Toast.makeText(this@MainActivity, "Google Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                },
+                onEmailSignInRequested = { email, password ->
+                    FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+                        .addOnFailureListener { e ->
+                            Toast.makeText(this@MainActivity, "Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                },
+                onEmailSignUpRequested = { name, email, password ->
+                    FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
+                        .addOnSuccessListener {
+                            val profileUpdates = UserProfileChangeRequest.Builder()
+                                .setDisplayName(name)
+                                .build()
+                            it.user?.updateProfile(profileUpdates)
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(this@MainActivity, "Sign-Up failed: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                }
             )
         }
     }
@@ -189,4 +264,10 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_OPEN_ACCESSIBILITY_DISCLOSURE = "open_accessibility_disclosure"
     }
+}
+
+@Preview
+@Composable
+fun TestPreview() {
+    Text("Hello World")
 }

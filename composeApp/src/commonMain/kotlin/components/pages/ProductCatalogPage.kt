@@ -1,172 +1,106 @@
 package components.pages
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import components.molecules.CategoryTilesBar
-import components.molecules.ProductActions
+import components.molecules.AIShopperInputBar
 import components.molecules.ProductCard
+import components.organisms.*
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.launch
 import network.ApiClient
 import network.ProductItem
+import network.models.*
 
 @Composable
 fun ProductCatalogPage(
-    apiClient: ApiClient,
-    httpClient: HttpClient,
-    onProductSelected: (String) -> Unit,
-    onTryOnRequested: (ProductItem) -> Unit,
-    onShareRequested: (String) -> Unit = {},
-    modifier: Modifier = Modifier
+    apiClient: ApiClient, httpClient: HttpClient, onProductSelected: (String) -> Unit,
+    onTryOnRequested: (ProductItem) -> Unit, userLocation: String? = null, searchRadius: Int = 25,
+    onRequestLocationPermission: () -> Unit = {}, onShareRequested: (String) -> Unit = {},
+    onAskAI: (String) -> Unit = {}, modifier: Modifier = Modifier
 ) {
     var products by remember { mutableStateOf<List<ProductItem>>(emptyList()) }
-    var selectedCategoryId by remember { mutableStateOf("all") }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var activeDetailProduct by remember { mutableStateOf<ProductItem?>(null) }
-    var checkoutStatus by remember { mutableStateOf<String?>(null) }
-
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         scope.launch {
-            try {
-                products = apiClient.getInventory()
-                isLoading = false
-            } catch (e: Exception) {
-                errorMessage = "Failed to load products: ${e.message}"
-                isLoading = false
-            }
+            try { products = apiClient.getInventory(); isLoading = false }
+            catch (e: Exception) { errorMessage = "Failed to load products: ${e.message}"; isLoading = false }
         }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        CategoryTilesBar(
-            selectedCategoryId = selectedCategoryId,
-            onCategorySelected = { selectedCategoryId = it }
-        )
+    ProductCatalogScreen(
+        products = products, isLoading = isLoading, errorMessage = errorMessage,
+        httpClient = httpClient, onProductSelected = onProductSelected,
+        onTryOnRequested = onTryOnRequested, userLocation = userLocation, searchRadius = searchRadius,
+        onRequestLocationPermission = onRequestLocationPermission, onShareRequested = onShareRequested,
+        onAskAI = onAskAI, apiClient = apiClient, modifier = modifier
+    )
+}
 
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator()
-            } else if (errorMessage != null) {
-                Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error)
-            } else if (products.isEmpty()) {
-                Text(text = "No products found.")
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(products) { product ->
-                        ProductCard(
-                            product = product,
-                            client = httpClient,
-                            onProductClick = {
-                                activeDetailProduct = product
-                                onProductSelected(product.id)
-                            },
-                            onTryOnClick = { onTryOnRequested(product) },
-                            onAddToCartClick = { activeDetailProduct = product }
-                        )
-                    }
+@Composable
+fun ProductCatalogScreen(
+    products: List<ProductItem>, isLoading: Boolean, errorMessage: String?, httpClient: HttpClient,
+    onProductSelected: (String) -> Unit, onTryOnRequested: (ProductItem) -> Unit, apiClient: ApiClient,
+    userLocation: String? = null, searchRadius: Int = 25, onRequestLocationPermission: () -> Unit = {},
+    onShareRequested: (String) -> Unit = {}, onAskAI: (String) -> Unit = {}, modifier: Modifier = Modifier
+) {
+    var selectedCategoryId by remember { mutableStateOf("ALL") }
+    var activeDetailProduct by remember { mutableStateOf<ProductItem?>(null) }
+    var checkoutStatus by remember { mutableStateOf<String?>(null) }
+    var hitlCheckoutPayload by remember { mutableStateOf<HITLPayload?>(null) }
+    val scope = rememberCoroutineScope()
+    val curatedProducts = remember(products) { products.take(3) }
+
+    val filteredProducts = remember(products, selectedCategoryId) {
+        if (selectedCategoryId.equals("ALL", ignoreCase = true)) products
+        else products.filter { p -> p.category.contains(selectedCategoryId, ignoreCase = true) }
+    }
+
+    Box(modifier = modifier.fillMaxSize().background(Color(0xFFF8FAF8))) {
+        if (isLoading) CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        else if (errorMessage != null) Text(errorMessage, color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.Center))
+        else {
+            LazyVerticalGrid(columns = GridCells.Fixed(2), contentPadding = PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxSize()) {
+                item(span = { GridItemSpan(2) }) { ProductCatalogHeader(selectedCategoryId = selectedCategoryId, onCategorySelected = { selectedCategoryId = it }, userLocation = userLocation, searchRadius = searchRadius, onRequestLocationPermission = onRequestLocationPermission) }
+                if (selectedCategoryId == "ALL" && curatedProducts.isNotEmpty()) {
+                    item(span = { GridItemSpan(2) }) { AICurationFeed(curatedProducts = curatedProducts, httpClient = httpClient, onTryOnRequested = onTryOnRequested) }
                 }
+                items(filteredProducts) { product -> ProductCard(product = product, client = httpClient, onProductClick = { activeDetailProduct = product; onProductSelected(product.id) }, onTryOnClick = { onTryOnRequested(product) }, onAddToCartClick = { hitlCheckoutPayload = product.toHITLPayload() }) }
+                item(span = { GridItemSpan(2) }) { AIShopperInputBar(onSend = onAskAI, placeholder = "Ask Spresso AI...", modifier = Modifier.padding(top = 16.dp)) }
             }
+        }
 
-            if (activeDetailProduct != null) {
-                val prod = activeDetailProduct!!
-                AlertDialog(
-                    onDismissRequest = { activeDetailProduct = null },
-                    title = { Text(prod.name) },
-                    text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("${prod.brand} • $${prod.price}", style = MaterialTheme.typography.titleMedium)
-                            if (checkoutStatus != null) {
-                                Text(checkoutStatus!!, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
-                            }
-                            ProductActions(
-                                onVirtualTryOnClick = {
-                                    activeDetailProduct = null
-                                    onTryOnRequested(prod)
-                                },
-                                onSpin360Click = {
-                                    scope.launch {
-                                        try {
-                                            apiClient.requestSpin360(prod.id)
-                                            checkoutStatus = "Spin 360 generated!"
-                                        } catch (e: Exception) {
-                                            checkoutStatus = "Spin 360 note: ${e.message}"
-                                        }
-                                    }
-                                },
-                                onLikeClick = { checkoutStatus = "Saved to favorites!" },
-                                onShareClick = { onShareRequested(prod.name) }
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    try {
-                                        val res = apiClient.confirmCheckoutWithToken(prod.id, 1, "TOKEN_CONFIRMED", "123 Main St")
-                                        checkoutStatus = res.message ?: "Order confirmed!"
-                                    } catch (e: Exception) {
-                                        checkoutStatus = "Checkout note: ${e.message}"
-                                    }
-                                }
-                            }
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(Icons.Default.ShoppingCart, contentDescription = null)
-                                Text("1-Tap Buy Now")
-                            }
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { activeDetailProduct = null }) {
-                            Text("Close")
-                        }
-                    }
-                )
-            }
+        if (activeDetailProduct != null) {
+            val prod = activeDetailProduct!!
+            ProductCatalogDetailDialog(
+                product = prod, checkoutStatus = checkoutStatus, onDismiss = { activeDetailProduct = null }, onTryOn = { activeDetailProduct = null; onTryOnRequested(it) },
+                onSpin360 = { id -> scope.launch { try { apiClient.requestSpin360(id); checkoutStatus = "Spin 360 generated!" } catch (e: Exception) { checkoutStatus = "Spin 360 note: ${e.message}" } } },
+                onLike = { checkoutStatus = "Saved to favorites!" }, onShare = { onShareRequested(it) }, onBuyNow = { activeDetailProduct = null; hitlCheckoutPayload = prod.toHITLPayload() }
+            )
+        }
+
+        if (hitlCheckoutPayload != null) {
+            val payload = hitlCheckoutPayload!!
+            HITLCheckoutModal(
+                payload = payload, onDismiss = { hitlCheckoutPayload = null },
+                onConfirmPurchase = { _ -> scope.launch { try { checkoutStatus = apiClient.confirmCheckoutWithToken(payload.product.id, payload.quantity, payload.authorizationId, "123 Main St").message ?: "Order confirmed!" } catch (e: Exception) { checkoutStatus = "Checkout note: ${e.message}" } finally { hitlCheckoutPayload = null } } }
+            )
         }
     }
 }
+
+private fun ProductItem.toHITLPayload(quantity: Int = 1): HITLPayload {
+    return HITLPayload(authorizationId = "AUTH-${id.uppercase()}", product = HITLProduct(id = id, name = name, price = price, sku = "SKU-${id.uppercase()}", image = imageUrl), quantity = quantity, totalAmount = price * quantity, currency = "USD", deviceSource = "WEARABLE", inventoryConfirmed = true, stockRemaining = 10, humanInTheLoopChallenge = HITLChallenge(title = "Biometric Verification Required", message = "Confirm purchase with fingerprint or passkey"))
+}
+
+
+

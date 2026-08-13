@@ -53,7 +53,7 @@ actual fun rememberImagePicker(onImagePicked: (ByteArray?) -> Unit): () -> Unit 
                         }
                     }
                 ) {
-                    Text("📷 Camera")
+                    Text("Camera")
                 }
             },
             dismissButton = {
@@ -63,7 +63,7 @@ actual fun rememberImagePicker(onImagePicked: (ByteArray?) -> Unit): () -> Unit 
                         galleryLauncher.launch("image/*")
                     }
                 ) {
-                    Text("🖼 Gallery")
+                    Text("Gallery")
                 }
             }
         )

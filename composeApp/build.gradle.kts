@@ -17,9 +17,9 @@ kotlin {
         }
     }
     
-    @OptIn(org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl::class)
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     wasmJs {
-        moduleName = "composeApp"
+        outputModuleName.set("composeApp")
         browser {
             commonWebpackConfig {
                 outputFileName = "composeApp.js"
@@ -32,7 +32,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.android)
-            implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+            implementation(dependencies.platform("com.google.firebase:firebase-bom:33.1.2"))
             implementation("com.google.firebase:firebase-auth")
             implementation("com.google.firebase:firebase-crashlytics")
             implementation("com.google.firebase:firebase-analytics")
@@ -44,11 +44,22 @@ kotlin {
             implementation(libs.androidx.camera.lifecycle)
             implementation(libs.androidx.camera.view)
             implementation(libs.androidx.camera.extensions)
+            implementation("androidx.credentials:credentials:1.6.0")
+            implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
+            implementation("com.google.android.libraries.identity.googleid:googleid:1.2.0")
+            implementation("androidx.compose.ui:ui-tooling-preview:1.6.8")
+            implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.3")
+            implementation("androidx.biometric:biometric:1.2.0-alpha05")
         }
-        val androidUnitTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-            }
+        val androidUnitTest = sourceSets.getByName("androidUnitTest")
+        androidUnitTest.dependencies {
+            implementation(kotlin("test"))
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+        }
+        val commonTest = sourceSets.getByName("commonTest")
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -78,7 +89,6 @@ android {
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     sourceSets["main"].res.srcDirs("src/androidMain/res")
-    sourceSets["main"].resources.srcDirs("src/commonMain/resources")
 
     defaultConfig {
         applicationId = "com.spresso19"
@@ -92,6 +102,9 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    experimentalProperties["android.experimental.enableScreenshotTest"] = true
+
     signingConfigs {
         create("release") {
             storeFile = file("spresso.keystore")
@@ -106,6 +119,7 @@ android {
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -121,3 +135,4 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 }
+
