@@ -1,23 +1,30 @@
-import * as functions from "firebase-functions";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { setGlobalOptions } from "firebase-functions/v2";
 import * as admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
-import { PubSub } from '@google-cloud/pubsub';
+import { PubSub } from "@google-cloud/pubsub";
 
 admin.initializeApp();
 
+// Set 2nd Gen global options for optimal region, concurrency and runtime defaults
+setGlobalOptions({
+    region: "us-central1",
+    concurrency: 80
+});
+
 const ai = new GoogleGenAI({});
 const pubSubClient = new PubSub();
-const interactionsTopic = pubSubClient.topic('interactions-topic');
+const interactionsTopic = pubSubClient.topic("interactions-topic");
 
-export const generateVirtualTryOn = functions.https.onCall(async (data, context) => {
+export const generateVirtualTryOn = onCall(async (request) => {
     // Enforce authentication — unauthenticated callers are rejected
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'You must be signed in to use Virtual Try-On.');
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "You must be signed in to use Virtual Try-On.");
     }
 
-    const base64Image = data.image;
+    const base64Image = request.data?.image;
     if (!base64Image) {
-        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with an "image" field.');
+        throw new HttpsError("invalid-argument", 'The function must be called with an "image" field.');
     }
 
     try {
@@ -47,26 +54,27 @@ export const generateVirtualTryOn = functions.https.onCall(async (data, context)
             mediaUrl: outputText
         };
     } catch (error) {
-        throw new functions.https.HttpsError('internal', 'AI generation failed');
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError("internal", "AI generation failed");
     }
 });
 
-export const generateSpin360 = functions.https.onCall(async (data, context) => {
+export const generateSpin360 = onCall(async (request) => {
     // Enforce authentication
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'You must be signed in to use Spin 360.');
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "You must be signed in to use Spin 360.");
     }
 
-    const productId = data.productId;
+    const productId = request.data?.productId;
     if (!productId) {
-        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "productId" field.');
+        throw new HttpsError("invalid-argument", 'The function must be called with a "productId" field.');
     }
 
     try {
         // Query Firestore for the product's 3D/360 asset URL
-        const productDoc = await admin.firestore().collection('inventory').doc(productId).get();
+        const productDoc = await admin.firestore().collection("inventory").doc(productId).get();
         if (!productDoc.exists) {
-            throw new functions.https.HttpsError('not-found', `Product ${productId} not found.`);
+            throw new HttpsError("not-found", `Product ${productId} not found.`);
         }
 
         const productData = productDoc.data()!;
@@ -82,7 +90,7 @@ export const generateSpin360 = functions.https.onCall(async (data, context) => {
             contents: [{
                 role: "user",
                 parts: [{
-                    text: `Generate a detailed 360-degree product description for: ${productData.name || productId}. Brand: ${productData.brand || 'unknown'}. Category: ${productData.category || 'unknown'}.`
+                    text: `Generate a detailed 360-degree product description for: ${productData.name || productId}. Brand: ${productData.brand || "unknown"}. Category: ${productData.category || "unknown"}.`
                 }]
             }]
         });
@@ -90,25 +98,25 @@ export const generateSpin360 = functions.https.onCall(async (data, context) => {
         const outputText = response.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
         return { mediaUrl: outputText };
     } catch (error) {
-        if (error instanceof functions.https.HttpsError) throw error;
-        throw new functions.https.HttpsError('internal', 'AI generation failed');
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError("internal", "AI generation failed");
     }
 });
 
 // Scalable Backend Architecture: Event-Driven Ingestion API
-export const ingestInteraction = functions.https.onCall(async (data, context) => {
+export const ingestInteraction = onCall(async (request) => {
     // Enforce authentication
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'You must be signed in to record interactions.');
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "You must be signed in to record interactions.");
     }
 
-    const { productId, action } = data;
+    const { productId, action } = request.data || {};
     if (!productId || !action) {
-        throw new functions.https.HttpsError('invalid-argument', 'Must provide productId and action');
+        throw new HttpsError("invalid-argument", "Must provide productId and action");
     }
 
     const eventPayload = {
-        userId: context.auth.uid,
+        userId: request.auth.uid,
         productId,
         action,
         timestamp: new Date().toISOString()
@@ -122,10 +130,10 @@ export const ingestInteraction = functions.https.onCall(async (data, context) =>
 
         // Return 202 Accepted instantly to the client
         return {
-            status: '202 Accepted',
+            status: "202 Accepted",
             messageId
         };
     } catch (e) {
-        throw new functions.https.HttpsError('internal', 'Failed to process interaction');
+        throw new HttpsError("internal", "Failed to process interaction");
     }
 });
