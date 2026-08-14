@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem, DetectedItem } from "../types";
 import { cropImageSnippet } from "../utils/imageCropper";
@@ -35,6 +36,12 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
   const [croppedThumbnail, setCroppedThumbnail] = useState<string | null>(null);
   const [hudStatusText, setHudStatusText] = useState<string>("");
   const [addedToListings, setAddedToListings] = useState<boolean>(false);
+
+  // CameraX-style Pro Features State
+  const [flashMode, setFlashMode] = useState<"off" | "on" | "auto">("auto");
+  const [showGrid, setShowGrid] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1.0);
+  const [exposureVal, setExposureVal] = useState(0);
 
   useEffect(() => {
     if (isOpen && !capturedPhoto) {
@@ -247,8 +254,8 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-0 sm:p-4 animate-fade-in">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] bg-black animate-fade-in flex flex-col">
       <canvas ref={canvasRef} className="hidden" />
       <input
         type="file"
@@ -259,7 +266,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
         onChange={handleFileUpload}
       />
 
-      <div className="relative w-full max-w-lg h-full sm:h-[88vh] bg-slate-950 text-white rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between border border-white/15">
+      <div className="relative w-full h-full flex flex-col justify-between text-white overflow-hidden">
         
         {/* Top Header - Minimal Clean Camera Header */}
         <div className="absolute top-0 inset-x-0 z-40 p-3.5 bg-black/30 backdrop-blur-md flex items-center justify-between">
@@ -275,21 +282,37 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
               <MaterialIcon icon="close" size={22} />
             </button>
             <div className="flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-bold text-white tracking-tight">Camera · Object Detection</span>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            {!capturedPhoto && (
+          {/* Pro Camera Top Controls */}
+          {!capturedPhoto && (
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setFlashMode(prev => prev === "auto" ? "on" : prev === "on" ? "off" : "auto")}
+                className="p-1.5 text-white/90 hover:text-white hover:bg-white/15 rounded-full transition cursor-pointer"
+                title={`Flash: ${flashMode}`}
+              >
+                <MaterialIcon icon={flashMode === "auto" ? "flash_auto" : flashMode === "on" ? "flash_on" : "flash_off"} size={20} />
+              </button>
+              <button
+                onClick={() => setShowGrid(!showGrid)}
+                className={`p-1.5 rounded-full transition cursor-pointer ${showGrid ? 'text-amber-400 bg-white/10' : 'text-white/90 hover:text-white hover:bg-white/15'}`}
+                title="Rule of Thirds Grid"
+              >
+                <MaterialIcon icon={showGrid ? "grid_on" : "grid_off"} size={20} />
+              </button>
               <button
                 onClick={() => setFacingMode(prev => (prev === "environment" ? "user" : "environment"))}
-                className="p-2 text-white/90 hover:text-white hover:bg-white/15 rounded-full transition cursor-pointer backdrop-blur-md"
+                className="p-1.5 text-white/90 hover:text-white hover:bg-white/15 rounded-full transition cursor-pointer"
                 title="Flip Camera"
               >
                 <MaterialIcon icon="cameraswitch" size={20} />
               </button>
-            )}
+            </div>
+          )}
+          
+          <div className="flex items-center space-x-2">
             {capturedPhoto && (
               <button
                 onClick={handleRetake}
@@ -332,8 +355,32 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
                     autoPlay
                     playsInline
                     muted
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-300"
+                    style={{ transform: `scale(${zoomLevel})` }}
                   />
+
+                  {/* Rule of Thirds Grid */}
+                  {showGrid && (
+                    <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3">
+                      <div className="border-b border-r border-white/30"></div>
+                      <div className="border-b border-r border-white/30"></div>
+                      <div className="border-b border-white/30"></div>
+                      <div className="border-b border-r border-white/30"></div>
+                      <div className="border-b border-r border-white/30"></div>
+                      <div className="border-b border-white/30"></div>
+                      <div className="border-r border-white/30"></div>
+                      <div className="border-r border-white/30"></div>
+                      <div></div>
+                    </div>
+                  )}
+
+                  {/* Manual Focus Ring / Tap point indicator */}
+                  {tappedPoint && !isInitializing && (
+                    <div 
+                      className="absolute w-12 h-12 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-400 pointer-events-none animate-ping-once"
+                      style={{ left: `${tappedPoint.x}%`, top: `${tappedPoint.y}%` }}
+                    />
+                  )}
 
                   {/* ORGANIC LIQUID GLASS MORPH LENS IN LIVE CAMERA */}
                   {tappedPoint && (
@@ -348,12 +395,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
                     </div>
                   )}
 
-                  {isInitializing && (
-                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center space-y-3 text-white z-20">
-                      <div className="w-9 h-9 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
-                      <span className="text-xs font-medium text-white/80">Initializing Camera...</span>
-                    </div>
-                  )}
+
                 </>
               )}
             </>
@@ -410,6 +452,24 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
 
         {/* Bottom Control / Product Listing Action Card - Cloudy Liquid Glass Bar */}
         <div className="relative z-40 pb-6 pt-4 bg-slate-950/80 backdrop-blur-2xl border-t border-white/15 flex flex-col items-center space-y-3 px-4">
+          
+          {!capturedPhoto && (
+            <div className="w-full max-w-xs flex justify-center mb-2">
+              {/* Zoom Controls */}
+              <div className="flex items-center space-x-1 bg-black/50 backdrop-blur-md rounded-full p-1 border border-white/10">
+                {[0.5, 1, 2, 3].map(z => (
+                  <button 
+                    key={z} 
+                    onClick={(e) => { e.stopPropagation(); setZoomLevel(z); }}
+                    className={`w-9 h-9 rounded-full text-xs font-bold transition cursor-pointer flex items-center justify-center ${zoomLevel === z ? 'bg-amber-400 text-black' : 'text-white hover:bg-white/20'}`}
+                  >
+                    {z}x
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {!capturedPhoto ? (
             /* Live Camera Shutter Button */
             <div className="w-full flex items-center justify-between max-w-xs">
@@ -424,14 +484,15 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
               <button
                 onClick={handleSnapPicture}
                 disabled={isInitializing}
-                className="w-20 h-20 rounded-full bg-white/5 backdrop-blur-md border-4 border-emerald-400 flex items-center justify-center cursor-pointer transition transform active:scale-90 shadow-2xl group"
-                title="Take Picture for Object Detection"
+                className="w-20 h-20 rounded-full bg-white/5 backdrop-blur-md border-4 border-amber-400 flex items-center justify-center cursor-pointer transition transform active:scale-90 shadow-2xl group"
+                title="Capture Frame"
               >
-                <div className="w-16 h-16 rounded-full bg-emerald-400 group-hover:bg-emerald-300 text-black flex items-center justify-center shadow-inner">
-                  <MaterialIcon icon="photo_camera" size={30} className="text-black" />
+                <div className="w-16 h-16 rounded-full bg-amber-400 group-hover:bg-amber-300 text-black flex items-center justify-center shadow-inner">
+                  <MaterialIcon icon="camera" size={30} className="text-black" />
                 </div>
               </button>
 
+              {/* Empty placeholder to balance flex */}
               <div className="w-12 h-12" />
             </div>
           ) : (
@@ -486,10 +547,6 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
                         <span className="px-2 py-0.5 bg-blue-500/90 backdrop-blur-md text-white text-[10px] font-extrabold rounded-md uppercase tracking-wider border border-blue-400/30">
                           Product Isolated
                         </span>
-                        <div className="flex items-center space-x-0.5 text-amber-300 font-bold text-[11px]">
-                          <MaterialIcon icon="star" size={12} />
-                          <span>4.8</span>
-                        </div>
                       </div>
                       <h3 className="text-sm font-bold text-white mt-1 truncate">
                         {detectedItems[selectedIndex].detectedName}
@@ -557,6 +614,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

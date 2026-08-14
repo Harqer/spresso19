@@ -86,10 +86,10 @@ export interface ThemeSeedPreset {
 }
 
 export const SEED_PRESETS: ThemeSeedPreset[] = [
+  { id: "spresso_green", name: "Spresso Organic Green (Brand Standard)", hex: "#386633", secondaryHex: "#52645b", category: "Brand Standard" },
   { id: "charcoal_lime", name: "Charcoal & Electric Lime", hex: "#1e2229", secondaryHex: "#84cc16", category: "Material You High Contrast" },
   { id: "obsidian_lime", name: "Obsidian & Neon Lime", hex: "#121417", secondaryHex: "#a3e635", category: "Material You High Contrast" },
   { id: "charcoal_mint", name: "Charcoal & Mint Green", hex: "#22262b", secondaryHex: "#10b981", category: "Material You High Contrast" },
-  { id: "emerald", name: "Spresso Natural Green", hex: "#446732", category: "Botanical" },
   { id: "sapphire", name: "Deep Ocean Sapphire", hex: "#1d5c8d", category: "Cool Waters" },
   { id: "violet", name: "Royal Amethyst", hex: "#673ab7", category: "Vibrant" },
   { id: "terracotta", name: "Warm Terracotta Rose", hex: "#b84a39", category: "Earth Tones" },
@@ -476,8 +476,8 @@ export function extractSeedColorFromImage(imageSrc: string): Promise<string> {
       try {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-        if (!ctx) return resolve("#1e2229");
-
+        if (!ctx) return resolve("#386633");
+        
         canvas.width = 64;
         canvas.height = 64;
         ctx.drawImage(img, 0, 0, 64, 64);
@@ -508,13 +508,13 @@ export function extractSeedColorFromImage(imageSrc: string): Promise<string> {
           const avgB = Math.round(bSum / count);
           resolve(rgbToHex(avgR, avgG, avgB));
         } else {
-          resolve("#1e2229");
+          resolve("#386633");
         }
       } catch (e) {
-        resolve("#1e2229");
+        resolve("#386633");
       }
     };
-    img.onerror = () => resolve("#1e2229");
+    img.onerror = () => resolve("#386633");
     img.src = imageSrc;
   });
 }

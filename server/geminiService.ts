@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { GoogleGenAI, Type } from "@google/genai";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getDataConnect } from "firebase-admin/data-connect";
@@ -70,7 +71,7 @@ export async function getActiveInventory(): Promise<any[]> {
     }));
   } catch (err: any) {
     console.error("Failed to query active inventory from PostgreSQL:", err.message);
-    return [];
+    return seedCatalogInventory;
   }
 }
 
@@ -114,7 +115,7 @@ export async function getActiveProductById(id: string): Promise<any | undefined>
     // Postgres unavailable in standalone container; fallback to in-memory seed catalog
   }
 
-  const fallback = seedCatalogInventory.find(p => p.id === id) || seedCatalogInventory[0];
+  const fallback = seedCatalogInventory.find(p => p.id === id);
   if (fallback) {
     return {
       id: fallback.id,
@@ -135,19 +136,19 @@ export async function getActiveProductById(id: string): Promise<any | undefined>
 
 export const defaultSafetySettings = [
   {
-    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    type: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
     threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
   },
   {
-    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    type: HarmCategory.HARM_CATEGORY_HARASSMENT,
     threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
   },
   {
-    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    type: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
     threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
   },
   {
-    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    type: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
     threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
   },
 ];
@@ -168,7 +169,7 @@ export async function getPersonalizedFeed(body: any) {
     ? recentSearches.join(", ")
     : userPreferences || "";
 
-  const prompt = `You are Spresso AI, an intelligent personal shopper middleman that conducts live web search research for real e-commerce products, trending fashion drops, shoes, smart tech, and daily retail deals (like Macy's, Target, Nordstrom, Nike, Apple, Sephora, Amazon).
+  const prompt = `You are Spresso, an intelligent personal shopper middleman that conducts live web search research for real e-commerce products, trending fashion drops, shoes, smart tech, and daily retail deals (like Macy's, Target, Nordstrom, Nike, Apple, Sephora, Amazon).
 
 Search Research Task:
 - Category Filter: ${category && category !== "ALL" ? category : "Top Consumer Shopping Trends & Daily Deals"}
@@ -221,7 +222,8 @@ Respond strictly with a JSON object:
         model: m,
         contents: prompt,
         config: {
-          tools: [{ googleSearch: {} }]
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json"
         }
       });
       if (response?.text) break;
@@ -359,7 +361,7 @@ export async function identifyVisionObject(
   const ai = getGeminiAI();
   const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
 
-  const prompt = `You are Spresso AI's Object Detection & Product Listing Agent.
+  const prompt = `You are Spresso's Object Detection & Product Listing Agent.
 Analyze this camera image and identify the exact e-commerce product, garment, accessory, or object.
 
 ${promptText ? `USER INTERACTION FOCUS: ${promptText}\nIMPORTANT INSTRUCTION: Focus specifically on the item at or near the indicated location. Exclude the human/person wearing or holding the item. Focus strictly on the garment, footwear, accessory, or physical product to create a clean product listing.` : "Identify the main product, clothing, or item in the photo for a product listing."}
@@ -413,10 +415,10 @@ Respond ONLY with valid JSON in this exact structure:
     } catch (e: any) {
       const isQuota = e?.status === 429 || String(e?.message || "").includes("429") || String(e?.message || "").includes("RESOURCE_EXHAUSTED");
       if (isQuota) {
-        console.warn(`[Spresso AI Vision] API quota rate limit reached for model ${m}. Falling back gracefully.`);
+        console.warn(`[Spresso Vision] API quota rate limit reached for model ${m}. Falling back gracefully.`);
         break; // Break loop immediately when quota is exhausted to prevent cascading 429 logs
       } else {
-        console.log(`[Spresso AI Vision] Model ${m} attempt: ${e?.message || e}`);
+        console.log(`[Spresso Vision] Model ${m} attempt: ${e?.message || e}`);
       }
     }
   }
@@ -434,63 +436,7 @@ Respond ONLY with valid JSON in this exact structure:
     }
   }
 
-  if (!allowSyntheticFallback) {
-    return null;
-  }
-
-  // Dynamic context matching for the existing non-accessibility camera flows.
-  const lowerPrompt = (promptText || "").toLowerCase();
-  let matchedCategory = "Tops";
-  let fallbackName = "Isolated Fashion Garment";
-  let fallbackBrand = "Spresso Verified";
-  let fallbackPrice = 95;
-
-  if (lowerPrompt.includes("shoe") || lowerPrompt.includes("footwear") || lowerPrompt.includes("runner") || lowerPrompt.includes("sneaker")) {
-    matchedCategory = "Footwear";
-    fallbackName = "Neo-Speed Carbon Runners";
-    fallbackBrand = "AeroAthletics";
-    fallbackPrice = 145;
-  } else if (lowerPrompt.includes("jacket") || lowerPrompt.includes("coat") || lowerPrompt.includes("outerwear")) {
-    matchedCategory = "Outerwear";
-    fallbackName = "Cyber-Weave Heated Jacket";
-    fallbackBrand = "Apex Techwear";
-    fallbackPrice = 220;
-  } else if (lowerPrompt.includes("glass") || lowerPrompt.includes("eyewear") || lowerPrompt.includes("sunglass")) {
-    matchedCategory = "Eyewear";
-    fallbackName = "Ray-Ban Meta Smart Glasses";
-    fallbackBrand = "Ray-Ban x Meta";
-    fallbackPrice = 299;
-  } else if (lowerPrompt.includes("watch") || lowerPrompt.includes("ring") || lowerPrompt.includes("wearable")) {
-    matchedCategory = "Smart Wearables";
-    fallbackName = "Creator Smart Ring & Pulse Monitor";
-    fallbackBrand = "Oura Pro";
-    fallbackPrice = 199;
-  } else {
-    // Pick item from active catalog inventory matching prompt or random item other than mug
-    const activeInv = await getActiveInventory();
-    const nonMugInventory = activeInv.filter(i => !i.name.toLowerCase().includes("mug"));
-    const selected = nonMugInventory[Math.floor(Math.random() * nonMugInventory.length)] || activeInv[1] || activeInv[0];
-    fallbackName = selected.name;
-    fallbackBrand = selected.brand;
-    matchedCategory = selected.category;
-    fallbackPrice = selected.price;
-  }
-
-  return {
-    detectedItems: [
-      {
-        detectedName: fallbackName,
-        brandGuess: fallbackBrand,
-        category: matchedCategory,
-        priceEstimate: fallbackPrice,
-        confidenceScore: 0.96,
-        boundingBox: [180, 140, 720, 860],
-        matchingCatalogId: `prod-${Date.now()}`,
-        buyActionPrompt: `In stock & ready for listing ($${fallbackPrice})`
-      }
-    ],
-    hudAnnotationText: `Object Isolated: ${fallbackName} (${fallbackBrand}) · Focus Point Active`
-  };
+  return null;
 }
 
 export async function runTryOnPipeline(productId: string, mediaType?: string, customNotes?: string) {
@@ -532,7 +478,7 @@ Generate structured JSON for an interactive high-conversion visual try-on / vide
     } catch (err: any) {
       const isQuota = err?.status === 429 || String(err?.message || "").includes("429") || String(err?.message || "").includes("RESOURCE_EXHAUSTED");
       if (isQuota) break;
-      console.log(`[Spresso AI] Try-On model ${modelName} rate-limited.`);
+      console.log(`[Spresso] Try-On model ${modelName} rate-limited.`);
     }
   }
 
@@ -760,7 +706,7 @@ Return structured JSON:
     } catch (err: any) {
       const isQuota = err?.status === 429 || String(err?.message || "").includes("429") || String(err?.message || "").includes("RESOURCE_EXHAUSTED");
       if (isQuota) break;
-      console.log(`[Spresso AI] Gemini Fit Orchestrator model ${modelName} rate limited`);
+      console.log(`[Spresso] Gemini Fit Orchestrator model ${modelName} rate limited`);
     }
   }
 
@@ -857,30 +803,16 @@ Return structured JSON:
     }
   }
 
-  if (response?.text) {
-    try {
-      return JSON.parse(response.text.replace(/```json\s*|\s*```/g, "").trim());
-    } catch (e) {
-      console.warn("Parse error for Economic Research Report:", e);
-    }
+  if (!response?.text) {
+    throw new Error("Failed to generate economic research report: AI model returned no content.");
   }
 
-  return {
-    marketOpportunity: "High Growth Market Category",
-    tamAnalysis: "$42.5 Billion Global Wearables Market",
-    cagrProjection: "24.8% CAGR through 2029",
-    targetPersona: "Creators, Tech Enthusiasts, & Modern Shoppers",
-    keyValuationDrivers: [
-      "Direct-to-consumer AI personal shopping agents",
-      "Seamless spatial media and AR virtual try-on",
-      "Automated human-in-the-loop payment processing"
-    ],
-    executiveNarrative: "Strong macroeconomic tailwinds support high-margin wearable AI devices and smart glasses adoption in 2026.",
-    strategicRecommendations: [
-      "Bundle Meta Smart Glasses with creator marketing suites.",
-      "Implement automated HITL checkout during live streams."
-    ]
-  };
+  try {
+    return JSON.parse(response.text.replace(/```json\s*|\s*```/g, "").trim());
+  } catch (e) {
+    console.warn("Parse error for Economic Research Report:", e);
+    throw new Error("Failed to parse economic research report from AI response.");
+  }
 }
 
 export async function generateCreatorCampaign(body: any) {
@@ -941,32 +873,16 @@ Generate structured JSON:
     }
   }
 
-  if (response?.text) {
-    try {
-      return JSON.parse(response.text.replace(/```json\s*|\s*```/g, "").trim());
-    } catch (e) {
-      console.warn("Parse error for Creator Campaign:", e);
-    }
+  if (!response?.text) {
+    throw new Error("Failed to generate creator campaign: AI model returned no content.");
   }
 
-  return {
-    brandIdentity: {
-      tagline: `Next-Gen ${category || 'Creator'} Commerce`,
-      colorPalette: ["#386633", "#18211e", "#e8f3e8"],
-      logoDescription: "Minimalist spatial geometry emblem"
-    },
-    marketingCampaign: {
-      socialCopy: `Discover the ultimate ${storeName || 'brand'} experience tailored by AI.`,
-      emailSubject: "Your VIP Access to Next-Gen Wearables",
-      suggestedAds: [
-        { platform: "Instagram / TikTok Reels", hook: "The future of creator shopping has arrived." }
-      ]
-    },
-    generatedStorefrontConfig: {
-      heroHeading: `Welcome to ${storeName || 'Aura Spatial Store'}`,
-      featuredProducts: ["prod-rayban-meta-01", "prod-creator-ring-04"]
-    }
-  };
+  try {
+    return JSON.parse(response.text.replace(/```json\s*|\s*```/g, "").trim());
+  } catch (e) {
+    console.warn("Parse error for Creator Campaign:", e);
+    throw new Error("Failed to parse creator campaign from AI response.");
+  }
 }
 
 export async function generateCreativeProductStudio(body: any) {
@@ -1012,30 +928,55 @@ Using high-impact marketing, billboard, and branding industry language (e.g. min
     }
   }
 
-  let result = {
-    campaignHeadline: "Minimalist Craft Luxury",
-    billboardCopy: `Experience ${product.name} presented against crisp directional sunlight and pristine architectural elements.`,
-    materialAndTextureAnalysis: "High-grade ceramic gradient glaze, precision beveling, and tactile surface finish.",
-    lightingAndAtmosphere: "Soft ambient fill with warm 5000K key light creating soft, elevated shadows.",
-    synthesizedPrompt: `${productPrompt || product.name}, ${atmospherePrompt || 'Carrara marble plinth, warm directional sunlight'}, studio product photography, 8k resolution`,
-    aestheticScore: 97,
-    productMatch3D: "3D Spatial Mesh Anchored",
-    product,
-    renderPreviewUrl: product.image
-  };
-
-  if (responseText?.text) {
-    try {
-      const cleaned = responseText.text.replace(/```json\s*|\s*```/g, "").trim();
-      const parsed = JSON.parse(cleaned);
-      result = { ...result, ...parsed };
-    } catch (e) {
-      console.warn("Parse error for Creative Studio:", e);
-    }
+  if (!responseText?.text) {
+    throw new Error("Failed to generate creative studio config: AI model returned no content.");
   }
 
-  return { success: true, result };
+  let parsed: any = {};
+  try {
+    const cleaned = responseText.text.replace(/```json\s*|\s*```/g, "").trim();
+    parsed = JSON.parse(cleaned);
+  } catch (e) {
+    console.warn("Parse error for Creative Studio:", e);
+    throw new Error("Failed to parse creative studio config from AI response.");
+  }
+
+  return { success: true, result: { ...parsed, product, renderPreviewUrl: product.image } };
 }
+
+
+const GenkitCreativeSchema = z.object({
+  brandCreativeDNA: z.object({
+    brandArchetype: z.string(),
+    shapes: z.array(z.string()),
+    materials: z.array(z.string()),
+    colorPhilosophy: z.string(),
+    lightingPhilosophy: z.string(),
+    photographyStyle: z.string(),
+    motionLanguage: z.string(),
+    emotionalFeeling: z.string()
+  }),
+  masterCampaignStrategy: z.string(),
+  visualConceptUniverse: z.array(z.string()),
+  render3DStudioAngles: z.object({
+    frontView: z.string(),
+    angle45View: z.string(),
+    detailMacro: z.string(),
+    ambientEnvironment: z.string()
+  }),
+  creativeCopywriting: z.object({
+    heroHeadline: z.string(),
+    subHeadline: z.string(),
+    shortDescription: z.string(),
+    socialMediaHook: z.string(),
+    productStory: z.string()
+  }),
+  targetAudience: z.object({
+    primary: z.string(),
+    psychographics: z.string(),
+    purchaseDriver: z.string()
+  })
+});
 
 export async function runGenkitCreativePipeline(body: any) {
   const { productId, productName, brandName } = body || {};
@@ -1185,9 +1126,9 @@ Return JSON in this format:
   if (responseText?.text) {
     try {
       const cleaned = responseText.text.replace(/```json\s*|\s*```/g, "").trim();
-      resultData = JSON.parse(cleaned);
+      resultData = GenkitCreativeSchema.parse(JSON.parse(cleaned));
     } catch (e) {
-      console.warn("[Genkit Pipeline] JSON parse error:", e);
+      console.warn("[Genkit Pipeline] JSON parse error via Zod:", e);
     }
   }
 
@@ -1240,6 +1181,30 @@ Return JSON in this format:
   };
 }
 
+
+const BargainChefSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  chefPersonaNotes: z.string(),
+  servings: z.number(),
+  estimatedCost: z.number(),
+  localStore: z.string(),
+  ingredients: z.array(z.object({
+    name: z.string(),
+    quantity: z.string(),
+    onSale: z.boolean(),
+    estimatedPrice: z.number(),
+    category: z.string(),
+    farmOrBrand: z.string()
+  })),
+  steps: z.array(z.string()),
+  cookingTimers: z.array(z.object({
+    stepIndex: z.number(),
+    durationSeconds: z.number(),
+    label: z.string()
+  }))
+});
+
 export async function getBargainChefRecipe(body: any) {
   const { craving, userLocation, latLng } = body || {};
   const ai = getGeminiAI();
@@ -1250,7 +1215,7 @@ export async function getBargainChefRecipe(body: any) {
     ? `User City/Region: "${userLocation}"`
     : "United States (Nationwide Supermarket Deals)";
 
-  const prompt = `You are Master Bargain Chef AI, a world-class executive chef with Gordon Ramsay level passion, technique, and culinary authority, integrated into Spresso AI Commerce.
+  const prompt = `You are Master Bargain Chef AI, a world-class executive chef with Gordon Ramsay level passion, technique, and culinary authority, integrated into Spresso Commerce.
 
 Task:
 - User Craving / Meal Intent: "${craving || 'something warm with chicken'}"
@@ -1307,7 +1272,8 @@ INSTRUCTIONS:
         model: m,
         contents: prompt,
         config: {
-          tools: [{ googleSearch: {} }]
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json"
         }
       });
       if (response?.text) break;
@@ -1321,13 +1287,9 @@ INSTRUCTIONS:
   if (response?.text) {
     try {
       const cleaned = response.text.replace(/```json\s*|\s*```/g, "").trim();
-      const firstBrace = cleaned.indexOf("{");
-      const lastBrace = cleaned.lastIndexOf("}");
-      if (firstBrace !== -1 && lastBrace !== -1) {
-        return JSON.parse(cleaned.substring(firstBrace, lastBrace + 1));
-      }
+      return BargainChefSchema.parse(JSON.parse(cleaned));
     } catch (e) {
-      console.warn("Failed to parse Bargain Chef JSON response:", e);
+      console.warn("Failed to parse Bargain Chef JSON response via Zod:", e);
     }
   }
 
@@ -1358,6 +1320,15 @@ INSTRUCTIONS:
   };
 }
 
+
+const WeatherOutfitSchema = z.object({
+  title: z.string(),
+  temperatureText: z.string(),
+  selectedItemIds: z.array(z.string()),
+  stylingAdvice: z.string(),
+  weatherMatchScore: z.number()
+});
+
 export async function generateAIWeatherOutfit(body: any) {
   const { items = [], weatherCondition = "HOT_SUMMER", temperatureText = "82°F Sunny", userLocation = "" } = body || {};
   const safeItems = Array.isArray(items) ? items : [];
@@ -1373,7 +1344,7 @@ export async function generateAIWeatherOutfit(body: any) {
     `- ID: ${it.id} | Name: "${it.name}" | Category: ${it.category} | Suitable Weather: ${it.weatherSuitability} | Type: ${it.type}`
   ).join("\n");
 
-  const prompt = `You are Spresso AI Personal Stylist & Wardrobe Intelligence Engine.
+  const prompt = `You are Spresso Personal Stylist & Wardrobe Intelligence Engine.
 The user wants a weather-smart outfit created from their personal wardrobe (which contains both uploaded photo gallery clothing and bookmarked shop items).
 
 Current Weather/Occasion Context:
@@ -1418,13 +1389,9 @@ Ensure only valid item IDs from the list are returned in selectedItemIds.`;
   if (response?.text) {
     try {
       const cleaned = response.text.replace(/```json\s*|\s*```/g, "").trim();
-      const firstBrace = cleaned.indexOf("{");
-      const lastBrace = cleaned.lastIndexOf("}");
-      if (firstBrace !== -1 && lastBrace !== -1) {
-        return JSON.parse(cleaned.substring(firstBrace, lastBrace + 1));
-      }
+      return WeatherOutfitSchema.parse(JSON.parse(cleaned));
     } catch (e) {
-      console.warn("Failed to parse Weather Outfit JSON response:", e);
+      console.warn("Failed to parse Weather Outfit JSON response via Zod:", e);
     }
   }
 

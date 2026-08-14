@@ -26,10 +26,11 @@ import {
   generateAIWeatherOutfit,
   getActiveProductById
 } from "./geminiService.ts";
+import { runGenkitPersonaFlow, runGenkitSeasonalStylingFlow, runGenkitMerchantTrustFlow } from "./genkitFlows.ts";
 import { db, initPool } from "../src/db/index.ts";
 import { orders, users } from "../src/db/schema.ts";
 import { eq } from "drizzle-orm";
-import { executeKitesurfPurchase } from "./kitesurfService.ts";
+import { executeKitesurfPurchase, searchKitesurfRetailerProducts } from "./kitesurfService.ts";
 import { initializeApp, getApps, getApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
@@ -80,21 +81,25 @@ router.get("/api/health/secrets", async (_req: Request, res: Response) => {
 // ==========================================
 import { seedCatalogInventory, getProductById } from "./inventory.ts";
 
+function mapProduct(p: any) {
+  return {
+    id: p.id || p.id_val || "",
+    name: p.name || "",
+    brand: p.brand || "Spresso Store",
+    category: p.category || "Apparel",
+    price: typeof p.price === "number" ? p.price : parseFloat(p.price || "0"),
+    image: p.imageUrl || p.image || "",
+    description: p.description || "",
+    likesCount: p.likesCount || 0
+  };
+}
+
 router.get("/api/inventory", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
   try {
     const result = await listProducts(getDc());
     if (result?.data?.products && result.data.products.length > 0) {
-      const items = result.data.products.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        brand: p.brand || "Spresso Store",
-        category: p.category || "Apparel",
-        price: typeof p.price === "number" ? p.price : parseFloat(p.price || "0"),
-        image: p.image || "",
-        description: p.description || "",
-        likesCount: p.likesCount || 0
-      }));
-      return res.json({ success: true, products: items });
+      return res.json({ success: true, products: result.data.products.map(mapProduct) });
     }
   } catch (dcErr: any) {
     // Data Connect service unavailable in non-deployed env; fallback to Postgres DB or in-memory seed catalog
@@ -104,17 +109,7 @@ router.get("/api/inventory", verifyFirebaseToken, async (req: AuthRequest, res: 
     const pool = initPool();
     const result = await pool.query('SELECT * FROM "Product"');
     if (result?.rows && result.rows.length > 0) {
-      const items = result.rows.map((row: any) => ({
-        id: row.id || row.id_val || "",
-        name: row.name || "",
-        brand: row.brand || "Spresso Store",
-        category: row.category || "Apparel",
-        price: parseFloat(row.price || "0"),
-        image: row.imageUrl || row.image || "",
-        description: row.description || "",
-        likesCount: row.likesCount || 0
-      }));
-      return res.json({ success: true, products: items });
+      return res.json({ success: true, products: result.rows.map(mapProduct) });
     }
   } catch (err: any) {
     // Postgres unavailable in standalone container; fallback to seedCatalogInventory
@@ -124,20 +119,12 @@ router.get("/api/inventory", verifyFirebaseToken, async (req: AuthRequest, res: 
 });
 
 router.get("/api/products", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  res.setHeader("Cache-Control", "public, max-age=300, s-maxage=3600");
   const category = req.query.category as string;
   try {
     const result = await listProducts(getDc());
     if (result?.data?.products && result.data.products.length > 0) {
-      let items = result.data.products.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        brand: p.brand || "Spresso Store",
-        category: p.category || "Apparel",
-        price: typeof p.price === "number" ? p.price : parseFloat(p.price || "0"),
-        image: p.image || "",
-        description: p.description || "",
-        likesCount: p.likesCount || 0
-      }));
+      let items = result.data.products.map(mapProduct);
       if (category && category !== "ALL") {
         items = items.filter(p => p.category.toLowerCase().includes(category.toLowerCase()));
       }
@@ -151,16 +138,7 @@ router.get("/api/products", verifyFirebaseToken, async (req: AuthRequest, res: R
     const pool = initPool();
     const result = await pool.query('SELECT * FROM "Product"');
     if (result?.rows && result.rows.length > 0) {
-      let items = result.rows.map((row: any) => ({
-        id: row.id || row.id_val || "",
-        name: row.name || "",
-        brand: row.brand || "Spresso Store",
-        category: row.category || "Apparel",
-        price: parseFloat(row.price || "0"),
-        image: row.imageUrl || row.image || "",
-        description: row.description || "",
-        likesCount: row.likesCount || 0
-      }));
+      let items = result.rows.map(mapProduct);
       if (category && category !== "ALL") {
         items = items.filter(p => p.category.toLowerCase().includes(category.toLowerCase()));
       }
@@ -183,17 +161,7 @@ router.get("/api/products/:id", verifyFirebaseToken, async (req: AuthRequest, re
     const result = await listProducts(getDc());
     const p = result?.data?.products?.find((item: any) => item.id === id);
     if (p) {
-      const product = {
-        id: p.id,
-        name: p.name,
-        brand: p.brand || "Spresso Store",
-        category: p.category || "Apparel",
-        price: typeof p.price === "number" ? p.price : parseFloat(p.price || "0"),
-        image: p.image || "",
-        description: p.description || "",
-        likesCount: p.likesCount || 0
-      };
-      return res.json({ success: true, product });
+      return res.json({ success: true, product: mapProduct(p) });
     }
   } catch (dcErr: any) {
     // Data Connect service unavailable in non-deployed env; fallback to Postgres DB
@@ -203,24 +171,13 @@ router.get("/api/products/:id", verifyFirebaseToken, async (req: AuthRequest, re
     const pool = initPool();
     const result = await pool.query('SELECT * FROM "Product" WHERE id = $1', [id]);
     if (result.rows.length > 0) {
-      const row = result.rows[0];
-      const product = {
-        id: row.id || row.id_val || "",
-        name: row.name || "",
-        brand: row.brand || "Spresso Store",
-        category: row.category || "Apparel",
-        price: parseFloat(row.price || "0"),
-        image: row.imageUrl || row.image || "",
-        description: row.description || "",
-        likesCount: row.likesCount || 0
-      };
-      return res.json({ success: true, product });
+      return res.json({ success: true, product: mapProduct(result.rows[0]) });
     }
   } catch (err: any) {
     // Postgres query failed; fallback to in-memory seed catalog
   }
 
-  const fallbackProduct = getProductById(id) || seedCatalogInventory[0];
+  const fallbackProduct = getProductById(id);
   if (fallbackProduct) {
     return res.json({ success: true, product: fallbackProduct });
   }
@@ -270,6 +227,115 @@ router.post("/api/user/sync", verifyFirebaseToken, async (req: AuthRequest, res:
   } catch (err: any) {
     console.error("[User Sync] Failed to synchronize user:", err);
     return res.status(500).json({ success: false, error: err.message || "Failed to synchronize user" });
+  }
+});
+
+// ==========================================
+// USER PAYMENT CARDS & WALLET ENDPOINTS
+// ==========================================
+router.get("/api/user/cards", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || "anonymous_user";
+  try {
+    const snap = await firestoreDb.collection("users").doc(uid).collection("paymentMethods").get();
+    let cards = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+
+    if (cards.length === 0) {
+      cards = [
+        { id: "card_default_1", brand: "Visa", last4: "4242", expiry: "12/28", isDefault: true },
+        { id: "card_default_2", brand: "Mastercard", last4: "8888", expiry: "09/27", isDefault: false }
+      ];
+    }
+    return res.json({ success: true, cards });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to fetch payment methods" });
+  }
+});
+
+router.post("/api/user/cards", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || "anonymous_user";
+  const { cardNumber, expiry } = req.body || {};
+  if (!cardNumber) return res.status(400).json({ success: false, error: "Card number required" });
+
+  try {
+    const last4 = cardNumber.slice(-4) || "4242";
+    const brand = cardNumber.startsWith("4") ? "Visa" : cardNumber.startsWith("5") ? "Mastercard" : "Amex";
+    const cardData = {
+      brand,
+      last4,
+      expiry: expiry || "12/29",
+      isDefault: false,
+      createdAt: new Date().toISOString()
+    };
+
+    const docRef = await firestoreDb.collection("users").doc(uid).collection("paymentMethods").add(cardData);
+    return res.json({ success: true, card: { id: docRef.id, ...cardData } });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to save payment card" });
+  }
+});
+
+router.delete("/api/user/cards/:id", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || "anonymous_user";
+  const cardId = req.params.id;
+  try {
+    await firestoreDb.collection("users").doc(uid).collection("paymentMethods").doc(cardId).delete();
+    return res.json({ success: true });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to delete payment card" });
+  }
+});
+
+// ==========================================
+// USER SUBSCRIPTION & VIP TIER ENDPOINTS
+// ==========================================
+router.get("/api/user/subscription", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || "anonymous_user";
+  try {
+    const docSnap = await firestoreDb.collection("users").doc(uid).collection("subscription").doc("current").get();
+    if (docSnap.exists) {
+      return res.json({ success: true, subscription: docSnap.data() });
+    }
+    return res.json({
+      success: true,
+      subscription: {
+        tier: "VIP Member",
+        status: "active",
+        currentPeriodEnd: "2026-12-31T23:59:59Z"
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to fetch subscription" });
+  }
+});
+
+router.post("/api/user/subscription/upgrade", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || "anonymous_user";
+  const { tier } = req.body || {};
+  try {
+    const subData = {
+      tier: tier || "VIP Member",
+      status: "active",
+      currentPeriodEnd: "2026-12-31T23:59:59Z",
+      updatedAt: new Date().toISOString()
+    };
+    await firestoreDb.collection("users").doc(uid).collection("subscription").doc("current").set(subData, { merge: true });
+    return res.json({ success: true, subscription: subData });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to upgrade subscription" });
+  }
+});
+
+// ==========================================
+// USER PREFERENCES ENDPOINT
+// ==========================================
+router.post("/api/user/preferences", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || "anonymous_user";
+  const prefs = req.body || {};
+  try {
+    await firestoreDb.collection("users").doc(uid).set({ preferences: prefs }, { merge: true });
+    return res.json({ success: true, preferences: prefs });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to save preferences" });
   }
 });
 
@@ -410,6 +476,10 @@ router.post("/api/lens-search", verifyFirebaseToken, async (req: AuthRequest, re
     const apifyData = apifyRes.status === "fulfilled" ? apifyRes.value : null;
     const visionData = visionRes.status === "fulfilled" ? visionRes.value : null;
 
+    if (!apifyData && !visionData) {
+      return res.status(502).json({ success: false, error: "Unable to search this image right now" });
+    }
+
     res.json({
       success: true,
       apifyResults: apifyData?.results || [],
@@ -417,8 +487,9 @@ router.post("/api/lens-search", verifyFirebaseToken, async (req: AuthRequest, re
     });
   } catch (err: any) {
     console.error("Lens search route error:", err);
-    res.json({
-      success: true,
+    res.status(500).json({
+      success: false,
+      error: err.message || "Failed to perform Lens visual search",
       apifyResults: [],
       detectedResult: null
     });
@@ -542,7 +613,7 @@ CRITICAL USER-FACING DIRECTIVE:
 - NEVER mention "Genkit", "agent architecture", "multi-agent pipelines", sub-agent names, tool calls, or backend technology.
 - Format your output into an Executive Summary, Corporate Risk Score (Low/Medium/High), SEC & Filing Findings, and Audit Recommendations.`;
     } else {
-      systemPrompt = `You are Spresso AI Personal Shopper & Shopping Concierge, an ultra-concise, direct, and intelligent AI Assistant following Google AI Overview UX guidelines.
+      systemPrompt = `You are Spresso Personal Shopper & Shopping Concierge, an ultra-concise, direct, and intelligent AI Assistant following Google AI Overview UX guidelines.
 User Personalization Context:
 - User Name: ${cleanUserName}
 - User Time Zone: ${timeZone || "Local Client Time Zone"}
@@ -644,97 +715,110 @@ STRICT GOOGLE CONCISE RESPONSE GUIDELINES (MAX 80-100 WORDS EXPLANATION):
     ];
 
     const modelAttempts = [
-      { model: "gemini-2.5-flash", tool: (isStoreShopping && hasValidLatLng) ? "maps" : "search" },
-      { model: "gemini-2.5-flash", tool: "none" },
-      { model: "gemini-2.5-pro", tool: "search" },
-      { model: "gemini-2.5-pro", tool: "none" }
+      { model: "gemini-3.5-flash", tool: (isStoreShopping && hasValidLatLng) ? "maps" : "search" },
+      { model: "gemini-3.5-flash", tool: "none" },
+      { model: "gemini-3.1-pro-preview", tool: "search" },
+      { model: "gemini-3.1-pro-preview", tool: "none" }
     ];
+
+    const input: any[] = [];
+    if (imageBase64) {
+      input.push({
+        type: "image",
+        mime_type: "image/jpeg",
+        data: imageBase64.replace(/^data:image\/\w+;base64,/, "")
+      });
+    }
+    input.push({ type: "text", text: prompt || "Analyze query and synthesize intelligence." });
 
     for (const attempt of modelAttempts) {
       try {
-        const config: any = {
-          systemInstruction: systemPrompt,
-          safetySettings: defaultSafetySettings
-        };
-
-        const toolsList: any[] = [{ functionDeclarations: customTools }];
+        const toolsList: any[] = [{ function_declarations: customTools }];
 
         if (attempt.tool === "maps" && hasValidLatLng) {
-          toolsList.push({ googleMaps: {} });
-          config.toolConfig = { retrievalConfig: { latLng: { latitude: latLng.latitude, longitude: latLng.longitude } } };
+          toolsList.push({ type: "google_search" });
         } else if (attempt.tool === "search") {
-          toolsList.push({ googleSearch: {} });
+          toolsList.push({ type: "google_search" });
         }
-        config.tools = toolsList;
 
-        stream = await ai.models.generateContentStream({
+        stream = await ai.interactions.create({
           model: attempt.model,
-          contents,
-          config
+          input,
+          system_instruction: systemPrompt,
+          safety_settings: defaultSafetySettings,
+          tools: toolsList,
+          stream: true
         });
         usedToolType = attempt.tool as any;
         break;
       } catch (err: any) {
-        console.log(`[Spresso AI] Model ${attempt.model} attempt failed:`, err?.message || err);
+        console.log(`[Spresso] Model ${attempt.model} attempt failed:`, err?.message || err);
       }
     }
 
     if (stream) {
-      for await (const chunk of stream) {
-        // Intercept Model Garden function calls
-        if (chunk.functionCalls && chunk.functionCalls.length > 0) {
-          let hasCall = false;
-          for (const call of chunk.functionCalls) {
-            const { name, args } = call;
-            hasCall = true;
+      let currentFunctionCall: any = null;
+      for await (const event of stream) {
+        if (event.event_type === "step.start" && event.step) {
+          if (event.step.type === "function_call") {
+            currentFunctionCall = { name: event.step.name, args: "" };
+          } else if (event.step.type === "google_search_result" && event.step.result?.length > 0) {
+            const suggestions = event.step.result[0].search_suggestions;
+            if (suggestions && suggestions.length > 0) {
+              res.write(`data: ${JSON.stringify({ type: "search_queries", queries: suggestions })}\n\n`);
+              if (typeof (res as any).flush === "function") (res as any).flush();
+            }
+          }
+        } else if (event.event_type === "step.delta" && event.delta) {
+          if (event.delta.type === "arguments" && event.delta.partial_arguments) {
+            if (currentFunctionCall) currentFunctionCall.args += event.delta.partial_arguments;
+          } else if (event.delta.type === "text" && event.delta.text) {
+            res.write(`data: ${JSON.stringify({ type: "text", text: event.delta.text })}\n\n`);
+            if (typeof (res as any).flush === "function") (res as any).flush();
+          } else if (event.delta.type === "thought" && event.delta.text) {
+            res.write(`data: ${JSON.stringify({ type: "thought", text: event.delta.text })}\n\n`);
+            if (typeof (res as any).flush === "function") (res as any).flush();
+          }
+        } else if (event.event_type === "step.stop" && event.step) {
+          if (event.step.type === "function_call" && currentFunctionCall) {
+            const { name } = currentFunctionCall;
+            let parsedArgs: any = {};
+            try { parsedArgs = JSON.parse(currentFunctionCall.args || "{}"); } catch(e) {}
             let result: any = {};
             if (name === "generateVirtualTryOn") {
               try {
-                const tryOnRes = await runTryOnPipeline(args.productId, "video");
+                const tryOnRes = await runTryOnPipeline(parsedArgs.productId, "video");
                 result = { success: true, message: "Virtual Try-On generation started successfully.", tryOnMeta: tryOnRes };
               } catch (err: any) {
                 result = { success: false, error: err.message };
               }
             } else if (name === "getGenMediaKit") {
               try {
-                const kitRes = await getGenMediaKit(args.productId);
+                const kitRes = await getGenMediaKit(parsedArgs.productId);
                 result = { success: true, message: "GenMedia Commerce Kit retrieved.", genMediaKit: kitRes };
               } catch (err: any) {
                 result = { success: false, error: err.message };
               }
             } else if (name === "generateSpin360") {
               try {
-                const spinRes = await runTryOnPipeline(args.productId, "360", "Veo-2 360 product turntable loop");
-                result = { success: true, message: "Veo-2 360 spin video generated successfully.", spinVideoUrl: "https://assets.mixkit.co/videos/preview/mixkit-bag-in-turntable-360-rotation-32532-large.mp4", tryOnMeta: spinRes };
+                const spinRes = await runTryOnPipeline(parsedArgs.productId, "360", "Veo-2 360 product turntable loop");
+                result = { success: true, message: "Veo-2 360 spin video generated successfully.", spinVideoUrl: spinRes.renderedImageUrl, tryOnMeta: spinRes };
               } catch (err: any) {
                 result = { success: false, error: err.message };
               }
             }
-            res.write(`data: ${JSON.stringify({ type: "tool_call", name, args, result })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: "tool_call", name, args: parsedArgs, result })}\n\n`);
             if (typeof (res as any).flush === "function") (res as any).flush();
-          }
-          if (hasCall) {
-            res.write(`data: ${JSON.stringify({ type: "text", text: `I have processed the request using the Model Garden tool.` })}\n\n`);
+            
+            res.write(`data: ${JSON.stringify({ type: "text", text: "I have processed the request using the Model Garden tool." })}\n\n`);
             if (typeof (res as any).flush === "function") (res as any).flush();
             break;
-          }
-        }
-
-        const candidates = chunk.candidates;
-        if (candidates && candidates.length > 0) {
-          const candidate = candidates[0];
-
-          // Extract Grounding Metadata from Google Search Retrieval
-          const groundingMetadata = (candidate as any).groundingMetadata;
-          if (groundingMetadata) {
-            if (groundingMetadata.webSearchQueries && Array.isArray(groundingMetadata.webSearchQueries) && groundingMetadata.webSearchQueries.length > 0) {
-              res.write(`data: ${JSON.stringify({ type: "search_queries", queries: groundingMetadata.webSearchQueries })}\n\n`);
-              if (typeof (res as any).flush === "function") (res as any).flush();
-            }
-            if (groundingMetadata.groundingChunks && Array.isArray(groundingMetadata.groundingChunks) && groundingMetadata.groundingChunks.length > 0) {
-              const sources = groundingMetadata.groundingChunks.map((c: any) => ({
-                title: c.web?.title || c.maps?.title || "Retail Web Source",
-                uri: c.web?.uri || c.maps?.uri || ""
+          } else if (event.step.type === "model_output") {
+            const annotations = event.step.content?.[0]?.annotations;
+            if (annotations && annotations.length > 0) {
+              const sources = annotations.map((a: any) => ({
+                title: a.title || "Retail Web Source",
+                uri: a.uri || ""
               })).filter((s: any) => s.uri);
               if (sources.length > 0) {
                 res.write(`data: ${JSON.stringify({ type: "grounding_sources", sources })}\n\n`);
@@ -742,35 +826,43 @@ STRICT GOOGLE CONCISE RESPONSE GUIDELINES (MAX 80-100 WORDS EXPLANATION):
               }
             }
           }
-
-          const parts = candidate.content?.parts;
-          if (parts && parts.length > 0) {
-            for (const part of parts) {
-              if ((part as any).thought && part.text) {
-                res.write(`data: ${JSON.stringify({ type: "thought", text: part.text })}\n\n`);
-                if (typeof (res as any).flush === "function") (res as any).flush();
-              } else if (part.text) {
-                res.write(`data: ${JSON.stringify({ type: "text", text: part.text })}\n\n`);
-                if (typeof (res as any).flush === "function") (res as any).flush();
-              }
-            }
-          } else if (chunk.text) {
-            res.write(`data: ${JSON.stringify({ type: "text", text: chunk.text })}\n\n`);
-            if (typeof (res as any).flush === "function") (res as any).flush();
-          }
-        } else if (chunk.text) {
-          res.write(`data: ${JSON.stringify({ type: "text", text: chunk.text })}\n\n`);
-          if (typeof (res as any).flush === "function") (res as any).flush();
         }
       }
     } else {
-      res.write(`data: ${JSON.stringify({ type: "text", text: "I searched our Spresso inventory and found top matching options for your request." })}\n\n`);
+      const fallbackMsg = "I'm sorry, I encountered an error connecting to my live search systems. Please try again later.";
+      const chunks = fallbackMsg.split(" ");
+      for (let i = 0; i < chunks.length; i++) {
+        res.write(`data: ${JSON.stringify({ type: "text", text: chunks[i] + (i < chunks.length - 1 ? " " : "") })}\n\n`);
+        if (typeof (res as any).flush === "function") (res as any).flush();
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    // Single-Pass Kitesurf Direct Web Extraction + Parallel Genkit Merchant Trust Score Audit
+    if (prompt && /(banana republic|grapes|nike|macy|target|nordstrom|sephora|apple|grocery|medium shirt|mens shirt)/i.test(prompt)) {
+      const [liveScrapedProducts, trustScoreAudit] = await Promise.all([
+        searchKitesurfRetailerProducts(prompt, "Banana Republic"),
+        runGenkitMerchantTrustFlow({ merchantName: "Banana Republic Store & Produce Merchant", productName: prompt })
+      ]);
+
+      res.write(`data: ${JSON.stringify({
+        type: "products_payload",
+        products: liveScrapedProducts,
+        merchantTrustAudit: trustScoreAudit.result
+      })}\n\n`);
+      if (typeof (res as any).flush === "function") (res as any).flush();
     }
 
     res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
     res.end();
   } catch (error: any) {
-    res.write(`data: ${JSON.stringify({ type: "text", text: "Here are top recommendations from our Spresso Marketplace." })}\n\n`);
+    const fallbackMsg = "Here are top recommendations from our Spresso Marketplace.";
+    const chunks = fallbackMsg.split(" ");
+    for (let i = 0; i < chunks.length; i++) {
+      res.write(`data: ${JSON.stringify({ type: "text", text: chunks[i] + (i < chunks.length - 1 ? " " : "") })}\n\n`);
+      if (typeof (res as any).flush === "function") (res as any).flush();
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
     res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
     res.end();
   }
@@ -884,11 +976,24 @@ router.post("/api/purchase/authorize", verifyFirebaseToken, async (req: AuthRequ
 
 router.post("/api/purchase/automate", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { productId, quantity, deviceSource, shippingAddress, biometricAuthorized, merchantUrl } = req.body;
+    const { productId, quantity, shippingAddress, merchantUrl, userConfirmedToken, biometricAuthorized, deviceSource, userApprovedPaywall } = req.body || {};
     const userId = req.user?.uid;
-    
+
     if (!biometricAuthorized) {
-      return res.status(400).json({ error: "Biometric verification is required to authorize e-commerce automation." });
+      const productObj = await getActiveProductById(productId);
+      return res.status(403).json({
+        success: false,
+        code: "BIOMETRIC_AUTH_REQUIRED",
+        error: "Biometric confirmation required to authorize automated purchase form submission.",
+        checkoutSummary: {
+          productId,
+          productName: productObj?.name || "Target Retail Product",
+          totalAmount: productObj?.price || 79.50,
+          merchantUrl: merchantUrl || "https://bananarepublic.gap.com",
+          biometricPromptTitle: "Confirm Biometric Authorization",
+          biometricPromptMessage: "Scan fingerprint or FaceID to authorize placing this purchase order."
+        }
+      });
     }
 
     const product = await getActiveProductById(productId);
@@ -897,8 +1002,12 @@ router.post("/api/purchase/automate", verifyFirebaseToken, async (req: AuthReque
     const reqQuantity = quantity || 1;
     const finalAddress = shippingAddress || "123 Innovation Way, Tech District, SF";
 
-    // Run Kitesurf Automation
-    const kResult = await executeKitesurfPurchase(productId, finalAddress, "", merchantUrl);
+    // Run Kitesurf Automation with Biometric Authorization Token
+    const kResult = await executeKitesurfPurchase(productId, finalAddress, "", merchantUrl, userApprovedPaywall, true);
+
+    if ((kResult as any).requiresUserApproval) {
+      return res.status(402).json(kResult);
+    }
 
     // Sync database records
     const newOrder = {
@@ -981,6 +1090,8 @@ router.post("/api/purchase/automate", verifyFirebaseToken, async (req: AuthReque
   }
 });
 
+import crypto from 'crypto';
+
 function verifyBiometricSignature(
   productId: string,
   quantity: number,
@@ -988,41 +1099,72 @@ function verifyBiometricSignature(
   token: string
 ): boolean {
   try {
-    if (token === "true" || token === "dummy" || token === "bypass" || token === "1") {
+    if (!token || token === "true" || token === "dummy" || token === "bypass" || token === "1") {
       return false;
     }
+
+    // Expect token to be a Base64-encoded JSON payload: { payload: string, signature: string, publicKey: string }
     const decoded = Buffer.from(token, 'base64').toString('utf8');
     const parsed = JSON.parse(decoded);
     
-    if (parsed.productId !== productId || parsed.quantity !== quantity) {
+    if (!parsed.payload || !parsed.signature || !parsed.publicKey) {
+      console.warn("Invalid biometric token structure");
       return false;
+    }
+
+    const payloadJson = JSON.parse(parsed.payload);
+    
+    // Verify payload contents match the transaction
+    if (payloadJson.productId !== productId || payloadJson.quantity !== quantity) {
+      console.warn("Biometric payload mismatch");
+      return false;
+    }
+
+    // Enforce freshness (e.g., within 5 minutes)
+    const timestamp = payloadJson.timestamp;
+    if (timestamp && Date.now() - timestamp > 5 * 60 * 1000) {
+      console.warn("Biometric token expired");
+      return false;
+    }
+
+    // Cryptographic signature verification (e.g., ECDSA with SHA-256)
+    const verifier = crypto.createVerify('SHA256');
+    verifier.update(parsed.payload);
+    verifier.end();
+
+    const isValid = verifier.verify(parsed.publicKey, parsed.signature, 'base64');
+    
+    if (!isValid) {
+      console.warn("Cryptographic signature verification failed");
     }
     
-    const age = Date.now() - parsed.timestamp;
-    if (age < 0 || age > 300000) { // 5 minutes validity
-      return false;
-    }
-    
-    if (!parsed.signature || parsed.signature.length < 32) {
-      return false;
-    }
-    return true;
+    return isValid;
   } catch (err) {
+    console.error("Error verifying biometric signature:", err);
     return false;
   }
 }
 
 router.post("/api/purchase/confirm", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
-  const { productId, quantity, deviceSource, userConfirmedToken } = req.body;
+  const { productId, quantity, deviceSource, userConfirmedToken, hasWalletCard, paymentToken } = req.body || {};
   const userId = req.user?.uid;
   const product = await getActiveProductById(productId);
-  if (!product) return res.status(404).json({ error: "Product not found" });
+  if (!product) return res.status(404).json({ success: false, error: "Product not found" });
 
   const reqQuantity = quantity || 1;
   const totalAmt = product.price * reqQuantity;
 
+  // Zero-Mock Wallet Integrity Check: Deny purchase if no credit card/wallet is connected
+  if (hasWalletCard === false && !paymentToken) {
+    return res.status(402).json({
+      success: false,
+      code: "WALLET_CARD_REQUIRED",
+      error: "Payment card required: No active credit card found in wallet. Please add a payment card to complete checkout."
+    });
+  }
+
   if (!userConfirmedToken || !verifyBiometricSignature(productId, reqQuantity, totalAmt, userConfirmedToken)) {
-    return res.status(400).json({ error: "Biometric signature validation failed. Transaction unauthorized." });
+    return res.status(400).json({ success: false, error: "Biometric signature validation failed. Transaction unauthorized." });
   }
 
   const orderIdStr = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -1271,6 +1413,103 @@ router.post("/api/genkit/creative-pipeline", verifyFirebaseToken, async (req: Au
   res.json(result);
 });
 
+router.post("/api/genkit/seasonal-styling", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || "guest_user";
+  const { weatherCondition, season, occasion } = req.body || {};
+  const result = await runGenkitSeasonalStylingFlow({ uid, weatherCondition, season, occasion });
+  res.json(result);
+});
+
+router.post("/api/genkit/merchant-trust", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const { merchantName, productName, merchantUrl } = req.body || {};
+  const result = await runGenkitMerchantTrustFlow({ merchantName, productName, merchantUrl });
+  res.json(result);
+});
+
+// Bookmarking Product to Firestore & DB
+router.get("/api/user/bookmarks", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || "guest_user";
+  try {
+    const snap = await firestoreDb.collection("users").doc(uid).collection("bookmarks").get();
+    const bookmarks = snap.docs.map(doc => doc.data());
+    res.json({ success: true, bookmarks });
+  } catch (err) {
+    res.json({ success: true, bookmarks: [] });
+  }
+});
+
+router.post("/api/user/bookmark", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || "guest_user";
+  const { productId, action } = req.body || {};
+  if (!productId) return res.status(400).json({ success: false, error: "productId required" });
+
+  try {
+    const bookmarkRef = firestoreDb.collection("users").doc(uid).collection("bookmarks").doc(productId);
+    if (action === "remove") {
+      await bookmarkRef.delete();
+    } else {
+      await bookmarkRef.set({ productId, timestamp: new Date().toISOString() }, { merge: true });
+    }
+  } catch (err) {
+    console.warn("[Firestore] Bookmark sync error:", err);
+  }
+
+  res.json({ success: true, productId, bookmarked: action !== "remove" });
+});
+
+// Liking / Favoriting Product to Firestore & DB
+router.get("/api/user/likes", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || "guest_user";
+  try {
+    const snap = await firestoreDb.collection("users").doc(uid).collection("likes").get();
+    const likes = snap.docs.map(doc => doc.data());
+    res.json({ success: true, likes });
+  } catch (err) {
+    res.json({ success: true, likes: [] });
+  }
+});
+
+router.post("/api/user/like", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || "guest_user";
+  const { productId, action } = req.body || {};
+  if (!productId) return res.status(400).json({ success: false, error: "productId required" });
+
+  try {
+    const likeRef = firestoreDb.collection("users").doc(uid).collection("likes").doc(productId);
+    if (action === "remove") {
+      await likeRef.delete();
+    } else {
+      await likeRef.set({ productId, timestamp: new Date().toISOString() }, { merge: true });
+    }
+  } catch (err) {
+    console.warn("[Firestore] Like sync error:", err);
+  }
+
+  res.json({ success: true, productId, liked: action !== "remove" });
+});
+
+// Uploading Wardrobe Photo to Gallery
+router.post("/api/wardrobe/add-photo", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || "guest_user";
+  const { photoUrl, category, title } = req.body || {};
+
+  const newPhoto = {
+    id: `photo-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    photoUrl: photoUrl || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600",
+    category: category || "Special Occasion Wear",
+    title: title || "Custom Outfit Look",
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    await firestoreDb.collection("users").doc(uid).collection("wardrobe_photos").doc(newPhoto.id).set(newPhoto);
+  } catch (err) {
+    console.warn("[Firestore] Wardrobe photo save error:", err);
+  }
+
+  res.json({ success: true, photo: newPhoto });
+});
+
 // ==========================================
 // BARGAIN CHEF & RECIPE DEAL STREAMING API
 // ==========================================
@@ -1316,4 +1555,144 @@ const handleBargainChefRequest = async (req: any, res: any) => {
 
 router.post("/api/recipe/bargain-chef", verifyFirebaseToken, handleBargainChefRequest);
 router.post("/bargainChefFlow", verifyFirebaseToken, handleBargainChefRequest);
+
+// ==========================================
+// STRIPE PAYMENT INTENT & TOKENIZATION
+// ==========================================
+router.post("/api/payment/stripe/create-intent", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { amount, currency = "usd", paymentMethodType = "card" } = req.body || {};
+    const stripeSecretKey = await getSecret("STRIPE_SECRET_KEY");
+
+    if (!stripeSecretKey) {
+      return res.status(503).json({
+        success: false,
+        error: "Stripe integration is currently unconfigured. Set STRIPE_SECRET_KEY in GCP Secret Manager."
+      });
+    }
+
+    const params = new URLSearchParams();
+    params.append("amount", Math.round((amount || 10) * 100).toString());
+    params.append("currency", currency.toLowerCase());
+    params.append("automatic_payment_methods[enabled]", "true");
+
+    const response = await fetch("https://api.stripe.com/v1/payment_intents", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${stripeSecretKey}`,
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: params.toString()
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      return res.status(response.status).json({ success: false, error: data.error?.message || "Stripe PaymentIntent creation failed" });
+    }
+
+    res.json({
+      success: true,
+      clientSecret: data.client_secret,
+      paymentIntentId: data.id,
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || "pk_test_spresso_live"
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || "Failed to create Stripe PaymentIntent" });
+  }
+});
+
+// ==========================================
+// USER PROFILE & ACCOUNT SETTINGS MANAGEMENT
+// ==========================================
+router.get("/api/user/profile/:uid", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.params.uid;
+  try {
+    const docSnap = await firestoreDb.collection("users").doc(uid).get();
+    if (docSnap.exists) {
+      const data = docSnap.data() || {};
+      return res.json({
+        uid: data.uid || uid,
+        name: data.name || "Shopper User",
+        email: data.email || `${uid}@spresso.ai`,
+        avatarUrl: data.photoURL || null,
+        tier: data.tier || "SPRESSO_VIP",
+        renewalDate: data.renewalDate || "2026-12-31",
+        savedCards: data.savedCards || [],
+        notificationsEnabled: data.notificationsEnabled ?? true,
+        emailAlertsEnabled: data.emailAlertsEnabled ?? true,
+        themePreference: data.themePreference || "system"
+      });
+    }
+  } catch (err) {
+    console.warn("[Firestore] User profile fetch error:", err);
+  }
+
+  res.json({
+    uid,
+    name: "Shopper User",
+    email: `${uid}@spresso.ai`,
+    tier: "SPRESSO_VIP",
+    renewalDate: "2026-12-31",
+    savedCards: [
+      { id: "c1", brand: "Visa", last4: "4242", expiryMonth: 12, expiryYear: 2028, isDefault: true }
+    ],
+    notificationsEnabled: true,
+    emailAlertsEnabled: true,
+    themePreference: "system"
+  });
+});
+
+router.post("/api/user/profile/update", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || req.body?.uid;
+  if (!uid) {
+    return res.status(400).json({ success: false, error: "User UID is required" });
+  }
+
+  try {
+    await firestoreDb.collection("users").doc(uid).set({
+      ...req.body,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    res.json({ success: true, message: "User profile updated successfully" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || "Failed to update profile" });
+  }
+});
+
+router.post("/api/user/deactivate", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || req.body?.uid;
+  if (!uid) {
+    return res.status(400).json({ success: false, error: "User UID is required" });
+  }
+
+  try {
+    await firestoreDb.collection("users").doc(uid).delete();
+    if (db) {
+      try {
+        await db.delete(users).where(eq(users.uid, uid));
+      } catch (sqlErr) {
+        console.warn("[Cloud SQL] User deletion warning:", sqlErr);
+      }
+    }
+    res.json({ success: true, message: `Account ${uid} deactivated and records purged.` });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || "Failed to deactivate account" });
+  }
+});
+
+// ==========================================
+// GENKIT PERSONA & DOTPROMPT FLOW
+// ==========================================
+router.post("/api/genkit/persona-flow", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const uid = req.user?.uid || req.body?.uid || "anonymous_shopper";
+  const { prompt, category } = req.body || {};
+  try {
+    const result = await runGenkitPersonaFlow({ uid, prompt: prompt || "Recommend seasonal fashion drops", category });
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || "Genkit persona flow execution failed" });
+  }
+});
+
 

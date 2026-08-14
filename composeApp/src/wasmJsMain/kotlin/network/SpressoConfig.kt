@@ -1,11 +1,10 @@
-package network
-
-@JsFun("() => { if (typeof window === 'undefined') return ''; const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'; return proto + '//' + window.location.host + '/api/live-chef'; }")
-private external fun getBackendWsUrl(): String
-
 actual object SpressoConfig {
+    actual val backendBaseUrl: String
+        get() = "https://spresso-5561f.web.app"
+    actual val cloudFunctionsBaseUrl: String
+        get() = "https://us-central1-spresso-5561f.cloudfunctions.net"
     actual val backendWebSocketUrl: String
-        get() = getBackendWsUrl()
+        get() = "wss://spresso-5561f.web.app/api/live-chef"
     actual val googlePayMerchantId: String
         get() = "BCR2DN6DTK6ZNGLF"
 }

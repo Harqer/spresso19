@@ -131,7 +131,7 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
     const shareUrl = window.location.href;
     const shareData = {
       title: product.name || "Spresso Product",
-      text: `Check out ${product.name} on Spresso AI Shopper!`,
+      text: `Check out ${product.name} on Spresso!`,
       url: shareUrl
     };
 

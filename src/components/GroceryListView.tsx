@@ -38,7 +38,7 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
       category: p.category ? p.category.replace(/^Grocery\s*-\s*/, '') : "Produce",
       estimatedPrice: p.price,
       checked: false,
-      storeNote: p.brand ? `${p.brand} • $${p.price.toFixed(2)}` : undefined
+      storeNote: p.brand ? `${p.brand} • $${(p.price || 0).toFixed(2)}` : undefined
     }));
   });
 
@@ -140,7 +140,7 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
               Estimated Total
             </span>
             <span className="text-base font-bold text-[#386633] font-mono">
-              ${totalEstimated.toFixed(2)}
+              ${(totalEstimated || 0).toFixed(2)}
             </span>
           </div>
         )}
@@ -259,7 +259,7 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
                 </div>
 
                 <span className="text-xs font-mono font-bold text-[#386633] w-14 text-right">
-                  ${(item.estimatedPrice * item.quantity).toFixed(2)}
+                  ${((item.estimatedPrice || 0) * item.quantity).toFixed(2)}
                 </span>
 
                 {onAddToCart && (

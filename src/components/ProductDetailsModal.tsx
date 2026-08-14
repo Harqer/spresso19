@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem, HITLPayload } from "../types";
+import { VideoReviewItem } from "@/src/components/shared/VideoReviewItem";
 
 interface ProductDetailsModalProps {
   isOpen?: boolean;
@@ -124,7 +125,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     if (navigator.share) {
       navigator.share({
         title: product.name,
-        text: `Check out ${product.name} on Spresso AI Shopper!`,
+        text: `Check out ${product.name} on Spresso!`,
         url: window.location.href,
       }).catch(() => {});
     } else {
@@ -357,6 +358,26 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 <MaterialIcon icon="replay" size={20} className="text-[#446732] dark:text-[#a9d291]" />
                 <span className="font-bold">Easy Returns</span>
                 <span className="text-[9px] text-[#43483e] dark:text-[#c3c8bb]">30 Days Policy</span>
+              </div>
+            </div>
+            {/* CUSTOMER VIDEO REVIEWS (Zero Card / Zero Container Box Styling) */}
+            <div className="space-y-3 text-left pt-2">
+              <h3 className="font-bold text-[#43483e] dark:text-[#c3c8bb] font-mono text-xs tracking-wider uppercase flex items-center space-x-1.5">
+                <MaterialIcon icon="videocam" size={16} className="text-[#446732] dark:text-[#a9d291]" />
+                <span>Customer Video Reviews</span>
+              </h3>
+
+              <div className="space-y-2 border-none bg-transparent p-0">
+                <VideoReviewItem
+                  review={{
+                    id: `rev-v1-${product.id}`,
+                    authorName: "Elena Rostova",
+                    rating: 5.0,
+                    commentText: `Unbelievable quality and fit! The material feels super premium and fits true to size.`,
+                    thumbnailUrl: product.image,
+                    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-in-a-front-pose-40344-large.mp4"
+                  }}
+                />
               </div>
             </div>
 

@@ -105,7 +105,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <div className="space-y-1.5 max-w-xs">
                 <h4 className="text-base font-bold text-[#18211e]">Your Shopping Cart is Empty</h4>
                 <p className="text-xs text-[#5e635f] leading-relaxed">
-                  Discover curated fashion, lifestyle, and grocery picks tailored to your preferences with Spresso AI.
+                  Discover curated fashion, lifestyle, and grocery picks tailored to your preferences with Spresso.
                 </p>
               </div>
 
@@ -114,7 +114,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 className="mt-2 py-2 px-5 bg-[#386633] hover:bg-[#2c5227] text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center space-x-1.5 cursor-pointer"
               >
                 <MaterialIcon icon="auto_awesome" size={15} />
-                <span>Ask AI Personal Shopper</span>
+                <span>Ask AI Assistant</span>
               </button>
             </div>
           ) : (

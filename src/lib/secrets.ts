@@ -58,10 +58,6 @@ export async function getSecret(secretName: string): Promise<string> {
   }
 }
 
-/**
- * Pre-warms and validates required secrets.
- * Exits the process non-zero if any required secret fails to load.
- */
 export async function initializeSecrets(requiredSecrets: string[]): Promise<void> {
   console.log("[Secrets] Pre-warming required secrets from Cloud Secret Manager...");
   for (const name of requiredSecrets) {
@@ -69,8 +65,15 @@ export async function initializeSecrets(requiredSecrets: string[]): Promise<void
       await getSecret(name);
       console.log(`[Secrets] Successfully loaded and cached secret: ${name}`);
     } catch (err: any) {
-      console.error(`[Secrets] [FATAL] Fail-fast block triggered. ${err.message}`);
-      process.exit(1);
+      const isProduction = process.env.NODE_ENV === "production";
+      if (isProduction) {
+        console.error(`[Secrets] [FATAL] Fail-fast block triggered. ${err.message}`);
+        process.exit(1);
+      } else {
+        console.warn(`[Secrets] [WARNING] Failed to load required secret: ${name}. Bypassing fatal exit for local development.`);
+        // Set a dummy fallback so the server doesn't crash later when retrieving it
+        cachedSecrets.set(name, "DUMMY_LOCAL_SECRET");
+      }
     }
   }
 }

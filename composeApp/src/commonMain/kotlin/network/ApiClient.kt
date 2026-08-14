@@ -24,7 +24,8 @@ data class ProductItem(
     val category: String,
     val price: Double,
     val imageUrl: String,
-    val rating: Double? = 4.8
+    val rating: Double? = 4.8,
+    val description: String? = null
 )
 
 @Serializable
@@ -47,7 +48,9 @@ data class DetectedItem(
     val category: String,
     val priceEstimate: Double,
     val confidenceScore: Double,
-    val buyActionPrompt: String? = null
+    val buyActionPrompt: String? = null,
+    val boundingBox: List<Double>? = null,
+    val matchingCatalogId: String? = null
 )
 
 @Serializable
@@ -88,12 +91,13 @@ open class ApiClient {
         }
     }
     
-    private val backendBaseUrl = "https://spresso-5561f.web.app"
+    private val backendBaseUrl = SpressoConfig.backendBaseUrl
     private val json = Json { ignoreUnknownKeys = true }
     
     suspend fun getInventory(): List<ProductItem> {
         val authToken = getCurrentUserIdToken()
         val endpoints = listOf("$backendBaseUrl/api/products", "$backendBaseUrl/api/inventory")
+        var lastException: Exception? = null
         for (endpoint in endpoints) {
             try {
                 val responseText = client.get(endpoint) {
@@ -122,15 +126,33 @@ open class ApiClient {
                         ProductItem(id, name, brand, category, price, imageUrl, rating)
                     }
                 }
-            } catch (_: Exception) {
-                // Try next endpoint
+            } catch (e: Exception) {
+                lastException = e
             }
         }
+        if (lastException != null) throw lastException
         return emptyList()
     }
     
-    private val cloudFunctionsBaseUrl = "https://us-central1-spresso-5561f.cloudfunctions.net"
+    private val cloudFunctionsBaseUrl = SpressoConfig.cloudFunctionsBaseUrl
     
+    suspend fun recordInteraction(productId: String, action: String): Boolean {
+        logCrashlyticsBreadcrumb(action, "productId=$productId")
+        val authToken = getCurrentUserIdToken()
+        return try {
+            val response = client.post("$cloudFunctionsBaseUrl/ingestInteraction") {
+                contentType(ContentType.Application.Json)
+                if (authToken != null) {
+                    header(HttpHeaders.Authorization, "Bearer $authToken")
+                }
+                setBody(mapOf("data" to mapOf("productId" to productId, "action" to action)))
+            }
+            response.status.value in 200..299
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     suspend fun requestVirtualTryOn(base64Image: String): String {
         val authToken = getCurrentUserIdToken()
         return try {
@@ -246,6 +268,10 @@ open class ApiClient {
         token: String,
         address: String
     ): CheckoutResponse {
+        val authSuccess = promptBiometricAuth("Confirm your identity to purchase this item.")
+        if (!authSuccess) {
+            return CheckoutResponse(success = false, message = "Biometric authentication failed or was cancelled.")
+        }
         val authToken = getCurrentUserIdToken()
         return try {
             client.post("$backendBaseUrl/api/purchase/confirm") {
@@ -323,6 +349,47 @@ open class ApiClient {
             }.body()
         } catch (e: Exception) {
             JsonObject(emptyMap())
+        }
+    }
+
+    suspend fun fetchUserProfile(uid: String): network.models.UserProfileData {
+        val authToken = getCurrentUserIdToken()
+        return client.get("$backendBaseUrl/api/user/profile/$uid") {
+            if (authToken != null) {
+                header(HttpHeaders.Authorization, "Bearer $authToken")
+            }
+        }.body()
+    }
+
+    suspend fun updateUserProfile(profile: network.models.UserProfileData): Boolean {
+        val authToken = getCurrentUserIdToken()
+        return try {
+            val response = client.post("$backendBaseUrl/api/user/profile/update") {
+                contentType(ContentType.Application.Json)
+                if (authToken != null) {
+                    header(HttpHeaders.Authorization, "Bearer $authToken")
+                }
+                setBody(profile)
+            }
+            response.status.value in 200..299
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun deactivateAccount(uid: String): Boolean {
+        val authToken = getCurrentUserIdToken()
+        return try {
+            val response = client.post("$backendBaseUrl/api/user/deactivate") {
+                contentType(ContentType.Application.Json)
+                if (authToken != null) {
+                    header(HttpHeaders.Authorization, "Bearer $authToken")
+                }
+                setBody(mapOf("uid" to uid))
+            }
+            response.status.value in 200..299
+        } catch (e: Exception) {
+            false
         }
     }
 

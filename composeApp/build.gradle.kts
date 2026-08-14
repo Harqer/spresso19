@@ -8,12 +8,28 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
+    alias(libs.plugins.screenshot)
+    alias(libs.plugins.dropshots)
+    jacoco
 }
 
 kotlin {
+    targets.configureEach {
+        compilations.configureEach {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    freeCompilerArgs.add("-Xexpect-actual-classes")
+                }
+            }
+        }
+    }
     androidTarget {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+        compilations.configureEach {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+                }
+            }
         }
     }
     
@@ -44,22 +60,38 @@ kotlin {
             implementation(libs.androidx.camera.lifecycle)
             implementation(libs.androidx.camera.view)
             implementation(libs.androidx.camera.extensions)
+            implementation("androidx.camera:camera-mlkit-vision:1.4.0-beta02")
+            implementation("com.google.mlkit:object-detection:17.0.2")
             implementation("androidx.credentials:credentials:1.6.0")
             implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
             implementation("com.google.android.libraries.identity.googleid:googleid:1.2.0")
+            implementation("androidx.compose.ui:ui-tooling:1.6.8")
             implementation("androidx.compose.ui:ui-tooling-preview:1.6.8")
             implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.3")
             implementation("androidx.biometric:biometric:1.2.0-alpha05")
+            implementation("androidx.core:core-splashscreen:1.0.1")
         }
         val androidUnitTest = sourceSets.getByName("androidUnitTest")
         androidUnitTest.dependencies {
             implementation(kotlin("test"))
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+            implementation(libs.junit)
+            implementation(libs.robolectric)
+            implementation(libs.mockk)
+            implementation(libs.koin.test)
+            implementation(libs.androidx.compose.ui.test.junit4)
+            implementation(libs.androidx.compose.ui.test.manifest)
         }
         val commonTest = sourceSets.getByName("commonTest")
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+        }
+        val androidInstrumentedTest = sourceSets.getByName("androidInstrumentedTest")
+        androidInstrumentedTest.dependsOn(commonTest)
+        androidInstrumentedTest.dependencies {
+            implementation(libs.androidx.compose.ui.test.junit4)
+            implementation(libs.dropshots)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -75,7 +107,9 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
             implementation("io.ktor:ktor-client-websockets:3.0.0")
+            implementation(libs.koin.core)
         }
         wasmJsMain.dependencies {
             implementation(libs.ktor.client.js)
@@ -96,6 +130,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     packaging {
         resources {
@@ -103,14 +138,19 @@ android {
         }
     }
 
+    buildFeatures {
+        resValues = true
+        buildConfig = true
+    }
+
     experimentalProperties["android.experimental.enableScreenshotTest"] = true
 
     signingConfigs {
         create("release") {
             storeFile = file("spresso.keystore")
-            storePassword = "spresso123"
-            keyAlias = "spresso"
-            keyPassword = "spresso123"
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("KEY_ALIAS") ?: "spresso"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
             enableV1Signing = true
             enableV2Signing = true
         }

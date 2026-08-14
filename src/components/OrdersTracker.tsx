@@ -4,8 +4,8 @@ import { OrderRecord } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { AIShopperInputBar } from "./AIShopperInputBar";
 import { collection, getDocs, getFirestore } from "firebase/firestore";
-import { GoogleWalletButton } from "./atoms/GoogleWalletButton";
-import { AnimatedTicketCard } from "./molecules/AnimatedTicketCard";
+import { GoogleWalletButton } from "@/src/components/features/profile/GoogleWalletButton";
+import { AnimatedTicketCard } from "@/src/components/features/orders/AnimatedTicketCard";
 
 interface OrdersTrackerProps {
   orders: OrderRecord[];
@@ -391,7 +391,7 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
       {/* Global AI Communication Input Bar */}
       <AIShopperInputBar
         onSend={(t, img) => onAskAI?.(t, img)}
-        placeholder="Ask AI Shopper about order status, returns or support..."
+        placeholder="Ask AI Assistant about order status, returns or support..."
         className="mt-6"
       />
     </div>

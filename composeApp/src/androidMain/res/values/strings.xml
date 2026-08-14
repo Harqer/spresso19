@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Spresso19</string>
-    <string name="perm_mic_rationale">Spresso19 requires microphone access to stream your voice instructions in real-time to the Gemini Chef assistant.</string>
+    <string name="app_name">Spresso</string>
+    <string name="perm_mic_rationale">Spresso requires microphone access to stream your voice instructions in real-time to the Gemini Chef assistant.</string>
     <string name="accessibility_service_label">Spresso one-time screen search</string>
     <string name="accessibility_service_description">Lets Spresso search a user-requested screen window for shopping matches. It does not monitor screen changes or act on other apps.</string>
 </resources>

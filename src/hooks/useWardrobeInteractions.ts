@@ -93,9 +93,8 @@ export function useWardrobeInteractions(allWardrobeItems: CustomWardrobeItem[], 
         throw new Error("Invalid response format");
       }
     } catch (err) {
-      console.warn("AI Outfit generation failed, falling back to shuffle:", err);
-      // Fallback
-      handleRandomizeShuffle(mode, tempText);
+      console.error("AI Outfit generation failed:", err);
+      alert("Failed to generate AI outfit. Please try again later.");
     } finally {
       setIsGeneratingOutfit(false);
     }

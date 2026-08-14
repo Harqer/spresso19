@@ -12,6 +12,15 @@ screenshot = "0.0.1-alpha16"
 androidx-ui = "1.6.8"
 ksp = "2.1.0-1.0.29"
 appfunctions = "1.0.0-alpha10"
+credentials = "1.6.0"
+googleid = "1.2.0"
+biometric = "1.2.0-alpha05"
+koin = "4.0.0"
+junit = "4.13.2"
+robolectric = "4.11.1"
+dropshots = "0.4.1"
+mockk = "1.13.8"
+ui-test-junit4 = "1.6.8"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity-compose" }
@@ -35,6 +44,14 @@ jetbrains-ui-tooling-preview = { group = "org.jetbrains.compose.ui", name = "ui-
 screenshot-validation-api = { group = "com.android.tools.screenshot", name = "screenshot-validation-api", version.ref = "screenshot" }
 androidx-appfunctions = { module = "androidx.appfunctions:appfunctions", version.ref = "appfunctions" }
 androidx-appfunctions-compiler = { module = "androidx.appfunctions:appfunctions-compiler", version.ref = "appfunctions" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-test = { module = "io.insert-koin:koin-test", version.ref = "koin" }
+junit = { module = "junit:junit", version.ref = "junit" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "ui-test-junit4" }
+androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "ui-test-junit4" }
+dropshots = { module = "com.dropbox.dropshots:dropshots", version.ref = "dropshots" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -45,3 +62,4 @@ composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "k
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 screenshot = { id = "com.android.compose.screenshot", version.ref = "screenshot" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+dropshots = { id = "com.dropbox.dropshots", version.ref = "dropshots" }

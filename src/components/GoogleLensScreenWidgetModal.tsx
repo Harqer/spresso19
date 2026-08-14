@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { MaterialIcon } from "./MaterialIcon";
 import { cropImageSnippet } from "../utils/imageCropper";
 import { ElevatedQuickActionFab } from "./ElevatedQuickActionFab";
@@ -332,7 +333,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
 
   const currentItem = detectedRegions[selectedRegionId];
 
-  return (
+  return createPortal(
     <div
       id="google-lens-modal-container"
       className="fixed inset-0 z-50 bg-black/75 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in select-none"
@@ -401,9 +402,6 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
           </div>
 
           <div className="flex items-center space-x-3">
-            <span className="hidden sm:inline-block text-xs font-extrabold text-emerald-400 hover:text-emerald-300 transition cursor-pointer">
-              Be a member
-            </span>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition cursor-pointer border border-white/10"
@@ -643,7 +641,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
           )}
         </div>
 
-        {/* Headless Chat Section for Direct Shopper Communication */}
+        {/* Headless Chat Section for Direct Communication */}
         {currentItem && (
           <div className="mt-4 pt-4 border-t border-white/10 z-20 w-full">
             <AIShopperInputBar
@@ -656,7 +654,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                 }
                 onClose();
               }}
-              placeholder={`Ask Spresso AI about "${currentItem.label}"...`}
+              placeholder={`Ask Spresso about "${currentItem.label}"...`}
               sticky={false}
               className="px-0 bg-transparent border-0 ring-0 shadow-none"
             />
@@ -707,6 +705,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
         )}
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

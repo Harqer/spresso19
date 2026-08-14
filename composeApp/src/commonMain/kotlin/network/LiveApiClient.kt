@@ -209,8 +209,8 @@ open class LiveApiClient {
                                         }
                                     }
                                 }
-                            } catch (_: Exception) {
-                                // Ignore frame decode exceptions gracefully
+                            } catch (e: Exception) {
+                                println("LiveApiClient frame decode error: ${e.message}")
                             }
                         }
                     }
@@ -285,7 +285,9 @@ open class LiveApiClient {
         )
         try {
             session?.send(json.encodeToString(message))
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            println("LiveApiClient sendMute error: ${e.message}")
+        }
     }
 
     suspend fun sendPause() {
@@ -295,7 +297,9 @@ open class LiveApiClient {
         )
         try {
             session?.send(json.encodeToString(message))
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            println("LiveApiClient sendPause error: ${e.message}")
+        }
     }
 
     suspend fun sendResume() {
@@ -305,7 +309,9 @@ open class LiveApiClient {
         )
         try {
             session?.send(json.encodeToString(message))
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            println("LiveApiClient sendResume error: ${e.message}")
+        }
     }
 
     suspend fun sendInterrupt() {
@@ -314,7 +320,9 @@ open class LiveApiClient {
         )
         try {
             session?.send(json.encodeToString(message))
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            println("LiveApiClient sendInterrupt error: ${e.message}")
+        }
     }
 
     open fun close() {

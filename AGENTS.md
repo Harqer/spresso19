@@ -44,6 +44,9 @@ If an agent accidentally outputs raw thinking streams, debug panels, or backend 
 - **No Unrequested UI Buttons**: Do not create or require dedicated frontend mode toggles or extra UI buttons for semantic AI capabilities unless explicitly requested by the user. Keep the interface clean, elegant, and unobtrusive.
 
 
+## 8. Testing Strategy
+- **Comprehensive Testing Setup**: For information on running unit tests, instrumented tests, and screenshot tests, see the authoritative documentation at [docs/testing.md](docs/testing.md).
+
 ## Maintaining this file
 
 Keep this file for knowledge useful to almost every future agent session in this project.

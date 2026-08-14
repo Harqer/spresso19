@@ -73,3 +73,11 @@ Play Console declarations, listing text, demo video, and any public privacy-poli
 - **ONLY Product & Restaurant Star Ratings Allowed**: Standard customer star ratings (`★ 4.8`) are preserved on product/restaurant cards (FriendlyEats standard).
 - **NO Artificial Telemetry Badges**: All percentage match badges (`98% Match`), elevation status labels, and grounding badges (`✓ Google Search Grounded`) have been permanently removed.
 - **Principle**: Engineers often overstate system results with technical badges. In clean consumer UX (e.g. TikTok, Instagram, Amazon), users expect seamless content and animations without artificial telemetry chips.
+
+## Official Spresso Brand Asset Standard
+- **Primary Vector Logo**: `public/spresso_logo.svg` (`/spresso_logo.svg`)
+- **Icon Mark Vector Logo**: `public/spresso_icon.svg` (`/spresso_icon.svg`)
+- **PNG Asset**: `public/SpressoLogo.png` (`/SpressoLogo.png`)
+- **React Component**: `src/components/SpressoLogo.tsx`
+- **Compose Kotlin Atom**: `composeApp/src/commonMain/kotlin/components/atoms/SpressoLogo.kt`
+- **Mandate**: Generic cart icons or auto-generated `regenerated_image_*.png` files must NEVER replace the official Spresso vector brand logo.

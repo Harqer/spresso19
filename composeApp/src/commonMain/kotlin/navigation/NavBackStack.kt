@@ -78,6 +78,7 @@ private fun serializeNavKey(key: NavKey): String {
         is NavKey.GroceryKey -> "Grocery"
         is NavKey.OrdersKey -> "Orders"
         is NavKey.CreatorKey -> "Creator:${key.selectedTemplateId}"
+        is NavKey.TravelKey -> "Travel"
         is NavKey.WardrobeKey -> "Wardrobe:${key.displayMediaUrl.orEmpty()}:${key.isVideoPlaying}"
         is NavKey.ProfileKey -> "Profile"
     }
@@ -100,6 +101,7 @@ private fun deserializeNavKey(str: String): NavKey? {
         "Creator" -> NavKey.CreatorKey(
             selectedTemplateId = parts.getOrNull(1) ?: "economic"
         )
+        "Travel" -> NavKey.TravelKey
         "Wardrobe" -> NavKey.WardrobeKey(
             displayMediaUrl = parts.getOrNull(1)?.ifEmpty { null },
             isVideoPlaying = parts.getOrNull(2)?.toBooleanStrictOrNull() ?: false

@@ -404,7 +404,7 @@ export const NavigableListDetailPaneScaffold: React.FC<NavigableListDetailPaneSc
                         className="px-4 py-2.5 bg-[#f2f5ea] dark:bg-[#282b24] hover:bg-[#dfe4d7] text-[#191d16] dark:text-[#e1e4d9] rounded-xl font-bold text-xs transition cursor-pointer flex items-center space-x-2"
                       >
                         <MaterialIcon icon="auto_awesome" size={16} className="text-[#446732] dark:text-[#a9d291]" />
-                        <span>Ask Personal Shopper</span>
+                        <span>Ask AI Assistant</span>
                       </button>
                     )}
                   </div>

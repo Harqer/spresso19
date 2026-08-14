@@ -53,22 +53,31 @@ async function startWorker() {
                 insertArgs
             );
 
-            // Increment Denormalized Counter on Products Table
+            // Increment Denormalized Counter on Products Table via Batch UPDATE
             const productCounts = batch.reduce((acc, curr) => {
                 acc[curr.event.productId] = (acc[curr.event.productId] || 0) + 1;
                 return acc;
             }, {} as Record<string, number>);
 
-            for (const [productId, count] of Object.entries(productCounts)) {
-                await client.query(
-                    `UPDATE Products SET likesCount = likesCount + $1 WHERE id = $2;`,
-                    [count, productId]
-                );
+            const productEntries = Object.entries(productCounts);
+            if (productEntries.length > 0) {
+                // Batch Update Using VALUES
+                const updateValues = productEntries
+                    .map(([id, count]) => `('${id}', ${count}::int)`)
+                    .join(', ');
+                
+                await client.query(`
+                    UPDATE Products AS p
+                    SET likesCount = p.likesCount + v.count
+                    FROM (VALUES ${updateValues}) AS v(id, count)
+                    WHERE p.id = v.id;
+                `);
             }
 
             await client.query('COMMIT');
             batch.forEach(b => b.ack());
         } catch (e) {
+            console.error('Failed to flush interaction batch:', e);
             await client.query('ROLLBACK');
             // Messages are not acked so Pub/Sub will redeliver them
         } finally {
@@ -87,7 +96,8 @@ async function startWorker() {
         }
     });
 
-    subscription.on('error', () => {
+    subscription.on('error', (error) => {
+        console.error('Pub/Sub subscription error:', error);
         // Errors are surfaced via Cloud Logging (stdout) in production GCP environment
     });
 }

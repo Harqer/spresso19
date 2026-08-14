@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application dark theme -->
+    <style name="Theme.Spresso" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Official Android 12+ SplashScreen API Night Mode Theme -->
+    <style name="Theme.Spresso.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#121417</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_icon</item>
+        <item name="windowSplashScreenIconBackgroundColor">#121417</item>
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+        <item name="postSplashScreenTheme">@style/Theme.Spresso</item>
+    </style>
+</resources>

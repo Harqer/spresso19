@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, PhoneAuthCredential } from 'firebase/auth';
 import { getFirestore, collection, addDoc, doc, getDocFromServer } from 'firebase/firestore';
 import { getDataConnect, connectDataConnectEmulator } from 'firebase/data-connect';
 import { connectorConfig } from '../dataconnect';
@@ -16,6 +16,9 @@ setPersistence(auth, browserLocalPersistence).catch((err) => {
 });
 
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('profile');
+googleProvider.addScope('email');
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Check for redirect result on app initialization
 getRedirectResult(auth).then((_result) => {
@@ -119,9 +122,8 @@ export const loginWithGoogle = async () => {
       }
     }
 
-    // Secondary fallback: start guest session if popup is blocked
-    const anonUser = await loginAnonymously();
-    if (anonUser) return anonUser;
+    // Removing silent anonymous fallback. 
+    // Throw error to UI so the user knows Google Auth was blocked.
 
     throw error;
   }
@@ -148,6 +150,37 @@ export const registerWithEmail = async (email: string, pass: string, name?: stri
     return result.user;
   } catch (error: any) {
     logToCrashlytics("error", `Registration failed: ${error.message}`);
+    throw error;
+  }
+};
+
+export const sendPhoneVerificationCode = async (phoneNumber: string, containerId: string = 'recaptcha-container') => {
+  try {
+    if (!(window as any).recaptchaVerifier) {
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+        size: 'invisible',
+        callback: () => {
+          logToCrashlytics("info", "reCAPTCHA verified for Phone Auth");
+        }
+      });
+    }
+    const appVerifier = (window as any).recaptchaVerifier;
+    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+    logToCrashlytics("info", `SMS code sent to: ${phoneNumber}`);
+    return confirmationResult;
+  } catch (error: any) {
+    logToCrashlytics("error", `Phone verification code send failed: ${error.message}`);
+    throw error;
+  }
+};
+
+export const confirmPhoneCode = async (confirmationResult: any, code: string) => {
+  try {
+    const result = await confirmationResult.confirm(code);
+    logToCrashlytics("info", `Phone user authenticated: ${result.user.phoneNumber}`);
+    return result.user;
+  } catch (error: any) {
+    logToCrashlytics("error", `Phone code confirmation failed: ${error.message}`);
     throw error;
   }
 };

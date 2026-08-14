@@ -7,16 +7,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import audio.AudioPlayer
 import audio.AudioRecorder
-import components.pages.AuthPage
-import components.pages.CreatorAgentsPage
-import components.pages.GroceryListPage
-import components.pages.OrdersTrackerPage
-import components.pages.PersonalAIShopperChatPage
-import components.pages.ProductCatalogPage
-import components.pages.ProfilePage
-import components.pages.SmartVisionPage
-import components.pages.WardrobeViewPage
-import components.templates.MainAppTemplate
+import components.features.auth.AuthPage
+import components.features.creators.CreatorAgentsPage
+import components.features.grocery.GroceryListPage
+import components.features.orders.OrdersTrackerPage
+import components.features.chat.PersonalAIShopperChatPage
+import components.features.catalog.ProductCatalogPage
+import components.features.profile.ProfilePage
+import components.features.vision.SmartVisionPage
+import components.features.wardrobe.WardrobeViewPage
+import components.navigation.MainAppTemplate
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.coroutines.launch
@@ -25,11 +25,13 @@ import navigation.rememberSaveableNavBackStack
 import network.ApiClient
 import network.LiveApiClient
 import theme.AppTheme
+import theme.ThemeMode
 import ui.rememberImagePicker
 
 @Composable
 fun App(
     currentUserUid: String? = null,
+    currentUserName: String? = null,
     onShare: (String) -> Unit = {},
     isAccessibilityEnabled: Boolean = false,
     hasAccessibilityConsent: Boolean = false,
@@ -44,9 +46,9 @@ fun App(
     onEmailSignInRequested: (String, String) -> Unit = { _, _ -> },
     onEmailSignUpRequested: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
-    var isDarkTheme by rememberSaveable { mutableStateOf(false) }
+    var themeMode by rememberSaveable { mutableStateOf(ThemeMode.SYSTEM) }
 
-    AppTheme(useDarkTheme = isDarkTheme) {
+    AppTheme(themeMode = themeMode) {
         val initialKey = if (currentUserUid == null) NavKey.AuthKey else NavKey.ChatKey()
         val backStack = rememberSaveableNavBackStack(initialKey = initialKey)
 
@@ -62,6 +64,7 @@ fun App(
         val scope = rememberCoroutineScope()
         val apiClient = remember { ApiClient() }
         val liveApiClient = remember { LiveApiClient() }
+        val chatViewModel = remember { viewmodels.ChatViewModel(apiClient, scope, liveApiClient) }
         val audioRecorder = remember { AudioRecorder() }
         val audioPlayer = remember { AudioPlayer() }
 
@@ -120,8 +123,12 @@ fun App(
                     }
                 }
             },
-            isDarkTheme = isDarkTheme,
-            onToggleTheme = { isDarkTheme = !isDarkTheme }
+            themeMode = themeMode,
+            onThemeModeChange = { themeMode = it },
+            onAskAI = { prompt ->
+                chatViewModel.sendMessage(prompt = prompt, location = null, agentType = "SHOPPING_CONCIERGE")
+                backStack.push(NavKey.ChatKey())
+            }
         ) { targetKey ->
             when (targetKey) {
                 is NavKey.AuthKey -> {
@@ -133,9 +140,11 @@ fun App(
                 }
                 is NavKey.ChatKey -> {
                     PersonalAIShopperChatPage(
+                        chatViewModel = chatViewModel,
                         isVideoPlaying = isVideoPlaying,
                         isVoiceRecording = isVoiceRecording,
                         liveTranscript = liveTranscript,
+                        userName = currentUserName,
                         errorMessage = errorMessage,
                         isAccessibilityEnabled = isAccessibilityEnabled,
                         hasAccessibilityConsent = hasAccessibilityConsent,
@@ -222,11 +231,22 @@ fun App(
                         onTemplateSelected = { id -> selectedTemplateId = id }
                     )
                 }
+                is NavKey.TravelKey -> {
+                    components.features.travel.TravelTripsPage(
+                        onAskAI = { prompt ->
+                            backStack.push(NavKey.ChatKey(initialPrompt = prompt))
+                        }
+                    )
+                }
                 is NavKey.ProfileKey -> {
                     ProfilePage(
                         userUid = currentUserUid,
+                        userName = currentUserName,
+                        apiClient = apiClient,
+                        themeMode = themeMode,
+                        onThemeModeChange = { themeMode = it },
                         onSignOut = {
-                            network.signOut()
+                            backStack.push(NavKey.AuthKey)
                         }
                     )
                 }

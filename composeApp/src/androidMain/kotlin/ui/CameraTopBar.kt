@@ -1,5 +1,7 @@
 package ui
 
+import androidx.compose.material3.MaterialTheme
+
 import androidx.camera.core.ImageCapture
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,7 +11,8 @@ import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.FlashAuto
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Grid3x3
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,14 +20,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 
 @Composable
 fun CameraTopBar(
     flashMode: Int,
-    zoomRatio: Float,
+    showGrid: Boolean,
     isFrontLens: Boolean,
+    onClose: () -> Unit,
     onToggleFlash: () -> Unit,
-    onSelectZoom: (Float) -> Unit,
+    onToggleGrid: () -> Unit,
     onSwitchLens: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -37,71 +43,84 @@ fun CameraTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 40.dp, start = 16.dp, end = 16.dp),
+            .background(Color.Black.copy(alpha = 0.3f))
+            .padding(top = 40.dp, bottom = 16.dp, start = 16.dp, end = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Left: Close Button
         IconButton(
-            onClick = onToggleFlash,
+            onClick = onClose,
             modifier = Modifier
-                .size(48.dp)
-                .background(Color.Black.copy(alpha = 0.6f), shape = CircleShape)
-                .semantics(mergeDescendants = true) {
-                    contentDescription = "Flash mode: $flashDesc"
-                }
+                .size(40.dp)
+                .background(Color.White.copy(alpha = 0.15f), shape = CircleShape)
         ) {
             Icon(
-                imageVector = when (flashMode) {
-                    ImageCapture.FLASH_MODE_ON -> Icons.Default.FlashOn
-                    ImageCapture.FLASH_MODE_AUTO -> Icons.Default.FlashAuto
-                    else -> Icons.Default.FlashOff
-                },
-                contentDescription = "Flash mode",
+                imageVector = Icons.Default.Close,
+                contentDescription = "Close Camera",
                 tint = Color.White
             )
         }
 
+        // Right: Pro Controls
         Row(
-            modifier = Modifier
-                .background(Color.Black.copy(alpha = 0.6f), shape = CircleShape)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            listOf(1.0f, 2.0f).forEach { ratio ->
-                Surface(
-                    onClick = { onSelectZoom(ratio) },
-                    shape = CircleShape,
-                    color = if (zoomRatio == ratio) Color.White.copy(alpha = 0.3f) else Color.Transparent,
-                    modifier = Modifier
-                        .padding(2.dp)
-                        .semantics(mergeDescendants = true) {
-                            contentDescription = "Set zoom ${ratio.toInt()}x"
-                        }
-                ) {
-                    Text(
-                        text = "${ratio.toInt()}x",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+            IconButton(
+                onClick = onToggleFlash,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.Black.copy(alpha = 0.6f), shape = CircleShape)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = "Flash mode: $flashDesc"
+                    }
+            ) {
+                Icon(
+                    imageVector = when (flashMode) {
+                        ImageCapture.FLASH_MODE_ON -> Icons.Default.FlashOn
+                        ImageCapture.FLASH_MODE_AUTO -> Icons.Default.FlashAuto
+                        else -> Icons.Default.FlashOff
+                    },
+                    contentDescription = "Flash mode",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
             }
-        }
 
-        IconButton(
-            onClick = onSwitchLens,
-            modifier = Modifier
-                .size(48.dp)
-                .background(Color.Black.copy(alpha = 0.6f), shape = CircleShape)
-                .semantics(mergeDescendants = true) {
-                    contentDescription = "Switch camera lens to ${if (isFrontLens) "back" else "front"}"
-                }
-        ) {
-            Icon(
-                imageVector = Icons.Default.Cameraswitch,
-                contentDescription = "Switch Lens",
-                tint = Color.White
-            )
+            IconButton(
+                onClick = onToggleGrid,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(if (showGrid) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.6f), shape = CircleShape)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = "Toggle Grid"
+                    }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Grid3x3,
+                    contentDescription = "Toggle Grid",
+                    tint = if (showGrid) MaterialTheme.colorScheme.primary else Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            IconButton(
+                onClick = onSwitchLens,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.Black.copy(alpha = 0.6f), shape = CircleShape)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = "Switch camera lens to ${if (isFrontLens) "back" else "front"}"
+                    }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Cameraswitch,
+                    contentDescription = "Switch Lens",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

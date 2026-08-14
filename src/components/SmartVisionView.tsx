@@ -141,74 +141,42 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="bg-surface p-5 rounded-3xl border border-outline-variant shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-2">
-            <MaterialIcon icon="photo_camera" size={22} className="text-primary" />
-            <h2 className="text-lg font-bold text-on-surface font-headline">Visual Camera Search</h2>
-          </div>
-          <p className="text-xs text-on-surface-variant mt-0.5">
-            Point camera or upload image to perform visual product identification and instant checkout.
-          </p>
-        </div>
-
-        {/* Controls */}
+    <div className="flex flex-col h-full w-full bg-black relative">
+      {/* Floating Controls Overlay */}
+      <div className="absolute top-4 left-4 right-4 z-40 flex items-center justify-between pointer-events-none">
         <div className="flex items-center space-x-2">
+          <MaterialIcon icon="photo_camera" size={24} className="text-white drop-shadow-md" />
+          <h2 className="text-xl font-bold text-white drop-shadow-md font-headline">Smart Vision</h2>
+        </div>
+        <div className="flex items-center space-x-3 pointer-events-auto">
           <button
             onClick={() => setLiveCameraOpen(true)}
-            className="px-3.5 py-2.5 bg-primary hover:bg-primary/90 text-on-primary font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1.5 text-xs"
+            className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold rounded-xl transition cursor-pointer flex items-center space-x-2"
             title="Use Live Camera"
           >
-            <MaterialIcon icon="photo_camera" size={18} />
-            <span>Open Live Camera</span>
+            <MaterialIcon icon="photo_camera" size={20} />
+            <span className="hidden sm:inline">Live Camera</span>
           </button>
-
-          <label className="p-2.5 bg-surface-container hover:bg-surface-container-high text-on-surface font-bold rounded-xl border border-outline transition cursor-pointer flex items-center" title="Upload Image File">
-            <MaterialIcon icon="upload" size={18} />
+          <label className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold rounded-xl transition cursor-pointer flex items-center">
+            <MaterialIcon icon="upload" size={20} />
             <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
           </label>
-
           <button
             onClick={() => triggerVisionIdentify()}
             disabled={isScanning}
-            className="p-2.5 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-xl border border-outline transition flex items-center cursor-pointer disabled:opacity-50"
-            title="Rescan Frame"
+            className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white rounded-xl transition flex items-center cursor-pointer disabled:opacity-50"
+            title="Rescan"
           >
-            <MaterialIcon icon="refresh" size={18} className={isScanning ? "animate-spin" : ""} />
+            <MaterialIcon icon="refresh" size={20} className={isScanning ? "animate-spin" : ""} />
           </button>
         </div>
       </div>
 
-      {/* Preset Feeds */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {PRESET_CAMERA_FEEDS.map(feed => (
-          <button
-            key={feed.id}
-            onClick={() => {
-              setCustomImage(null);
-              setSelectedFeed(feed);
-              triggerVisionIdentify(feed.image);
-            }}
-            className={`p-2 rounded-2xl border text-left transition flex items-center space-x-2 cursor-pointer ${
-              selectedFeed.id === feed.id && !customImage
-                ? "bg-white border-[#386633] shadow-xs"
-                : "bg-white/60 border-[#d8ebd7] hover:bg-white"
-            }`}
-          >
-            <img src={feed.image || products.find(p => p.id === feed.catalogMatchId)?.image || ""} alt="" className="w-8 h-8 rounded-lg object-cover" />
-            <span className="text-[11px] font-bold text-[#18211e] truncate">{feed.label}</span>
-          </button>
-        ))}
-      </div>
-
       {/* Viewport */}
-      <div className="relative mx-auto max-w-4xl bg-black rounded-3xl overflow-hidden border border-[#e2e2e2] shadow-sm">
-        <div className="relative aspect-video sm:aspect-[16/9] w-full overflow-hidden flex items-center justify-center">
-          <img
-            src={activeImage}
-            alt="Camera Stream"
+      <div className="relative flex-1 w-full bg-black overflow-hidden flex items-center justify-center">
+        <img
+          src={activeImage}
+          alt="Camera Stream"
             className={`w-full h-full object-cover transition duration-500 ${isScanning ? "brightness-50 blur-[1px]" : "brightness-95"}`}
           />
 
@@ -237,10 +205,12 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
                   }}
                 >
                   <div className="w-full h-full border-2 border-[#386633] bg-[#386633]/10 rounded-xl relative shadow-lg">
-                    <span className="absolute -top-3 -left-1 px-2 py-0.5 bg-[#386633] text-white text-[10px] font-extrabold rounded-md shadow-md flex items-center space-x-1">
-                      <MaterialIcon icon="star" size={12} className="text-amber-300" />
-                      <span>4.8</span>
-                    </span>
+                    {matchedCatalogItem && matchedCatalogItem.rating && (
+                      <span className="absolute -top-3 -left-1 px-2 py-0.5 bg-[#386633] text-white text-[10px] font-extrabold rounded-md shadow-md flex items-center space-x-1">
+                        <MaterialIcon icon="star" size={12} className="text-amber-300" />
+                        <span>{matchedCatalogItem.rating.toFixed(1)}</span>
+                      </span>
+                    )}
 
                     <div className="absolute bottom-2 left-2 right-2 bg-white/95 backdrop-blur-md p-2.5 rounded-xl border border-[#d8ebd7] text-[#18211e] shadow-xl text-left pointer-events-auto">
                       <div className="flex items-center gap-2">
@@ -290,28 +260,15 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
             })}
         </div>
 
-        <div className="p-4 bg-white border-t border-[#e2e2e2] flex items-center justify-between text-xs text-[#18211e]">
-          <span className="font-medium text-xs">{detectedResult?.hudAnnotationText}</span>
+      <div className="absolute bottom-6 left-0 right-0 z-40 pointer-events-none px-4">
+        <div className="max-w-2xl mx-auto pointer-events-auto">
+          <AIShopperInputBar
+            onSend={(t, img) => onAskAI?.(t, img)}
+            onSelectTryOn={onSelectTryOn}
+            placeholder="Ask AI about object detection & vision search..."
+          />
         </div>
       </div>
-
-      <CameraObjectDetectionModal
-        isOpen={liveCameraOpen}
-        onClose={() => setLiveCameraOpen(false)}
-        onSelectTryOn={onSelectTryOn}
-        onSelectProductListing={(newProduct) => {
-          setCustomImage(newProduct.image);
-          triggerVisionIdentify(newProduct.image);
-        }}
-      />
-
-      {/* Global AI Communication Input Bar */}
-      <AIShopperInputBar
-        onSend={(t, img) => onAskAI?.(t, img)}
-        onSelectTryOn={onSelectTryOn}
-        placeholder="Ask AI Shopper about object detection & vision search..."
-        className="mt-6"
-      />
     </div>
   );
 };

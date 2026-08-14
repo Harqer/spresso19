@@ -1,37 +1,40 @@
 import React, { useState, useEffect } from "react";
 import { ProductItem, HITLPayload, OrderRecord, CartItem } from "./types";
-import { PersonalAIShopperChatPage as PersonalAIShopperChat } from "./components/pages/PersonalAIShopperChatPage";
+import { PersonalAIShopperChatPage as PersonalAIShopperChat } from "./components/features/chat/PersonalAIShopperChatPage";
 import { SmartVisionView } from "./components/SmartVisionView";
-import { ProductCatalogPage as ProductCatalog } from "./components/pages/ProductCatalogPage";
-import { WardrobeViewPage as WardrobeView } from "./components/pages/WardrobeViewPage";
+import { ProductCatalogPage as ProductCatalog } from "./components/features/catalog/ProductCatalogPage";
+import { WardrobeViewPage as WardrobeView } from "./components/features/wardrobe/WardrobeViewPage";
 import { VirtualTryOnModal } from "./components/VirtualTryOnModal";
 import { HITLCheckoutModal } from "./components/HITLCheckoutModal";
 import { OrdersTracker } from "./components/OrdersTracker";
 import { GroceryListView } from "./components/GroceryListView";
-import { CreatorGenAIAgentsChatPage as CreatorGenAIAgentsChat } from "./components/pages/CreatorGenAIAgentsChatPage";
-import { NavigableListDetailPaneScaffold } from "./components/NavigableListDetailPaneScaffold";
+import { CreatorGenAIAgentsChatPage as CreatorGenAIAgentsChat } from "./components/features/chat/CreatorGenAIAgentsChatPage";
+import { TravelTripsPage } from "./components/features/travel/TravelTripsPage";
 import { CartDrawer } from "./components/CartDrawer";
 import { LocationPermissionModal } from "./components/LocationPermissionModal";
 import { ProductDetailsModal } from "./components/ProductDetailsModal";
 import { GoogleLensScreenWidgetModal } from "./components/GoogleLensScreenWidgetModal";
 import { GamifiedOnboardingModal } from "./components/GamifiedOnboardingModal";
+import { SplashScreen } from "./components/SplashScreen";
 import { SpressoLogo } from "./components/SpressoLogo";
 import { MaterialIcon } from "./components/MaterialIcon";
 import { AuthScreen } from "./components/AuthScreen";
 import { DynamicThemePickerModal } from "./components/DynamicThemePickerModal";
 import { applyDynamicThemeToDocument } from "./lib/dynamicColorEngine";
+import { getCleanDisplayName } from "./lib/userUtils";
 import { auth, loginWithGoogle, loginAnonymously, logoutUser, db as firestoreDb, authFetch } from "./lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { dataConnect } from "./lib/firebase";
 import { listProducts } from "./dataconnect";
-import { MainAppPage } from "./components/pages/MainAppPage";
-import { AppModalManager } from "./components/organisms/AppModalManager";
+import { MainAppPage } from "./components/shared/MainAppPage";
+import { AppModalManager } from "./components/shared/AppModalManager";
+import { ProfilePage } from "./components/features/profile/ProfilePage";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>(() => {
     const hash = window.location.hash.replace("#", "");
-    const validTabs = ["chat", "products", "scaffold", "vision", "wardrobe", "orders", "grocery", "creator"];
+    const validTabs = ["chat", "products", "scaffold", "vision", "wardrobe", "orders", "grocery", "creator", "profile"];
     return validTabs.includes(hash) ? hash : "chat";
   });
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
@@ -46,7 +49,7 @@ export default function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace("#", "");
-      const validTabs = ["chat", "products", "scaffold", "vision", "wardrobe", "orders", "grocery", "creator"];
+      const validTabs = ["chat", "products", "scaffold", "vision", "wardrobe", "orders", "grocery", "creator", "profile"];
       if (validTabs.includes(hash)) {
         setActiveTab(hash);
       }
@@ -58,21 +61,21 @@ export default function App() {
   // Dynamic Light / Dark Theme & Material You Seed State
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem("spresso_theme");
-    return (saved === "light" || saved === "dark") ? saved : "dark";
+    return (saved === "light" || saved === "dark") ? saved : "light";
   });
 
   const [seedHex, setSeedHex] = useState<string>(() => {
     const saved = localStorage.getItem("spresso_seed_hex");
-    if (!saved || saved.toLowerCase() === "#446732") {
-      return "#1e2229"; // migrate old green seed to charcoal slate
+    if (!saved || saved.toLowerCase() === "#1e2229" || saved.toLowerCase() === "#446732") {
+      return "#386633"; // Spresso Organic Green (Matches Sign Up Page)
     }
     return saved;
   });
 
   const [secondarySeedHex, setSecondarySeedHex] = useState<string | undefined>(() => {
     const saved = localStorage.getItem("spresso_sec_seed_hex");
-    if (!saved || saved.toLowerCase() === "#55624c") {
-      return "#84cc16"; // migrate old green secondary seed to lime green
+    if (!saved || saved.toLowerCase() === "#84cc16" || saved.toLowerCase() === "#55624c") {
+      return "#52645b"; // Spresso Secondary Container Green
     }
     return saved;
   });
@@ -120,14 +123,15 @@ export default function App() {
   const [userLatLng, setUserLatLng] = useState<{ lat: number; lng: number; latitude: number; longitude: number } | null>(null);
   const [searchRadius, setSearchRadius] = useState<number>(25);
   const [locationModalOpen, setLocationModalOpen] = useState<boolean>(false);
+  const [splashVisible, setSplashVisible] = useState<boolean>(true);
   const [onboardingOpen, setOnboardingOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const isCompleted = localStorage.getItem("spresso_onboarding_completed");
-    if (!isCompleted) {
+    if (!isCompleted && !splashVisible) {
       setOnboardingOpen(true);
     }
-  }, []);
+  }, [splashVisible]);
 
   const [showcaseProduct, setShowcaseProduct] = useState<ProductItem | null>(null);
   const [productDetailsModalItem, setProductDetailsModalItem] = useState<ProductItem | null>(null);
@@ -198,8 +202,8 @@ export default function App() {
             image: p.image || p.imageUrl || "",
             category: p.category || "",
             tags: p.tags || [],
-            brand: p.brand || "Spresso Store",
-            currency: p.currency || "USD",
+            brand: p.brand || "",
+            currency: p.currency || "",
             sku: p.sku || `SKU-${p.id}`,
             rating: p.rating || 5.0,
             virtualTryOnEligible: true,
@@ -226,8 +230,8 @@ export default function App() {
           image: p.imageUrl || p.image || "",
           category: p.category || "",
           tags: p.tags || [],
-          brand: p.brand || "Spresso Store",
-          currency: p.currency || "USD",
+          brand: p.brand || "",
+          currency: p.currency || "",
           sku: p.sku || `SKU-${p.id}`,
           rating: p.rating || 0,
           virtualTryOnEligible: true,
@@ -254,7 +258,8 @@ export default function App() {
         setUser(currentUser);
         setAuthLoading(false);
 
-        const displayName = currentUser.displayName || (currentUser.email ? currentUser.email.split("@")[0] : `User_${currentUser.uid.slice(0, 5)}`);
+        const displayName = getCleanDisplayName(currentUser);
+
         try {
           // 1. Sync profile to Cloud SQL backend via authenticated API
           await authFetch("/api/user/sync", {
@@ -302,27 +307,46 @@ export default function App() {
   const navItems = [
     { id: "chat", label: "Chat", icon: "forum" },
     { id: "creator", label: "Creator", icon: "deployed_code_account" },
+    { id: "travel", label: "Travel & Expenses", icon: "flight_takeoff" },
     { id: "products", label: "For You", icon: "recommend" },
-    { id: "scaffold", label: "Adaptive Layouts", icon: "view_quilt" },
     { id: "wardrobe", label: "Wardrobe", icon: "checkroom" },
     { id: "orders", label: "Order History", icon: "receipt_long", count: orders.length },
-    { id: "grocery", label: "Grocery List", icon: "local_grocery_store" }
+    { id: "grocery", label: "Grocery List", icon: "local_grocery_store" },
+    { id: "profile", label: "Profile & Settings", icon: "account_circle" }
   ];
+
+  if (splashVisible) {
+    return (
+      <SplashScreen
+        onSplashComplete={() => {
+          setSplashVisible(false);
+          if (!localStorage.getItem("spresso_onboarding_completed")) {
+            setOnboardingOpen(true);
+          }
+        }}
+      />
+    );
+  }
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#fafcf9] flex flex-col items-center justify-center space-y-4">
-        <SpressoLogo variant="full" showTextLeft={true} size="lg" />
-        <div className="flex items-center space-x-2 text-[#386633] text-sm font-semibold">
-          <MaterialIcon icon="hourglass_empty" size={20} className="animate-spin" />
-          <span>Authenticating...</span>
-        </div>
+      <div className="fixed inset-0 z-50 bg-[#fafcf9] dark:bg-[#0c0e0b] flex items-center justify-center p-8 select-none">
+        <SpressoLogo variant="full" height={80} showTextLeft={false} />
       </div>
     );
   }
 
   if (!user) {
-    return <AuthScreen />;
+    return <AuthScreen onDevBypass={() => {
+      const dummyUser = {
+        uid: "dev-dummy-user-123",
+        email: "dev@localhost",
+        displayName: "Dev User",
+        isAnonymous: true,
+        photoURL: null,
+      } as unknown as User;
+      setUser(dummyUser);
+    }} />;
   }
 
   return (
@@ -344,12 +368,14 @@ export default function App() {
       onOpenLocationModal={() => setLocationModalOpen(true)}
       onOpenCartDrawer={() => setCartDrawerOpen(true)}
       onLogout={() => logoutUser()}
+      hideSidebar={activeTab === 'vision' || lensModalOpen}
+      hideTopNav={activeTab === 'vision' || lensModalOpen}
     >
       <div className="max-w-4xl mx-auto">
           {activeTab === "chat" && (
             <PersonalAIShopperChat
               user={user}
-              userName={user?.displayName ? user.displayName.split(" ")[0] : (user?.email ? user.email.split("@")[0] : (user?.uid ? `User_${user.uid.slice(0, 5)}` : undefined))}
+              userName={getCleanDisplayName(user)}
               products={products}
               onSelectTryOn={handleSelectTryOn}
               onRequestHITLCheckout={payload => setHitlPayload(payload)}
@@ -369,6 +395,10 @@ export default function App() {
             />
           )}
 
+          {activeTab === "travel" && (
+            <TravelTripsPage onAskAI={handleAskAI} />
+          )}
+
           {activeTab === "products" && (
             <ProductCatalog
               products={products}
@@ -382,17 +412,6 @@ export default function App() {
               deviceMode="WEB"
               onAskAI={handleAskAI}
               onOpenLens={handleOpenLens}
-            />
-          )}
-
-          {activeTab === "scaffold" && (
-            <NavigableListDetailPaneScaffold
-              products={products}
-              orders={orders}
-              onSelectTryOn={handleSelectTryOn}
-              onAddToCart={handleAddToCart}
-              onAskAI={handleAskAI}
-              onRefresh={fetchInventoryAndOrders}
             />
           )}
 
@@ -436,11 +455,20 @@ export default function App() {
           {activeTab === "creator" && (
             <CreatorGenAIAgentsChat
               user={user}
-              userName={user?.displayName ? user.displayName.split(" ")[0] : (user?.email ? user.email.split("@")[0] : undefined)}
+              userName={getCleanDisplayName(user)}
               products={products}
               userLocation={userLocation}
               onRequestLocationPermission={() => setLocationModalOpen(true)}
               onAskAI={handleAskAI}
+            />
+          )}
+
+          {activeTab === "profile" && (
+            <ProfilePage
+              user={user}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              onLogout={() => logoutUser()}
             />
           )}
         </div>
@@ -466,6 +494,8 @@ export default function App() {
         productDetailsModalItem={productDetailsModalItem}
         onCloseProductDetailsModal={() => setProductDetailsModalItem(null)}
         onAddToCart={handleAddToCart}
+        onSelectTryOn={handleSelectTryOn}
+        onOpenLens={handleOpenLens}
         lensModalOpen={lensModalOpen}
         lensInitialProduct={lensInitialProduct}
         onCloseLensModal={() => setLensModalOpen(false)}

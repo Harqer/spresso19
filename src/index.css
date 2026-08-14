@@ -39,8 +39,8 @@
 
 /* Material 3 Dynamic Light & Dark Theme Tokens & Tonal Elevation */
 :root {
-  /* Default Light Theme Tokens */
-  --md-sys-color-primary: #006A66;
+  /* Default Spresso Light Theme Tokens (Material 3 Theme Builder) */
+  --md-sys-color-primary: #006a66;
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #9df1eb;
   --md-sys-color-on-primary-container: #00504c;
@@ -50,10 +50,10 @@
   --md-sys-color-secondary-container: #cce8e5;
   --md-sys-color-on-secondary-container: #324b49;
 
-  --md-sys-color-tertiary: #49607b;
+  --md-sys-color-tertiary: #004ced;
   --md-sys-color-on-tertiary: #ffffff;
-  --md-sys-color-tertiary-container: #d0e4ff;
-  --md-sys-color-on-tertiary-container: #314962;
+  --md-sys-color-tertiary-container: #dde1ff;
+  --md-sys-color-on-tertiary-container: #001452;
 
   --md-sys-color-error: #ba1a1a;
   --md-sys-color-on-error: #ffffff;
@@ -84,11 +84,11 @@
 
   /* Legacy aliases for backwards compatibility */
   --color-brand-primary: var(--md-sys-color-primary);
-  --color-brand-hover: #00504c;
+  --color-brand-hover: #2d5229;
   --color-brand-light: var(--md-sys-color-primary-container);
   --color-brand-soft: var(--md-sys-color-surface-container-low);
-  --color-accent-orange: #ff5e1a;
-  --color-accent-orange-hover: #e04e0d;
+  --color-accent-orange: #b84a39;
+  --color-accent-orange-hover: #a33f30;
   --bg-main: var(--md-sys-color-background);
   --bg-surface: var(--md-sys-color-surface-container-lowest);
   --bg-surface-elevated: var(--md-sys-color-surface-container);
@@ -99,7 +99,7 @@
 }
 
 .dark {
-  /* Spec Dark Theme Tokens */
+  /* Default Spresso Dark Theme Tokens (Material 3 Theme Builder) */
   --md-sys-color-primary: #80d5cf;
   --md-sys-color-on-primary: #003734;
   --md-sys-color-primary-container: #00504c;
@@ -110,10 +110,10 @@
   --md-sys-color-secondary-container: #324b49;
   --md-sys-color-on-secondary-container: #cce8e5;
 
-  --md-sys-color-tertiary: #b0c9e7;
-  --md-sys-color-on-tertiary: #19324a;
-  --md-sys-color-tertiary-container: #314962;
-  --md-sys-color-on-tertiary-container: #d0e4ff;
+  --md-sys-color-tertiary: #b7c4ff;
+  --md-sys-color-on-tertiary: #002682;
+  --md-sys-color-tertiary-container: #0038b6;
+  --md-sys-color-on-tertiary-container: #dde1ff;
 
   --md-sys-color-error: #ffb4ab;
   --md-sys-color-on-error: #690005;
@@ -143,11 +143,11 @@
   --md-sys-color-inverse-primary: #006a66;
 
   --color-brand-primary: var(--md-sys-color-primary);
-  --color-brand-hover: #9df1eb;
+  --color-brand-hover: #b7f3b0;
   --color-brand-light: var(--md-sys-color-primary-container);
   --color-brand-soft: var(--md-sys-color-surface-container-low);
-  --color-accent-orange: #ff5e1a;
-  --color-accent-orange-hover: #e04e0d;
+  --color-accent-orange: #c85a48;
+  --color-accent-orange-hover: #b84a39;
   --bg-main: var(--md-sys-color-background);
   --bg-surface: var(--md-sys-color-surface-container-low);
   --bg-surface-elevated: var(--md-sys-color-surface-container-high);
@@ -195,7 +195,13 @@
 body {
   background-color: var(--bg-main);
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, ::before, ::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
 }
 
 ::selection, *::selection {

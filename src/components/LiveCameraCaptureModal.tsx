@@ -210,12 +210,7 @@ export const LiveCameraCaptureModal: React.FC<LiveCameraCaptureModalProps> = ({
                 className="w-full h-full object-cover"
               />
 
-              {isInitializing && (
-                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center space-y-3 text-white z-20">
-                  <div className="w-9 h-9 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  <span className="text-xs font-medium text-white/80">Opening Google Lens camera...</span>
-                </div>
-              )}
+
 
               {/* ORGANIC LIQUID GLASS MORPH LENS ON USER TAPPED POINT */}
               {tappedPoint && (

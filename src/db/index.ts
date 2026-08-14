@@ -17,7 +17,7 @@ export const initPool = () => {
   if (pool) return pool;
 
   const isProduction = process.env.NODE_ENV === "production";
-  const connectionName = process.env.CLOUD_SQL_CONNECTION_NAME;
+  const connectionName = process.env.CLOUD_SQL_CONNECTION_NAME || process.env.INSTANCE_CONNECTION_NAME || "spresso-5561f:us-central1:spresso-db";
   const user = process.env.SQL_USER || process.env.PGUSER;
   const password = process.env.SQL_PASSWORD || process.env.PGPASSWORD;
   const database = process.env.SQL_DB_NAME || process.env.PGDATABASE;

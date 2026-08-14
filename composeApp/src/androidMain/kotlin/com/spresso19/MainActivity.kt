@@ -1,5 +1,7 @@
 package com.spresso19
 
+import components.core.LogoSize
+import components.core.SpressoLogo
 import App
 import android.Manifest
 import android.content.Intent
@@ -32,6 +34,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+import com.google.firebase.auth.PhoneAuthOptions
+import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.auth.PhoneAuthCredential
+import com.google.firebase.FirebaseException
+import java.util.concurrent.TimeUnit
+import theme.SpressoAndroidTheme
+import theme.ThemeMode
 
 class MainActivity : ComponentActivity() {
 
@@ -44,6 +53,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        currentActivity = this
         accessibilityConsentStore = AccessibilityConsentStore(this)
         if (savedInstanceState == null && isAccessibilityDisclosureIntent(intent)) {
             accessibilityDisclosureRequestedState.value = true
@@ -67,6 +77,7 @@ class MainActivity : ComponentActivity() {
             val showDisclosure by accessibilityDisclosureRequestedState
             
             var user by remember { mutableStateOf(FirebaseAuth.getInstance().currentUser) }
+            var themeMode by remember { mutableStateOf(ThemeMode.SYSTEM) }
             
             DisposableEffect(Unit) {
                 val listener = FirebaseAuth.AuthStateListener { auth ->
@@ -78,75 +89,106 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            App(
-                currentUserUid = user?.uid,
-                onShare = { productId ->
-                    val sendIntent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        putExtra(Intent.EXTRA_TEXT, "Check out this product on Spresso19! Product ID: $productId")
-                        type = "text/plain"
-                    }
-                    startActivity(Intent.createChooser(sendIntent, null))
-                },
-                isAccessibilityEnabled = isAccessEnabled,
-                hasAccessibilityConsent = hasConsent,
-                showAccessibilityDisclosure = showDisclosure,
-                onToggleAccessibility = ::requestAccessibilitySettingsOrDisclosure,
-                onAccessibilityConsentAccepted = ::acceptAccessibilityConsent,
-                onDismissAccessibilityDisclosure = {
-                    accessibilityDisclosureRequestedState.value = false
-                },
-                onRevokeAccessibilityConsent = ::revokeAccessibilityConsent,
-                onRequestAccessibilityScan = ::requestOneShotScreenScan,
-                onGoogleSignInRequested = {
-                    val credentialManager = CredentialManager.create(this@MainActivity)
-                    val googleIdOption = GetGoogleIdOption.Builder()
-                        .setFilterByAuthorizedAccounts(false)
-                        .setServerClientId("656500460421-f02h94qsiq3s5hvltdak54r932bvgbnm.apps.googleusercontent.com")
-                        .setAutoSelectEnabled(true)
-                        .build()
+            val cleanUserName = user?.let { u ->
+                u.displayName?.trim()?.takeIf { it.isNotEmpty() }
+                    ?: u.providerData.firstOrNull { !it.displayName.isNullOrBlank() }?.displayName?.trim()
+                    ?: u.email?.split("@")?.firstOrNull()?.replace(Regex("[._\\-]+"), " ")
+                        ?.split(" ")?.joinToString(" ") { word -> word.replaceFirstChar { char -> char.uppercase() } }
+            } ?: ""
 
-                    val request = GetCredentialRequest.Builder()
-                        .addCredentialOption(googleIdOption)
-                        .build()
+            SpressoAndroidTheme(themeMode = themeMode) {
+                App(
+                    currentUserUid = user?.uid,
+                    currentUserName = cleanUserName,
+                    onShare = { productId ->
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, "Check out this product on Spresso! Product ID: $productId")
+                            type = "text/plain"
+                        }
+                        startActivity(Intent.createChooser(sendIntent, null))
+                    },
+                    isAccessibilityEnabled = isAccessEnabled,
+                    hasAccessibilityConsent = hasConsent,
+                    showAccessibilityDisclosure = showDisclosure,
+                    onToggleAccessibility = ::requestAccessibilitySettingsOrDisclosure,
+                    onAccessibilityConsentAccepted = ::acceptAccessibilityConsent,
+                    onDismissAccessibilityDisclosure = {
+                        accessibilityDisclosureRequestedState.value = false
+                    },
+                    onRevokeAccessibilityConsent = ::revokeAccessibilityConsent,
+                    onRequestAccessibilityScan = ::requestOneShotScreenScan,
+                    onGoogleSignInRequested = {
+                        val credentialManager = CredentialManager.create(this@MainActivity)
+                        val googleIdOption = GetGoogleIdOption.Builder()
+                            .setFilterByAuthorizedAccounts(false)
+                            .setServerClientId("656500460421-f02h94qsiq3s5hvltdak54r932bvgbnm.apps.googleusercontent.com")
+                            .setAutoSelectEnabled(true)
+                            .build()
 
-                    CoroutineScope(Dispatchers.Main).launch {
-                        try {
-                            val result = credentialManager.getCredential(
-                                context = this@MainActivity,
-                                request = request
-                            )
-                            val credential = result.credential
-                            if (credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                                val firebaseCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
-                                FirebaseAuth.getInstance().signInWithCredential(firebaseCredential)
+                        val request = GetCredentialRequest.Builder()
+                            .addCredentialOption(googleIdOption)
+                            .build()
+
+                        CoroutineScope(Dispatchers.Main).launch {
+                            try {
+                                val result = credentialManager.getCredential(
+                                    context = this@MainActivity,
+                                    request = request
+                                )
+                                val credential = result.credential
+                                if (credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                                    val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                                    val firebaseCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
+                                    FirebaseAuth.getInstance().signInWithCredential(firebaseCredential)
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(this@MainActivity, "Google Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
                             }
-                        } catch (e: Exception) {
-                            Toast.makeText(this@MainActivity, "Google Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
                         }
+                    },
+                    onEmailSignInRequested = { email, password ->
+                        FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
+                            .addOnFailureListener { e ->
+                                Toast.makeText(this@MainActivity, "Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
+                            }
+                    },
+                    onEmailSignUpRequested = { name, email, password ->
+                        FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
+                            .addOnSuccessListener {
+                                val profileUpdates = UserProfileChangeRequest.Builder()
+                                    .setDisplayName(name)
+                                    .build()
+                                it.user?.updateProfile(profileUpdates)
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(this@MainActivity, "Sign-Up failed: ${e.message}", Toast.LENGTH_LONG).show()
+                            }
                     }
-                },
-                onEmailSignInRequested = { email, password ->
-                    FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
-                        .addOnFailureListener { e ->
-                            Toast.makeText(this@MainActivity, "Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
-                        }
-                },
-                onEmailSignUpRequested = { name, email, password ->
-                    FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
-                        .addOnSuccessListener {
-                            val profileUpdates = UserProfileChangeRequest.Builder()
-                                .setDisplayName(name)
-                                .build()
-                            it.user?.updateProfile(profileUpdates)
-                        }
-                        .addOnFailureListener { e ->
-                            Toast.makeText(this@MainActivity, "Sign-Up failed: ${e.message}", Toast.LENGTH_LONG).show()
-                        }
-                }
-            )
+                )
+            }
         }
+    }
+
+    fun requestPhoneVerification(phoneNumber: String, callbacks: PhoneAuthProvider.OnVerificationStateChangedCallbacks) {
+        val options = PhoneAuthOptions.newBuilder(FirebaseAuth.getInstance())
+            .setPhoneNumber(phoneNumber)
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(this)
+            .setCallbacks(callbacks)
+            .build()
+        PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+    fun signInWithPhoneCredential(credential: PhoneAuthCredential) {
+        FirebaseAuth.getInstance().signInWithCredential(credential)
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    Toast.makeText(this, "Phone authentication successful!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Phone auth failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                }
+            }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -159,8 +201,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        currentActivity = this
         if (::accessibilityConsentStore.isInitialized) {
             refreshAccessibilityState()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (currentActivity == this) {
+            currentActivity = null
         }
     }
 
@@ -263,10 +313,17 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_OPEN_ACCESSIBILITY_DISCLOSURE = "open_accessibility_disclosure"
+        var currentActivity: ComponentActivity? = null
     }
 }
 
-@Preview
+@Preview(showBackground = true)
+@Composable
+fun LogoPreview() {
+    components.core.SpressoLogo(size = components.core.LogoSize.Large)
+}
+
+@Preview(showBackground = true)
 @Composable
 fun TestPreview() {
     Text("Hello World")

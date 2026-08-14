@@ -31,7 +31,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
     setLoading(true);
     setErrorMsg(null);
 
-    if (!navigator.geolocation) {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
       setErrorMsg("Geolocation is not supported by your browser.");
       setLoading(false);
       return;

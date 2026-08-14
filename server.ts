@@ -185,7 +185,7 @@ const getGeminiAI = async () => {
 // Vite middleware / production static file serving and lifecycle management
 async function startServer() {
   const isProduction = process.env.NODE_ENV === "production";
-  const requiredSecrets = ["GEMINI_API_KEY", "GOOGLE_WALLET_SERVICE_ACCOUNT_KEY"];
+  const requiredSecrets = ["GEMINI_API_KEY", "GOOGLE_WALLET_SERVICE_ACCOUNT_KEY", "STRIPE_SECRET_KEY", "STRIPE_PUBLISHABLE_KEY"];
   if (isProduction) {
     requiredSecrets.push("DATABASE_PASSWORD");
   }
@@ -300,8 +300,9 @@ async function startServer() {
             text: msg.text
           });
         }
-      } catch (e) {
-        // Malformed client message — silently discard
+      } catch (e: any) {
+        // Malformed client message
+        console.warn("WebSocket client message error:", e.message);
       }
     });
 
@@ -309,7 +310,9 @@ async function startServer() {
       if (session) {
         try {
           session.close();
-        } catch (e) {}
+        } catch (e: any) {
+          console.warn("Error closing Gemini session:", e.message);
+        }
       }
     });
   });
@@ -334,11 +337,11 @@ async function startServer() {
       process.exit(0);
     });
 
-    // Enforce shutdown threshold limit (8 seconds) to prevent container timeouts
+    // Enforce shutdown threshold limit (15 seconds) to prevent container timeouts
     setTimeout(() => {
       logStructured("WARNING", "Shutdown threshold limit exceeded. Forcing container exit.");
       process.exit(1);
-    }, 8000);
+    }, 15000);
   };
 
   process.on("SIGTERM", gracefulShutdown);

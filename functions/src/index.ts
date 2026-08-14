@@ -55,6 +55,7 @@ export const generateVirtualTryOn = onCall(async (request) => {
         };
     } catch (error) {
         if (error instanceof HttpsError) throw error;
+        console.error("Virtual Try-On generation failed:", error);
         throw new HttpsError("internal", "AI generation failed");
     }
 });
@@ -99,6 +100,7 @@ export const generateSpin360 = onCall(async (request) => {
         return { mediaUrl: outputText };
     } catch (error) {
         if (error instanceof HttpsError) throw error;
+        console.error("Spin 360 generation failed:", error);
         throw new HttpsError("internal", "AI generation failed");
     }
 });
@@ -134,6 +136,7 @@ export const ingestInteraction = onCall(async (request) => {
             messageId
         };
     } catch (e) {
+        console.error("Interaction ingestion failed:", e);
         throw new HttpsError("internal", "Failed to process interaction");
     }
 });

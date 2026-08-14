@@ -14,39 +14,28 @@ export interface GreetingContext {
 }
 
 const LATE_NIGHT_GREETINGS = [
-  "Hey night owl, {name}.",
-  "Hey {name}, up late tonight?",
-  "Hey {name}, late night exploring?"
+  "Good late night{name}.",
+  "Good evening{name}."
 ];
 
 const EARLY_MORNING_GREETINGS = [
-  "Hey early bird, {name}.",
-  "Hey {name}, up early today!",
-  "Good early morning, {name}."
+  "Good morning{name}."
 ];
 
 const MORNING_GREETINGS = [
-  "Hey {name}, good morning!",
-  "Good morning, {name}.",
-  "Hey there, {name}."
+  "Good morning{name}."
 ];
 
 const AFTERNOON_GREETINGS = [
-  "Hey {name}, good afternoon!",
-  "Good afternoon, {name}.",
-  "Hey there, {name}."
+  "Good afternoon{name}."
 ];
 
 const EVENING_GREETINGS = [
-  "Hey {name}, good evening!",
-  "Good evening, {name}.",
-  "Hey there, {name}."
+  "Good evening{name}."
 ];
 
 const NIGHT_GREETINGS = [
-  "Hey night owl, {name}.",
-  "Hey {name}, unwinding tonight?",
-  "Good evening, {name}."
+  "Good evening{name}."
 ];
 
 const DAY_OF_WEEK_FLAIR: Record<string, string[]> = {
@@ -60,9 +49,8 @@ const DAY_OF_WEEK_FLAIR: Record<string, string[]> = {
 };
 
 const VALUE_PROPS = [
-  "How can I help you today?",
-  "What are you looking for today?",
-  "What would you like to explore?"
+  "How can I help you find outfits, ingredients, or local retail deals today?",
+  "What would you like to explore today?"
 ];
 
 function getRandomItem<T>(arr: T[]): T {
@@ -103,9 +91,8 @@ export function generateDynamicGreeting(rawUserName?: string, customDate?: Date)
     day: "numeric"
   });
 
-  const userName = rawUserName && rawUserName.trim() && !["shopper", "guest shopper", "null", "undefined"].includes(rawUserName.trim().toLowerCase())
-    ? rawUserName.trim()
-    : "";
+  const cleanedLower = (rawUserName || "").trim().toLowerCase();
+  const userName = rawUserName && rawUserName.trim() ? rawUserName.trim() : "";
 
   let greetingTemplate = "";
   switch (timeBlock) {
@@ -129,16 +116,8 @@ export function generateDynamicGreeting(rawUserName?: string, customDate?: Date)
       break;
   }
 
-  let timeGreetingHeader = "";
-  if (userName) {
-    timeGreetingHeader = greetingTemplate.replace("{name}", userName);
-  } else {
-    timeGreetingHeader = greetingTemplate
-      .replace(", {name}", "")
-      .replace(" {name},", "")
-      .replace("{name}", "")
-      .trim();
-  }
+  const nameSuffix = userName ? `, ${userName}` : "";
+  const timeGreetingHeader = greetingTemplate.replace("{name}", nameSuffix);
 
   const valueProp = getRandomItem(VALUE_PROPS);
   const fullWelcomeMessage = valueProp;

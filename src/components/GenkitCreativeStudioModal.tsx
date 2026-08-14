@@ -385,7 +385,7 @@ Output STRICTLY in this JSON format:
         {/* Footer */}
         <div className="p-4 bg-[#f2f8f2] border-t border-[#d8ebd7] flex items-center justify-between">
           <div className="text-xs text-[#5e635f] font-mono">
-            Spresso AI Brand Intelligence Studio
+            Spresso Brand Intelligence Studio
           </div>
           <button
             onClick={onClose}

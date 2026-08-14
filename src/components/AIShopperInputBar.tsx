@@ -2,10 +2,9 @@ import React, { useState, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { GoogleLensScreenWidgetModal } from "./GoogleLensScreenWidgetModal";
 import { CameraObjectDetectionModal } from "./CameraObjectDetectionModal";
-import { LiveCookingAssistantModal } from "./LiveCookingAssistantModal";
 import { ProductItem } from "../types";
-import { MicButton } from "./atoms/MicButton";
-import { AttachmentChipsBar } from "./molecules/AttachmentChipsBar";
+import { MicButton } from "./shared/MicButton";
+import { AttachmentChipsBar } from "./shared/AttachmentChipsBar";
 
 export interface AIShopperInputBarProps {
   onSend: (text: string, attachedImage?: string | null) => void;
@@ -36,7 +35,6 @@ export const AIShopperInputBar: React.FC<AIShopperInputBarProps> = ({
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [googleLensOpen, setGoogleLensOpen] = useState(false);
   const [cameraDetectionOpen, setCameraDetectionOpen] = useState(false);
-  const [liveCookingOpen, setLiveCookingOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,9 +67,6 @@ export const AIShopperInputBar: React.FC<AIShopperInputBarProps> = ({
         <button type="button" onClick={() => setCameraDetectionOpen(true)} className="p-1.5 text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container)] rounded-full cursor-pointer" title="Camera Object Detection">
           <MaterialIcon icon="photo_camera" size={18} />
         </button>
-        <button type="button" onClick={() => setLiveCookingOpen(true)} className="p-1.5 text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container)] rounded-full cursor-pointer" title="Live Cooking Assistant">
-          <MaterialIcon icon="videocam" size={18} className="text-[var(--md-sys-color-primary)]" />
-        </button>
         <button type="button" onClick={() => setGoogleLensOpen(true)} className="p-1.5 text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container)] rounded-full cursor-pointer" title="Google Lens Widget">
           <MaterialIcon icon="google_lens" size={18} />
         </button>
@@ -86,7 +81,6 @@ export const AIShopperInputBar: React.FC<AIShopperInputBarProps> = ({
 
       <GoogleLensScreenWidgetModal isOpen={googleLensOpen} onClose={() => setGoogleLensOpen(false)} onSearchComplete={(q, img) => onSend(q, img)} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} />
       <CameraObjectDetectionModal isOpen={cameraDetectionOpen} onClose={() => setCameraDetectionOpen(false)} onSelectTryOn={onSelectTryOn} onSelectProductListing={(p) => { onAddToCart?.(p); onSend(`Added camera listing: "${p.name}"`); }} />
-      <LiveCookingAssistantModal isOpen={liveCookingOpen} onClose={() => setLiveCookingOpen(false)} />
     </div>
   );
 };

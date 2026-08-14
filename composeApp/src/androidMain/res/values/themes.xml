@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme -->
+    <style name="Theme.Spresso" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Official Android 12+ SplashScreen API Theme (androidx.core:core-splashscreen) -->
+    <style name="Theme.Spresso.Splash" parent="Theme.SplashScreen">
+        <!-- Single opaque window background color (Light mode default #FAFCF9) -->
+        <item name="windowSplashScreenBackground">#FAFCF9</item>
+        <!-- Center Animated Vector / Drawable Icon (288dp circle constraint) -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_icon</item>
+        <!-- Icon background color (optional for adaptive contrast) -->
+        <item name="windowSplashScreenIconBackgroundColor">#FAFCF9</item>
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+        <item name="postSplashScreenTheme">@style/Theme.Spresso</item>
+    </style>
+</resources>

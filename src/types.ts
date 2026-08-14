@@ -174,4 +174,51 @@ export interface ChatMessage {
   sources?: any[];
 }
 
+export interface TripRecord {
+  id: string;
+  title: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  status: "UPCOMING" | "IN_PROGRESS" | "COMPLETED";
+  coverImage: string;
+  budgetTotal?: number;
+  spentTotal?: number;
+}
+
+export interface ItineraryEvent {
+  id: string;
+  tripId: string;
+  type: "flight" | "hotel" | "restaurant" | "tour" | "ticket";
+  title: string;
+  description: string;
+  eventTime: string;
+  location: string;
+  price?: number;
+  qrData?: string;
+  confirmationCode?: string;
+  gate?: string;
+  seat?: string;
+}
+
+export interface TravelExpense {
+  id: string;
+  tripId: string;
+  amount: number;
+  currency: string;
+  category: "Dining" | "Flight" | "Hotel" | "Shopping" | "Transport" | "Activities";
+  merchant: string;
+  date: string;
+  receiptImageUrl?: string;
+  items?: Array<{ name: string; price: number }>;
+}
+
+export interface VoiceNote {
+  id: string;
+  tripId: string;
+  transcript: string;
+  audioUrl?: string;
+  createdAt: string;
+}
+
 

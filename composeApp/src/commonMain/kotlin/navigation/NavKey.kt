@@ -3,7 +3,7 @@ package navigation
 import kotlinx.serialization.Serializable
 
 /**
- * Type-safe Navigation 3 Key Contract for Spresso 19.
+ * Type-safe Navigation 3 Key Contract for Spresso.
  */
 @Serializable
 sealed interface NavKey {
@@ -18,6 +18,9 @@ sealed interface NavKey {
 
     @Serializable
     data object CatalogKey : NavKey
+
+    @Serializable
+    data object TravelKey : NavKey
 
     @Serializable
     data class SmartVisionKey(

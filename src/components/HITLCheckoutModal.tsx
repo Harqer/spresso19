@@ -4,7 +4,7 @@ import { dataConnect, auth, loginWithGoogle } from "../lib/firebase";
 import { createOrder } from "../dataconnect";
 import { MaterialIcon } from "./MaterialIcon";
 import { M3ExpressiveCircularProgress } from "./M3ExpressiveCircularProgress";
-import { GoogleWalletButton } from "./atoms/GoogleWalletButton";
+import { GoogleWalletButton } from "@/src/components/features/profile/GoogleWalletButton";
 
 interface HITLCheckoutModalProps {
   payload: HITLPayload | null;
@@ -109,7 +109,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
           transactionInfo: {
             totalPriceStatus: "FINAL",
             totalPriceLabel: "Total",
-            totalPrice: payload.totalAmount.toFixed(2),
+            totalPrice: (payload.totalAmount || (payload.product.price * payload.quantity)).toFixed(2),
             currencyCode: payload.currency || "USD",
             countryCode: "US"
           }
@@ -199,7 +199,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
             <div className="flex items-center justify-between">
               <span>Item Price x Quantity:</span>
               <span className="font-mono text-[#18211e] font-semibold">
-                ${(payload.totalAmount / (payload.quantity || 1)).toFixed(2)} × {payload.quantity}
+                ${((payload.totalAmount || (payload.product.price * payload.quantity)) / (payload.quantity || 1)).toFixed(2)} × {payload.quantity}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -209,7 +209,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
             <div className="flex items-center justify-between text-sm font-bold text-[#18211e] pt-1 border-t border-dashed border-[#c4d6c3]">
               <span>Total Cost Before Confirmation:</span>
               <span className="text-base text-[#386633] font-mono font-extrabold">
-                ${payload.totalAmount.toFixed(2)}
+                ${(payload.totalAmount || (payload.product.price * payload.quantity)).toFixed(2)}
               </span>
             </div>
           </div>
@@ -355,7 +355,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
                   ? "Pay with Google Pay"
                   : paymentMethod === "crypto"
                   ? "Confirm USDC Crypto Purchase"
-                  : "Confirm Card Purchase"} • ${payload.totalAmount.toFixed(2)}
+                  : "Confirm Card Purchase"} • ${(payload.totalAmount || (payload.product.price * payload.quantity)).toFixed(2)}
               </span>
             </>
           )}

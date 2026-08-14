@@ -57,17 +57,13 @@ class ChatViewModel(
                 .onCompletion { isGenerating = false }
                 .catch { e ->
                     isGenerating = false
-                    val fallbackText = "I found some great options for \"$prompt\"! How else can I assist your shopping today?"
-                    val fallbackProducts = listOf(
-                        ProductItem("rec-1", "Classic Cotton Hoodie", "Spresso Eco", "Apparel", 49.99, "https://images.unsplash.com/photo-1556905055-8f358a7a47b2", 4.8),
-                        ProductItem("rec-2", "Lightweight Running Sneakers", "Spresso Sport", "Footwear", 89.99, "https://images.unsplash.com/photo-1542291026-7eec264c27ff", 4.9)
-                    )
+                    val errorText = e.message ?: "Unable to complete request. Please verify connection and retry."
                     updateOrAddAiMessage(
                         id = aiMsgId,
-                        text = if (aiText.isNotBlank()) aiText else fallbackText,
+                        text = if (aiText.isNotBlank()) aiText else "Unable to fetch live recommendations: $errorText",
                         thought = null,
                         sources = currentSources,
-                        products = if (currentProducts.isNotEmpty()) currentProducts else fallbackProducts
+                        products = currentProducts
                     )
                 }
                 .collect { chunk ->
