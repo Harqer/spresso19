@@ -76,6 +76,21 @@
         <property
             android:name="android.app.appfunctions.app_metadata"
             android:resource="@xml/app_metadata" />
+
+        <receiver
+            android:name=".engage.EngageBroadcastReceiver"
+            android:permission="com.google.android.engage.REQUEST_ENGAGE_DATA"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="com.google.android.engage.action.PUBLISH_RECOMMENDATION" />
+                <action android:name="com.google.android.engage.action.PUBLISH_FEATURED" />
+                <action android:name="com.google.android.engage.action.shopping.PUBLISH_SHOPPING_CART" />
+                <action android:name="com.google.android.engage.action.shopping.PUBLISH_SHOPPING_LIST" />
+                <action android:name="com.google.android.engage.action.shopping.PUBLISH_REORDER_CLUSTER" />
+                <action android:name="com.google.android.engage.action.shopping.PUBLISH_ORDER_TRACKING_CLUSTER" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

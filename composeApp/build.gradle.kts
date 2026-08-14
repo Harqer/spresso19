@@ -73,6 +73,9 @@ kotlin {
             implementation("androidx.biometric:biometric:1.2.0-alpha05")
             implementation("androidx.core:core-splashscreen:1.0.1")
             implementation("com.android.billingclient:billing-ktx:7.1.0")
+            implementation("com.google.android.engage:engage-core:1.6.0")
+            implementation("androidx.work:work-runtime-ktx:2.11.2")
+            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
         }
         val androidUnitTest = sourceSets.getByName("androidUnitTest")
         androidUnitTest.dependencies {

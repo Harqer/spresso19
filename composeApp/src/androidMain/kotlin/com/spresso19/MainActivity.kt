@@ -41,6 +41,7 @@ import com.google.firebase.FirebaseException
 import java.util.concurrent.TimeUnit
 import theme.SpressoAndroidTheme
 import theme.ThemeMode
+import com.spresso19.engage.EngageBroadcastReceiver
 
 class MainActivity : ComponentActivity() {
 
@@ -59,6 +60,7 @@ class MainActivity : ComponentActivity() {
             accessibilityDisclosureRequestedState.value = true
         }
         refreshAccessibilityState()
+        EngageBroadcastReceiver.register(this)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
