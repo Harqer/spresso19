@@ -164,6 +164,69 @@ class MainActivity : ComponentActivity() {
                             .addOnFailureListener { e ->
                                 Toast.makeText(this@MainActivity, "Sign-Up failed: ${e.message}", Toast.LENGTH_LONG).show()
                             }
+                    },
+                    onVerifyEmailRequested = {
+                        val credentialManager = CredentialManager.create(this@MainActivity)
+                        val nonce = java.util.UUID.randomUUID().toString()
+                        val openId4vpRequest = """
+                        {
+                          "requests": [
+                            {
+                              "protocol": "openid4vp-v1-unsigned",
+                              "data": {
+                                "response_type": "vp_token",
+                                "response_mode": "dc_api",
+                                "nonce": "$nonce",
+                                "dcql_query": {
+                                  "credentials": [
+                                    {
+                                      "id": "user_info_query",
+                                      "format": "dc+sd-jwt",
+                                       "meta": { 
+                                          "vct_values": ["UserInfoCredential"] 
+                                       },
+                                      "claims": [ 
+                                        {"path": ["email"]}, 
+                                        {"path": ["name"]},  
+                                        {"path": ["given_name"]},
+                                        {"path": ["family_name"]},
+                                        {"path": ["picture"]},
+                                        {"path": ["hd"]},
+                                        {"path": ["email_verified"]}
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        }
+                        """.trimIndent()
+                        val getDigitalCredentialOption = androidx.credentials.GetDigitalCredentialOption(requestJson = openId4vpRequest)
+                        val request = GetCredentialRequest.Builder()
+                            .addCredentialOption(getDigitalCredentialOption)
+                            .build()
+                        CoroutineScope(Dispatchers.Main).launch {
+                            try {
+                                val result = credentialManager.getCredential(
+                                    context = this@MainActivity,
+                                    request = request
+                                )
+                                val credential = result.credential
+                                if (credential is androidx.credentials.DigitalCredential) {
+                                    val responseJsonString = credential.credentialJson
+                                    val jsonObj = org.json.JSONObject(responseJsonString)
+                                    val vpToken = jsonObj.optJSONObject("vp_token")
+                                    val credentialId = vpToken?.keys()?.let { if (it.hasNext()) it.next() else null }
+                                    if (credentialId != null) {
+                                        Toast.makeText(this@MainActivity, "Received verified email SD-JWT!", Toast.LENGTH_SHORT).show()
+                                        // TODO: Send responseJsonString and nonce to /api/auth/verify-email-credential for server-side validation
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(this@MainActivity, "Digital credential error: ${e.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
                     }
                 )
             }

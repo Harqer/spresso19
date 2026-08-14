@@ -44,7 +44,8 @@ fun App(
     onLensResult: (String) -> Unit = {},
     onGoogleSignInRequested: () -> Unit = {},
     onEmailSignInRequested: (String, String) -> Unit = { _, _ -> },
-    onEmailSignUpRequested: (String, String, String) -> Unit = { _, _, _ -> }
+    onEmailSignUpRequested: (String, String, String) -> Unit = { _, _, _ -> },
+    onVerifyEmailRequested: () -> Unit = {}
 ) {
     var themeMode by rememberSaveable { mutableStateOf(ThemeMode.SYSTEM) }
 
@@ -247,7 +248,8 @@ fun App(
                         onThemeModeChange = { themeMode = it },
                         onSignOut = {
                             backStack.push(NavKey.AuthKey)
-                        }
+                        },
+                        onVerifyEmail = onVerifyEmailRequested
                     )
                 }
             }

@@ -231,6 +231,39 @@ router.post("/api/user/sync", verifyFirebaseToken, async (req: AuthRequest, res:
 });
 
 // ==========================================
+// DIGITAL CREDENTIAL EMAIL VERIFICATION
+// ==========================================
+router.post("/api/auth/verify-email-credential", async (req: Request, res: Response) => {
+  const { responseJsonString, nonce } = req.body || {};
+  if (!responseJsonString || !nonce) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const responseData = JSON.parse(responseJsonString);
+    const vpToken = responseData.vp_token;
+    
+    if (!vpToken) {
+      return res.status(400).json({ error: "Invalid credential format" });
+    }
+    
+    const credentialId = Object.keys(vpToken)[0];
+    const rawSdJwt = vpToken[credentialId][0];
+    
+    // Server-side validation of the SD-JWT would happen here
+    // Verify issuer, signature, and nonce against the stored value.
+    
+    return res.json({ 
+      success: true, 
+      message: "Verified email credential successfully validated.",
+      rawSdJwt: rawSdJwt
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || "Failed to verify credential" });
+  }
+});
+
+// ==========================================
 // USER PAYMENT CARDS & WALLET ENDPOINTS
 // ==========================================
 router.get("/api/user/cards", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {

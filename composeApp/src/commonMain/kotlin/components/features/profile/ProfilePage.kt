@@ -37,6 +37,7 @@ fun ProfilePage(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChange: (ThemeMode) -> Unit = {},
     onSignOut: () -> Unit = {},
+    onVerifyEmail: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val bgLight = MaterialTheme.colorScheme.background
@@ -84,6 +85,7 @@ fun ProfilePage(
             ProfileListItem(icon = Icons.Outlined.FavoriteBorder, title = "My Favorites", subtitle = "View saved products")
             ProfileListItem(icon = Icons.Outlined.History, title = "Order History", subtitle = "Track your purchases")
             ProfileListItem(icon = Icons.Outlined.NotificationsNone, title = "Notifications", subtitle = "Manage alerts and updates")
+            ProfileListItem(icon = Icons.Outlined.CheckCircle, title = "Verify Email", subtitle = "Secure account with digital credentials", onClick = onVerifyEmail)
             
             // Theme Selector Item
             Surface(
@@ -147,9 +149,11 @@ fun ProfilePage(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileListItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String) {
+fun ProfileListItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String, onClick: () -> Unit = {}) {
     Surface(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
