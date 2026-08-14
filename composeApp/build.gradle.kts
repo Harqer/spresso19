@@ -70,6 +70,7 @@ kotlin {
             implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.3")
             implementation("androidx.biometric:biometric:1.2.0-alpha05")
             implementation("androidx.core:core-splashscreen:1.0.1")
+            implementation("com.android.billingclient:billing-ktx:7.1.0")
         }
         val androidUnitTest = sourceSets.getByName("androidUnitTest")
         androidUnitTest.dependencies {
