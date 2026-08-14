@@ -10,6 +10,7 @@ plugins {
     id("com.google.firebase.crashlytics")
     alias(libs.plugins.screenshot)
     alias(libs.plugins.dropshots)
+    alias(libs.plugins.ksp)
     jacoco
 }
 
@@ -48,6 +49,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.android)
+            implementation(libs.androidx.appfunctions)
             implementation(dependencies.platform("com.google.firebase:firebase-bom:33.1.2"))
             implementation("com.google.firebase:firebase-auth")
             implementation("com.google.firebase:firebase-crashlytics")
@@ -120,7 +122,7 @@ kotlin {
 
 android {
     namespace = "com.spresso19"
-    compileSdk = 35
+    compileSdk = 37
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     sourceSets["main"].res.srcDirs("src/androidMain/res")
@@ -128,7 +130,7 @@ android {
     defaultConfig {
         applicationId = "com.spresso19"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -175,5 +177,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
+dependencies {
+    add("kspAndroid", libs.androidx.appfunctions.compiler)
 }
 
