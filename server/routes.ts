@@ -156,7 +156,7 @@ router.get("/api/products", verifyFirebaseToken, async (req: AuthRequest, res: R
 });
 
 router.get("/api/products/:id", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
-  const id = req.params.id;
+  const id = req.params.id as string;
   try {
     const result = await listProducts(getDc());
     const p = result?.data?.products?.find((item: any) => item.id === id);
@@ -309,7 +309,7 @@ router.post("/api/user/cards", verifyFirebaseToken, async (req: AuthRequest, res
 
 router.delete("/api/user/cards/:id", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   const uid = req.user?.uid || "anonymous_user";
-  const cardId = req.params.id;
+  const cardId = req.params.id as string;
   try {
     await firestoreDb.collection("users").doc(uid).collection("paymentMethods").doc(cardId).delete();
     return res.json({ success: true });
@@ -1320,7 +1320,7 @@ router.get("/api/orders", verifyFirebaseToken, async (req: AuthRequest, res: Res
 
 // Post-Purchase Shopping Concierge Agent Endpoints
 router.get("/api/orders/:orderId", verifyFirebaseToken, (req: AuthRequest, res: Response) => {
-  const { orderId } = req.params;
+  const orderId = req.params.orderId as string;
   const targetOrder = activeOrders.find(o => o.id.toLowerCase() === orderId.toLowerCase());
   if (!targetOrder) {
     return res.status(404).json({ success: false, error: `Order ${orderId} not found.` });
@@ -1638,7 +1638,7 @@ router.post("/api/payment/stripe/create-intent", verifyFirebaseToken, async (req
 // USER PROFILE & ACCOUNT SETTINGS MANAGEMENT
 // ==========================================
 router.get("/api/user/profile/:uid", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
-  const uid = req.params.uid;
+  const uid = req.params.uid as string;
   try {
     const docSnap = await firestoreDb.collection("users").doc(uid).get();
     if (docSnap.exists) {
