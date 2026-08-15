@@ -10,9 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
-import spresso19.composeapp.generated.resources.Res
-import spresso19.composeapp.generated.resources.logo
-import spresso19.composeapp.generated.resources.spresso_logo_symbol_transparent
+import spresso.composeapp.generated.resources.Res
+import spresso.composeapp.generated.resources.logo
+import spresso.composeapp.generated.resources.spresso_logo_symbol_transparent
 
 enum class LogoSize { Small, Medium, Large, ExtraLarge }
 

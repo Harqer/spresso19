@@ -9,8 +9,7 @@ plugins {
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
     alias(libs.plugins.screenshot)
-    alias(libs.plugins.dropshots)
-    alias(libs.plugins.ksp)
+    
     jacoco
 }
 
@@ -28,7 +27,7 @@ kotlin {
         compilations.configureEach {
             compileTaskProvider.configure {
                 compilerOptions {
-                    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+                    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
                 }
             }
         }
@@ -76,6 +75,15 @@ kotlin {
             implementation("com.google.android.engage:engage-core:1.6.0")
             implementation("androidx.work:work-runtime-ktx:2.11.2")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+            implementation("androidx.glance:glance-appwidget:1.1.0")
+            implementation("androidx.glance:glance-material3:1.1.0")
+            implementation(libs.mwdat.core)
+            implementation(libs.mwdat.camera)
+            implementation(libs.mwdat.display)
+            implementation(libs.mwdat.mockdevice)
+            implementation("androidx.xr.glimmer:glimmer:1.0.0-alpha01")
+            implementation("androidx.xr.runtime:runtime:1.0.0-alpha01")
+            implementation("androidx.xr.scenecore:scenecore:1.0.0-alpha01")
         }
         val androidUnitTest = sourceSets.getByName("androidUnitTest")
         androidUnitTest.dependencies {
@@ -94,10 +102,9 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
         }
         val androidInstrumentedTest = sourceSets.getByName("androidInstrumentedTest")
-        androidInstrumentedTest.dependsOn(commonTest)
         androidInstrumentedTest.dependencies {
             implementation(libs.androidx.compose.ui.test.junit4)
-            implementation(libs.dropshots)
+            implementation(libs.dropshots.core)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -132,11 +139,13 @@ android {
 
     defaultConfig {
         applicationId = "com.spresso19"
-        minSdk = 24
+        minSdk = 30
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["mwdat_application_id"] = "0"
+        manifestPlaceholders["mwdat_client_token"] = "0"
     }
     packaging {
         resources {
@@ -173,15 +182,15 @@ android {
             signingConfig = signingConfigs.getByName("release")
         }
         getByName("debug") {
-            signingConfig = signingConfigs.getByName("release")
+            
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
-
-dependencies {
-    add("kspAndroid", libs.androidx.appfunctions.compiler)
 }
 
+dependencies {
+    
+}
