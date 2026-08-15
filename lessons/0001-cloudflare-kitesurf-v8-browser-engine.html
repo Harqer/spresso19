@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 0001: Cloudflare Kitesurf & Agent-Native V8 Browsing</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #f97316;
+      --accent-light: #ffedd5;
+      --border: #334155;
+      --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    h1, h2, h3 { color: #ffffff; margin-top: 2rem; }
+    h1 { border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; font-size: 2rem; }
+    .badge {
+      background-color: rgba(249, 115, 22, 0.2);
+      color: var(--accent);
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: inline-block;
+      margin-bottom: 1rem;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+    }
+    code {
+      background-color: #020617;
+      color: #38bdf8;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.9em;
+    }
+    pre {
+      background-color: #020617;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+    }
+    pre code { background: none; padding: 0; color: #e2e8f0; }
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .comp-box {
+      background: #020617;
+      padding: 1rem;
+      border-radius: 6px;
+      border-left: 4px solid var(--border);
+    }
+    .comp-box.highlight {
+      border-left-color: var(--accent);
+    }
+    .quiz-option {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      margin: 0.5rem 0;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .quiz-option:hover {
+      border-color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+  <span class="badge">AGENTIC CLOUD ARCHITECTURE</span>
+  <h1>Lesson 0001: Cloudflare Kitesurf V8 Browser Engine</h1>
+
+  <p>Welcome! This lesson explains <strong>Cloudflare Kitesurf</strong>, why it was designed specifically for AI models, and how the <code>kitesurf</code> agent skill enables autonomous, stateless web browsing at edge scale.</p>
+
+  <div class="card">
+    <h2>1. The Problem with Legacy Browser Automation</h2>
+    <p>Traditional browser automation tools (Puppeteer, Playwright, Selenium running Chromium inside Docker containers) are built for human web testing. For AI agents, they suffer from severe bottlenecks:</p>
+    <ul>
+      <li><strong>Heavy Memory Footprint:</strong> Requires 500 MB – 1 GB RAM per browser process.</li>
+      <li><strong>High Latency:</strong> 2 – 5 seconds to launch a containerized browser instance.</li>
+      <li><strong>Cost & Scaling Caps:</strong> Extremely expensive to run thousands of parallel agent tasks.</li>
+    </ul>
+  </div>
+
+  <div class="comparison-grid">
+    <div class="comp-box">
+      <h3>Legacy Puppeteer / Chromium</h3>
+      <p>❌ Heavy Docker containers</p>
+      <p>❌ Multi-second cold boot</p>
+      <p>❌ High memory per instance</p>
+      <p>❌ State leaks across tasks</p>
+    </div>
+    <div class="comp-box highlight">
+      <h3>Cloudflare Kitesurf</h3>
+      <p>⚡ V8 Isolate Native Execution</p>
+      <p>⚡ Sub-millisecond spin-up</p>
+      <p>⚡ Lightweight memory usage</p>
+      <p>⚡ Zero-state tear-down per request</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. What Makes Kitesurf "Agent-First"?</h2>
+    <p>Kitesurf is built from the ground up for LLM agent interaction:</p>
+    <ol>
+      <li><strong>Native Markdown Extraction:</strong> Instead of returning a 50,000-line HTML DOM tree that consumes context window tokens, Kitesurf outputs cleaned <code>page.toMarkdown()</code> formatted text.</li>
+      <li><strong>Stateless Isolate Lifecycle:</strong> Each browsing step or session runs isolated in a Workers V8 isolate. When the task finishes, memory is immediately released.</li>
+      <li><strong>Multimodal Visual Snapshots:</strong> Captures WebP screenshots for visual inspection models (e.g. Gemini 2.5 / GPT-4o) when DOM extraction is insufficient.</li>
+      <li><strong>Structured Action Execution:</strong> Executes natural selector typing, clicks, and multi-step form submissions cleanly.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>3. Code Pattern: Extracting Page Markdown</h2>
+    <pre><code>import { Kitesurf } from '@cloudflare/kitesurf';
+
+export async function fetchCleanContent(url: string) {
+  const browser = new Kitesurf();
+  const page = await browser.newPage();
+  
+  await page.goto(url, { waitUntil: 'networkidle' });
+  const markdown = await page.toMarkdown();
+  
+  await browser.close();
+  return markdown;
+}</code></pre>
+  </div>
+
+  <div class="card">
+    <h2>4. How the Agent Skill Operates</h2>
+    <p>The <code>kitesurf</code> skill registered at <code>/home/shaolin/.gemini/config/skills/kitesurf/SKILL.md</code> provides AI agents in future sessions with procedural knowledge:</p>
+    <ul>
+      <li><strong>Triggering Metadata:</strong> Tells the agent to activate Kitesurf whenever web scraping, SPA DOM extraction, or edge browser verification is requested.</li>
+      <li><strong>Best Practices:</strong> Mandates <code>page.toMarkdown()</code> token efficiency, <code>browser.close()</code> teardown, and RFC 7807 error signaling.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Knowledge Check</h2>
+    <p><strong>Question:</strong> Why is <code>page.toMarkdown()</code> preferred over raw HTML DOM extraction in AI agent workflows?</p>
+    <div class="quiz-option">A) Markdown increases context window token consumption significantly.</div>
+    <div class="quiz-option" style="border-color: var(--accent);">B) Markdown strips clutter and optimizes token cost while preserving semantic text.</div>
+    <div class="quiz-option">C) Raw HTML is required for V8 isolate execution to function correctly.</div>
+  </div>
+
+</body>
+</html>

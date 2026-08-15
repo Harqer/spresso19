@@ -36,5 +36,6 @@ An architecture context document has been copied to the project at `spresso19/do
 ## Event-Driven Error-Only CI Pipeline & No-Redundant-APK Rule (STRICT USER MANDATE)
 1. **NO RECURRING SUCCESS NOTIFICATIONS OR POLLING**: The agent must NEVER poll or send periodic success status messages when GitHub Actions runs pass. Only engage when an actual failure occurs.
 2. **ZERO LOCAL APK OVERHEAD**: Never invoke `./gradlew assembleDebug` or build `.apk` binaries locally unless the USER explicitly requests a build.
-3. **EVENT-DRIVEN FAILURE RECOVERY**: When a GitHub Actions build error or failure is reported, automatically extract the failure logs (`gh run view <id> --log-failed`), resolve the root cause, run lightweight non-APK local verification (`npm run lint`), and push the fix to `origin main`.
+
+
 

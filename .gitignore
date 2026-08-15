@@ -34,3 +34,5 @@ GoogleService-Info.plist
 service-account*.json
 *.keystore
 *.jks
+*.perfetto-trace
+trace_processor

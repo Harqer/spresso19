@@ -11,9 +11,11 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
 
 dependencyResolutionManagement {
-    // repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google {
             mavenContent {
@@ -26,5 +28,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "spresso19"
+rootProject.name = "Spresso"
 include(":composeApp")
+project(":composeApp").projectDir = file("spresso19/composeApp")

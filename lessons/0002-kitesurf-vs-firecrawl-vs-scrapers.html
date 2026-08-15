@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 0002: Kitesurf vs. Firecrawl vs. Simple Scrapers</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --border: #334155;
+      --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.6;
+      max-width: 850px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    h1, h2, h3 { color: #ffffff; }
+    h1 { border-bottom: 2px solid var(--accent); padding-bottom: 0.5rem; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--border);
+      text-align: left;
+      font-size: 0.95rem;
+    }
+    th {
+      background-color: #020617;
+      color: var(--accent);
+    }
+    .badge {
+      background-color: rgba(56, 189, 248, 0.2);
+      color: var(--accent);
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+    }
+  </style>
+</head>
+<body>
+
+  <span class="badge">TOOL COMPARISON & ARCHITECTURE</span>
+  <h1>Lesson 0002: Kitesurf vs. Firecrawl vs. Simple Scrapers</h1>
+
+  <p>No, these tools do <strong>not</strong> do the same thing. They exist at three completely different layers of the web technology stack.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Simple Scrapers (curl, fetch, BeautifulSoup)</th>
+        <th>Firecrawl API</th>
+        <th>Cloudflare Kitesurf</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Execution Model</strong></td>
+        <td>Static HTTP request</td>
+        <td>Hosted SaaS crawler API (Containerized Playwright)</td>
+        <td>Edge-native V8 Isolates on Cloudflare Workers</td>
+      </tr>
+      <tr>
+        <td><strong>JavaScript Support</strong></td>
+        <td>❌ None (Breaks on SPAs)</td>
+        <td>✅ Yes (Server-side rendering)</td>
+        <td>⚡ Full interactive client-side execution</td>
+      </tr>
+      <tr>
+        <td><strong>Agentic Multi-Step Interaction</strong></td>
+        <td>❌ Impossible</td>
+        <td>⚠️ Basic (Crawls & maps URLs)</td>
+        <td>✅ Advanced (Clicks, inputs, forms, session state)</td>
+      </tr>
+      <tr>
+        <td><strong>Cold Start Latency</strong></td>
+        <td>~50 ms</td>
+        <td>1,000 – 4,000 ms (API round-trip + container spin-up)</td>
+        <td><strong>&lt; 5 ms</strong> (Edge V8 Isolate)</td>
+      </tr>
+      <tr>
+        <td><strong>Visual Screenshot Capture</strong></td>
+        <td>❌ No</td>
+        <td>⚠️ Limited</td>
+        <td>✅ Native WebP Screenshots for Multimodal LLMs</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="card">
+    <h2>1. Simple Scrapers: Static HTML Only</h2>
+    <p>Tools like <code>fetch()</code> or <code>axios</code> simply request the initial raw HTML file sent by the server. If a website is built with React, Vue, or Next.js, the initial HTML is almost empty (e.g. <code>&lt;div id="root"&gt;&lt;/div&gt;</code>). Simple scrapers cannot execute JavaScript to render the actual content.</p>
+  </div>
+
+  <div class="card">
+    <h2>2. Firecrawl: External Crawling API</h2>
+    <p>Firecrawl is a turnkey SaaS API. You send it a URL, and its backend runs a containerized Chromium instance to crawl pages and turn them into Markdown. It is great for batch sitemap ingestion, but it is a centralized third-party service with API latency and usage costs.</p>
+  </div>
+
+  <div class="card">
+    <h2>3. Cloudflare Kitesurf: Interactive Edge Browser Engine</h2>
+    <p>Kitesurf is an <strong>agent-native browser engine</strong> that runs directly on Cloudflare's global edge network inside V8 isolates. An AI agent can use Kitesurf to interact with web pages in real-time—filling out input fields, clicking buttons, handling authentication, capturing visual screenshots, and streaming clean Markdown back instantly.</p>
+  </div>
+
+</body>
+</html>
