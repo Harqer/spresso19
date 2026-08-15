@@ -18,11 +18,19 @@ pluginManagement {
             }
         }
         mavenCentral()
+        mavenLocal()
         gradlePluginPortal()
     }
 }
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
+val localProperties = Properties().apply {
+    val file = File(rootDir, "local.properties")
+    if (file.exists()) {
+        load(file.inputStream())
+    }
 }
 
 dependencyResolutionManagement {
@@ -35,6 +43,7 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        mavenLocal()
         maven {
             url = uri("https://maven.pkg.github.com/facebook/meta-wearables-dat-android")
             credentials {
