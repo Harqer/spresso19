@@ -43,7 +43,7 @@
 
         <activity
             android:name=".AccessibilitySettingsActivity"
-            android:exported="true"
+            android:exported="false"
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.Material.Light.NoActionBar" />
 

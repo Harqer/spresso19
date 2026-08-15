@@ -124,12 +124,12 @@ class SpressoAccessibilityService : AccessibilityService() {
             addAction(AccessibilityServiceCommands.ACTION_REQUEST_SCREEN_SCAN)
             addAction(AccessibilityServiceCommands.ACTION_REVOKE_CONSENT)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(commandReceiver, filter, RECEIVER_NOT_EXPORTED)
-        } else {
-            @Suppress("DEPRECATION")
-            registerReceiver(commandReceiver, filter)
-        }
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            commandReceiver,
+            filter,
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
         commandReceiverRegistered = true
     }
 
