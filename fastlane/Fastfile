@@ -1,0 +1,16 @@
+default_platform(:android)
+
+platform :android do
+  desc "Automated Canary Deployment to Google Play Internal Testing"
+  lane :deploy_internal do
+    gradle(task: "clean bundleRelease")
+    
+    # In 2026, Fastlane uploads the AAB securely and automatically handles 
+    # staged rollouts. We release to 1% of the user base as a canary.
+    upload_to_play_store(
+      track: 'internal',
+      rollout: '0.01', # Canary rollout (1%)
+      aab: 'composeApp/build/outputs/bundle/release/composeApp-release.aab'
+    )
+  end
+end
