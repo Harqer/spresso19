@@ -18,13 +18,6 @@ import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.selectors.AutoDeviceSelector
 import com.meta.wearable.dat.core.session.DeviceSession
 import com.meta.wearable.dat.core.session.DeviceSessionState
-import com.meta.wearable.dat.display.Display
-import com.meta.wearable.dat.display.addDisplay
-import com.meta.wearable.dat.display.types.DisplayState
-import com.meta.wearable.dat.display.views.ButtonStyle
-import com.meta.wearable.dat.display.views.FlexBoxBackground
-import com.meta.wearable.dat.display.views.IconName
-import com.meta.wearable.dat.display.views.TextStyle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -32,16 +25,22 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import okio.ByteString.Companion.toByteString
+import org.json.JSONObject
+import org.json.JSONArray
 
 class SpressoWearablesService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
     private var session: DeviceSession? = null
     private var stream: Stream? = null
-    private var display: Display? = null
     private var webSocket: WebSocket? = null
     private var audioManager: AudioManager? = null
+
+    // Fallback if not injected via BuildConfig
+    private val apiKey = "AIzaSy_YOUR_API_KEY_HERE"
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -61,15 +60,94 @@ class SpressoWearablesService : Service() {
 
     private fun setupWebSocket() {
         val client = OkHttpClient()
-        // Placeholder WebSocket connection simulating sending frames and audio to the Gemini Multimodal Live API
-        val request = Request.Builder().url("wss://placeholder.gemini.multimodal.live.api").build()
+        val url = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.BidiService/BidiGenerateContent?key=$apiKey"
+        val request = Request.Builder().url(url).build()
+
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
-            // Placeholder listener
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                Log.i("SpressoWearables", "Gemini WebSocket Opened")
+                
+                // Send setup message with the correct model and tool declarations
+                val setupMessage = JSONObject().apply {
+                    put("setup", JSONObject().apply {
+                        put("model", "models/gemini-2.0-flash-exp")
+                        put("systemInstruction", JSONObject().apply {
+                            put("parts", JSONArray().apply {
+                                put(JSONObject().apply {
+                                    put("text", "You are Spresso, an AI personal shopper and cooking assistant. Use the provided tools when the user asks for cooking assistance or grocery scanning.")
+                                })
+                            })
+                        })
+                        put("tools", JSONArray().apply {
+                            put(JSONObject().apply {
+                                put("functionDeclarations", JSONArray().apply {
+                                    put(JSONObject().apply {
+                                        put("name", "startCookingAssistance")
+                                        put("description", "Execute this function when the user asks for cooking assistance, recipes, or chef help.")
+                                    })
+                                    put(JSONObject().apply {
+                                        put("name", "startGroceryScanner")
+                                        put("description", "Execute this function when the user asks to scan groceries or start a shopping list.")
+                                    })
+                                })
+                            })
+                        })
+                    })
+                }
+                webSocket.send(setupMessage.toString())
+            }
+
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                Log.d("SpressoWearables", "Gemini text msg: $text")
+                try {
+                    val json = JSONObject(text)
+                    if (json.has("serverContent")) {
+                        val serverContent = json.getJSONObject("serverContent")
+                        if (serverContent.has("modelTurn")) {
+                            val parts = serverContent.getJSONObject("modelTurn").getJSONArray("parts")
+                            for (i in 0 until parts.length()) {
+                                val part = parts.getJSONObject(i)
+                                if (part.has("functionCall")) {
+                                    val functionCall = part.getJSONObject("functionCall")
+                                    val functionName = functionCall.getString("name")
+                                    handleIntentRouting(functionName)
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("SpressoWearables", "Error parsing JSON: ", e)
+                }
+            }
+
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                Log.e("SpressoWearables", "Gemini WebSocket Error", t)
+            }
         })
     }
 
+    private fun handleIntentRouting(functionName: String) {
+        Log.i("SpressoWearables", "Routing Intent: $functionName")
+        when (functionName) {
+            "startCookingAssistance" -> {
+                Log.i("SpressoWearables", "Executing Cooking Agent...")
+                // In a real implementation, we would broadcast this intent to the UI
+                // so the Compose layer can navigate to the ChefAssistancePage
+                val intent = Intent("com.spresso19.intent.action.START_COOKING")
+                sendBroadcast(intent)
+            }
+            "startGroceryScanner" -> {
+                Log.i("SpressoWearables", "Executing Grocery Scanner...")
+                val intent = Intent("com.spresso19.intent.action.START_GROCERY")
+                sendBroadcast(intent)
+            }
+        }
+    }
+
     private fun setupWearables() {
-        // Wearables.initialize(this) is expected to be called in the Application class
+        Wearables.initialize(this).onFailure { error, _ ->
+            Log.e("SpressoWearables", "Failed to initialize Wearables: ${error.description}")
+        }
         
         session = Wearables.createSession(AutoDeviceSelector()).getOrElse { error ->
             Log.e("SpressoWearables", "Failed to create session: $error")
@@ -79,6 +157,7 @@ class SpressoWearablesService : Service() {
         session?.let { currentSession ->
             serviceScope.launch {
                 currentSession.state.collect { state ->
+                    Log.i("SpressoWearables", "Session state: $state")
                     if (state == DeviceSessionState.STARTED) {
                         attachCapabilities(currentSession)
                     }
@@ -89,37 +168,9 @@ class SpressoWearablesService : Service() {
     }
 
     private fun attachCapabilities(currentSession: DeviceSession) {
-        // 1. Add Display Capability
-        currentSession.addDisplay().onSuccess { newDisplay ->
-            display = newDisplay
-            serviceScope.launch {
-                newDisplay.state.collect { state ->
-                    if (state == DisplayState.STARTED) {
-                        newDisplay.sendContent {
-                            flexBox(
-                                gap = 12,
-                                padding = 24,
-                                background = FlexBoxBackground.CARD,
-                            ) {
-                                text("Gemini AI", style = TextStyle.HEADING)
-                                text("Listening...", style = TextStyle.BODY)
-                                button(
-                                    label = "Stop",
-                                    style = ButtonStyle.PRIMARY,
-                                    onClick = { stopSelf() }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }.onFailure { error, _ ->
-            Log.e("SpressoWearables", "Failed to add display: $error")
-        }
-
-        // 2. Add Camera Stream Capability
+        // Add Camera Stream Capability
         currentSession.addStream(
-            StreamConfiguration(videoQuality = VideoQuality.LOW, frameRate = 7)
+            StreamConfiguration(videoQuality = VideoQuality.MEDIUM, frameRate = 24)
         ).onSuccess { currentStream ->
             stream = currentStream
             currentStream.start().onFailure { error, _ ->
@@ -128,8 +179,22 @@ class SpressoWearablesService : Service() {
 
             serviceScope.launch {
                 currentStream.videoStream.collect { frame ->
-                    // Simulate sending frames to Gemini Multimodal Live API
-                    // webSocket?.send(...) 
+                    // Send actual frames to Gemini Multimodal Live API
+                    try {
+                        val message = JSONObject().apply {
+                            put("realtimeInput", JSONObject().apply {
+                                put("mediaChunks", JSONArray().apply {
+                                    put(JSONObject().apply {
+                                        put("mimeType", "image/jpeg")
+                                        put("data", android.util.Base64.encodeToString(frame.buffer.array(), android.util.Base64.NO_WRAP))
+                                    })
+                                })
+                            })
+                        }
+                        webSocket?.send(message.toString())
+                    } catch (e: Exception) {
+                        Log.e("SpressoWearables", "Frame send error", e)
+                    }
                 }
             }
         }.onFailure { error, _ ->

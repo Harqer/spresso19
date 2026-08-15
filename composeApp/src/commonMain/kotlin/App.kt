@@ -48,13 +48,18 @@ fun App(
     onGoogleSignInRequested: () -> Unit = {},
     onEmailSignInRequested: (String, String) -> Unit = { _, _ -> },
     onEmailSignUpRequested: (String, String, String) -> Unit = { _, _, _ -> },
-    onVerifyEmailRequested: () -> Unit = {}
+    onVerifyEmailRequested: () -> Unit = {},
+    externalNavKey: NavKey? = null
 ) {
     var themeMode by rememberSaveable { mutableStateOf(ThemeMode.SYSTEM) }
 
     AppTheme(themeMode = themeMode) {
         val initialKey = if (currentUserUid == null) NavKey.AuthKey else NavKey.ChatKey()
         val backStack = rememberSaveableNavBackStack(initialKey = initialKey)
+
+        androidx.compose.runtime.LaunchedEffect(externalNavKey) {
+            externalNavKey?.let { backStack.push(it) }
+        }
 
         if (currentUserUid == null) {
             AuthPage(

@@ -21,6 +21,7 @@ robolectric = "4.11.1"
 dropshots = "0.4.1"
 mockk = "1.13.8"
 ui-test-junit4 = "1.6.8"
+mwdat = "0.8.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity-compose" }
@@ -51,7 +52,11 @@ robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectr
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "ui-test-junit4" }
 androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "ui-test-junit4" }
-dropshots = { module = "com.dropbox.dropshots:dropshots", version.ref = "dropshots" }
+dropshots-core = { module = "com.dropbox.dropshots:dropshots", version.ref = "dropshots" }
+mwdat-core = { group = "com.meta.wearable", name = "mwdat-core", version.ref = "mwdat" }
+mwdat-camera = { group = "com.meta.wearable", name = "mwdat-camera", version.ref = "mwdat" }
+mwdat-display = { group = "com.meta.wearable", name = "mwdat-display", version.ref = "mwdat" }
+mwdat-mockdevice = { group = "com.meta.wearable", name = "mwdat-mockdevice", version.ref = "mwdat" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

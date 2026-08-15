@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="shortcut_lens_short">Lens</string>
-    <string name="shortcut_lens_long">Spresso Lens</string>
-    <string name="shortcut_lens_disabled">Lens is disabled</string>
+    <string name="app_name">Spresso</string>
+    <string name="accessibility_service_label">Spresso Accessibility Service</string>
 </resources>

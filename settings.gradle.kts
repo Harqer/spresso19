@@ -47,4 +47,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Spresso"
 include(":composeApp")
-project(":composeApp").projectDir = file("spresso19/composeApp")
+project(":composeApp").projectDir = file("composeApp")

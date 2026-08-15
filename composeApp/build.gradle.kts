@@ -46,6 +46,10 @@ kotlin {
     
     sourceSets {
         androidMain.dependencies {
+            implementation(libs.mwdat.core)
+            implementation(libs.mwdat.camera)
+            implementation(libs.mwdat.display)
+            implementation(libs.mwdat.mockdevice)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.android)
             implementation(libs.androidx.appfunctions)
@@ -77,10 +81,6 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
             implementation("androidx.glance:glance-appwidget:1.1.0")
             implementation("androidx.glance:glance-material3:1.1.0")
-            implementation(libs.mwdat.core)
-            implementation(libs.mwdat.camera)
-            implementation(libs.mwdat.display)
-            implementation(libs.mwdat.mockdevice)
             implementation("androidx.xr.glimmer:glimmer:1.0.0-alpha01")
             implementation("androidx.xr.runtime:runtime:1.0.0-alpha01")
             implementation("androidx.xr.scenecore:scenecore:1.0.0-alpha01")
@@ -104,7 +104,6 @@ kotlin {
         val androidInstrumentedTest = sourceSets.getByName("androidInstrumentedTest")
         androidInstrumentedTest.dependencies {
             implementation(libs.androidx.compose.ui.test.junit4)
-            implementation(libs.dropshots.core)
         }
         commonMain.dependencies {
             implementation(compose.runtime)

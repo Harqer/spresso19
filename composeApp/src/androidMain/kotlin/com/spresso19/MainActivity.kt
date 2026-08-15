@@ -5,6 +5,10 @@ import components.core.SpressoLogo
 import App
 import android.Manifest
 import android.content.Intent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
+import navigation.NavKey
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
@@ -81,6 +85,34 @@ class MainActivity : ComponentActivity() {
             
             var user by remember { mutableStateOf(FirebaseAuth.getInstance().currentUser) }
             var devOverrideUid by remember { mutableStateOf<String?>(null) }
+            var externalNavKey by remember { mutableStateOf<NavKey?>(null) }
+
+            DisposableEffect(Unit) {
+                val receiver = object : BroadcastReceiver() {
+                    override fun onReceive(context: Context?, intent: Intent?) {
+                        when (intent?.action) {
+                            "com.spresso19.intent.action.START_COOKING" -> {
+                                externalNavKey = NavKey.ChatKey(initialPrompt = "Help me cook something delicious!")
+                            }
+                            "com.spresso19.intent.action.START_GROCERY" -> {
+                                externalNavKey = NavKey.GroceryKey
+                            }
+                        }
+                    }
+                }
+                val filter = IntentFilter().apply {
+                    addAction("com.spresso19.intent.action.START_COOKING")
+                    addAction("com.spresso19.intent.action.START_GROCERY")
+                }
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                } else {
+                    registerReceiver(receiver, filter)
+                }
+                onDispose {
+                    unregisterReceiver(receiver)
+                }
+            }
             var themeMode by remember { mutableStateOf(ThemeMode.SYSTEM) }
             
             DisposableEffect(Unit) {
