@@ -8,9 +8,9 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import navigation.NavKey
 import org.jetbrains.compose.resources.DrawableResource
-import spresso19.composeapp.generated.resources.Res
-import spresso19.composeapp.generated.resources.ic_for_you
-import spresso19.composeapp.generated.resources.ic_deployed_code_account
+import spresso.composeapp.generated.resources.Res
+import spresso.composeapp.generated.resources.ic_for_you
+import spresso.composeapp.generated.resources.ic_deployed_code_account
 
 data class NavDestinationItem(
     val key: NavKey,

@@ -82,16 +82,19 @@ fun TravelTripsPage(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(32.dp)
-        ) {
+    Scaffold { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .consumeWindowInsets(innerPadding)
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(innerPadding)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(32.dp)
+            ) {
             HeaderBanner(trips, activeTripId) { activeTripId = it }
 
             if (currentTrip != null) {
@@ -113,6 +116,7 @@ fun TravelTripsPage(
         activeQrModalEvent?.let { event ->
             QrModal(event) { activeQrModalEvent = null }
         }
+    }
     }
 }
 

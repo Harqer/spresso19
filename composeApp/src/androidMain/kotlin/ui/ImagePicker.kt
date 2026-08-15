@@ -9,7 +9,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
-actual fun rememberImagePicker(onImagePicked: (ByteArray?) -> Unit): () -> Unit {
+actual fun rememberImagePicker(
+    onFrameCaptured: ((ByteArray) -> Unit)?,
+    onImagePicked: (ByteArray?) -> Unit
+): () -> Unit {
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
     var showCamera by remember { mutableStateOf(false) }
@@ -79,6 +82,7 @@ actual fun rememberImagePicker(onImagePicked: (ByteArray?) -> Unit): () -> Unit 
                     showCamera = false
                     onImagePicked(bytes)
                 },
+                onFrameCaptured = onFrameCaptured,
                 onDismiss = {
                     showCamera = false
                     onImagePicked(null)

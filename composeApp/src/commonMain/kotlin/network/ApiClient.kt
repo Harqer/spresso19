@@ -140,7 +140,7 @@ open class ApiClient {
         logCrashlyticsBreadcrumb(action, "productId=$productId")
         val authToken = getCurrentUserIdToken()
         return try {
-            val response = client.post("$cloudFunctionsBaseUrl/ingestInteraction") {
+            val response = client.post("$backendBaseUrl/api/ingestInteraction") {
                 contentType(ContentType.Application.Json)
                 if (authToken != null) {
                     header(HttpHeaders.Authorization, "Bearer $authToken")
@@ -156,7 +156,7 @@ open class ApiClient {
     suspend fun requestVirtualTryOn(base64Image: String): String {
         val authToken = getCurrentUserIdToken()
         return try {
-            val response: JsonObject = client.post("$cloudFunctionsBaseUrl/generateVirtualTryOn") {
+            val response: JsonObject = client.post("$backendBaseUrl/api/generateVirtualTryOn") {
                 contentType(ContentType.Application.Json)
                 if (authToken != null) {
                     header(HttpHeaders.Authorization, "Bearer $authToken")
@@ -175,7 +175,7 @@ open class ApiClient {
     suspend fun requestSpin360(productId: String): String {
         val authToken = getCurrentUserIdToken()
         return try {
-            val response: JsonObject = client.post("$cloudFunctionsBaseUrl/generateSpin360") {
+            val response: JsonObject = client.post("$backendBaseUrl/api/generateSpin360") {
                 contentType(ContentType.Application.Json)
                 if (authToken != null) {
                     header(HttpHeaders.Authorization, "Bearer $authToken")

@@ -9,7 +9,7 @@
     <!-- Official Android 12+ SplashScreen API Night Mode Theme -->
     <style name="Theme.Spresso.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">#121417</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_icon</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
         <item name="windowSplashScreenIconBackgroundColor">#121417</item>
         <item name="windowSplashScreenAnimationDuration">1000</item>
         <item name="postSplashScreenTheme">@style/Theme.Spresso</item>

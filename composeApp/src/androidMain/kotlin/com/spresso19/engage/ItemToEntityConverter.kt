@@ -20,8 +20,7 @@ object ItemToEntityConverter {
             .setTitle(item.title)
             .setPrice(
                 Price.Builder()
-                    .setPriceInMicros((item.price * 1_000_000).toLong())
-                    .setCurrencyCode("USD")
+                    .setCurrentPrice("$" + item.price)
                     .build()
             )
             .addPosterImage(

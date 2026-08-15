@@ -12,7 +12,10 @@ import org.khronos.webgl.Int8Array
 external fun getInt8ArrayElement(array: Int8Array, index: Int): Byte
 
 @Composable
-actual fun rememberImagePicker(onImagePicked: (ByteArray?) -> Unit): () -> Unit {
+actual fun rememberImagePicker(
+    onFrameCaptured: ((ByteArray) -> Unit)?,
+    onImagePicked: (ByteArray?) -> Unit
+): () -> Unit {
     return {
         val input = document.createElement("input") as HTMLInputElement
         input.type = "file"

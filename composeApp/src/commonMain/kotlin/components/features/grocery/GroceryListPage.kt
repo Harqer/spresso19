@@ -6,6 +6,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -48,44 +51,19 @@ fun GroceryListPage(
     val categories = listOf("All", "Produce", "Dairy", "Bakery", "Pantry", "Beverages")
     val totalEstimated = items.filter { !it.checked }.sumOf { it.estimatedPrice * it.quantity }
 
-    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).windowInsetsPadding(WindowInsets.safeDrawing)) {
-        StoreLocationHeader(storeName = "Local Market Deals", totalEstimated = totalEstimated, itemCount = items.size)
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        contentWindowInsets = WindowInsets.safeDrawing
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                .padding(top = innerPadding.calculateTopPadding())
+        ) {
+            StoreLocationHeader(storeName = "Local Market Deals", totalEstimated = totalEstimated, itemCount = items.size)
 
-        Surface(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), color = Color.White, shape = RoundedCornerShape(16.dp), border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                    Text("Bargain Chef Recipe Sourcing", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(value = recipePrompt, onValueChange = { recipePrompt = it }, placeholder = { Text("Recipe idea...", fontSize = 12.sp) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
-                    SpressoButton(
-                        text = "Source",
-                        onClick = {
-                            isGeneratingRecipe = true
-                            scope.launch {
-                                try {
-                                    val response = apiClient.generateRecipeBargainChef(recipePrompt.ifBlank { "Budget meal" }, items.map { it.name })
-                                    val recipeName = response["recipe"]?.jsonPrimitive?.content ?: "Bargain Chef Meal"
-                                    val ingredientsArray = response["ingredients"]?.jsonArray
-                                    if (ingredientsArray != null && ingredientsArray.isNotEmpty()) {
-                                        items = ingredientsArray.mapIndexed { idx, ing -> GroceryItem("recipe-${items.size + idx}", ing.jsonPrimitive.content, 1, "item", "Pantry", 2.99) } + items
-                                    }
-                                    recipeStatusMessage = "Sourced for: $recipeName"
-                                } catch (e: Exception) { recipeStatusMessage = "Recipe failed: ${e.message}" }
-                                finally { isGeneratingRecipe = false; recipePrompt = "" }
-                            }
-                        },
-                        enabled = !isGeneratingRecipe,
-                        modifier = Modifier,
-                        variant = SpressoButtonVariant.PRIMARY,
-                        trackingId = "grocery_recipe_source",
-                        trackingAction = "click"
-                    )
-                }
-                recipeStatusMessage?.let { Text(it, fontSize = 11.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold) }
-            }
-        }
 
         Surface(modifier = Modifier.fillMaxWidth(), color = Color.White, border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)) {
             Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -116,7 +94,18 @@ fun GroceryListPage(
             }
         }
 
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .consumeWindowInsets(innerPadding),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 16.dp,
+                bottom = innerPadding.calculateBottomPadding() + 16.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             val filteredItems = if (selectedCategory == "All") items else items.filter { it.category == selectedCategory }
             items(filteredItems) { item ->
                 SpressoListItem(
@@ -146,6 +135,7 @@ fun GroceryListPage(
                 )
             }
         }
+    }
     }
 }
 

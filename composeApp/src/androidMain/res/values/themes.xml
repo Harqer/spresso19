@@ -11,7 +11,7 @@
         <!-- Single opaque window background color (Light mode default #FAFCF9) -->
         <item name="windowSplashScreenBackground">#FAFCF9</item>
         <!-- Center Animated Vector / Drawable Icon (288dp circle constraint) -->
-        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_icon</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
         <!-- Icon background color (optional for adaptive contrast) -->
         <item name="windowSplashScreenIconBackgroundColor">#FAFCF9</item>
         <item name="windowSplashScreenAnimationDuration">1000</item>

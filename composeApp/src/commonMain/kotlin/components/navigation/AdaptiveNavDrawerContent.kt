@@ -21,8 +21,8 @@ import androidx.compose.ui.unit.dp
 import navigation.NavKey
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.painterResource
-import spresso19.composeapp.generated.resources.Res
-import spresso19.composeapp.generated.resources.spresso_logo_symbol_transparent
+import spresso.composeapp.generated.resources.Res
+import spresso.composeapp.generated.resources.spresso_logo_symbol_transparent
 import androidx.compose.foundation.Image
 
 @Composable

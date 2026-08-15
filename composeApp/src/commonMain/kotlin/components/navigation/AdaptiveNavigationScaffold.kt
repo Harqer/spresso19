@@ -24,8 +24,8 @@ import components.navigation.isSameDestinationGroup
 import navigation.NavKey
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.painterResource
-import spresso19.composeapp.generated.resources.Res
-import spresso19.composeapp.generated.resources.spresso_logo_symbol
+import spresso.composeapp.generated.resources.Res
+import spresso.composeapp.generated.resources.spresso_logo_symbol
 import androidx.compose.foundation.Image
 import theme.ThemeMode
 

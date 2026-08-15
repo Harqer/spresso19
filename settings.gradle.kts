@@ -1,3 +1,13 @@
+import java.util.Properties
+import java.io.File
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = File(rootDir, "local.properties")
+    if (localPropertiesFile.exists()) {
+        load(localPropertiesFile.inputStream())
+    }
+}
+
 pluginManagement {
     repositories {
         google {
@@ -25,6 +35,13 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        maven {
+            url = uri("https://maven.pkg.github.com/facebook/meta-wearables-dat-android")
+            credentials {
+                username = ""
+                password = System.getenv("GITHUB_TOKEN") ?: localProperties.getProperty("github_token")
+            }
+        }
     }
 }
 

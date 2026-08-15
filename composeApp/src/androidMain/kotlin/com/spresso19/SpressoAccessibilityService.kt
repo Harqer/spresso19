@@ -110,6 +110,21 @@ class SpressoAccessibilityService : AccessibilityService() {
         }
     }
 
+    private var lastVolumeDownTime = 0L
+
+    override fun onKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (event.keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN && event.action == android.view.KeyEvent.ACTION_DOWN) {
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastVolumeDownTime < 500) {
+                startService(Intent(this, SpressoFloatingOverlayService::class.java))
+                lastVolumeDownTime = 0L
+                return true
+            }
+            lastVolumeDownTime = currentTime
+        }
+        return super.onKeyEvent(event)
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         // Intentionally inert: screen search never starts from an accessibility event.
     }

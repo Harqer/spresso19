@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import components.features.chat.AIShopperInputBar
 import components.molecules.MediaActionCard
@@ -88,17 +89,29 @@ fun ProductCatalogScreen(
         else products.filter { p -> p.category.contains(selectedCategoryId, ignoreCase = true) }
     }
 
+    val layoutDirection = LocalLayoutDirection.current
     Scaffold(
-        modifier = modifier.fillMaxSize().imePadding(),
+        modifier = modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+        Box(modifier = Modifier.fillMaxSize()) {
             if (isLoading && products.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
-                LazyVerticalGrid(columns = GridCells.Adaptive(minSize = 300.dp), contentPadding = PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxSize()) {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 300.dp),
+                    contentPadding = PaddingValues(
+                        start = 16.dp + innerPadding.calculateStartPadding(layoutDirection),
+                        top = 16.dp + innerPadding.calculateTopPadding(),
+                        end = 16.dp + innerPadding.calculateEndPadding(layoutDirection),
+                        bottom = 16.dp + innerPadding.calculateBottomPadding()
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxSize().consumeWindowInsets(innerPadding)
+                ) {
                     item(span = { GridItemSpan(this.maxCurrentLineSpan) }) { ProductCatalogHeader(selectedCategoryId = selectedCategoryId, onCategorySelected = { selectedCategoryId = it }, userLocation = userLocation, searchRadius = searchRadius, onRequestLocationPermission = onRequestLocationPermission) }
                     
                     if (errorMessage != null) {

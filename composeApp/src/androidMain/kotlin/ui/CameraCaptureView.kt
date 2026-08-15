@@ -33,6 +33,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -40,6 +42,7 @@ import java.util.concurrent.Executors
 @Composable
 fun CameraCaptureView(
     onImageCaptured: (ByteArray) -> Unit,
+    onFrameCaptured: ((ByteArray) -> Unit)? = null,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -146,6 +149,20 @@ fun CameraCaptureView(
         } 
     }
 
+    var previewView by remember { mutableStateOf<PreviewView?>(null) }
+
+    LaunchedEffect(onFrameCaptured) {
+        if (onFrameCaptured == null) return@LaunchedEffect
+        while (isActive) {
+            kotlinx.coroutines.delay(1000)
+            previewView?.bitmap?.let { bmp ->
+                val stream = java.io.ByteArrayOutputStream()
+                bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, stream)
+                onFrameCaptured(stream.toByteArray())
+            }
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(
             factory = { ctx ->
@@ -153,6 +170,7 @@ fun CameraCaptureView(
                     controller = cameraController
                     scaleType = PreviewView.ScaleType.FILL_CENTER
                     implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                    previewView = this
                 }
             },
             modifier = Modifier.fillMaxSize()

@@ -63,3 +63,34 @@ type UserLike @table(key: ["userUid", "product"]) {
   product: Product!
   timestamp: Timestamp! @default(expr: "request.time")
 }
+
+# ----------------------------------------------------
+# META WEARABLES & SPATIAL FEATURES
+# ----------------------------------------------------
+
+type GroceryList @table {
+  id: UUID! @default(expr: "uuidV4()")
+  userId: String!
+  title: String!
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type GroceryListItem @table {
+  id: UUID! @default(expr: "uuidV4()")
+  groceryList: GroceryList!
+  productName: String!
+  productId: String
+  isPurchased: Boolean! @default(value: false)
+  addedVia: String!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type ActiveCookingSession @table {
+  id: UUID! @default(expr: "uuidV4()")
+  userId: String!
+  recipeId: String!
+  currentStepIndex: Int! @default(value: 0)
+  startedAt: Timestamp! @default(expr: "request.time")
+  lastUpdated: Timestamp! @default(expr: "request.time")
+}

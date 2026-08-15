@@ -81,7 +81,7 @@ fun AIShopperInputBar(
                 }
                 if (onOpenObjectDetection != null) {
                     IconButton(onClick = onOpenObjectDetection, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.PhotoCamera, "Camera", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Search, "Camera", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                     }
                 }
 

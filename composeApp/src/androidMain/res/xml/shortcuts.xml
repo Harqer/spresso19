@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="spresso_lens"
+        android:enabled="true"
+        android:icon="@drawable/ic_lens"
+        android:shortcutShortLabel="@string/shortcut_lens_short"
+        android:shortcutLongLabel="@string/shortcut_lens_long"
+        android:shortcutDisabledMessage="@string/shortcut_lens_disabled">
+        <intent
+            android:action="com.spresso19.ACTION_SHORTCUT_LENS"
+            android:targetPackage="com.spresso19"
+            android:targetClass="com.spresso19.SpressoLensShortcutReceiver" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>

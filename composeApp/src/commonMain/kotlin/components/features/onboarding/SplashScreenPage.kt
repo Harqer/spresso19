@@ -51,18 +51,15 @@ fun SplashScreenPage(
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                .windowInsetsPadding(WindowInsets.safeDrawing),
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest),
             contentAlignment = Alignment.Center
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()
             ) {
-                SpressoLogo(
-                    size = LogoSize.Large,
-                    showText = true
-                )
+                SplashVideoPlayer(modifier = Modifier.fillMaxSize())
             }
 
             Text(
@@ -72,6 +69,7 @@ fun SplashScreenPage(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
                     .padding(24.dp)
                     .clickable { onSplashComplete() }
             )

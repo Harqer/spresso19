@@ -8,7 +8,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <application
+        android:name=".SpressoApp"
         android:allowBackup="false"
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
@@ -21,12 +24,25 @@
             android:exported="true"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:theme="@style/Theme.Spresso.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
+
+        <receiver
+            android:name=".SpressoLensShortcutReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.spresso19.ACTION_SHORTCUT_LENS" />
+            </intent-filter>
+        </receiver>
 
         <service
             android:name=".SpressoAccessibilityService"
@@ -48,8 +64,8 @@
             android:theme="@android:style/Theme.Material.Light.NoActionBar" />
 
         <receiver
-            android:name=".SpressoLensWidgetProvider"
-            android:exported="false">
+            android:name=".SpressoLensGlanceWidgetReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -57,6 +73,21 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/lens_widget_info" />
         </receiver>
+
+        <service
+            android:name=".SpressoLensTileService"
+            android:exported="true"
+            android:label="Spresso Lens"
+            android:icon="@drawable/ic_lens"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".SpressoFloatingOverlayService"
+            android:exported="false" />
 
         <service
             android:name="com.spresso19.appfunctions.SpressoAppFunctionService"
@@ -91,6 +122,14 @@
                 <action android:name="com.google.android.engage.action.shopping.PUBLISH_ORDER_TRACKING_CLUSTER" />
             </intent-filter>
         </receiver>
+        <activity
+            android:name=".SpressoGlimmerActivity"
+            android:exported="true"
+            android:requiredDisplayCategory="xr_projected">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

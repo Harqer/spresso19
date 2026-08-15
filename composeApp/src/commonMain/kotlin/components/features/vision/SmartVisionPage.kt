@@ -63,32 +63,41 @@ fun SmartVisionPage(
         }
     }
 
-    val pickLensImage = rememberImagePicker { bytes ->
-        if (bytes != null) {
-            activeImage = bytes
-            isScanning = true
-            scope.launch {
-                val base64Image = Base64.Default.encode(bytes)
-                val response = apiClient.performLensSearch(base64Image)
-                if (response.success) {
-                    val items = response.detectedResult?.detectedItems ?: emptyList()
-                    detectedItems = items
-                } else {
-                    detectedItems = emptyList()
-                    snackbarHostState.showSnackbar("Vision Search unavailable")
+    val pickLensImage = rememberImagePicker(
+        onFrameCaptured = null,
+        onImagePicked = { bytes ->
+            if (bytes != null) {
+                activeImage = bytes
+                isScanning = true
+                
+                scope.launch {
+                    @OptIn(ExperimentalEncodingApi::class)
+                    val base64Image = Base64.Default.encode(bytes)
+                    try {
+                        val response = apiClient.performLensSearch(base64Image)
+                        if (response.success) {
+                            detectedItems = response.detectedResult?.detectedItems ?: emptyList()
+                        } else {
+                            detectedItems = emptyList()
+                            snackbarHostState.showSnackbar("Vision Search unavailable")
+                        }
+                    } catch (e: Exception) {
+                        detectedItems = emptyList()
+                    } finally {
+                        isScanning = false
+                    }
                 }
-                isScanning = false
             }
         }
-    }
+    )
 
     Scaffold(
-        modifier = modifier.fillMaxSize().imePadding(),
+        modifier = modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding).semantics(mergeDescendants = true) {
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding).consumeWindowInsets(innerPadding).semantics(mergeDescendants = true) {
                 contentDescription = "Smart Vision and Virtual Try-On page"
             }) {
         // Viewport

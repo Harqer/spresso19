@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,12 +48,19 @@ fun WardrobePage(
 
     val weatherSummary = "Cold 32°F Winter Season — Tailored thermal cashmere layering & shearling outerwear curated for your fashion profile."
 
+    val layoutDirection = LocalLayoutDirection.current
+    val insetsPadding = WindowInsets.safeDrawing.asPaddingValues()
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-            .windowInsetsPadding(WindowInsets.safeDrawing),
-        contentPadding = PaddingValues(16.dp),
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest),
+        contentPadding = PaddingValues(
+            start = insetsPadding.calculateStartPadding(layoutDirection) + 16.dp,
+            top = insetsPadding.calculateTopPadding() + 16.dp,
+            end = insetsPadding.calculateEndPadding(layoutDirection) + 16.dp,
+            bottom = insetsPadding.calculateBottomPadding() + 16.dp
+        ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {

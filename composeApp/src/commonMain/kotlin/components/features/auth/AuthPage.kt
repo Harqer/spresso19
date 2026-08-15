@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.sp
 import components.core.LogoSize
 import components.core.SpressoLogo
 import org.jetbrains.compose.resources.painterResource
-import spresso19.composeapp.generated.resources.Res
-import spresso19.composeapp.generated.resources.google_logo
+import spresso.composeapp.generated.resources.Res
+import spresso.composeapp.generated.resources.google_logo
 
 /**
  * AuthPage Template.
@@ -37,6 +37,7 @@ fun AuthPage(
     initialMode: String = "signin",
     onSuccess: () -> Unit = {},
     onGoogleSignInRequested: () -> Unit = {},
+    onDevLoginRequested: () -> Unit = {},
     onEmailSignInRequested: (String, String) -> Unit = { _, _ -> },
     onEmailSignUpRequested: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
@@ -47,18 +48,22 @@ fun AuthPage(
 
     val scrollState = rememberScrollState()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .imePadding()
-    ) {
-        Column(
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = WindowInsets.safeDrawing
+    ) { innerPadding ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 24.dp),
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -158,6 +163,15 @@ fun AuthPage(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
+                
+                // Temporary Dev Login bypass for monkey testing without backend
+                TextButton(onClick = onDevLoginRequested) {
+                    Text(
+                        text = "DEV ONLY: Bypass Login",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(48.dp))
@@ -173,5 +187,6 @@ fun AuthPage(
             Text("|", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("Privacy policy", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
     }
 }

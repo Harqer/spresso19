@@ -3,4 +3,7 @@ package ui
 import androidx.compose.runtime.Composable
 
 @Composable
-expect fun rememberImagePicker(onImagePicked: (ByteArray?) -> Unit): () -> Unit
+expect fun rememberImagePicker(
+    onFrameCaptured: ((ByteArray) -> Unit)? = null,
+    onImagePicked: (ByteArray?) -> Unit
+): () -> Unit

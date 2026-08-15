@@ -43,7 +43,7 @@ class ClusterRequestFactory(context: Context) {
             .build()
         
         return PublishShoppingCartClusterRequest.Builder()
-            .setShoppingCartCluster(shoppingCart)
+            .setShoppingCart(shoppingCart)
             .build()
     }
 
@@ -55,7 +55,7 @@ class ClusterRequestFactory(context: Context) {
             .build()
 
         return PublishShoppingListsRequest.Builder()
-            .addShoppingListCluster(shoppingList)
+            .addShoppingList(shoppingList)
             .build()
     }
 
@@ -67,7 +67,7 @@ class ClusterRequestFactory(context: Context) {
             .build()
 
         return PublishShoppingReorderClusterRequest.Builder()
-            .setShoppingReorderCluster(reorderCluster)
+            .setReorderCluster(reorderCluster)
             .build()
     }
 
@@ -77,7 +77,7 @@ class ClusterRequestFactory(context: Context) {
             .setStatus("Shipped")
             .setOrderTime(System.currentTimeMillis())
             .setActionLinkUri(Uri.parse("http://example.com/track/123"))
-            .setShoppingOrderType(ShoppingOrderType.TYPE_DELIVERY)
+            .setShoppingOrderType(ShoppingOrderType.TYPE_MULTI_DAY_DELIVERY)
             .build()
 
         return PublishShoppingOrderTrackingClusterRequest.Builder()

@@ -41,7 +41,10 @@ fun App(
     onDismissAccessibilityDisclosure: (() -> Unit)? = null,
     onRevokeAccessibilityConsent: (() -> Unit)? = null,
     onRequestAccessibilityScan: (() -> Unit)? = null,
+    onCloseGlobalChat: () -> Unit = {},
+    onTriggerGlobalLens: () -> Unit = {},
     onLensResult: (String) -> Unit = {},
+    onDevLoginRequested: () -> Unit = {},
     onGoogleSignInRequested: () -> Unit = {},
     onEmailSignInRequested: (String, String) -> Unit = { _, _ -> },
     onEmailSignUpRequested: (String, String, String) -> Unit = { _, _, _ -> },
@@ -55,6 +58,7 @@ fun App(
 
         if (currentUserUid == null) {
             AuthPage(
+                onDevLoginRequested = onDevLoginRequested,
                 onGoogleSignInRequested = onGoogleSignInRequested,
                 onEmailSignInRequested = onEmailSignInRequested,
                 onEmailSignUpRequested = onEmailSignUpRequested
@@ -77,22 +81,30 @@ fun App(
         var errorMessage by remember { mutableStateOf<String?>(null) }
         var selectedTemplateId by remember { mutableStateOf("economic") }
 
-        val pickImage = rememberImagePicker { bytes ->
-            if (bytes != null) {
-                scope.launch {
+        val pickImage = rememberImagePicker(
+            onFrameCaptured = { frameBytes ->
+                if (isVoiceRecording) {
                     @OptIn(ExperimentalEncodingApi::class)
-                    val base64Image = Base64.Default.encode(bytes)
-                    try {
-                        displayMediaUrl = apiClient.requestVirtualTryOn(base64Image)
-                        isVideoPlaying = false
-                        backStack.push(NavKey.WardrobeKey(displayMediaUrl = displayMediaUrl, isVideoPlaying = false))
-                    } catch (e: Exception) {
-                        errorMessage = "Error: Failed to fetch Virtual Try-On."
-                        isVideoPlaying = false
+                    chatViewModel.sendLiveVideoFrame(Base64.Default.encode(frameBytes))
+                }
+            },
+            onImagePicked = { bytes ->
+                if (bytes != null) {
+                    scope.launch {
+                        @OptIn(ExperimentalEncodingApi::class)
+                        val base64Image = Base64.Default.encode(bytes)
+                        try {
+                            displayMediaUrl = apiClient.requestVirtualTryOn(base64Image)
+                            isVideoPlaying = false
+                            backStack.push(NavKey.WardrobeKey(displayMediaUrl = displayMediaUrl, isVideoPlaying = false))
+                        } catch (e: Exception) {
+                            errorMessage = "Error: Failed to fetch Virtual Try-On."
+                            isVideoPlaying = false
+                        }
                     }
                 }
             }
-        }
+        )
 
         MainAppTemplate(
             currentKey = backStack.currentKey,
@@ -134,6 +146,7 @@ fun App(
             when (targetKey) {
                 is NavKey.AuthKey -> {
                     AuthPage(
+                        onDevLoginRequested = onDevLoginRequested,
                         onGoogleSignInRequested = onGoogleSignInRequested,
                         onEmailSignInRequested = onEmailSignInRequested,
                         onEmailSignUpRequested = onEmailSignUpRequested
@@ -155,6 +168,7 @@ fun App(
                         onDismissAccessibilityDisclosure = onDismissAccessibilityDisclosure,
                         onRevokeAccessibilityConsent = onRevokeAccessibilityConsent,
                         onRequestAccessibilityScan = onRequestAccessibilityScan,
+                        onTriggerGlobalLens = onTriggerGlobalLens,
                         onLaunchCamera = { pickImage() },
                         onAddToCart = { _ -> },
                         onSelectTryOn = { product ->

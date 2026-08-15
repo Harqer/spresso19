@@ -57,6 +57,7 @@ fun PersonalAIShopperChatPanel(
     onToggleAccessibility: (() -> Unit)? = null,
     onRequestAccessibilityScan: (() -> Unit)? = null,
     onRevokeAccessibilityConsent: (() -> Unit)? = null,
+    onTriggerGlobalLens: (() -> Unit)? = null,
     onLaunchCamera: (() -> Unit)? = null,
     isVoiceRecording: Boolean = false,
     onToggleVoiceRecording: (() -> Unit)? = null,
@@ -134,8 +135,7 @@ fun PersonalAIShopperChatPanel(
                     AIShopperInputBar(
                         onSend = onSendMessage,
                         onOpenLiveCamera = onLaunchCamera,
-                        onOpenObjectDetection = onLaunchCamera,
-
+                        onOpenObjectDetection = onTriggerGlobalLens ?: onLaunchCamera,
                         isVoiceActive = isVoiceRecording,
                         isSpeaking = isSpeaking,
                         isListening = isListening,

@@ -33,6 +33,7 @@ fun PersonalAIShopperChatPage(
     onDismissAccessibilityDisclosure: (() -> Unit)? = null,
     onRevokeAccessibilityConsent: (() -> Unit)? = null,
     onRequestAccessibilityScan: (() -> Unit)? = null,
+    onTriggerGlobalLens: (() -> Unit)? = null,
     onLaunchCamera: (() -> Unit)? = null,
     onToggleVoiceRecording: (() -> Unit)? = null,
     onAddToCart: (ProductItem) -> Unit = {},
@@ -94,28 +95,34 @@ fun PersonalAIShopperChatPage(
         )
     }
 
-    PersonalAIShopperChatPanel(
-        messages = messages,
-        onSendMessage = { chatViewModel.sendMessage(prompt = it, location = userLocation, agentType = "SHOPPING_CONCIERGE") },
-        userName = userName,
-        onAddToCart = onAddToCart,
-        onSelectTryOn = onSelectTryOn,
-        errorMessage = errorMessage ?: chatViewModel.errorMessage,
-        userLocation = userLocation,
-        isAccessibilityEnabled = isAccessibilityEnabled,
-        hasAccessibilityConsent = hasAccessibilityConsent,
-        onToggleAccessibility = onToggleAccessibility,
-        onRequestAccessibilityScan = onRequestAccessibilityScan,
-        onRevokeAccessibilityConsent = onRevokeAccessibilityConsent,
-        onLaunchCamera = onLaunchCamera,
-        isVoiceRecording = isVoiceRecording || chatViewModel.isVoiceActive,
-        onToggleVoiceRecording = onToggleVoiceRecording ?: { chatViewModel.toggleVoiceStream() },
-        isSpeaking = chatViewModel.isVoiceSpeaking,
-        isListening = chatViewModel.isVoiceListening,
-        onStopVoice = { chatViewModel.stopVoiceStream() },
-        isGenerating = isGenerating,
-        httpClient = apiClient.client,
-        modifier = modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)
-    )
+    Scaffold(modifier = modifier) { innerPadding ->
+        PersonalAIShopperChatPanel(
+            messages = messages,
+            onSendMessage = { chatViewModel.sendMessage(prompt = it, location = userLocation, agentType = "SHOPPING_CONCIERGE") },
+            userName = userName,
+            onAddToCart = onAddToCart,
+            onSelectTryOn = onSelectTryOn,
+            errorMessage = errorMessage ?: chatViewModel.errorMessage,
+            userLocation = userLocation,
+            isAccessibilityEnabled = isAccessibilityEnabled,
+            hasAccessibilityConsent = hasAccessibilityConsent,
+            onToggleAccessibility = onToggleAccessibility,
+            onRequestAccessibilityScan = onRequestAccessibilityScan,
+            onTriggerGlobalLens = onTriggerGlobalLens,
+            onRevokeAccessibilityConsent = onRevokeAccessibilityConsent,
+            onLaunchCamera = onLaunchCamera,
+            isVoiceRecording = isVoiceRecording || chatViewModel.isVoiceActive,
+            onToggleVoiceRecording = onToggleVoiceRecording ?: { chatViewModel.toggleVoiceStream() },
+            isSpeaking = chatViewModel.isVoiceSpeaking,
+            isListening = chatViewModel.isVoiceListening,
+            onStopVoice = { chatViewModel.stopVoiceStream() },
+            isGenerating = isGenerating,
+            httpClient = apiClient.client,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
+        )
+    }
 }
 

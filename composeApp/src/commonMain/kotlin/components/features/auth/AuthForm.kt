@@ -19,8 +19,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.painterResource
-import spresso19.composeapp.generated.resources.Res
-import spresso19.composeapp.generated.resources.google_logo
+import spresso.composeapp.generated.resources.Res
+import spresso.composeapp.generated.resources.google_logo
 
 @Composable
 fun AuthForm(
@@ -34,6 +34,7 @@ fun AuthForm(
     loading: Boolean,
     errorMsg: String?,
     onGoogleSignInRequested: () -> Unit,
+    onDevLoginRequested: () -> Unit,
     onSubmitRequested: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -69,6 +70,12 @@ fun AuthForm(
                 Text(if (mode == "signin") "Sign In" else "Create Account", fontWeight = FontWeight.Bold)
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
             }
+        }
+        TextButton(
+            onClick = onDevLoginRequested,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Dev Login Bypass", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

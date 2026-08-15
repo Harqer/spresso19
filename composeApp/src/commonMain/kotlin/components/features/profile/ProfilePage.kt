@@ -49,16 +49,21 @@ fun ProfilePage(
         ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(if (isDark) MaterialTheme.colorScheme.surface else bgLight)
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .verticalScroll(scrollState)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = if (isDark) MaterialTheme.colorScheme.surface else bgLight,
+        contentWindowInsets = WindowInsets.safeDrawing
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
+                .verticalScroll(scrollState)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
         // Profile Header
         Surface(
             modifier = Modifier.size(100.dp),
@@ -146,6 +151,7 @@ fun ProfilePage(
         }
         
         Spacer(modifier = Modifier.height(32.dp))
+    }
     }
 }
 

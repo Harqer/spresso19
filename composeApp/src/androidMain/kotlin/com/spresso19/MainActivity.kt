@@ -43,6 +43,7 @@ import theme.SpressoAndroidTheme
 import theme.ThemeMode
 import com.spresso19.engage.EngageBroadcastReceiver
 
+@kotlin.OptIn(androidx.credentials.ExperimentalDigitalCredentialApi::class)
 class MainActivity : ComponentActivity() {
 
     private val recordAudioRequestCode = 101
@@ -79,6 +80,7 @@ class MainActivity : ComponentActivity() {
             val showDisclosure by accessibilityDisclosureRequestedState
             
             var user by remember { mutableStateOf(FirebaseAuth.getInstance().currentUser) }
+            var devOverrideUid by remember { mutableStateOf<String?>(null) }
             var themeMode by remember { mutableStateOf(ThemeMode.SYSTEM) }
             
             DisposableEffect(Unit) {
@@ -100,7 +102,7 @@ class MainActivity : ComponentActivity() {
 
             SpressoAndroidTheme(themeMode = themeMode) {
                 App(
-                    currentUserUid = user?.uid,
+                    currentUserUid = devOverrideUid ?: user?.uid,
                     currentUserName = cleanUserName,
                     onShare = { productId ->
                         val sendIntent = Intent().apply {
@@ -120,6 +122,15 @@ class MainActivity : ComponentActivity() {
                     },
                     onRevokeAccessibilityConsent = ::revokeAccessibilityConsent,
                     onRequestAccessibilityScan = ::requestOneShotScreenScan,
+                    onTriggerGlobalLens = {
+                        val intent = Intent(AccessibilityServiceCommands.ACTION_REQUEST_SCREEN_SCAN).apply {
+                            putExtra(AccessibilityServiceCommands.EXTRA_REQUEST_TOKEN, java.util.UUID.randomUUID().toString())
+                            putExtra(AccessibilityServiceCommands.EXTRA_REQUESTED_AT, System.currentTimeMillis())
+                        }
+                        sendBroadcast(intent)
+                        moveTaskToBack(true)
+                    },
+                    onDevLoginRequested = { devOverrideUid = "dev_user_123" },
                     onGoogleSignInRequested = {
                         val credentialManager = CredentialManager.create(this@MainActivity)
                         val googleIdOption = GetGoogleIdOption.Builder()
@@ -261,6 +272,14 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         if (isAccessibilityDisclosureIntent(intent)) {
             accessibilityDisclosureRequestedState.value = true
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val params = android.app.PictureInPictureParams.Builder().build()
+            enterPictureInPictureMode(params)
         }
     }
 

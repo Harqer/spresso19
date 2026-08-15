@@ -117,10 +117,18 @@ fun WardrobeViewPage(
         photos = listOf(newPhoto) + photos
     }
 
+    val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
+    val safeDrawingPadding = WindowInsets.safeDrawing.asPaddingValues()
+
     LazyVerticalGrid(
         columns = GridCells.Adaptive(160.dp),
-        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).windowInsetsPadding(WindowInsets.safeDrawing),
-        contentPadding = PaddingValues(16.dp),
+        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
+        contentPadding = PaddingValues(
+            start = 16.dp + safeDrawingPadding.calculateStartPadding(layoutDirection),
+            top = 16.dp + safeDrawingPadding.calculateTopPadding(),
+            end = 16.dp + safeDrawingPadding.calculateEndPadding(layoutDirection),
+            bottom = 16.dp + safeDrawingPadding.calculateBottomPadding()
+        ),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

@@ -229,6 +229,14 @@ class ChatViewModel(
         }
     }
 
+    fun sendLiveVideoFrame(base64Image: String) {
+        if (isVoiceActive) {
+            scope.launch {
+                liveApiClient.sendVideoFrame(base64Image)
+            }
+        }
+    }
+
     private fun updateOrAddAiMessage(
         id: String, 
         text: String, 
