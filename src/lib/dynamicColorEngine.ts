@@ -15,16 +15,26 @@ export interface RGB {
 
 export interface TonalPalette {
   0: string;
+  4: string;
+  6: string;
   10: string;
+  12: string;
+  17: string;
   20: string;
+  22: string;
+  24: string;
   30: string;
   40: string;
   50: string;
   60: string;
   70: string;
   80: string;
+  87: string;
   90: string;
+  92: string;
+  94: string;
   95: string;
+  96: string;
   98: string;
   100: string;
 }
@@ -168,25 +178,10 @@ export function hslToHex(h: number, s: number, l: number): string {
 
 // Generate 13 Tonal Palette values for a given Hue & Saturation
 export function generateTonalPalette(hue: number, saturation: number): TonalPalette {
-  const toneToLuminance: Record<number, number> = {
-    0: 0,
-    10: 10,
-    20: 20,
-    30: 30,
-    40: 40,
-    50: 50,
-    60: 60,
-    70: 70,
-    80: 80,
-    90: 90,
-    95: 95,
-    98: 98,
-    100: 100,
-  };
-
   const palette: Partial<TonalPalette> = {};
-  for (const tone of [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 98, 100]) {
-    const l = toneToLuminance[tone];
+  const tones = [0, 4, 6, 10, 12, 17, 20, 22, 24, 30, 40, 50, 60, 70, 80, 87, 90, 92, 94, 95, 96, 98, 100];
+  for (const tone of tones) {
+    const l = tone;
     // Dampen saturation slightly in extreme darks and lights for realistic pigment behavior
     const adjSat = tone === 0 || tone === 100 ? 0 : Math.min(saturation, tone < 30 || tone > 90 ? saturation * 0.75 : saturation);
     (palette as any)[tone] = hslToHex(hue, adjSat, l);

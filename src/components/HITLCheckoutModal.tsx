@@ -133,8 +133,8 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
         paymentMethod: selectedPaymentLabel
       });
 
-      if (response.data) {
-        onSuccess({ orderId: response.data.order_insert, total: payload.totalAmount, merchantId: GOOGLE_PAY_MERCHANT_ID });
+      if (response?.data && onSuccess) {
+        onSuccess({ orderId: response.data.order_insert, total: payload.totalAmount || 0, merchantId: GOOGLE_PAY_MERCHANT_ID });
         onClose();
       } else {
         setErrorMessage("Failed to confirm purchase via Data Connect.");

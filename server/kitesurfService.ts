@@ -331,7 +331,7 @@ export async function executeKitesurfPurchase(
     success: true,
     orderId: `ks-ord-${Date.now()}`,
     steps,
-    receiptUrl: screenshotUrl,
+    receiptUrl: screenshotUrl || "",
     screenshotUrl,
     totalAmount,
   };

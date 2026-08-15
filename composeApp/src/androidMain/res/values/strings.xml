@@ -2,4 +2,8 @@
 <resources>
     <string name="app_name">Spresso</string>
     <string name="accessibility_service_label">Spresso Accessibility Service</string>
+    <string name="accessibility_service_description">Spresso Accessibility Service enables you to interact with your smart glasses.</string>
+    <string name="shortcut_lens_short">Spresso Lens</string>
+    <string name="shortcut_lens_long">Open Spresso Lens</string>
+    <string name="shortcut_lens_disabled">Spresso Lens is disabled</string>
 </resources>

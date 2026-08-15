@@ -403,7 +403,7 @@ export default function App() {
             <ProductCatalog
               products={products}
               onSelectTryOn={handleSelectTryOn}
-              onRequestHITLCheckout={payload => setHitlPayload(payload)}
+              onRequestHITLCheckout={(payload: any) => setHitlPayload(payload)}
               onAddToCart={handleAddToCart}
               userLocation={userLocation}
               searchRadius={searchRadius}

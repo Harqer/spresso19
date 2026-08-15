@@ -13,7 +13,7 @@ interface VirtualTryOnModalProps {
   onOpenLens?: (product: ProductItem) => void;
 }
 
-const DEFAULT_AVATARS = [
+const DEFAULT_AVATARS: any[] = [
   // To adhere to the strict no-mock policy, we require the user to provide their own photo.
 ];
 

@@ -126,7 +126,7 @@ router.get("/api/products", verifyFirebaseToken, async (req: AuthRequest, res: R
     if (result?.data?.products && result.data.products.length > 0) {
       let items = result.data.products.map(mapProduct);
       if (category && category !== "ALL") {
-        items = items.filter(p => p.category.toLowerCase().includes(category.toLowerCase()));
+        items = items.filter((p: any) => p.category.toLowerCase().includes(category.toLowerCase()));
       }
       return res.json({ success: true, products: items });
     }
@@ -140,7 +140,7 @@ router.get("/api/products", verifyFirebaseToken, async (req: AuthRequest, res: R
     if (result?.rows && result.rows.length > 0) {
       let items = result.rows.map(mapProduct);
       if (category && category !== "ALL") {
-        items = items.filter(p => p.category.toLowerCase().includes(category.toLowerCase()));
+        items = items.filter((p: any) => p.category.toLowerCase().includes(category.toLowerCase()));
       }
       return res.json({ success: true, products: items });
     }
@@ -150,7 +150,7 @@ router.get("/api/products", verifyFirebaseToken, async (req: AuthRequest, res: R
 
   let items = seedCatalogInventory;
   if (category && category !== "ALL") {
-    items = items.filter(p => p.category.toLowerCase().includes(category.toLowerCase()));
+    items = items.filter((p: any) => p.category.toLowerCase().includes(category.toLowerCase()));
   }
   return res.json({ success: true, products: items });
 });
@@ -955,7 +955,7 @@ router.post("/api/vitpose/orchestrate-fit", verifyFirebaseToken, async (req: Aut
 router.post("/api/genkit/vitpose-action", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
     const { userImageBase64 } = req.body;
-    const poseData = await extractViTPose({ userImageBase64: userImageBase64 || "" });
+    const poseData = await extractViTPose({ userImageBase64: userImageBase64 || "", modelVariant: 'usyd-dlc/vitpose-base-simple' });
     res.json({ success: true, ...poseData });
   } catch (err: any) {
     res.json({ success: false, error: err.message });
@@ -968,7 +968,8 @@ router.post("/api/genkit/try-on-flow", verifyFirebaseToken, async (req: AuthRequ
     const { userImageBase64, garmentImageUrl } = req.body;
     const flowResult = await tryOnFlow({
       userImageBase64: userImageBase64 || "",
-      garmentImageUrl: garmentImageUrl || ""
+      garmentImageUrl: garmentImageUrl || "",
+      modelVariant: 'usyd-dlc/vitpose-large-coco'
     });
     res.json({ success: true, ...flowResult });
   } catch (err: any) {

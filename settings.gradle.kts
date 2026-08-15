@@ -26,12 +26,7 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-val localProperties = Properties().apply {
-    val file = File(rootDir, "local.properties")
-    if (file.exists()) {
-        load(file.inputStream())
-    }
-}
+
 
 dependencyResolutionManagement {
     repositories {

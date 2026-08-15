@@ -22,7 +22,7 @@ interface AppModalManagerProps {
   userLocation: string | null;
   searchRadius: number;
   onCloseLocationModal: () => void;
-  onLocationGranted: (locationName: string, latLng: { lat: number; lng: number }, radius: number) => void;
+  onLocationGranted: (locationName: string, coords?: { lat: number; lng: number }, searchRadius?: number) => void;
   onRadiusChange: (radius: number) => void;
 
   productDetailsModalItem: ProductItem | null;

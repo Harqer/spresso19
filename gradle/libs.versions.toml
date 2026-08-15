@@ -58,20 +58,6 @@ mwdat-camera = { group = "com.meta.wearable", name = "mwdat-camera", version.ref
 mwdat-display = { group = "com.meta.wearable", name = "mwdat-display", version.ref = "mwdat" }
 mwdat-mockdevice = { group = "com.meta.wearable", name = "mwdat-mockdevice", version.ref = "mwdat" }
 
-mwdat-core = { module = "com.meta.wearable:mwdat-core", version.ref = "mwdat" }
-mwdat-camera = { module = "com.meta.wearable:mwdat-camera", version.ref = "mwdat" }
-mwdat-display = { module = "com.meta.wearable:mwdat-display", version.ref = "mwdat" }
-mwdat-mockdevice = { module = "com.meta.wearable:mwdat-mockdevice", version.ref = "mwdat" }
-
-junit = { module = "junit:junit", version = "4.13.2" }
-robolectric = { module = "org.robolectric:robolectric", version = "4.13" }
-mockk = { module = "io.mockk:mockk", version = "1.13.12" }
-koin-core = { module = "io.insert-koin:koin-core", version = "3.5.6" }
-koin-test = { module = "io.insert-koin:koin-test", version = "3.5.6" }
-androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidx-ui" }
-androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidx-ui" }
-dropshots-core = { module = "com.dropbox.dropshots:dropshots", version = "0.4.1" }
-
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
