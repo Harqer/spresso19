@@ -47,6 +47,20 @@ If an agent accidentally outputs raw thinking streams, debug panels, or backend 
 ## 8. Testing Strategy
 - **Comprehensive Testing Setup**: For information on running unit tests, instrumented tests, and screenshot tests, see the authoritative documentation at [docs/testing.md](docs/testing.md).
 
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues are used for tracking tasks and bugs. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default triage labels (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix) are used. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context documentation layout is used. See `docs/agents/domain.md`.
+
 ## Maintaining this file
 
 Keep this file for knowledge useful to almost every future agent session in this project.
