@@ -5,7 +5,7 @@ import google.generativeai as genai
 from github import Github
 
 def main():
-    repo_name = os.environ.get("REPO_NAME")
+    repo_name = os.environ.get("GITHUB_REPOSITORY")
     pr_number = os.environ.get("PR_NUMBER")
     github_token = os.environ.get("GITHUB_TOKEN")
     gemini_key = os.environ.get("GEMINI_API_KEY")
@@ -36,7 +36,16 @@ def main():
         print("Diff is empty, nothing to review.")
         sys.exit(0)
 
-    # 2. Call Gemini API to review
+    # 2. Read Deep Wiki for architectural context
+    wiki_context = ""
+    wiki_path = "docs/wiki/docs/architecture.md"
+    if os.path.exists(wiki_path):
+        with open(wiki_path, "r") as f:
+            wiki_context = f.read()
+    else:
+        print("Warning: Deep Wiki architecture context not found at docs/wiki/docs/architecture.md")
+
+    # 3. Call Gemini API to review
     print(f"Fetched diff: {len(diff_text)} characters. Sending to Multi-Agent Team...")
     genai.configure(api_key=gemini_key)
     
@@ -44,10 +53,13 @@ def main():
     model = genai.GenerativeModel('gemini-1.5-pro')
     
     prompt = f"""
-    You are an expert Senior Staff Engineer. Review the following pull request diff.
+    You are an expert Senior Staff Engineer and AI Orchestrator. Review the following pull request diff.
     Look for security vulnerabilities, bugs, logic errors, architectural flaws, and violation of first-principles.
     Provide a concise, professional markdown-formatted code review.
     Focus on substantive issues rather than nitpicks.
+    
+    WIKI CONTEXT (Architecture constraints to enforce):
+    {wiki_context[:3000]}
 
     DIFF:
     ```diff
@@ -62,13 +74,13 @@ def main():
         print(f"Failed to generate review from Gemini: {e}")
         sys.exit(1)
 
-    # 3. Post comments using PyGithub
+    # 4. Post comments using PyGithub
     print("Review generated. Posting to GitHub PR...")
     g = Github(github_token)
     repo = g.get_repo(repo_name)
     pr = repo.get_pull(int(pr_number))
     
-    comment_body = f"## 🤖 Agentic PR Review\n\n{review_body}"
+    comment_body = f"## 🤖 Multi-Agent PR Review (Deep Wiki Informed)\n\n{review_body}"
     pr.create_issue_comment(comment_body)
     
     print("Multi-Agent Review complete and posted.")
