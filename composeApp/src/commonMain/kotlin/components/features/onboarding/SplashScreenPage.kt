@@ -36,10 +36,10 @@ fun SplashScreenPage(
     var isVisible by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        // Video splash duration playback timer (matches splash_video.mp4)
-        delay(4000)
+        // TODO: Replace this hardcoded timer with an actual video playback completion event callback from SplashVideoPlayer.
+        delay(100)
         isVisible = false
-        delay(300)
+        delay(100)
         onSplashComplete()
     }
 

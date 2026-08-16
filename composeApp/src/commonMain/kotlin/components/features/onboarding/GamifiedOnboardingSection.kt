@@ -90,7 +90,7 @@ fun GamifiedOnboardingSection(
                     icon = Icons.Default.Recommend,
                     isCompleted = true,
                     actionText = "Claim SPRESSO10 VIP Pass",
-                    onActionClick = {}
+                    onActionClick = { TODO("Implement claim VIP pass action") }
                 )
             }
         }

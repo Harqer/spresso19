@@ -69,7 +69,10 @@ fun ReceiptScannerSection(
                         .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))
                         .clickable {
                             isScanningReceipt = true
-                            scope.launch { delay(2000); isScanningReceipt = false }
+                            scope.launch { 
+                                // TODO: Implement actual receipt scanning and OCR API call here.
+                                isScanningReceipt = false 
+                            }
                         }
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,

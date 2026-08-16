@@ -100,9 +100,7 @@ fun WardrobeViewPage(
     }
 
     LaunchedEffect(activeSeason) {
-        stylingLoading = true
-        delay(800) // Simulate network delay
-        stylingLoading = false
+        // Real API invocation should go here. Removed simulated network delay.
     }
 
     val handleAddPhoto = {
