@@ -44,7 +44,7 @@ def main():
         print("Warning: Deep Wiki architecture context not found at docs/wiki/docs/architecture.md")
 
     genai.configure(api_key=gemini_key)
-    model = genai.GenerativeModel('gemini-1.5-pro')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
     prompt = f"""
     You are an expert Kotlin/Android developer and AI orchestrator.
