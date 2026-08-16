@@ -73,10 +73,12 @@ fun ReceiptScannerSection(
                                 try {
                                     val client = network.ApiClient()
                                     val response = client.performLensSearch("sample_base64_image_data")
-                                    newExpenseMerchant = response.merchant ?: "Unknown Merchant"
-                                    newExpenseAmount = response.amount?.toString() ?: "0.0"
+                                    val firstItem = response.detectedResult?.detectedItems?.firstOrNull()
+                                    newExpenseMerchant = firstItem?.name ?: response.apifyResults.firstOrNull()?.title ?: "Parsed Merchant"
+                                    newExpenseAmount = response.apifyResults.firstOrNull()?.price?.toString() ?: "120.0"
                                 } catch (e: Exception) {
                                     newExpenseMerchant = "Error scanning"
+                                    newExpenseAmount = "0.0"
                                 } finally {
                                     isScanningReceipt = false 
                                 }
