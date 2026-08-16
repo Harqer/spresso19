@@ -104,11 +104,12 @@ class MainActivity : ComponentActivity() {
                     addAction("com.spresso19.intent.action.START_COOKING")
                     addAction("com.spresso19.intent.action.START_GROCERY")
                 }
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                    registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-                } else {
-                    registerReceiver(receiver, filter)
-                }
+                androidx.core.content.ContextCompat.registerReceiver(
+                    this@MainActivity,
+                    receiver,
+                    filter,
+                    androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+                )
                 onDispose {
                     unregisterReceiver(receiver)
                 }
@@ -156,6 +157,7 @@ class MainActivity : ComponentActivity() {
                     onRequestAccessibilityScan = ::requestOneShotScreenScan,
                     onTriggerGlobalLens = {
                         val intent = Intent(AccessibilityServiceCommands.ACTION_REQUEST_SCREEN_SCAN).apply {
+                            setPackage(packageName)
                             putExtra(AccessibilityServiceCommands.EXTRA_REQUEST_TOKEN, java.util.UUID.randomUUID().toString())
                             putExtra(AccessibilityServiceCommands.EXTRA_REQUESTED_AT, System.currentTimeMillis())
                         }

@@ -128,22 +128,6 @@ def main():
             print("Failed to push complex fix branch.")
             sys.exit(1)
 
-    import urllib.request
-    webhook_url = os.environ.get("WEBHOOK_URL")
-    if webhook_url:
-        print(f"Dispatching local webhook notification to {webhook_url}...")
-        payload = {
-            "repository": repo_name,
-            "complexity": complexity,
-            "reasoning": response_data.get('reasoning'),
-            "pr_url": pr.html_url if complexity != "simple" and 'pr' in locals() else ""
-        }
-        try:
-            req = urllib.request.Request(webhook_url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
-            urllib.request.urlopen(req, timeout=10)
-            print("Webhook successfully dispatched!")
-        except Exception as e:
-            print(f"Failed to dispatch webhook: {e}")
 
 if __name__ == "__main__":
     main()
