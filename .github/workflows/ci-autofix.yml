@@ -33,7 +33,7 @@ jobs:
         run: |
           chmod +x ./gradlew
           # Run lightweight checks: linting and compiling tests instead of full APK assembly
-          ./gradlew lint compileDebugKotlin --no-daemon
+          ./gradlew lint compileDebugKotlin --no-daemon 2>&1 | tee build_log.txt
         continue-on-error: true
 
       - name: Setup Python for Auto-Fixer
