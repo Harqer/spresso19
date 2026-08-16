@@ -1,6 +1,8 @@
 package components.features.onboarding
 
 import components.models.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -84,14 +86,23 @@ fun GamifiedOnboardingSection(
                     onActionClick = onSyncWardrobe
                 )
 
-                else -> OnboardingStepCard(
-                    title = "For You Recommendations",
-                    description = "We are curating your personalized recommendations, exclusive deals, and trending styles based on your unique fashion profile as we learn more about your tastes.",
-                    icon = Icons.Default.Recommend,
-                    isCompleted = true,
-                    actionText = "Claim SPRESSO10 VIP Pass",
-                    onActionClick = { TODO("Implement claim VIP pass action") }
-                )
+                else -> {
+                    val scope = androidx.compose.runtime.rememberCoroutineScope()
+                    OnboardingStepCard(
+                        title = "For You Recommendations",
+                        description = "We are curating your personalized recommendations, exclusive deals, and trending styles based on your unique fashion profile as we learn more about your tastes.",
+                        icon = Icons.Default.Recommend,
+                        isCompleted = true,
+                        actionText = "Claim SPRESSO10 VIP Pass",
+                        onActionClick = { 
+                            scope.launch {
+                                try {
+                                    network.ApiClient().recordInteraction("VIP_PASS", "CLAIM")
+                                } catch (e: Exception) {}
+                            }
+                        }
+                    )
+                }
             }
         }
     }

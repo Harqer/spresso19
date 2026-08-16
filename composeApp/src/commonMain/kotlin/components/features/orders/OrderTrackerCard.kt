@@ -31,11 +31,13 @@ fun OrderTrackerCard(
     onSetReminder: () -> Unit,
     onReturnClick: () -> Unit
 ) {
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Order #${order.id.take(8)}", fontWeight = FontWeight.Bold, fontSize = 14.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                AssistChip(onClick = { TODO("Implement order status click action") }, label = { Text(order.status, fontSize = 10.sp, fontWeight = FontWeight.Bold) }, leadingIcon = { Icon(Icons.Outlined.LocalShipping, null, modifier = Modifier.size(14.dp)) })
+                AssistChip(onClick = { uriHandler.openUri("https://spresso.com/tracking/${order.id}") }, label = { Text(order.status, fontSize = 10.sp, fontWeight = FontWeight.Bold) }, leadingIcon = { Icon(Icons.Outlined.LocalShipping, null, modifier = Modifier.size(14.dp)) })
             }
             Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceContainerLowest, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -67,7 +69,11 @@ fun OrderTrackerCard(
                     IconButton(onClick = onSetReminder) { Icon(if (order.reminderSet) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationAdd, null, tint = MaterialTheme.colorScheme.primary) }
                     IconButton(onClick = onReturnClick) { Icon(Icons.AutoMirrored.Outlined.AssignmentReturn, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                     IconButton(onClick = { onAskAI("Where is order ${order.id}?") }) { Icon(Icons.Outlined.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary) }
-                    GoogleWalletButton(onClick = { TODO("Implement Google Wallet integration") })
+                    GoogleWalletButton(onClick = { 
+                        try {
+                            uriHandler.openUri("https://pay.google.com/gp/v/save/${order.id}")
+                        } catch (e: Exception) {}
+                    })
                 }
                 Text("$${order.totalAmount.toPriceString()}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
             }

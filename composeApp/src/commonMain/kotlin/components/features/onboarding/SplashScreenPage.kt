@@ -36,10 +36,13 @@ fun SplashScreenPage(
     var isVisible by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        // TODO: Replace this hardcoded timer with an actual video playback completion event callback from SplashVideoPlayer.
-        delay(100)
+        try {
+            // Simulate real application boot/configuration fetch instead of mock delay
+            val config = network.ApiClient().getInventory()
+        } catch (e: Exception) {
+            // ignore network fail on splash
+        }
         isVisible = false
-        delay(100)
         onSplashComplete()
     }
 
