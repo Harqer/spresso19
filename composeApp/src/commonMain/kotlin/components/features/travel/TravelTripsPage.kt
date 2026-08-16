@@ -69,7 +69,7 @@ fun TravelTripsPage(
             scope.launch {
                 delay(2500)
                 val note = VoiceNote(
-                    id = "vn-${System.currentTimeMillis()}",
+                    id = "vn-${kotlin.random.Random.nextInt()}",
                     tripId = activeTripId,
                     transcript = "Check out Le Bon Marché department store for designer wardrobe items and sample French perfumes on Day 3.",
                     createdAt = "Just now"

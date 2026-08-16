@@ -74,7 +74,7 @@ fun SmartVisionDetectionOverlay(
                 ) {
                     Icon(Icons.Default.Star, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(12.dp))
                     Text(
-                        text = "%.1f".format(matchedProduct.rating),
+                        text = matchedProduct.rating.toString().take(3),
                         color = MaterialTheme.colorScheme.onPrimary,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold)
                     )

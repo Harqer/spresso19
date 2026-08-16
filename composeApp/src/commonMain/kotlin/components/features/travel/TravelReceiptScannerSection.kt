@@ -148,7 +148,7 @@ fun ReceiptScannerSection(
                             if (newExpenseMerchant.isNotBlank() && newExpenseAmount.isNotBlank()) {
                                 val amt = newExpenseAmount.toDoubleOrNull() ?: 0.0
                                 val item = TravelExpense(
-                                    id = "exp-${System.currentTimeMillis()}",
+                                    id = "exp-${kotlin.random.Random.nextInt()}",
                                     tripId = activeTripId,
                                     amount = amt,
                                     currency = "USD",
