@@ -38,7 +38,7 @@ jobs:
 
       - name: Install Python Dependencies
         if: steps.build.outcome == 'failure'
-        run: pip install google-generativeai PyGithub requests
+        run: python3 -m pip install google-generativeai PyGithub requests
 
       # 2. Multi-Agent Self-Healing Fallback
       - name: Invoke Multi-Agent Self-Healing
