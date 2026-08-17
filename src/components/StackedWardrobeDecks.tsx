@@ -1,5 +1,7 @@
+import Logger from "../lib/Logger";
 import React, { useState, useMemo, useEffect } from "react";
-import { authFetch } from "../lib/firebase";
+import { functions } from "../lib/firebase";
+import { httpsCallable } from "firebase/functions";
 import { motion, AnimatePresence } from "motion/react";
 import { ProductItem, HITLPayload, CustomWardrobeItem, GeneratedOutfit } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
@@ -68,19 +70,14 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
   useEffect(() => {
     const fetchCurated = async () => {
       try {
-        const res = await authFetch("/api/wardrobe/curate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userUploadedItems, bookmarkedItems, likedProducts: likedWardrobeItems, shuffleSeed })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.decks) {
-            setCuratedDecks(data.decks);
-          }
+        const curateWardrobe = httpsCallable(functions, "curateWardrobe");
+        const res = await curateWardrobe({ userUploadedItems, bookmarkedItems, likedProducts: likedWardrobeItems, shuffleSeed });
+        const data: any = res.data;
+        if (data && data.decks) {
+          setCuratedDecks(data.decks);
         }
       } catch (err) {
-        console.error("Failed to fetch curated outfits", err);
+        Logger.error("Failed to fetch curated outfits", err);
       }
     };
     fetchCurated();

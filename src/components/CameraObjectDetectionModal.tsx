@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem, DetectedItem } from "../types";
 import { cropImageSnippet } from "../utils/imageCropper";
-import { logToCrashlytics, authFetch } from "../lib/firebase";
+import { logToCrashlytics, functions } from "../lib/firebase";
+import { httpsCallable } from "firebase/functions";
 
 interface CameraObjectDetectionModalProps {
   isOpen: boolean;
@@ -193,19 +194,14 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
     setHudStatusText("Analyzing item at selected location...");
 
     try {
-      const res = await authFetch("/api/vision/identify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageBase64: photoDataUrl,
-          deviceContext: "MOBILE_CAMERA_OBJECT_DETECTION",
-          promptText: `Analyze object at location X: ${point.x}%, Y: ${point.y}%. CRITICAL: Ignore any person or human model in background. Identify the exact clothing item, footwear, accessory, or object at this specific location for an e-commerce product listing.`
-        })
+      const identifyVisionObject = httpsCallable(functions, "identifyVisionObject");
+      const res = await identifyVisionObject({
+        imageBase64: photoDataUrl,
+        deviceContext: "MOBILE_CAMERA_OBJECT_DETECTION",
+        promptText: `Analyze object at location X: ${point.x}%, Y: ${point.y}%. CRITICAL: Ignore any person or human model in background. Identify the exact clothing item, footwear, accessory, or object at this specific location for an e-commerce product listing.`
       });
 
-      if (!res.ok) throw new Error("Vision API returned an error");
-
-      const data = await res.json();
+      const data = { success: true, result: { detectedItems: [res.data as any], hudAnnotationText: "Object isolated. Product listing ready!" } };
       if (data.success && data.result) {
         const items = data.result.detectedItems || [];
         setDetectedItems(items);

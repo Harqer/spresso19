@@ -13,6 +13,17 @@ export interface ActiveCookingSession_Key {
   __typename?: 'ActiveCookingSession_Key';
 }
 
+export interface AddGroceryItemData {
+  groceryListItem_insert: GroceryListItem_Key;
+}
+
+export interface AddGroceryItemVariables {
+  listId: UUIDString;
+  productName: string;
+  productId?: string | null;
+  addedVia: string;
+}
+
 export interface AddVideoData {
   video_insert: Video_Key;
 }
@@ -46,6 +57,15 @@ export interface CreateExpenseVariables {
   receiptImageUrl?: string | null;
   date?: string | null;
   items?: string | null;
+}
+
+export interface CreateGroceryListData {
+  groceryList_insert: GroceryList_Key;
+}
+
+export interface CreateGroceryListVariables {
+  userId: string;
+  title: string;
 }
 
 export interface CreateOrderData {
@@ -93,12 +113,40 @@ export interface CreateVoiceNoteVariables {
   transcript: string;
 }
 
+export interface DeleteGroceryItemData {
+  groceryListItem_delete?: GroceryListItem_Key | null;
+}
+
+export interface DeleteGroceryItemVariables {
+  id: UUIDString;
+}
+
 export interface DeletePaymentMethodData {
   paymentMethod_delete?: PaymentMethod_Key | null;
 }
 
 export interface DeletePaymentMethodVariables {
   id: UUIDString;
+}
+
+export interface GetGroceryListData {
+  groceryLists: ({
+    id: UUIDString;
+    title: string;
+    createdAt: TimestampString;
+    items: ({
+      id: UUIDString;
+      productName: string;
+      productId?: string | null;
+      isPurchased: boolean;
+      addedVia: string;
+      createdAt: TimestampString;
+    } & GroceryListItem_Key)[];
+  } & GroceryList_Key)[];
+}
+
+export interface GetGroceryListVariables {
+  userId: string;
 }
 
 export interface GetItineraryEventsData {
@@ -296,6 +344,15 @@ export interface Product_Key {
   __typename?: 'Product_Key';
 }
 
+export interface ToggleGroceryItemData {
+  groceryListItem_update?: GroceryListItem_Key | null;
+}
+
+export interface ToggleGroceryItemVariables {
+  id: UUIDString;
+  isPurchased: boolean;
+}
+
 export interface ToggleLikeData {
   userLike_upsert: UserLike_Key;
 }
@@ -429,6 +486,26 @@ export function upsertUserPreference(dc: DataConnect, vars?: UpsertUserPreferenc
 /** Generated Node Admin SDK operation action function for the 'UpsertUserPreference' Mutation. Allow users to pass in custom DataConnect instances. */
 export function upsertUserPreference(vars?: UpsertUserPreferenceVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertUserPreferenceData>>;
 
+/** Generated Node Admin SDK operation action function for the 'CreateGroceryList' Mutation. Allow users to execute without passing in DataConnect. */
+export function createGroceryList(dc: DataConnect, vars: CreateGroceryListVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateGroceryListData>>;
+/** Generated Node Admin SDK operation action function for the 'CreateGroceryList' Mutation. Allow users to pass in custom DataConnect instances. */
+export function createGroceryList(vars: CreateGroceryListVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateGroceryListData>>;
+
+/** Generated Node Admin SDK operation action function for the 'AddGroceryItem' Mutation. Allow users to execute without passing in DataConnect. */
+export function addGroceryItem(dc: DataConnect, vars: AddGroceryItemVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<AddGroceryItemData>>;
+/** Generated Node Admin SDK operation action function for the 'AddGroceryItem' Mutation. Allow users to pass in custom DataConnect instances. */
+export function addGroceryItem(vars: AddGroceryItemVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<AddGroceryItemData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ToggleGroceryItem' Mutation. Allow users to execute without passing in DataConnect. */
+export function toggleGroceryItem(dc: DataConnect, vars: ToggleGroceryItemVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ToggleGroceryItemData>>;
+/** Generated Node Admin SDK operation action function for the 'ToggleGroceryItem' Mutation. Allow users to pass in custom DataConnect instances. */
+export function toggleGroceryItem(vars: ToggleGroceryItemVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ToggleGroceryItemData>>;
+
+/** Generated Node Admin SDK operation action function for the 'DeleteGroceryItem' Mutation. Allow users to execute without passing in DataConnect. */
+export function deleteGroceryItem(dc: DataConnect, vars: DeleteGroceryItemVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeleteGroceryItemData>>;
+/** Generated Node Admin SDK operation action function for the 'DeleteGroceryItem' Mutation. Allow users to pass in custom DataConnect instances. */
+export function deleteGroceryItem(vars: DeleteGroceryItemVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeleteGroceryItemData>>;
+
 /** Generated Node Admin SDK operation action function for the 'ListProducts' Query. Allow users to execute without passing in DataConnect. */
 export function listProducts(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListProductsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListProducts' Query. Allow users to pass in custom DataConnect instances. */
@@ -498,4 +575,9 @@ export function getUserSubscription(options?: OperationOptions): Promise<Execute
 export function getUserPreference(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<GetUserPreferenceData>>;
 /** Generated Node Admin SDK operation action function for the 'GetUserPreference' Query. Allow users to pass in custom DataConnect instances. */
 export function getUserPreference(options?: OperationOptions): Promise<ExecuteOperationResponse<GetUserPreferenceData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetGroceryList' Query. Allow users to execute without passing in DataConnect. */
+export function getGroceryList(dc: DataConnect, vars: GetGroceryListVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetGroceryListData>>;
+/** Generated Node Admin SDK operation action function for the 'GetGroceryList' Query. Allow users to pass in custom DataConnect instances. */
+export function getGroceryList(vars: GetGroceryListVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetGroceryListData>>;
 

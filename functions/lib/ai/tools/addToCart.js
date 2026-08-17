@@ -35,19 +35,19 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addToCartTool = void 0;
 const genkit_1 = require("../genkit");
-const zod_1 = require("zod");
+const genkit_2 = require("genkit");
 const admin = __importStar(require("firebase-admin"));
 exports.addToCartTool = genkit_1.ai.defineTool({
     name: "addToCart",
     description: "Adds a specific product to the user's shopping cart.",
-    inputSchema: zod_1.z.object({
-        productId: zod_1.z.string().describe("The ID of the product to add to the cart"),
-        quantity: zod_1.z.number().optional().default(1).describe("The number of items to add"),
+    inputSchema: genkit_2.z.object({
+        productId: genkit_2.z.string().describe("The ID of the product to add to the cart"),
+        quantity: genkit_2.z.number().optional().default(1).describe("The number of items to add"),
     }),
-    outputSchema: zod_1.z.object({
-        success: zod_1.z.boolean(),
-        message: zod_1.z.string(),
-        cartTotal: zod_1.z.number().optional(),
+    outputSchema: genkit_2.z.object({
+        success: genkit_2.z.boolean(),
+        message: genkit_2.z.string(),
+        cartTotal: genkit_2.z.number().optional(),
     }),
 }, async ({ productId, quantity }, ctx) => {
     var _a, _b;

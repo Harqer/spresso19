@@ -95,43 +95,7 @@ open class ApiClient {
     private val json = Json { ignoreUnknownKeys = true }
     
     suspend fun getInventory(): List<ProductItem> {
-        val authToken = getCurrentUserIdToken()
-        val endpoints = listOf("$backendBaseUrl/api/products", "$backendBaseUrl/api/inventory")
-        var lastException: Exception? = null
-        for (endpoint in endpoints) {
-            try {
-                val responseText = client.get(endpoint) {
-                    if (authToken != null) {
-                        header(HttpHeaders.Authorization, "Bearer $authToken")
-                    }
-                }.bodyAsText()
-                val jsonElement = json.parseToJsonElement(responseText)
-                val productsArray = when {
-                    jsonElement is JsonArray -> jsonElement
-                    jsonElement is JsonObject && jsonElement.containsKey("products") -> jsonElement["products"]?.jsonArray
-                    jsonElement is JsonObject && jsonElement.containsKey("inventory") -> jsonElement["inventory"]?.jsonArray
-                    jsonElement is JsonObject && jsonElement.containsKey("items") -> jsonElement["items"]?.jsonArray
-                    else -> null
-                }
-                if (productsArray != null && productsArray.isNotEmpty()) {
-                    return productsArray.mapNotNull { item ->
-                        val obj = item.jsonObject
-                        val id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
-                        val name = obj["name"]?.jsonPrimitive?.content ?: "Product"
-                        val brand = obj["brand"]?.jsonPrimitive?.content ?: "Spresso Store"
-                        val category = obj["category"]?.jsonPrimitive?.content ?: "Apparel"
-                        val price = obj["price"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0
-                        val imageUrl = obj["image"]?.jsonPrimitive?.content ?: obj["imageUrl"]?.jsonPrimitive?.content ?: ""
-                        val rating = obj["rating"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 4.8
-                        ProductItem(id, name, brand, category, price, imageUrl, rating)
-                    }
-                }
-            } catch (e: Exception) {
-                lastException = e
-            }
-        }
-        if (lastException != null) throw lastException
-        return emptyList()
+        return getInventoryFromDataConnect()
     }
     
     private val cloudFunctionsBaseUrl = SpressoConfig.cloudFunctionsBaseUrl
@@ -157,54 +121,31 @@ open class ApiClient {
 
     suspend fun recordInteraction(productId: String, action: String): Boolean {
         logCrashlyticsBreadcrumb(action, "productId=$productId")
-        val authToken = getCurrentUserIdToken()
         return try {
-            val response = client.post("$backendBaseUrl/api/ingestInteraction") {
-                contentType(ContentType.Application.Json)
-                if (authToken != null) {
-                    header(HttpHeaders.Authorization, "Bearer $authToken")
-                }
-                setBody(mapOf("data" to mapOf("productId" to productId, "action" to action)))
-            }
-            response.status.value in 200..299
+            callFirebaseFunction("ingestInteraction", """{"productId":"$productId","action":"$action"}""")
+            true
         } catch (e: Exception) {
             false
         }
     }
 
     suspend fun requestVirtualTryOn(base64Image: String): String {
-        val authToken = getCurrentUserIdToken()
         return try {
-            val response: JsonObject = client.post("$backendBaseUrl/api/generateVirtualTryOn") {
-                contentType(ContentType.Application.Json)
-                if (authToken != null) {
-                    header(HttpHeaders.Authorization, "Bearer $authToken")
-                }
-                setBody(mapOf("data" to mapOf("image" to base64Image)))
-            }.body()
-            
-            val result = response["result"]?.jsonObject
-            val mediaUrl = result?.get("mediaUrl")?.jsonPrimitive?.content
-            mediaUrl ?: throw Exception("Missing mediaUrl in response")
+            val responseJson = callFirebaseFunction("generateVirtualTryOn", """{"image":"$base64Image"}""")
+            val response = json.parseToJsonElement(responseJson).jsonObject
+            val result = response["result"]?.jsonObject ?: response
+            result["mediaUrl"]?.jsonPrimitive?.content ?: throw Exception("Missing mediaUrl in response")
         } catch (e: Exception) {
             throw e
         }
     }
     
     suspend fun requestSpin360(productId: String): String {
-        val authToken = getCurrentUserIdToken()
         return try {
-            val response: JsonObject = client.post("$backendBaseUrl/api/generateSpin360") {
-                contentType(ContentType.Application.Json)
-                if (authToken != null) {
-                    header(HttpHeaders.Authorization, "Bearer $authToken")
-                }
-                setBody(mapOf("data" to mapOf("productId" to productId)))
-            }.body()
-            
-            val result = response["result"]?.jsonObject
-            val mediaUrl = result?.get("mediaUrl")?.jsonPrimitive?.content
-            mediaUrl ?: throw Exception("Missing mediaUrl in response")
+            val responseJson = callFirebaseFunction("generateSpin360", """{"productId":"$productId"}""")
+            val response = json.parseToJsonElement(responseJson).jsonObject
+            val result = response["result"]?.jsonObject ?: response
+            result["mediaUrl"]?.jsonPrimitive?.content ?: throw Exception("Missing mediaUrl in response")
         } catch (e: Exception) {
             throw e
         }
@@ -256,15 +197,9 @@ open class ApiClient {
     }
     
     open suspend fun performLensSearch(base64Image: String): LensSearchResponse {
-        val authToken = getCurrentUserIdToken()
         return try {
-            client.post("$backendBaseUrl/api/lens-search") {
-                contentType(ContentType.Application.Json)
-                if (authToken != null) {
-                    header(HttpHeaders.Authorization, "Bearer $authToken")
-                }
-                setBody(mapOf("imageBase64" to base64Image))
-            }.body()
+            val responseStr = callFirebaseFunction("identifyVisionObject", """{"imageBase64":"$base64Image"}""")
+            json.decodeFromString<LensSearchResponse>(responseStr)
         } catch (e: Exception) {
             throw Exception("Failed to perform Spresso Lens Search: ${e.message}", e)
         }
@@ -346,15 +281,9 @@ open class ApiClient {
     }
 
     suspend fun generateCreatorCampaign(prompt: String, templateId: String): JsonObject {
-        val authToken = getCurrentUserIdToken()
         return try {
-            client.post("$backendBaseUrl/api/creator/generate-campaign") {
-                contentType(ContentType.Application.Json)
-                if (authToken != null) {
-                    header(HttpHeaders.Authorization, "Bearer $authToken")
-                }
-                setBody(mapOf("prompt" to prompt, "templateId" to templateId))
-            }.body()
+            val responseStr = callFirebaseFunction("generateCreatorCampaign", """{"prompt":"$prompt","templateId":"$templateId"}""")
+            json.parseToJsonElement(responseStr).jsonObject
         } catch (e: Exception) {
             JsonObject(emptyMap())
         }

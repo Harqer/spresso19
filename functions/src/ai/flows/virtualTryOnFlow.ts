@@ -1,5 +1,5 @@
 import { ai } from "../genkit";
-import { z } from "zod";
+import { z } from "genkit";
 
 export const virtualTryOnFlow = ai.defineFlow(
   {

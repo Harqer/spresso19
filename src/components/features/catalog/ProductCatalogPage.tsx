@@ -1,3 +1,4 @@
+import Logger from "../../../lib/Logger";
 import React, { useState, useEffect, useMemo } from "react";
 import { ProductItem, HITLPayload } from "../../../types";
 import { dataConnect } from "../../../lib/firebase";
@@ -71,18 +72,18 @@ export const ProductCatalogPage: React.FC<any> = ({ products: initialProducts, o
   useEffect(() => {
     const fetchPrefs = async () => {
       try {
-        const { authFetch } = await import("../../../lib/firebase");
-        const res = await authFetch("/api/user/preferences");
-        if (res.ok) {
-          const data = await res.json();
-          setUserPreferences({
-            bookmarkedIds: data.bookmarkedIds || [],
-            likedIds: data.likedIds || [],
-            searchInquiries: data.searchInquiries || []
-          });
-        }
+        const { httpsCallable } = await import("firebase/functions");
+        const { functions } = await import("../../../lib/firebase");
+        const getUserPreferences = httpsCallable(functions, "getUserPreferences");
+        const res = await getUserPreferences();
+        const data = res.data as any;
+        setUserPreferences({
+          bookmarkedIds: data.bookmarkedIds || [],
+          likedIds: data.likedIds || [],
+          searchInquiries: data.searchInquiries || []
+        });
       } catch (err) {
-        console.warn("Failed to fetch user preferences:", err);
+        Logger.warn("Failed to fetch user preferences:", err);
       }
     };
     fetchPrefs();

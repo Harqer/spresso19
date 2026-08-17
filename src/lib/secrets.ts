@@ -1,8 +1,5 @@
+import Logger from "./Logger";
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
-import dotenv from "dotenv";
-
-// Load local development variables if available
-dotenv.config();
 
 const cachedSecrets = new Map<string, string>();
 let client: SecretManagerServiceClient | null = null;
@@ -55,7 +52,7 @@ export async function initializeSecrets(requiredSecrets: string[]): Promise<void
       await getSecret(name);
       console.log(`[Secrets] Successfully loaded and cached secret: ${name}`);
     } catch (err: any) {
-      console.error(`[Secrets] [FATAL] Fail-fast block triggered. ${err.message}`);
+      Logger.error(`[Secrets] [FATAL] Fail-fast block triggered. ${err.message}`);
       process.exit(1);
     }
   }

@@ -79,6 +79,7 @@ firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-dataconnect = { module = "com.google.firebase:firebase-dataconnect", version.ref = "firebase-dataconnect" }
+firebase-functions = { module = "com.google.firebase:firebase-functions" }
 compose-pay-button = { module = "com.google.pay.button:compose-pay-button", version.ref = "pay-button" }
 play-services-wallet = { module = "com.google.android.gms:play-services-wallet", version.ref = "play-services-wallet" }
 androidx-camera-mlkit-vision = { module = "androidx.camera:camera-mlkit-vision", version.ref = "camera-mlkit-vision" }

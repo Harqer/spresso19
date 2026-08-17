@@ -1,5 +1,5 @@
 import { ai } from "../genkit";
-import { z } from "zod";
+import { z } from "genkit";
 import { defineSecret } from "firebase-functions/params";
 
 const serpapiKey = defineSecret("SERPAPI_API_KEY");

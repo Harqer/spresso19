@@ -1,19 +1,39 @@
 package network
 
-import com.spresso.dataconnect.SpressoConnectorConnector
-import com.spresso.dataconnect.instance
-import com.spresso.dataconnect.execute
-
+import com.google.firebase.functions.ktx.functions
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
 actual suspend fun toggleLike(productId: String, userUid: String) {
     try {
-        SpressoConnectorConnector.instance.toggleLike.execute(
-            productId = productId
+        val functions = Firebase.functions
+        val data = mapOf(
+            "productId" to productId,
+            "idempotencyKey" to UUID.randomUUID().toString()
         )
+        functions.getHttpsCallable("toggleUserLike").call(data).await()
     } catch (e: Exception) {
-        // Errors are surfaced to the UI caller via the thrown exception;
-        // Crashlytics will capture non-fatal exceptions in production.
         throw e
+    }
+}
+
+actual suspend fun getInventoryFromDataConnect(): List<ProductItem> {
+    return try {
+        val result = com.spresso.dataconnect.SpressoConnectorConnector.instance.listProducts.execute()
+        result.data.products.map { product ->
+            ProductItem(
+                id = product.id,
+                name = product.name,
+                brand = product.brand,
+                category = product.category,
+                price = product.price,
+                imageUrl = product.image,
+                rating = 4.8,
+                description = product.description
+            )
+        }
+    } catch (e: Exception) {
+        emptyList()
     }
 }

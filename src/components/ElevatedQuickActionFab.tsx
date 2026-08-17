@@ -1,7 +1,9 @@
+import Logger from "../lib/Logger";
 import React, { useState, useEffect } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem } from "../types";
-import { authFetch } from "../lib/firebase";
+import { functions } from "../lib/firebase";
+import { httpsCallable } from "firebase/functions";
 
 interface ElevatedQuickActionFabProps {
   product: ProductItem | any;
@@ -37,7 +39,9 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
     if (isLikedInitial !== undefined) {
       setIsLiked(isLikedInitial);
     } else {
-      authFetch("/api/user/likes").then(res => res.json()).then(data => {
+      const getUserLikes = httpsCallable(functions, "getUserLikes");
+      getUserLikes().then((res: any) => {
+        const data = res.data;
         if (data.likes) {
           const found = data.likes.some((item: any) => item.productId === prodId);
           setIsLiked(found);
@@ -48,7 +52,9 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
     if (isBookmarkedInitial !== undefined) {
       setIsBookmarked(isBookmarkedInitial);
     } else {
-      authFetch("/api/user/bookmarks").then(res => res.json()).then(data => {
+      const getUserBookmarks = httpsCallable(functions, "getUserBookmarks");
+      getUserBookmarks().then((res: any) => {
+        const data = res.data;
         if (data.bookmarks) {
           const found = data.bookmarks.some((item: any) => item.productId === prodId);
           setIsBookmarked(found);
@@ -77,11 +83,9 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
       showToast("Removed from Liked Items");
     }
 
-    authFetch("/api/user/like", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId: prodId, action: newLiked ? "add" : "remove" })
-    }).catch(console.error);
+    const toggleUserLike = httpsCallable(functions, "toggleUserLike");
+    const idempotencyKey = crypto.randomUUID ? crypto.randomUUID() : `like-${Date.now()}-${Math.random()}`;
+    toggleUserLike({ productId: prodId, idempotencyKey }).catch(console.error);
 
     if (onToggleLikeCallback) {
       onToggleLikeCallback(product, newLiked);
@@ -101,11 +105,9 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
       showToast("Removed from Bookmarks");
     }
 
-    authFetch("/api/user/bookmark", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId: prodId, action: newBM ? "add" : "remove" })
-    }).catch(console.error);
+    const toggleUserBookmark = httpsCallable(functions, "toggleUserBookmark");
+    const idempotencyKey = crypto.randomUUID ? crypto.randomUUID() : `bookmark-${Date.now()}-${Math.random()}`;
+    toggleUserBookmark({ productId: prodId, idempotencyKey }).catch(console.error);
 
     if (onToggleBookmarkCallback) {
       onToggleBookmarkCallback(product, newBM);

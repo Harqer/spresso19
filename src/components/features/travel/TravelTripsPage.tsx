@@ -1,3 +1,4 @@
+import Logger from "../../../lib/Logger";
 import React, { useState, useEffect, useRef } from "react";
 import { TripRecord, ItineraryEvent, TravelExpense, VoiceNote } from "../../../types";
 import { MaterialIcon } from "../../MaterialIcon";
@@ -41,7 +42,7 @@ export const TravelTripsPage: React.FC<TravelTripsPageProps> = ({ onAskAI }) => 
           if (notesRes.data.voiceNotes) setVoiceNotes(notesRes.data.voiceNotes as any);
         }
       } catch (err) {
-        console.error("Failed to load travel data:", err);
+        Logger.error("Failed to load travel data:", err);
       }
     };
     fetchTravelData();
@@ -78,7 +79,7 @@ export const TravelTripsPage: React.FC<TravelTripsPageProps> = ({ onAskAI }) => 
         } as any, ...prev]);
       }
     } catch (err) {
-      console.error("Failed to add expense:", err);
+      Logger.error("Failed to add expense:", err);
     }
     setNewExpenseMerchant("");
     setNewExpenseAmount("");
@@ -115,30 +116,23 @@ export const TravelTripsPage: React.FC<TravelTripsPageProps> = ({ onAskAI }) => 
       };
       reader.readAsDataURL(file);
     } catch (err) {
-      console.error("Receipt parsing error:", err);
+      Logger.error("Receipt parsing error:", err);
     } finally {
       setIsScanningReceipt(false);
     }
   };
 
+  const [error, setError] = useState<string | null>(null);
+
   const toggleRecording = async () => {
-    if (!isRecording) {
-      setIsRecording(true);
-      try {
-        const httpsCallable = (await import("firebase/functions")).httpsCallable;
-        const functions = (await import("../../../lib/firebase")).functions;
-        const transcribeAudio = httpsCallable(functions, "transcribeAudio");
-        const res = await transcribeAudio({ tripId: activeTripId, audioUrl: "dummy_url_placeholder" });
-        const data = res.data as any;
-        if (data.note) setVoiceNotes(prev => [data.note, ...prev]);
-      } catch (err) {
-        console.error("Failed to record voice note:", err);
-      } finally {
-        setIsRecording(false);
-      }
-    } else {
-      setIsRecording(false);
-    }
+    // We don't have a real audio URL, so we shouldn't proceed with a dummy.
+    // Instead of failing silently or using a dummy, we display an explicit error.
+    setError("Microphone access is unavailable or no audio source was provided. Transcription failed.");
+    setIsRecording(false);
+    
+    // The previous implementation used a dummy URL:
+    // const res = await transcribeAudio({ tripId: activeTripId, audioUrl: "dummy_url_placeholder" });
+    // This is strictly forbidden. We must fail fast.
   };
 
   return (
@@ -175,6 +169,14 @@ export const TravelTripsPage: React.FC<TravelTripsPageProps> = ({ onAskAI }) => 
           ))}
         </div>
       </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-red-50 text-[#a84a32] text-xs px-6 py-3 border border-red-100 rounded-2xl flex items-center justify-between shadow-sm">
+          <span className="font-medium">{error}</span>
+          <button onClick={() => setError(null)} className="cursor-pointer font-bold ml-4">✕</button>
+        </div>
+      )}
 
       {/* Active Trip Hero Banner */}
       {currentTrip && (

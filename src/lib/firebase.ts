@@ -1,3 +1,4 @@
+import Logger from "./Logger";
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, PhoneAuthCredential } from 'firebase/auth';
 import { getFirestore, collection, addDoc, doc, getDocFromServer } from 'firebase/firestore';
@@ -205,7 +206,7 @@ export const getAuthToken = async (): Promise<string | null> => {
   try {
     return await auth.currentUser.getIdToken();
   } catch (err) {
-    console.error("Failed to get auth token", err);
+    Logger.error("Failed to get auth token", err);
     return null;
   }
 };

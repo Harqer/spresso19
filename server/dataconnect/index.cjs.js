@@ -84,6 +84,34 @@ function upsertUserPreference(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.upsertUserPreference = upsertUserPreference;
 
+function createGroceryList(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreateGroceryList', inputVars, inputOpts);
+}
+exports.createGroceryList = createGroceryList;
+
+function addGroceryItem(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('AddGroceryItem', inputVars, inputOpts);
+}
+exports.addGroceryItem = addGroceryItem;
+
+function toggleGroceryItem(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('ToggleGroceryItem', inputVars, inputOpts);
+}
+exports.toggleGroceryItem = toggleGroceryItem;
+
+function deleteGroceryItem(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('DeleteGroceryItem', inputVars, inputOpts);
+}
+exports.deleteGroceryItem = deleteGroceryItem;
+
 function listProducts(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
   dcInstance.useGen(true);
@@ -181,4 +209,11 @@ function getUserPreference(dcOrOptions, options) {
   return dcInstance.executeQuery('GetUserPreference', undefined, inputOpts);
 }
 exports.getUserPreference = getUserPreference;
+
+function getGroceryList(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetGroceryList', inputVars, inputOpts);
+}
+exports.getGroceryList = getGroceryList;
 

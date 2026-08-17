@@ -1,8 +1,10 @@
+import Logger from "../lib/Logger";
 import React, { useState, useRef, useEffect } from "react";
 import { CustomWardrobeItem, GeneratedOutfit, WardrobeCategory, WeatherSuitability } from "../types";
 import { authFetch } from "../lib/firebase";
+import { GenerateOutfitResponseSchema } from "../lib/schema";
 
-export function useWardrobeInteractions(allWardrobeItems: CustomWardrobeItem[], setUserUploadedItems: React.Dispatch<React.SetStateAction<CustomWardrobeItem[]>>, setCurrentOutfit: React.Dispatch<React.SetStateAction<GeneratedOutfit | null>>) {
+export function useWardrobeInteractions(allWardrobeItems: CustomWardrobeItem[], setUserUploadedItems: React.Dispatch<React.SetStateAction<CustomWardrobeItem[]>>, setCurrentOutfit: React.Dispatch<React.SetStateAction<GeneratedOutfit | null>>, userLocation?: string | null, userLatLng?: { lat: number; lng: number } | null) {
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const [uploadTitle, setUploadTitle] = useState<string>("");
@@ -36,23 +38,21 @@ export function useWardrobeInteractions(allWardrobeItems: CustomWardrobeItem[], 
   const handleGenerateAIOutfit = async (mode = selectedWeatherMode, tempText = temperaturePrompt) => {
     setIsGeneratingOutfit(true);
     try {
-      const response = await authFetch("/api/wardrobe/generate-outfit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: allWardrobeItems,
-          weatherCondition: mode,
-          temperatureText: tempText
-        })
+      const { functions } = await import("../lib/firebase");
+      const { httpsCallable } = await import("firebase/functions");
+      const generateOutfit = httpsCallable(functions, "generateOutfit");
+
+      const response = await generateOutfit({
+        items: allWardrobeItems,
+        weatherCondition: mode,
+        temperatureText: tempText,
+        userLocation: userLocation,
+        userLatLng: userLatLng
       });
 
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.success && data.result) {
-        const outfit = data.result;
+      const parsedData = GenerateOutfitResponseSchema.parse(response.data);
+      if (parsedData.success && parsedData.result) {
+        const outfit = parsedData.result;
         const selectedItems = allWardrobeItems.filter(item =>
           outfit.selectedItemIds?.includes(item.id)
         );
@@ -71,7 +71,7 @@ export function useWardrobeInteractions(allWardrobeItems: CustomWardrobeItem[], 
         throw new Error("Invalid response format");
       }
     } catch (err) {
-      console.error("AI Outfit generation failed:", err);
+      Logger.error("AI Outfit generation failed:", err);
       alert("Failed to generate AI outfit. Please try again later.");
     } finally {
       setIsGeneratingOutfit(false);

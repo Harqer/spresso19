@@ -1,6 +1,8 @@
+import Logger from "../lib/Logger";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { authFetch } from "../lib/firebase";
+import { functions } from "../lib/firebase";
+import { httpsCallable } from "firebase/functions";
 import { MaterialIcon } from "./MaterialIcon";
 import { SpressoLogo } from "./SpressoLogo";
 import { AnimatedTicketCard } from "@/src/components/features/orders/AnimatedTicketCard";
@@ -81,20 +83,17 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
 
   const handleFinishOnboarding = async () => {
     try {
-      await authFetch("/api/user/preferences", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          onboardingCompleted: true,
-          vibes: selectedVibes,
-          cardSaved: cardAdded,
-          wardrobeSynced: wardrobeConnected,
-          radius: 25,
-          locationEnabled: true
-        })
+      const updateUserPreferences = httpsCallable(functions, "updateUserPreferences");
+      await updateUserPreferences({
+        onboardingCompleted: true,
+        vibes: selectedVibes,
+        cardSaved: cardAdded,
+        wardrobeSynced: wardrobeConnected,
+        radius: 25,
+        locationEnabled: true
       });
     } catch (e) {
-      console.error("Failed to sync onboarding preferences", e);
+      Logger.error("Failed to sync onboarding preferences", e);
     }
     
     onComplete?.({

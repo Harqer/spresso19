@@ -1,3 +1,4 @@
+import Logger from "../lib/Logger";
 import { drizzle } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 import * as schema from './schema.ts';
@@ -57,7 +58,7 @@ export const initPool = () => {
 
   pool = new Pool(poolConfig);
   pool.on('error', (err) => {
-    console.error("Unexpected database pool client error:", err.message);
+    Logger.error("Unexpected database pool client error:", err.message);
   });
 
   db = drizzle(pool, { schema });
@@ -201,7 +202,7 @@ export async function initDbSchema() {
     }
   } catch (err: any) {
     // Schema init errors are non-fatal — logging is filtered by structured console streams
-    console.error("Database schema validation notification:", err.message);
+    Logger.error("Database schema validation notification:", err.message);
   }
 }
 

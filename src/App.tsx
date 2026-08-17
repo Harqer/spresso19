@@ -1,3 +1,4 @@
+import Logger from "./lib/Logger";
 import React, { useState, useEffect } from "react";
 import { ProductItem, HITLPayload, OrderRecord, CartItem } from "./types";
 import { PersonalAIShopperChatPage as PersonalAIShopperChat } from "./components/features/chat/PersonalAIShopperChatPage";
@@ -100,7 +101,7 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ theme, seedHex, secondarySeedHex })
-      }).catch((err) => console.error("Failed to sync theme to backend", err));
+      }).catch((err) => Logger.error("Failed to sync theme to backend", err));
     }
 
     // Apply Material You Dynamic Scheme & Tokens with Charcoal source & Lime Green secondary
@@ -220,7 +221,7 @@ export default function App() {
         .then(data => {
           if (data.cart) setCart(data.cart);
         })
-        .catch(err => console.error("Failed to load cart", err));
+        .catch(err => Logger.error("Failed to load cart", err));
     } else {
       setCart([]);
     }
@@ -255,7 +256,7 @@ export default function App() {
         }
       }
     } catch (err) {
-      console.warn("Express products fetch failed, attempting Firebase:", err);
+      Logger.warn("Express products fetch failed, attempting Firebase:", err);
     }
 
     try {
@@ -291,7 +292,7 @@ export default function App() {
           if (orderData.orders) setOrders(orderData.orders);
         }
       } catch (err) {
-        console.warn("Failed to fetch orders:", err);
+        Logger.warn("Failed to fetch orders:", err);
       }
     }
   };

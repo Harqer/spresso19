@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { authFetch } from "../lib/firebase";
+import { functions } from "../lib/firebase";
+import { httpsCallable } from "firebase/functions";
 import { DetectedItem, HITLPayload, ProductItem } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { CameraObjectDetectionModal } from "./CameraObjectDetectionModal";
@@ -50,19 +51,19 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
     const targetImage = imgDataUrl || activeImage;
 
     try {
-      const res = await authFetch("/api/vision/identify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageBase64: targetImage,
-          deviceContext: "WEB",
-          promptText: "Identify product and match catalog stock."
-        })
+      const identifyVisionObject = httpsCallable(functions, "identifyVisionObject");
+      const res = await identifyVisionObject({
+        imageBase64: targetImage,
+        deviceContext: "WEB",
+        promptText: "Identify product and match catalog stock."
       });
-
-      const data = await res.json();
+      
+      const data = { success: true, result: { detectedItems: [res.data as any], hudAnnotationText: "Item located" } }; // Map to expected structure
       if (data.success && data.result) {
-        setDetectedResult(data.result);
+        setDetectedResult({
+          detectedItems: data.result.detectedItems,
+          hudAnnotationText: data.result.hudAnnotationText || "Detected items"
+        });
 
         const items: DetectedItem[] = data.result.detectedItems || [];
         const crops: Record<number, string> = {};

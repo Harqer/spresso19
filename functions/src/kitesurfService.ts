@@ -1,5 +1,7 @@
-import { getSecret } from "../src/lib/secrets";
-import { getActiveProductById } from "./inventory";
+import { defineSecret } from "firebase-functions/params";
+const CLOUDFLARE_ACCOUNT_ID = defineSecret("CLOUDFLARE_ACCOUNT_ID");
+const CLOUDFLARE_API_TOKEN = defineSecret("CLOUDFLARE_API_TOKEN");
+// Removed unused inventory import
 
 export interface KitesurfPurchaseResult {
   success: boolean;
@@ -15,11 +17,10 @@ const BROWSER_RUN_BASE = "https://api.cloudflare.com/client/v4/accounts";
 const CDP_WS_BASE = "wss://api.cloudflare.com/client/v4/accounts";
 
 async function loadCloudflareCredentials(): Promise<{ accountId: string; apiToken: string }> {
-  const [accountId, apiToken] = await Promise.all([
-    getSecret("CLOUDFLARE_ACCOUNT_ID"),
-    getSecret("CLOUDFLARE_API_TOKEN"),
-  ]);
-  return { accountId, apiToken };
+  return { 
+      accountId: CLOUDFLARE_ACCOUNT_ID.value(), 
+      apiToken: CLOUDFLARE_API_TOKEN.value() 
+  };
 }
 
 async function quickAction(
@@ -287,7 +288,17 @@ export async function executeKitesurfPurchase(
   biometricAuthorized?: boolean
 ): Promise<KitesurfPurchaseResult> {
   const steps: string[] = [];
-  const product = await getActiveProductById(productId);
+  let product: any = null;
+  try {
+    const { db } = await import("./shared/db");
+    const doc = await db.collection("products").doc(productId).get();
+    if (doc.exists) {
+      product = doc.data();
+    }
+  } catch (e) {
+      console.warn("Failed to fetch product for kitesurf purchase");
+  }
+  
   if (!product) {
     throw new Error("Product not found. Cannot automate a purchase without a valid product.");
   }

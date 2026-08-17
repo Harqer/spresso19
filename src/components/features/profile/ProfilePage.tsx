@@ -1,3 +1,4 @@
+import Logger from "../../../lib/Logger";
 import React, { useState, useEffect } from "react";
 import { User, updateProfile } from "firebase/auth";
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
@@ -64,7 +65,7 @@ export function ProfilePage({ user, theme, onToggleTheme, onLogout }: ProfilePag
           }
         }
       } catch (err) {
-        console.error("Failed to load user profile details:", err);
+        Logger.error("Failed to load user profile details:", err);
       } finally {
         if (isMounted) setIsLoadingCards(false);
       }
@@ -130,7 +131,7 @@ export function ProfilePage({ user, theme, onToggleTheme, onLogout }: ProfilePag
         } as any]);
       }
     } catch (err) {
-      console.error("Failed to add card:", err);
+      Logger.error("Failed to add card:", err);
     } finally {
       setNewCardNumber("");
       setNewCardExpiry("");
@@ -144,18 +145,17 @@ export function ProfilePage({ user, theme, onToggleTheme, onLogout }: ProfilePag
       await deletePaymentMethod({ id: cardId as any });
       setSavedCards((prev) => prev.filter((c) => c.id !== cardId));
     } catch (err) {
-      console.error("Failed to delete card:", err);
+      Logger.error("Failed to delete card:", err);
     }
   };
 
   // Upgrade / Save Subscription Tier
   const handleUpgradeSubscription = async (tier: string) => {
     try {
-      // In a real app we'd get the subscription ID from the query
-      // and pass it here, for now using a dummy ID or just updating state
-      setSubscriptionTier(tier);
-    } catch (err) {
-      console.error("Failed to update subscription:", err);
+      throw new Error("Missing Backend API - Needs Implementation");
+    } catch (err: any) {
+      Logger.error("Failed to update subscription:", err);
+      setSaveErrorMsg(err.message || "Failed to update subscription");
     } finally {
       setActiveModal(null);
     }
@@ -172,7 +172,7 @@ export function ProfilePage({ user, theme, onToggleTheme, onLogout }: ProfilePag
         theme: theme
       });
     } catch (err) {
-      console.error("Failed to update preferences:", err);
+      Logger.error("Failed to update preferences:", err);
     }
   };
 
@@ -185,7 +185,7 @@ export function ProfilePage({ user, theme, onToggleTheme, onLogout }: ProfilePag
         theme: theme === "dark" ? "light" : "dark"
       });
     } catch (err) {
-      console.error("Failed to save theme preference:", err);
+      Logger.error("Failed to save theme preference:", err);
     }
   };
 
@@ -196,7 +196,7 @@ export function ProfilePage({ user, theme, onToggleTheme, onLogout }: ProfilePag
         await deleteDoc(doc(firestoreDb, "users", auth.currentUser.uid));
       }
     } catch (err) {
-      console.error("Failed to purge user doc:", err);
+      Logger.error("Failed to purge user doc:", err);
     } finally {
       setShowDeactivateConfirm(false);
       onLogout();

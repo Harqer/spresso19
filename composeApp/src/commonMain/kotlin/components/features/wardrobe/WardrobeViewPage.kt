@@ -73,8 +73,10 @@ fun WardrobeViewPage(
         emptyList<CuratedFit>()
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
     LaunchedEffect(activeSeason) {
-        throw Exception("Missing Backend API - Needs Implementation: /api/wardrobe/fits for season $activeSeason")
+        snackbarHostState.showSnackbar("Unable to load fits right now. Please try again.")
     }
 
     val pickImage = ui.rememberImagePicker(
@@ -101,18 +103,22 @@ fun WardrobeViewPage(
     val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
     val safeDrawingPadding = WindowInsets.safeDrawing.asPaddingValues()
 
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(160.dp),
-        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
-        contentPadding = PaddingValues(
-            start = 16.dp + safeDrawingPadding.calculateStartPadding(layoutDirection),
-            top = 16.dp + safeDrawingPadding.calculateTopPadding(),
-            end = 16.dp + safeDrawingPadding.calculateEndPadding(layoutDirection),
-            bottom = 16.dp + safeDrawingPadding.calculateBottomPadding()
-        ),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0.dp)
+    ) { innerPadding ->
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(160.dp),
+            modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).padding(innerPadding),
+            contentPadding = PaddingValues(
+                start = 16.dp + safeDrawingPadding.calculateStartPadding(layoutDirection),
+                top = 16.dp + safeDrawingPadding.calculateTopPadding(),
+                end = 16.dp + safeDrawingPadding.calculateEndPadding(layoutDirection),
+                bottom = 16.dp + safeDrawingPadding.calculateBottomPadding()
+            ),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         // 1. Header Banner
         item(span = { GridItemSpan(maxLineSpan) }) {
             Surface(
@@ -333,5 +339,6 @@ fun WardrobeViewPage(
                 )
             }
         }
+    }
     }
 }

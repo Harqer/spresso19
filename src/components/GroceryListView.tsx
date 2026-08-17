@@ -1,8 +1,10 @@
+import Logger from "../lib/Logger";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem } from "../types";
-import { authFetch } from "../lib/firebase";
+import { auth } from "../lib/firebase";
+import { getGroceryList, addGroceryItem, toggleGroceryItem, deleteGroceryItem, createGroceryList } from "../dataconnect";
 
 export interface GroceryItem {
   id: string;
@@ -37,6 +39,7 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
     }));
   });
 
+  const [listId, setListId] = useState<string | null>(null);
   const [newItemName, setNewItemName] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("Produce");
   const [filterCategory, setFilterCategory] = useState("All");
@@ -45,39 +48,33 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
 
   useEffect(() => {
     const fetchGroceryList = async () => {
+      if (!auth.currentUser) return;
       try {
-        const res = await authFetch("/api/grocery/list");
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.items) && data.items.length > 0) {
-            setItems(data.items);
-          }
+        const res = await getGroceryList({ userId: auth.currentUser.uid });
+        if (res.data.groceryLists.length > 0) {
+          const list = res.data.groceryLists[0];
+          setListId(list.id);
+          const mappedItems: GroceryItem[] = list.items.map((i: any) => ({
+            id: i.id,
+            name: i.productName,
+            quantity: 1, // Quantity not strictly in schema, defaulting
+            unit: "item",
+            category: "Produce", // Category not in schema, defaulting
+            estimatedPrice: 0,
+            checked: i.isPurchased,
+          }));
+          setItems(mappedItems);
+        } else {
+          // Create a default list
+          const createRes = await createGroceryList({ userId: auth.currentUser.uid, title: "My Groceries" });
+          setListId(createRes.data.groceryList_insert.id);
         }
       } catch (err) {
-        console.error("Failed to fetch grocery list:", err);
+        Logger.error("Failed to fetch grocery list:", err);
       }
     };
     fetchGroceryList();
-  }, []);
-
-  useEffect(() => {
-    const syncGroceryList = async () => {
-      try {
-        await authFetch("/api/grocery/list", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items })
-        });
-        setError(null);
-      } catch (e: any) {
-        console.warn("Failed to sync grocery list:", e);
-        setError("Failed to sync your list to the server.");
-      }
-    };
-    if (items.length > 0) {
-      syncGroceryList();
-    }
-  }, [items]);
+  }, [auth.currentUser]);
 
   useEffect(() => {
     if (products && products.length > 0) {
@@ -102,8 +99,23 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
     }
   }, [products]);
 
-  const toggleCheck = (id: string) => {
-    setItems(prev => prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
+  const toggleCheck = async (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    
+    // Optimistic UI update
+    setItems(prev => prev.map(i => i.id === id ? { ...i, checked: !i.checked } : i));
+    
+    try {
+      if (!id.startsWith("custom-")) {
+        await toggleGroceryItem({ id, isPurchased: !item.checked });
+      }
+    } catch (err) {
+      Logger.error("Failed to toggle item", err);
+      // Revert on failure
+      setItems(prev => prev.map(i => i.id === id ? { ...i, checked: item.checked } : i));
+      setError("Failed to update item status.");
+    }
   };
 
   const updateQuantity = (id: string, delta: number) => {
@@ -118,16 +130,31 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
     );
   };
 
-  const removeItem = (id: string) => {
+  const removeItem = async (id: string) => {
+    // Optimistic remove
+    const removedItem = items.find(i => i.id === id);
     setItems(prev => prev.filter(item => item.id !== id));
+    
+    try {
+      if (!id.startsWith("custom-") && removedItem) {
+        await deleteGroceryItem({ id });
+      }
+    } catch (err) {
+      Logger.error("Failed to delete item", err);
+      if (removedItem) {
+        setItems(prev => [...prev, removedItem]);
+      }
+      setError("Failed to delete item.");
+    }
   };
 
-  const handleAddItem = (e: React.FormEvent) => {
+  const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newItemName.trim()) return;
+    if (!newItemName.trim() || !listId) return;
 
+    const tempId = `custom-${Date.now()}`;
     const newItem: GroceryItem = {
-      id: `custom-${Date.now()}`,
+      id: tempId,
       name: newItemName.trim(),
       quantity: 1,
       unit: "item",
@@ -138,6 +165,20 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
 
     setItems(prev => [newItem, ...prev]);
     setNewItemName("");
+
+    try {
+      const res = await addGroceryItem({
+        listId,
+        productName: newItem.name,
+        addedVia: "manual"
+      });
+      // Update ID to the real database UUID
+      setItems(prev => prev.map(i => i.id === tempId ? { ...i, id: res.data.groceryListItem_insert.id } : i));
+    } catch (err) {
+      Logger.error("Failed to add item", err);
+      setItems(prev => prev.filter(i => i.id !== tempId));
+      setError("Failed to add item to database.");
+    }
   };
 
   const handleSendToCart = (item: GroceryItem) => {

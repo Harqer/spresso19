@@ -159,3 +159,19 @@ query GetUserPreference @auth(level: USER) {
     emailAlerts
   }
 }
+
+query GetGroceryList($userId: String!) @auth(level: USER) {
+  groceryLists(where: { userId: { eq: $userId } }) {
+    id
+    title
+    createdAt
+    items: groceryListItems_on_groceryList {
+      id
+      productName
+      productId
+      isPurchased
+      addedVia
+      createdAt
+    }
+  }
+}

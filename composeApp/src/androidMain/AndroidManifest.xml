@@ -109,7 +109,8 @@
             android:name="com.spresso19.appfunctions.SpressoAppFunctionService"
             android:permission="android.permission.BIND_APP_FUNCTION_SERVICE"
             android:exported="true"
-            tools:targetApi="36">
+            tools:targetApi="36"
+            tools:ignore="MissingClass">
             <property
                 android:name="android.app.appfunctions.schema"
                 android:value="app_functions_schema.xsd" />

@@ -1,5 +1,5 @@
 import { ai } from "../genkit";
-import { z } from "zod";
+import { z } from "genkit";
 import * as admin from "firebase-admin";
 
 export const addToCartTool = ai.defineTool(

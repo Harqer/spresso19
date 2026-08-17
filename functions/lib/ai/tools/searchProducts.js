@@ -2,24 +2,24 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.searchProductsTool = void 0;
 const genkit_1 = require("../genkit");
-const zod_1 = require("zod");
+const genkit_2 = require("genkit");
 const params_1 = require("firebase-functions/params");
 const serpapiKey = (0, params_1.defineSecret)("SERPAPI_API_KEY");
 exports.searchProductsTool = genkit_1.ai.defineTool({
     name: "searchProducts",
     description: "Searches the Spresso store inventory and internet for products matching the user's query.",
-    inputSchema: zod_1.z.object({
-        query: zod_1.z.string().describe("The search query (e.g. 'espresso machine', 'dark roast beans')"),
-        category: zod_1.z.string().optional().describe("Optional category to filter by"),
+    inputSchema: genkit_2.z.object({
+        query: genkit_2.z.string().describe("The search query (e.g. 'espresso machine', 'dark roast beans')"),
+        category: genkit_2.z.string().optional().describe("Optional category to filter by"),
     }),
-    outputSchema: zod_1.z.object({
-        results: zod_1.z.array(zod_1.z.object({
-            id: zod_1.z.string(),
-            name: zod_1.z.string(),
-            price: zod_1.z.number(),
-            description: zod_1.z.string(),
-            imageUrl: zod_1.z.string().optional(),
-            source: zod_1.z.string().optional(),
+    outputSchema: genkit_2.z.object({
+        results: genkit_2.z.array(genkit_2.z.object({
+            id: genkit_2.z.string(),
+            name: genkit_2.z.string(),
+            price: genkit_2.z.number(),
+            description: genkit_2.z.string(),
+            imageUrl: genkit_2.z.string().optional(),
+            source: genkit_2.z.string().optional(),
         })),
     }),
 }, async ({ query, category }, ctx) => {

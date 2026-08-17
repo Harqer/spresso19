@@ -74,6 +74,8 @@ fun TravelTripsPage(
     var isRecording by remember { mutableStateOf(false) }
     var activeQrModalEvent by remember { mutableStateOf<ItineraryEvent?>(null) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
     val speechRecognizer = ui.rememberSpeechRecognizer(
         onResult = { text ->
             isRecording = false
@@ -83,7 +85,9 @@ fun TravelTripsPage(
                 transcript = text,
                 createdAt = "Just now"
             )
-            throw Exception("Missing Backend API - Needs Implementation: /api/travel/voiceNotes")
+            scope.launch {
+                snackbarHostState.showSnackbar("Unable to save voice note right now. Please try again.")
+            }
         },
         onError = { 
             isRecording = false 
@@ -99,7 +103,9 @@ fun TravelTripsPage(
         }
     }
 
-    Scaffold { innerPadding ->
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
@@ -125,7 +131,11 @@ fun TravelTripsPage(
                 ReceiptScannerSection(
                     activeTripId = activeTripId,
                     tripExpenses = tripExpenses,
-                    onAddExpense = { throw Exception("Missing Backend API - Needs Implementation: /api/travel/expense") }
+                    onAddExpense = {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Unable to add expense right now. Please try again.")
+                        }
+                    }
                 )
             }
         }

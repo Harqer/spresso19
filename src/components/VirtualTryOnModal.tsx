@@ -1,6 +1,8 @@
+import Logger from "../lib/Logger";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { authFetch } from "../lib/firebase";
+import { functions } from "../lib/firebase";
+import { httpsCallable } from "firebase/functions";
 import { ProductItem, HITLPayload } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { ElevatedQuickActionFab } from "./ElevatedQuickActionFab";
@@ -109,39 +111,30 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     setIsProcessing(true);
     setError(null);
     try {
+      const generateVirtualTryOn = httpsCallable(functions, "generateVirtualTryOn");
+      const vitposeOrchestrateFit = httpsCallable(functions, "vitposeOrchestrateFit");
+
       const [resTryOn, resVitpose] = await Promise.all([
-        authFetch("/api/creative-studio/synthesize", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal,
-          body: JSON.stringify({
-            productId: product?.id,
-            userPhotoBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
-            customNotes: `Render in ${selectedBg.name} using ${selectedAnimation.name}`,
-            mediaType
-          })
+        generateVirtualTryOn({
+          productId: product?.id,
+          userPhotoBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
+          customNotes: `Render in ${selectedBg.name} using ${selectedAnimation.name}`,
+          mediaType
         }),
-        authFetch("/api/vitpose/orchestrate-fit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal,
-          body: JSON.stringify({
-            userImageBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
-            desiredFitStyle: selectedAnimation.name,
-            preferredCategory: product?.category || ""
-          })
+        vitposeOrchestrateFit({
+          userImageBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
+          desiredFitStyle: selectedAnimation.name,
+          preferredCategory: product?.category || ""
         }).catch((err) => {
-          if (err.name !== "AbortError") console.error("Vitpose error:", err);
+          if (err.name !== "AbortError") Logger.error("Vitpose error:", err);
           return null;
         })
       ]);
 
-      if (!resTryOn.ok) throw new Error("Virtual Try-On service returned an error.");
-
-      const data = await resTryOn.json();
+      const data: any = resTryOn.data;
       let fitReason = "";
-      if (resVitpose && resVitpose.ok) {
-        const vitData = await resVitpose.json();
+      if (resVitpose && resVitpose.data) {
+        const vitData: any = resVitpose.data;
         if (vitData.orchestratorOutput?.fitAnalysis) {
           fitReason = vitData.orchestratorOutput.fitAnalysis;
         }
@@ -156,7 +149,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       }
     } catch (err: any) {
       if (err.name !== "AbortError") {
-        console.error("Try-on analysis failed:", err);
+        Logger.error("Try-on analysis failed:", err);
         setError(err.message || "Failed to process virtual try-on. Please try again.");
       }
     } finally {

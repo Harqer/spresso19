@@ -19,9 +19,13 @@ public interface SpressoConnectorConnector : com.google.firebase.dataconnect.gen
   override val dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect
 
   
+    public val addGroceryItem: AddGroceryItemMutation
+  
     public val addVideo: AddVideoMutation
   
     public val createExpense: CreateExpenseMutation
+  
+    public val createGroceryList: CreateGroceryListMutation
   
     public val createOrder: CreateOrderMutation
   
@@ -31,7 +35,11 @@ public interface SpressoConnectorConnector : com.google.firebase.dataconnect.gen
   
     public val createVoiceNote: CreateVoiceNoteMutation
   
+    public val deleteGroceryItem: DeleteGroceryItemMutation
+  
     public val deletePaymentMethod: DeletePaymentMethodMutation
+  
+    public val getGroceryList: GetGroceryListQuery
   
     public val getItineraryEvents: GetItineraryEventsQuery
   
@@ -60,6 +68,8 @@ public interface SpressoConnectorConnector : com.google.firebase.dataconnect.gen
     public val getVoiceNotes: GetVoiceNotesQuery
   
     public val listProducts: ListProductsQuery
+  
+    public val toggleGroceryItem: ToggleGroceryItemMutation
   
     public val toggleLike: ToggleLikeMutation
   
@@ -112,12 +122,20 @@ private class SpressoConnectorConnectorImpl(
   override val dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect
 ) : SpressoConnectorConnector {
   
+    override val addGroceryItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      AddGroceryItemMutationImpl(this)
+    }
+  
     override val addVideo by lazy(LazyThreadSafetyMode.PUBLICATION) {
       AddVideoMutationImpl(this)
     }
   
     override val createExpense by lazy(LazyThreadSafetyMode.PUBLICATION) {
       CreateExpenseMutationImpl(this)
+    }
+  
+    override val createGroceryList by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      CreateGroceryListMutationImpl(this)
     }
   
     override val createOrder by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -136,8 +154,16 @@ private class SpressoConnectorConnectorImpl(
       CreateVoiceNoteMutationImpl(this)
     }
   
+    override val deleteGroceryItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      DeleteGroceryItemMutationImpl(this)
+    }
+  
     override val deletePaymentMethod by lazy(LazyThreadSafetyMode.PUBLICATION) {
       DeletePaymentMethodMutationImpl(this)
+    }
+  
+    override val getGroceryList by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetGroceryListQueryImpl(this)
     }
   
     override val getItineraryEvents by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -196,6 +222,10 @@ private class SpressoConnectorConnectorImpl(
       ListProductsQueryImpl(this)
     }
   
+    override val toggleGroceryItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      ToggleGroceryItemMutationImpl(this)
+    }
+  
     override val toggleLike by lazy(LazyThreadSafetyMode.PUBLICATION) {
       ToggleLikeMutationImpl(this)
     }
@@ -220,13 +250,17 @@ private class SpressoConnectorConnectorImpl(
   @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
   override fun mutations(): List<com.google.firebase.dataconnect.generated.GeneratedMutation<SpressoConnectorConnector, *, *>> =
     listOf(
-      addVideo,
+      addGroceryItem,
+        addVideo,
         createExpense,
+        createGroceryList,
         createOrder,
         createPaymentMethod,
         createTravelExpense,
         createVoiceNote,
+        deleteGroceryItem,
         deletePaymentMethod,
+        toggleGroceryItem,
         toggleLike,
         updateUserSubscription,
         upsertUserPreference,
@@ -237,7 +271,8 @@ private class SpressoConnectorConnectorImpl(
   @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
   override fun queries(): List<com.google.firebase.dataconnect.generated.GeneratedQuery<SpressoConnectorConnector, *, *>> =
     listOf(
-      getItineraryEvents,
+      getGroceryList,
+        getItineraryEvents,
         getPaymentMethods,
         getProductById,
         getTravelExpenses,
@@ -386,6 +421,21 @@ private open class SpressoConnectorConnectorGeneratedMutationImpl<Data, Variable
 
 
 
+private class AddGroceryItemMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  AddGroceryItemMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      AddGroceryItemMutation.Data,
+      AddGroceryItemMutation.Variables
+  >(
+    connector,
+    AddGroceryItemMutation.Companion.operationName,
+    AddGroceryItemMutation.Companion.dataDeserializer,
+    AddGroceryItemMutation.Companion.variablesSerializer,
+  )
+
+
 private class AddVideoMutationImpl(
   connector: SpressoConnectorConnector
 ):
@@ -413,6 +463,21 @@ private class CreateExpenseMutationImpl(
     CreateExpenseMutation.Companion.operationName,
     CreateExpenseMutation.Companion.dataDeserializer,
     CreateExpenseMutation.Companion.variablesSerializer,
+  )
+
+
+private class CreateGroceryListMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  CreateGroceryListMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      CreateGroceryListMutation.Data,
+      CreateGroceryListMutation.Variables
+  >(
+    connector,
+    CreateGroceryListMutation.Companion.operationName,
+    CreateGroceryListMutation.Companion.dataDeserializer,
+    CreateGroceryListMutation.Companion.variablesSerializer,
   )
 
 
@@ -476,6 +541,21 @@ private class CreateVoiceNoteMutationImpl(
   )
 
 
+private class DeleteGroceryItemMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  DeleteGroceryItemMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      DeleteGroceryItemMutation.Data,
+      DeleteGroceryItemMutation.Variables
+  >(
+    connector,
+    DeleteGroceryItemMutation.Companion.operationName,
+    DeleteGroceryItemMutation.Companion.dataDeserializer,
+    DeleteGroceryItemMutation.Companion.variablesSerializer,
+  )
+
+
 private class DeletePaymentMethodMutationImpl(
   connector: SpressoConnectorConnector
 ):
@@ -488,6 +568,21 @@ private class DeletePaymentMethodMutationImpl(
     DeletePaymentMethodMutation.Companion.operationName,
     DeletePaymentMethodMutation.Companion.dataDeserializer,
     DeletePaymentMethodMutation.Companion.variablesSerializer,
+  )
+
+
+private class GetGroceryListQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetGroceryListQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetGroceryListQuery.Data,
+      GetGroceryListQuery.Variables
+  >(
+    connector,
+    GetGroceryListQuery.Companion.operationName,
+    GetGroceryListQuery.Companion.dataDeserializer,
+    GetGroceryListQuery.Companion.variablesSerializer,
   )
 
 
@@ -698,6 +793,21 @@ private class ListProductsQueryImpl(
     ListProductsQuery.Companion.operationName,
     ListProductsQuery.Companion.dataDeserializer,
     ListProductsQuery.Companion.variablesSerializer,
+  )
+
+
+private class ToggleGroceryItemMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  ToggleGroceryItemMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      ToggleGroceryItemMutation.Data,
+      ToggleGroceryItemMutation.Variables
+  >(
+    connector,
+    ToggleGroceryItemMutation.Companion.operationName,
+    ToggleGroceryItemMutation.Companion.dataDeserializer,
+    ToggleGroceryItemMutation.Companion.variablesSerializer,
   )
 
 

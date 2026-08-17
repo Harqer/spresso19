@@ -19,16 +19,18 @@ interface WardrobeViewProps {
   onSelectTryOn: (product: ProductItem) => void;
   onRequestHITLCheckout: (payload: HITLPayload) => void;
   onAskAI?: (text: string, image?: string | null) => void;
+  userLocation?: string | null;
+  userLatLng?: { lat: number; lng: number } | null;
 }
 
 
 
 export const WardrobeViewPage: React.FC<WardrobeViewProps> = ({
-  products, onSelectTryOn, onRequestHITLCheckout, onAskAI
+  products, onSelectTryOn, onRequestHITLCheckout, onAskAI, userLocation, userLatLng
 }) => {
   const state = useWardrobeState(products, onRequestHITLCheckout);
   const [currentOutfit, setCurrentOutfit] = useState<GeneratedOutfit | null>(null);
-  const interactions = useWardrobeInteractions(state.allWardrobeItems, state.setUserUploadedItems, setCurrentOutfit);
+  const interactions = useWardrobeInteractions(state.allWardrobeItems, state.setUserUploadedItems, setCurrentOutfit, userLocation, userLatLng);
   const [selectedRollItemIds, setSelectedRollItemIds] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [galleryPieces, setGalleryPieces] = useState<any[]>([]);

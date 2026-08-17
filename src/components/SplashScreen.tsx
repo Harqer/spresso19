@@ -1,3 +1,4 @@
+import Logger from "../lib/Logger";
 import React, { useRef, useEffect } from "react";
 import { motion } from "motion/react";
 
@@ -20,7 +21,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onSplashComplete }) 
       try {
         await video.play();
       } catch (err) {
-        console.warn("Unmuted autoplay restricted by browser, fallback to muted autoplay:", err);
+        Logger.warn("Unmuted autoplay restricted by browser, fallback to muted autoplay:", err);
         video.muted = true;
         await video.play();
       }

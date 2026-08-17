@@ -15,6 +15,17 @@ export interface ActiveCookingSession_Key {
   __typename?: 'ActiveCookingSession_Key';
 }
 
+export interface AddGroceryItemData {
+  groceryListItem_insert: GroceryListItem_Key;
+}
+
+export interface AddGroceryItemVariables {
+  listId: UUIDString;
+  productName: string;
+  productId?: string | null;
+  addedVia: string;
+}
+
 export interface AddVideoData {
   video_insert: Video_Key;
 }
@@ -48,6 +59,15 @@ export interface CreateExpenseVariables {
   receiptImageUrl?: string | null;
   date?: string | null;
   items?: string | null;
+}
+
+export interface CreateGroceryListData {
+  groceryList_insert: GroceryList_Key;
+}
+
+export interface CreateGroceryListVariables {
+  userId: string;
+  title: string;
 }
 
 export interface CreateOrderData {
@@ -95,12 +115,40 @@ export interface CreateVoiceNoteVariables {
   transcript: string;
 }
 
+export interface DeleteGroceryItemData {
+  groceryListItem_delete?: GroceryListItem_Key | null;
+}
+
+export interface DeleteGroceryItemVariables {
+  id: UUIDString;
+}
+
 export interface DeletePaymentMethodData {
   paymentMethod_delete?: PaymentMethod_Key | null;
 }
 
 export interface DeletePaymentMethodVariables {
   id: UUIDString;
+}
+
+export interface GetGroceryListData {
+  groceryLists: ({
+    id: UUIDString;
+    title: string;
+    createdAt: TimestampString;
+    items: ({
+      id: UUIDString;
+      productName: string;
+      productId?: string | null;
+      isPurchased: boolean;
+      addedVia: string;
+      createdAt: TimestampString;
+    } & GroceryListItem_Key)[];
+  } & GroceryList_Key)[];
+}
+
+export interface GetGroceryListVariables {
+  userId: string;
 }
 
 export interface GetItineraryEventsData {
@@ -296,6 +344,15 @@ export interface PaymentMethod_Key {
 export interface Product_Key {
   id: string;
   __typename?: 'Product_Key';
+}
+
+export interface ToggleGroceryItemData {
+  groceryListItem_update?: GroceryListItem_Key | null;
+}
+
+export interface ToggleGroceryItemVariables {
+  id: UUIDString;
+  isPurchased: boolean;
 }
 
 export interface ToggleLikeData {
@@ -508,6 +565,54 @@ export const upsertUserPreferenceRef: UpsertUserPreferenceRef;
 export function upsertUserPreference(vars?: UpsertUserPreferenceVariables): MutationPromise<UpsertUserPreferenceData, UpsertUserPreferenceVariables>;
 export function upsertUserPreference(dc: DataConnect, vars?: UpsertUserPreferenceVariables): MutationPromise<UpsertUserPreferenceData, UpsertUserPreferenceVariables>;
 
+interface CreateGroceryListRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateGroceryListVariables): MutationRef<CreateGroceryListData, CreateGroceryListVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CreateGroceryListVariables): MutationRef<CreateGroceryListData, CreateGroceryListVariables>;
+  operationName: string;
+}
+export const createGroceryListRef: CreateGroceryListRef;
+
+export function createGroceryList(vars: CreateGroceryListVariables): MutationPromise<CreateGroceryListData, CreateGroceryListVariables>;
+export function createGroceryList(dc: DataConnect, vars: CreateGroceryListVariables): MutationPromise<CreateGroceryListData, CreateGroceryListVariables>;
+
+interface AddGroceryItemRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AddGroceryItemVariables): MutationRef<AddGroceryItemData, AddGroceryItemVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AddGroceryItemVariables): MutationRef<AddGroceryItemData, AddGroceryItemVariables>;
+  operationName: string;
+}
+export const addGroceryItemRef: AddGroceryItemRef;
+
+export function addGroceryItem(vars: AddGroceryItemVariables): MutationPromise<AddGroceryItemData, AddGroceryItemVariables>;
+export function addGroceryItem(dc: DataConnect, vars: AddGroceryItemVariables): MutationPromise<AddGroceryItemData, AddGroceryItemVariables>;
+
+interface ToggleGroceryItemRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ToggleGroceryItemVariables): MutationRef<ToggleGroceryItemData, ToggleGroceryItemVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ToggleGroceryItemVariables): MutationRef<ToggleGroceryItemData, ToggleGroceryItemVariables>;
+  operationName: string;
+}
+export const toggleGroceryItemRef: ToggleGroceryItemRef;
+
+export function toggleGroceryItem(vars: ToggleGroceryItemVariables): MutationPromise<ToggleGroceryItemData, ToggleGroceryItemVariables>;
+export function toggleGroceryItem(dc: DataConnect, vars: ToggleGroceryItemVariables): MutationPromise<ToggleGroceryItemData, ToggleGroceryItemVariables>;
+
+interface DeleteGroceryItemRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteGroceryItemVariables): MutationRef<DeleteGroceryItemData, DeleteGroceryItemVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: DeleteGroceryItemVariables): MutationRef<DeleteGroceryItemData, DeleteGroceryItemVariables>;
+  operationName: string;
+}
+export const deleteGroceryItemRef: DeleteGroceryItemRef;
+
+export function deleteGroceryItem(vars: DeleteGroceryItemVariables): MutationPromise<DeleteGroceryItemData, DeleteGroceryItemVariables>;
+export function deleteGroceryItem(dc: DataConnect, vars: DeleteGroceryItemVariables): MutationPromise<DeleteGroceryItemData, DeleteGroceryItemVariables>;
+
 interface ListProductsRef {
   /* Allow users to create refs without passing in DataConnect */
   (): QueryRef<ListProductsData, undefined>;
@@ -675,4 +780,16 @@ export const getUserPreferenceRef: GetUserPreferenceRef;
 
 export function getUserPreference(options?: ExecuteQueryOptions): QueryPromise<GetUserPreferenceData, undefined>;
 export function getUserPreference(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetUserPreferenceData, undefined>;
+
+interface GetGroceryListRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetGroceryListVariables): QueryRef<GetGroceryListData, GetGroceryListVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetGroceryListVariables): QueryRef<GetGroceryListData, GetGroceryListVariables>;
+  operationName: string;
+}
+export const getGroceryListRef: GetGroceryListRef;
+
+export function getGroceryList(vars: GetGroceryListVariables, options?: ExecuteQueryOptions): QueryPromise<GetGroceryListData, GetGroceryListVariables>;
+export function getGroceryList(dc: DataConnect, vars: GetGroceryListVariables, options?: ExecuteQueryOptions): QueryPromise<GetGroceryListData, GetGroceryListVariables>;
 

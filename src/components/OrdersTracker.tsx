@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { authFetch } from "../lib/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../lib/firebase";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { OrderRecord } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { AIShopperInputBar } from "./AIShopperInputBar";
 import { GoogleWalletButton } from "@/src/components/features/profile/GoogleWalletButton";
 import { AnimatedTicketCard } from "@/src/components/features/orders/AnimatedTicketCard";
+import { ErrorStateFallback, EmptyStateFallback } from "./shared/Fallbacks";
+import { GetOrdersResponseSchema } from "../lib/schema";
 
 interface OrdersTrackerProps {
   orders: OrderRecord[];
@@ -15,26 +19,28 @@ interface OrdersTrackerProps {
 export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, onRefreshOrders }) => {
   const [returnModalOrderId, setReturnModalOrderId] = useState<string | null>(null);
   const [liveOrders, setLiveOrders] = useState<OrderRecord[]>(orders);
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: queryOrders, isLoading: isQueryLoading } = useQuery({
+    queryKey: ["userOrders"],
+    queryFn: async () => {
+      const getUserOrders = httpsCallable(functions, "getUserOrders");
+      const res = await getUserOrders();
+      const parsedData = GetOrdersResponseSchema.parse(res.data);
+      if (parsedData.success && parsedData.orders) {
+        return parsedData.orders as OrderRecord[];
+      }
+      return [];
+    }
+  });
+
+  const isLoading = isQueryLoading;
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      setIsLoading(true);
-      try {
-        const res = await authFetch("/api/orders");
-        const data = await res.json();
-        if (data.success && data.orders) {
-          setLiveOrders(data.orders);
-        } else {
-          setLiveOrders([]);
-        }
-      } catch (e) {
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchOrders();
-  }, []);
+    if (queryOrders) {
+      setLiveOrders(queryOrders);
+    }
+  }, [queryOrders]);
   const [returnReason, setReturnReason] = useState("");
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
@@ -42,14 +48,12 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
   const handleSetReminder = async (orderId: string) => {
     setLoadingAction(`reminder-${orderId}`);
     try {
-      const res = await authFetch("/api/orders/reminder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, reminderTime: "Today at 5:00 PM (Arrival Alert)" })
-      });
-      const data = await res.json();
+      const setOrderReminder = httpsCallable(functions, "setOrderReminder");
+      const res = await setOrderReminder({ orderId, reminderTime: "Today at 5:00 PM (Arrival Alert)" });
+      const data = res.data as any;
       if (data.success) {
         setActionSuccessMsg(`Delivery arrival reminder set for ${orderId}!`);
+        queryClient.invalidateQueries({ queryKey: ["userOrders"] });
         if (onRefreshOrders) onRefreshOrders();
       }
     } catch (e) {
@@ -65,16 +69,14 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
 
     setLoadingAction(`return-${returnModalOrderId}`);
     try {
-      const res = await authFetch("/api/orders/return", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: returnModalOrderId, reason: returnReason || "Customer return request" })
-      });
-      const data = await res.json();
+      const initiateOrderReturn = httpsCallable(functions, "initiateOrderReturn");
+      const res = await initiateOrderReturn({ orderId: returnModalOrderId, reason: returnReason || "Customer return request" });
+      const data = res.data as any;
       if (data.success) {
         setActionSuccessMsg(`Return initiated for ${returnModalOrderId}. Prepaid shipping label dispatched.`);
         setReturnModalOrderId(null);
         setReturnReason("");
+        queryClient.invalidateQueries({ queryKey: ["userOrders"] });
         if (onRefreshOrders) onRefreshOrders();
       }
     } catch (e) {
@@ -156,16 +158,17 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
           <div className="w-12 h-12 border-4 border-[#386633] border-t-transparent rounded-full animate-spin mx-auto" />
           <h3 className="text-sm font-bold text-[#18211e]">Loading Live Orders...</h3>
         </div>
+      ) : queryOrders?.length === undefined && liveOrders.length === 0 && !isLoading && queryClient.getQueryState(["userOrders"])?.status === "error" ? (
+        <ErrorStateFallback
+          title="Orders Unavailable"
+          message="We could not fetch your live order history. Please check your connection."
+          onRetry={() => queryClient.invalidateQueries({ queryKey: ["userOrders"] })}
+        />
       ) : liveOrders.length === 0 ? (
-        <div className="bg-white p-12 rounded-3xl border border-[#d8ebd7] text-center text-[#5e635f] space-y-3 shadow-xs">
-          <div className="w-12 h-12 bg-[#f2f8f2] text-[#386633] rounded-2xl flex items-center justify-center mx-auto">
-            <MaterialIcon icon="inventory_2" size={28} />
-          </div>
-          <h3 className="text-sm font-bold text-[#18211e]">No Orders Placed Yet</h3>
-          <p className="text-xs max-w-md mx-auto text-[#5e635f]">
-            Start chatting or browse the catalog to make your first purchase.
-          </p>
-        </div>
+        <EmptyStateFallback
+          title="No Orders Placed Yet"
+          description="Start chatting or browse the catalog to make your first purchase."
+        />
       ) : (
         <div className="space-y-4">
           {liveOrders.map(order => {

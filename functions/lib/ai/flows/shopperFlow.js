@@ -2,21 +2,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.spressoShopperFlow = void 0;
 const genkit_1 = require("../genkit");
-const zod_1 = require("zod");
+const genkit_2 = require("genkit");
 // Import tools to ensure they are registered with the AI instance
 require("../tools/addToCart");
 require("../tools/searchProducts");
 exports.spressoShopperFlow = genkit_1.ai.defineFlow({
     name: "spressoShopperFlow",
-    inputSchema: zod_1.z.object({
-        prompt: zod_1.z.string(),
-        history: zod_1.z.array(zod_1.z.object({
-            role: zod_1.z.enum(["user", "model", "system"]),
-            content: zod_1.z.string()
+    inputSchema: genkit_2.z.object({
+        prompt: genkit_2.z.string(),
+        history: genkit_2.z.array(genkit_2.z.object({
+            role: genkit_2.z.enum(["user", "model", "system"]),
+            content: genkit_2.z.string()
         })).optional(),
     }),
-    outputSchema: zod_1.z.object({
-        response: zod_1.z.string(),
+    outputSchema: genkit_2.z.object({
+        response: genkit_2.z.string(),
     }),
 }, async ({ prompt, history }) => {
     // Load the prompt from the .prompt file

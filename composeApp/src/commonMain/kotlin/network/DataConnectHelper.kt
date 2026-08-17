@@ -7,3 +7,5 @@ package network
  * @param userUid The authenticated Firebase user UID. Must be a real UID — anonymous fallbacks are not permitted.
  */
 expect suspend fun toggleLike(productId: String, userUid: String)
+
+expect suspend fun getInventoryFromDataConnect(): List<ProductItem>

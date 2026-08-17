@@ -1,6 +1,9 @@
+import Logger from "../../../lib/Logger";
 import React, { useState } from "react";
 import { User } from "firebase/auth";
-import { authFetch } from "../../../lib/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../../lib/firebase";
+import { GoogleGenAI } from "@google/genai";
 import { MaterialIcon } from "../../MaterialIcon";
 import { ProductItem } from "../../../types";
 import { AgentTemplateCard } from "@/src/components/features/chat/AgentTemplateCard";
@@ -47,16 +50,15 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
   React.useEffect(() => {
     const fetchTemplates = async () => {
       try {
-        const res = await authFetch("/api/creator/templates");
-        if (res.ok) {
-          const data = await res.json();
-          setCreativeTemplates(data.templates || []);
-          if (data.templates?.length > 0) {
-            setActiveTemplate(data.templates[0]);
-          }
+        const creatorAgentTemplates = httpsCallable(functions, "creatorAgentTemplates");
+        const res = await creatorAgentTemplates();
+        const data = res.data as any;
+        setCreativeTemplates(data.templates || []);
+        if (data.templates?.length > 0) {
+          setActiveTemplate(data.templates[0]);
         }
       } catch (err) {
-        console.error("Failed to fetch creative templates", err);
+        Logger.error("Failed to fetch creative templates", err);
       }
     };
     fetchTemplates();
@@ -73,25 +75,35 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
     if (!customText) setInputPrompt("");
     setIsGenerating(true);
     try {
-      const response = await authFetch("/api/chat/stream", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: textToSend, userName, location: userLocation, agentType: selectedAgent }) });
-      if (!response.ok) throw new Error(`Stream failed with status ${response.status}`);
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
+      const generateLiveApiToken = httpsCallable(functions, "generateLiveApiToken");
+      const tokenRes = await generateLiveApiToken();
+      const token = (tokenRes.data as any).token;
+
+      const ai = new GoogleGenAI({
+        apiKey: "none",
+        httpOptions: { headers: { Authorization: `Bearer ${token}` } }
+      });
+
+      const responseStream = await ai.models.generateContentStream({
+        model: "gemini-3.5-flash",
+        contents: textToSend,
+        config: {
+          systemInstruction: `You are the ${activeAgentMeta.title}. Provide helpful advice for the Creator based on their request.`,
+        }
+      });
+
       let accumulatedText = "";
-      while (reader) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        const lines = decoder.decode(value, { stream: true }).split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const rawData = line.slice(6).trim();
-            if (rawData === "[DONE]") break;
-            try { const parsed = JSON.parse(rawData); if (parsed.text) { accumulatedText += parsed.text; setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: accumulatedText } : m)); } } catch {}
-          }
+      for await (const chunk of responseStream) {
+        if (chunk.text) {
+          accumulatedText += chunk.text;
+          setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: accumulatedText } : m));
         }
       }
       setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false } : m));
-    } catch { setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: "Unable to process request at this moment.", isStreaming: false } : m)); } finally { setIsGenerating(false); }
+    } catch (err) {
+      Logger.warn("Error streaming creator response:", err);
+      setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: "Unable to process request at this moment.", isStreaming: false } : m)); 
+    } finally { setIsGenerating(false); }
   };
 
   const handleRunTemplateGeneration = async (tmpl?: CreativeTemplate) => {
@@ -101,12 +113,17 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
     setIsGeneratingMedia(true); setGeneratedResult(null);
 
     try {
-      const res = await authFetch("/api/creator/generate-campaign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storeName: `${userName}'s ${t.name}`, category: t.category, productFeatures: promptToUse, targetAudience: "E-Commerce Shoppers" }) });
-      if (!res.ok) throw new Error(`Generate request failed with status ${res.status}`);
-      const data = await res.json();
+      const generateCreatorCampaign = httpsCallable(functions, "generateCreatorCampaign");
+      const res = await generateCreatorCampaign({
+        storeName: `${userName}'s ${t.name}`,
+        category: t.category,
+        productFeatures: promptToUse,
+        targetAudience: "E-Commerce Shoppers"
+      });
+      const data = res.data as any;
       setGeneratedResult({ prompt: promptToUse, templateName: t.name, imageUrl: data.imageUrl || "", videoConcept: `${data.campaign?.marketingCampaign?.socialCopy || `Creative studio render synthesized.`}` });
     } catch (err) {
-      console.error("Campaign generation error:", err);
+      Logger.error("Campaign generation error:", err);
       alert("Failed to generate campaign. Please try again.");
     } finally { 
       setIsGeneratingMedia(false); 

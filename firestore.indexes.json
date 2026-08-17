@@ -1,0 +1,10 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "idempotency_keys",
+      "fieldPath": "processedAt",
+      "ttl": true
+    }
+  ]
+}

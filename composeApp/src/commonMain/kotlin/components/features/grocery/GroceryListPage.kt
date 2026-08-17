@@ -54,9 +54,12 @@ fun GroceryListPage(
     val categories = listOf("All", "Produce", "Dairy", "Bakery", "Pantry", "Beverages")
     val totalEstimated = items.filter { !it.checked }.sumOf { it.estimatedPrice * it.quantity }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets.safeDrawing
+        contentWindowInsets = WindowInsets.safeDrawing,
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -73,7 +76,11 @@ fun GroceryListPage(
                 OutlinedTextField(value = newItemName, onValueChange = { newItemName = it }, placeholder = { Text("Add an item...", fontSize = 13.sp) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
                 SpressoButton(
                     text = "Add",
-                    onClick = { throw Exception("Missing Backend API - Needs Implementation: /api/grocery/add") },
+                    onClick = { 
+                        scope.launch { 
+                            snackbarHostState.showSnackbar("Unable to add grocery item right now. Please try again.") 
+                        } 
+                    },
                     modifier = Modifier,
                     variant = SpressoButtonVariant.PRIMARY,
                     trackingId = "grocery_add_item",
@@ -116,8 +123,10 @@ fun GroceryListPage(
                     subtitle = "${item.category} • $${item.estimatedPrice.toPriceString()}",
                     leadingIcon = if (item.checked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                     onClick = { 
-                        scope.launch { apiClient.recordInteraction("grocery_toggle_${item.id}", "click") }
-                        throw Exception("Missing Backend API - Needs Implementation: /api/grocery/toggle")
+                        scope.launch { 
+                            apiClient.recordInteraction("grocery_toggle_${item.id}", "click")
+                            snackbarHostState.showSnackbar("Unable to update item right now. Please try again.")
+                        }
                     },
                     trailingContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -128,8 +137,10 @@ fun GroceryListPage(
                                 Icon(Icons.Default.AutoAwesome, contentDescription = "AI", tint = MaterialTheme.colorScheme.primary)
                             }
                             IconButton(onClick = { 
-                                scope.launch { apiClient.recordInteraction("grocery_delete_${item.id}", "click") }
-                                throw Exception("Missing Backend API - Needs Implementation: /api/grocery/delete")
+                                scope.launch { 
+                                    apiClient.recordInteraction("grocery_delete_${item.id}", "click")
+                                    snackbarHostState.showSnackbar("Unable to delete item right now. Please try again.")
+                                }
                             }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
                             }

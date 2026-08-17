@@ -120,3 +120,24 @@ mutation UpsertUserPreference($theme: String, $pushNotifications: Boolean, $emai
     emailAlerts: $emailAlerts
   })
 }
+
+mutation CreateGroceryList($userId: String!, $title: String!) @auth(level: USER) {
+  groceryList_insert(data: { userId: $userId, title: $title })
+}
+
+mutation AddGroceryItem($listId: UUID!, $productName: String!, $productId: String, $addedVia: String!) @auth(level: USER) {
+  groceryListItem_insert(data: {
+    groceryListId: $listId,
+    productName: $productName,
+    productId: $productId,
+    addedVia: $addedVia
+  })
+}
+
+mutation ToggleGroceryItem($id: UUID!, $isPurchased: Boolean!) @auth(level: USER) {
+  groceryListItem_update(id: $id, data: { isPurchased: $isPurchased })
+}
+
+mutation DeleteGroceryItem($id: UUID!) @auth(level: USER) {
+  groceryListItem_delete(id: $id)
+}

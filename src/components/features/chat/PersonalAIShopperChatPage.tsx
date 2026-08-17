@@ -1,3 +1,4 @@
+import Logger from "../../../lib/Logger";
 import React, { useState } from "react";
 import { ProductItem, HITLPayload } from "../../../types";
 import { MaterialIcon } from "../../MaterialIcon";
@@ -5,7 +6,9 @@ import { AIShopperInputBar } from "../../AIShopperInputBar";
 import { LiveCameraCaptureModal } from "../../LiveCameraCaptureModal";
 import { CameraObjectDetectionModal } from "../../CameraObjectDetectionModal";
 import { GoogleLensScreenWidgetModal } from "../../GoogleLensScreenWidgetModal";
-import { authFetch } from "../../../lib/firebase";
+import { functions } from "../../../lib/firebase";
+import { httpsCallable } from "firebase/functions";
+import { GoogleGenAI } from "@google/genai";
 import { ChatBubbleText } from "@/src/components/features/chat/ChatBubbleText";
 import { ChatMessageHeader } from "@/src/components/features/chat/ChatMessageHeader";
 import { ChatProductCard } from "@/src/components/features/chat/ChatProductCard";
@@ -66,12 +69,12 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
 
   React.useEffect(() => {
     let isMounted = true;
-    authFetch("/api/chat/quick-prompts")
-      .then(res => res.json())
-      .then(data => {
-        if (isMounted && data.prompts) setQuickPrompts(data.prompts);
+    const getQuickPrompts = httpsCallable(functions, "getQuickPrompts");
+    getQuickPrompts()
+      .then((res: any) => {
+        if (isMounted && res.data.prompts) setQuickPrompts(res.data.prompts);
       })
-      .catch(e => console.warn("Failed to fetch quick prompts", e));
+      .catch(e => Logger.warn("Failed to fetch quick prompts", e));
     return () => { isMounted = false; };
   }, []);
 
@@ -81,13 +84,10 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
     setInputQuery("");
 
     try {
-      authFetch("/api/user/search-history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: text.trim() })
-      }).catch(e => console.warn("Failed to update search history on backend:", e));
+      const logSearchHistory = httpsCallable(functions, "logSearchHistory");
+      logSearchHistory({ query: text.trim() }).catch(e => Logger.warn("Failed to update search history on backend:", e));
     } catch (e) {
-      console.warn("Failed to initiate search history update:", e);
+      Logger.warn("Failed to initiate search history update:", e);
     }
 
     const userMsg: PersonalChatMsg = {
@@ -113,105 +113,85 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
     abortControllerRef.current = new AbortController();
 
     try {
-      const response = await authFetch("/api/chat/stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: text,
-          userName,
-          location: userLocation,
-          agentType: "SHOPPING_CONCIERGE"
-        }),
-        signal: abortControllerRef.current.signal
+      const generateLiveApiToken = httpsCallable(functions, "generateLiveApiToken");
+      const tokenRes = await generateLiveApiToken();
+      const token = (tokenRes.data as any).token;
+
+      const ai = new GoogleGenAI({
+        apiKey: "none",
+        httpOptions: { headers: { Authorization: `Bearer ${token}` } }
       });
 
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
-      }
+      const responseStream = await ai.models.generateContentStream({
+        model: "gemini-3.5-flash",
+        contents: text,
+        config: {
+          systemInstruction: "You are the Spresso Personal Shopper. Provide helpful advice and recommend products using JSON blocks formatted like ```json { \"recommendedProducts\": [ { \"id\": \"...\" } ] } ```.",
+        }
+      });
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
       let accumulatedText = "";
 
-      while (reader) {
-        const { value, done } = await reader.read();
-        if (done) break;
+      for await (const chunk of responseStream) {
+        if (abortControllerRef.current?.signal.aborted) break;
+        if (chunk.text) {
+          accumulatedText += chunk.text;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
+          const jsonBlock = extractJsonBlock(accumulatedText);
+          let recommendedItems: ProductItem[] | undefined = undefined;
+          let locationData: any = undefined;
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const rawData = line.slice(6).trim();
-            if (rawData === "[DONE]") break;
-
-            try {
-              const parsed = JSON.parse(rawData);
-              if (parsed.text) {
-                accumulatedText += parsed.text;
-
-                const jsonBlock = extractJsonBlock(accumulatedText);
-                let recommendedItems: ProductItem[] | undefined = undefined;
-                let locationData: any = undefined;
-
-                if (jsonBlock) {
-                  if (Array.isArray(jsonBlock.recommendedProducts)) {
-                    // Collect unknown product IDs
-                    const unknownIds = jsonBlock.recommendedProducts
-                      .filter((p: any) => !products.some(cp => cp.id === p.id))
-                      .map((p: any) => p.id);
-                    
-                    if (unknownIds.length > 0) {
-                      // Fetch full product details for unknown IDs
-                      try {
-                        const { httpsCallable } = await import("firebase/functions");
-                        const { functions } = await import("../../../lib/firebase");
-                        const fetchProducts = httpsCallable(functions, "fetchProductsByIds");
-                        const res = await fetchProducts({ ids: unknownIds });
-                        const fetchedProducts = (res.data as any).products || [];
-                        
-                        recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
-                          const match = products.find(cp => cp.id === p.id) || fetchedProducts.find((cp: any) => cp.id === p.id);
-                          return match || null;
-                        }).filter(Boolean);
-                      } catch (e) {
-                        console.warn("Failed to fetch full product details", e);
-                        recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
-                          const match = products.find(cp => cp.id === p.id);
-                          return match;
-                        }).filter(Boolean);
-                      }
-                    } else {
-                      recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
-                        const match = products.find(cp => cp.id === p.id);
-                        return match;
-                      }).filter(Boolean);
-                    }
-                  }
-                  if (jsonBlock.locationData) {
-                    locationData = jsonBlock.locationData;
-                  }
+          if (jsonBlock) {
+            if (Array.isArray(jsonBlock.recommendedProducts)) {
+              // Collect unknown product IDs
+              const unknownIds = jsonBlock.recommendedProducts
+                .filter((p: any) => !products.some(cp => cp.id === p.id))
+                .map((p: any) => p.id);
+              
+              if (unknownIds.length > 0) {
+                // Fetch full product details for unknown IDs
+                try {
+                  const fetchProducts = httpsCallable(functions, "fetchProductsByIds");
+                  const res = await fetchProducts({ ids: unknownIds });
+                  const fetchedProducts = (res.data as any).products || [];
+                  
+                  recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
+                    const match = products.find(cp => cp.id === p.id) || fetchedProducts.find((cp: any) => cp.id === p.id);
+                    return match || null;
+                  }).filter(Boolean);
+                } catch (e) {
+                  Logger.warn("Failed to fetch full product details", e);
+                  recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
+                    const match = products.find(cp => cp.id === p.id);
+                    return match;
+                  }).filter(Boolean);
                 }
-
-                const cleanText = accumulatedText.replace(/```json\s*[\s\S]*?```/g, "").trim();
-
-                setMessages(prev =>
-                  prev.map(m =>
-                    m.id === aiMsgId
-                      ? {
-                          ...m,
-                          text: cleanText || "Analysis complete.",
-                          products: recommendedItems,
-                          locationData
-                        }
-                      : m
-                  )
-                );
+              } else {
+                recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
+                  const match = products.find(cp => cp.id === p.id);
+                  return match;
+                }).filter(Boolean);
               }
-            } catch (e) {
-              console.warn("Failed to parse SSE JSON chunk");
+            }
+            if (jsonBlock.locationData) {
+              locationData = jsonBlock.locationData;
             }
           }
+
+          const cleanText = accumulatedText.replace(/```json\s*[\s\S]*?```/g, "").trim();
+
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === aiMsgId
+                ? {
+                    ...m,
+                    text: cleanText || "Analysis complete.",
+                    products: recommendedItems,
+                    locationData
+                  }
+                : m
+            )
+          );
         }
       }
 
@@ -219,7 +199,7 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
         prev.map(m => (m.id === aiMsgId ? { ...m, isStreaming: false } : m))
       );
     } catch (err) {
-      console.error("Personal AI chat error:", err);
+      Logger.error("Personal AI chat error:", err);
       setMessages(prev =>
         prev.map(m =>
           m.id === aiMsgId
@@ -244,7 +224,7 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
         return JSON.parse(jsonStr.trim());
       }
     } catch (e) {
-      console.warn("Failed to extract JSON block from AI output");
+      Logger.warn("Failed to extract JSON block from AI output");
     }
     return null;
   };

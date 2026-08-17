@@ -22,6 +22,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*GetPaymentMethods*](#getpaymentmethods)
   - [*GetUserSubscription*](#getusersubscription)
   - [*GetUserPreference*](#getuserpreference)
+  - [*GetGroceryList*](#getgrocerylist)
 - [**Mutations**](#mutations)
   - [*UpsertUserProfile*](#upsertuserprofile)
   - [*CreateOrder*](#createorder)
@@ -34,6 +35,10 @@ This README will guide you through the process of using the generated JavaScript
   - [*DeletePaymentMethod*](#deletepaymentmethod)
   - [*UpdateUserSubscription*](#updateusersubscription)
   - [*UpsertUserPreference*](#upsertuserpreference)
+  - [*CreateGroceryList*](#creategrocerylist)
+  - [*AddGroceryItem*](#addgroceryitem)
+  - [*ToggleGroceryItem*](#togglegroceryitem)
+  - [*DeleteGroceryItem*](#deletegroceryitem)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `spresso-connector`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -1477,6 +1482,127 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## GetGroceryList
+You can execute the `GetGroceryList` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+getGroceryList(vars: GetGroceryListVariables, options?: ExecuteQueryOptions): QueryPromise<GetGroceryListData, GetGroceryListVariables>;
+
+interface GetGroceryListRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetGroceryListVariables): QueryRef<GetGroceryListData, GetGroceryListVariables>;
+}
+export const getGroceryListRef: GetGroceryListRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+getGroceryList(dc: DataConnect, vars: GetGroceryListVariables, options?: ExecuteQueryOptions): QueryPromise<GetGroceryListData, GetGroceryListVariables>;
+
+interface GetGroceryListRef {
+  ...
+  (dc: DataConnect, vars: GetGroceryListVariables): QueryRef<GetGroceryListData, GetGroceryListVariables>;
+}
+export const getGroceryListRef: GetGroceryListRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the getGroceryListRef:
+```typescript
+const name = getGroceryListRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `GetGroceryList` query requires an argument of type `GetGroceryListVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface GetGroceryListVariables {
+  userId: string;
+}
+```
+### Return Type
+Recall that executing the `GetGroceryList` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetGroceryListData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface GetGroceryListData {
+  groceryLists: ({
+    id: UUIDString;
+    title: string;
+    createdAt: TimestampString;
+    items: ({
+      id: UUIDString;
+      productName: string;
+      productId?: string | null;
+      isPurchased: boolean;
+      addedVia: string;
+      createdAt: TimestampString;
+    } & GroceryListItem_Key)[];
+  } & GroceryList_Key)[];
+}
+```
+### Using `GetGroceryList`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, getGroceryList, GetGroceryListVariables } from '@firebasegen/spresso-connector';
+
+// The `GetGroceryList` query requires an argument of type `GetGroceryListVariables`:
+const getGroceryListVars: GetGroceryListVariables = {
+  userId: ..., 
+};
+
+// Call the `getGroceryList()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getGroceryList(getGroceryListVars);
+// Variables can be defined inline as well.
+const { data } = await getGroceryList({ userId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getGroceryList(dataConnect, getGroceryListVars);
+
+console.log(data.groceryLists);
+
+// Or, you can use the `Promise` API.
+getGroceryList(getGroceryListVars).then((response) => {
+  const data = response.data;
+  console.log(data.groceryLists);
+});
+```
+
+### Using `GetGroceryList`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getGroceryListRef, GetGroceryListVariables } from '@firebasegen/spresso-connector';
+
+// The `GetGroceryList` query requires an argument of type `GetGroceryListVariables`:
+const getGroceryListVars: GetGroceryListVariables = {
+  userId: ..., 
+};
+
+// Call the `getGroceryListRef()` function to get a reference to the query.
+const ref = getGroceryListRef(getGroceryListVars);
+// Variables can be defined inline as well.
+const ref = getGroceryListRef({ userId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getGroceryListRef(dataConnect, getGroceryListVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.groceryLists);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.groceryLists);
+});
+```
+
 # Mutations
 
 There are two ways to execute a Data Connect Mutation using the generated Web SDK:
@@ -2777,6 +2903,457 @@ console.log(data.userPreference_upsert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.userPreference_upsert);
+});
+```
+
+## CreateGroceryList
+You can execute the `CreateGroceryList` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+createGroceryList(vars: CreateGroceryListVariables): MutationPromise<CreateGroceryListData, CreateGroceryListVariables>;
+
+interface CreateGroceryListRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateGroceryListVariables): MutationRef<CreateGroceryListData, CreateGroceryListVariables>;
+}
+export const createGroceryListRef: CreateGroceryListRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+createGroceryList(dc: DataConnect, vars: CreateGroceryListVariables): MutationPromise<CreateGroceryListData, CreateGroceryListVariables>;
+
+interface CreateGroceryListRef {
+  ...
+  (dc: DataConnect, vars: CreateGroceryListVariables): MutationRef<CreateGroceryListData, CreateGroceryListVariables>;
+}
+export const createGroceryListRef: CreateGroceryListRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the createGroceryListRef:
+```typescript
+const name = createGroceryListRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `CreateGroceryList` mutation requires an argument of type `CreateGroceryListVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface CreateGroceryListVariables {
+  userId: string;
+  title: string;
+}
+```
+### Return Type
+Recall that executing the `CreateGroceryList` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `CreateGroceryListData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface CreateGroceryListData {
+  groceryList_insert: GroceryList_Key;
+}
+```
+### Using `CreateGroceryList`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, createGroceryList, CreateGroceryListVariables } from '@firebasegen/spresso-connector';
+
+// The `CreateGroceryList` mutation requires an argument of type `CreateGroceryListVariables`:
+const createGroceryListVars: CreateGroceryListVariables = {
+  userId: ..., 
+  title: ..., 
+};
+
+// Call the `createGroceryList()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await createGroceryList(createGroceryListVars);
+// Variables can be defined inline as well.
+const { data } = await createGroceryList({ userId: ..., title: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await createGroceryList(dataConnect, createGroceryListVars);
+
+console.log(data.groceryList_insert);
+
+// Or, you can use the `Promise` API.
+createGroceryList(createGroceryListVars).then((response) => {
+  const data = response.data;
+  console.log(data.groceryList_insert);
+});
+```
+
+### Using `CreateGroceryList`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, createGroceryListRef, CreateGroceryListVariables } from '@firebasegen/spresso-connector';
+
+// The `CreateGroceryList` mutation requires an argument of type `CreateGroceryListVariables`:
+const createGroceryListVars: CreateGroceryListVariables = {
+  userId: ..., 
+  title: ..., 
+};
+
+// Call the `createGroceryListRef()` function to get a reference to the mutation.
+const ref = createGroceryListRef(createGroceryListVars);
+// Variables can be defined inline as well.
+const ref = createGroceryListRef({ userId: ..., title: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = createGroceryListRef(dataConnect, createGroceryListVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.groceryList_insert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.groceryList_insert);
+});
+```
+
+## AddGroceryItem
+You can execute the `AddGroceryItem` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+addGroceryItem(vars: AddGroceryItemVariables): MutationPromise<AddGroceryItemData, AddGroceryItemVariables>;
+
+interface AddGroceryItemRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AddGroceryItemVariables): MutationRef<AddGroceryItemData, AddGroceryItemVariables>;
+}
+export const addGroceryItemRef: AddGroceryItemRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+addGroceryItem(dc: DataConnect, vars: AddGroceryItemVariables): MutationPromise<AddGroceryItemData, AddGroceryItemVariables>;
+
+interface AddGroceryItemRef {
+  ...
+  (dc: DataConnect, vars: AddGroceryItemVariables): MutationRef<AddGroceryItemData, AddGroceryItemVariables>;
+}
+export const addGroceryItemRef: AddGroceryItemRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the addGroceryItemRef:
+```typescript
+const name = addGroceryItemRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `AddGroceryItem` mutation requires an argument of type `AddGroceryItemVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface AddGroceryItemVariables {
+  listId: UUIDString;
+  productName: string;
+  productId?: string | null;
+  addedVia: string;
+}
+```
+### Return Type
+Recall that executing the `AddGroceryItem` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `AddGroceryItemData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface AddGroceryItemData {
+  groceryListItem_insert: GroceryListItem_Key;
+}
+```
+### Using `AddGroceryItem`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, addGroceryItem, AddGroceryItemVariables } from '@firebasegen/spresso-connector';
+
+// The `AddGroceryItem` mutation requires an argument of type `AddGroceryItemVariables`:
+const addGroceryItemVars: AddGroceryItemVariables = {
+  listId: ..., 
+  productName: ..., 
+  productId: ..., // optional
+  addedVia: ..., 
+};
+
+// Call the `addGroceryItem()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await addGroceryItem(addGroceryItemVars);
+// Variables can be defined inline as well.
+const { data } = await addGroceryItem({ listId: ..., productName: ..., productId: ..., addedVia: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await addGroceryItem(dataConnect, addGroceryItemVars);
+
+console.log(data.groceryListItem_insert);
+
+// Or, you can use the `Promise` API.
+addGroceryItem(addGroceryItemVars).then((response) => {
+  const data = response.data;
+  console.log(data.groceryListItem_insert);
+});
+```
+
+### Using `AddGroceryItem`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, addGroceryItemRef, AddGroceryItemVariables } from '@firebasegen/spresso-connector';
+
+// The `AddGroceryItem` mutation requires an argument of type `AddGroceryItemVariables`:
+const addGroceryItemVars: AddGroceryItemVariables = {
+  listId: ..., 
+  productName: ..., 
+  productId: ..., // optional
+  addedVia: ..., 
+};
+
+// Call the `addGroceryItemRef()` function to get a reference to the mutation.
+const ref = addGroceryItemRef(addGroceryItemVars);
+// Variables can be defined inline as well.
+const ref = addGroceryItemRef({ listId: ..., productName: ..., productId: ..., addedVia: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = addGroceryItemRef(dataConnect, addGroceryItemVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.groceryListItem_insert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.groceryListItem_insert);
+});
+```
+
+## ToggleGroceryItem
+You can execute the `ToggleGroceryItem` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+toggleGroceryItem(vars: ToggleGroceryItemVariables): MutationPromise<ToggleGroceryItemData, ToggleGroceryItemVariables>;
+
+interface ToggleGroceryItemRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ToggleGroceryItemVariables): MutationRef<ToggleGroceryItemData, ToggleGroceryItemVariables>;
+}
+export const toggleGroceryItemRef: ToggleGroceryItemRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+toggleGroceryItem(dc: DataConnect, vars: ToggleGroceryItemVariables): MutationPromise<ToggleGroceryItemData, ToggleGroceryItemVariables>;
+
+interface ToggleGroceryItemRef {
+  ...
+  (dc: DataConnect, vars: ToggleGroceryItemVariables): MutationRef<ToggleGroceryItemData, ToggleGroceryItemVariables>;
+}
+export const toggleGroceryItemRef: ToggleGroceryItemRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the toggleGroceryItemRef:
+```typescript
+const name = toggleGroceryItemRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ToggleGroceryItem` mutation requires an argument of type `ToggleGroceryItemVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ToggleGroceryItemVariables {
+  id: UUIDString;
+  isPurchased: boolean;
+}
+```
+### Return Type
+Recall that executing the `ToggleGroceryItem` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ToggleGroceryItemData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ToggleGroceryItemData {
+  groceryListItem_update?: GroceryListItem_Key | null;
+}
+```
+### Using `ToggleGroceryItem`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, toggleGroceryItem, ToggleGroceryItemVariables } from '@firebasegen/spresso-connector';
+
+// The `ToggleGroceryItem` mutation requires an argument of type `ToggleGroceryItemVariables`:
+const toggleGroceryItemVars: ToggleGroceryItemVariables = {
+  id: ..., 
+  isPurchased: ..., 
+};
+
+// Call the `toggleGroceryItem()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await toggleGroceryItem(toggleGroceryItemVars);
+// Variables can be defined inline as well.
+const { data } = await toggleGroceryItem({ id: ..., isPurchased: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await toggleGroceryItem(dataConnect, toggleGroceryItemVars);
+
+console.log(data.groceryListItem_update);
+
+// Or, you can use the `Promise` API.
+toggleGroceryItem(toggleGroceryItemVars).then((response) => {
+  const data = response.data;
+  console.log(data.groceryListItem_update);
+});
+```
+
+### Using `ToggleGroceryItem`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, toggleGroceryItemRef, ToggleGroceryItemVariables } from '@firebasegen/spresso-connector';
+
+// The `ToggleGroceryItem` mutation requires an argument of type `ToggleGroceryItemVariables`:
+const toggleGroceryItemVars: ToggleGroceryItemVariables = {
+  id: ..., 
+  isPurchased: ..., 
+};
+
+// Call the `toggleGroceryItemRef()` function to get a reference to the mutation.
+const ref = toggleGroceryItemRef(toggleGroceryItemVars);
+// Variables can be defined inline as well.
+const ref = toggleGroceryItemRef({ id: ..., isPurchased: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = toggleGroceryItemRef(dataConnect, toggleGroceryItemVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.groceryListItem_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.groceryListItem_update);
+});
+```
+
+## DeleteGroceryItem
+You can execute the `DeleteGroceryItem` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+deleteGroceryItem(vars: DeleteGroceryItemVariables): MutationPromise<DeleteGroceryItemData, DeleteGroceryItemVariables>;
+
+interface DeleteGroceryItemRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteGroceryItemVariables): MutationRef<DeleteGroceryItemData, DeleteGroceryItemVariables>;
+}
+export const deleteGroceryItemRef: DeleteGroceryItemRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+deleteGroceryItem(dc: DataConnect, vars: DeleteGroceryItemVariables): MutationPromise<DeleteGroceryItemData, DeleteGroceryItemVariables>;
+
+interface DeleteGroceryItemRef {
+  ...
+  (dc: DataConnect, vars: DeleteGroceryItemVariables): MutationRef<DeleteGroceryItemData, DeleteGroceryItemVariables>;
+}
+export const deleteGroceryItemRef: DeleteGroceryItemRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the deleteGroceryItemRef:
+```typescript
+const name = deleteGroceryItemRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `DeleteGroceryItem` mutation requires an argument of type `DeleteGroceryItemVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface DeleteGroceryItemVariables {
+  id: UUIDString;
+}
+```
+### Return Type
+Recall that executing the `DeleteGroceryItem` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `DeleteGroceryItemData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface DeleteGroceryItemData {
+  groceryListItem_delete?: GroceryListItem_Key | null;
+}
+```
+### Using `DeleteGroceryItem`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, deleteGroceryItem, DeleteGroceryItemVariables } from '@firebasegen/spresso-connector';
+
+// The `DeleteGroceryItem` mutation requires an argument of type `DeleteGroceryItemVariables`:
+const deleteGroceryItemVars: DeleteGroceryItemVariables = {
+  id: ..., 
+};
+
+// Call the `deleteGroceryItem()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await deleteGroceryItem(deleteGroceryItemVars);
+// Variables can be defined inline as well.
+const { data } = await deleteGroceryItem({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await deleteGroceryItem(dataConnect, deleteGroceryItemVars);
+
+console.log(data.groceryListItem_delete);
+
+// Or, you can use the `Promise` API.
+deleteGroceryItem(deleteGroceryItemVars).then((response) => {
+  const data = response.data;
+  console.log(data.groceryListItem_delete);
+});
+```
+
+### Using `DeleteGroceryItem`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, deleteGroceryItemRef, DeleteGroceryItemVariables } from '@firebasegen/spresso-connector';
+
+// The `DeleteGroceryItem` mutation requires an argument of type `DeleteGroceryItemVariables`:
+const deleteGroceryItemVars: DeleteGroceryItemVariables = {
+  id: ..., 
+};
+
+// Call the `deleteGroceryItemRef()` function to get a reference to the mutation.
+const ref = deleteGroceryItemRef(deleteGroceryItemVars);
+// Variables can be defined inline as well.
+const ref = deleteGroceryItemRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = deleteGroceryItemRef(dataConnect, deleteGroceryItemVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.groceryListItem_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.groceryListItem_delete);
 });
 ```
 

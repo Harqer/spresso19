@@ -1,5 +1,5 @@
 import { ai } from "../genkit";
-import { z } from "zod";
+import { z } from "genkit";
 
 // Import tools to ensure they are registered with the AI instance
 import "../tools/addToCart";

@@ -161,6 +161,62 @@ exports.upsertUserPreference = function upsertUserPreference(dcOrVars, vars) {
 }
 ;
 
+const createGroceryListRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateGroceryList', inputVars);
+}
+createGroceryListRef.operationName = 'CreateGroceryList';
+exports.createGroceryListRef = createGroceryListRef;
+
+exports.createGroceryList = function createGroceryList(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createGroceryListRef(dcInstance, inputVars));
+}
+;
+
+const addGroceryItemRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AddGroceryItem', inputVars);
+}
+addGroceryItemRef.operationName = 'AddGroceryItem';
+exports.addGroceryItemRef = addGroceryItemRef;
+
+exports.addGroceryItem = function addGroceryItem(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(addGroceryItemRef(dcInstance, inputVars));
+}
+;
+
+const toggleGroceryItemRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ToggleGroceryItem', inputVars);
+}
+toggleGroceryItemRef.operationName = 'ToggleGroceryItem';
+exports.toggleGroceryItemRef = toggleGroceryItemRef;
+
+exports.toggleGroceryItem = function toggleGroceryItem(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(toggleGroceryItemRef(dcInstance, inputVars));
+}
+;
+
+const deleteGroceryItemRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeleteGroceryItem', inputVars);
+}
+deleteGroceryItemRef.operationName = 'DeleteGroceryItem';
+exports.deleteGroceryItemRef = deleteGroceryItemRef;
+
+exports.deleteGroceryItem = function deleteGroceryItem(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(deleteGroceryItemRef(dcInstance, inputVars));
+}
+;
+
 const listProductsRef = (dc) => {
   const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
@@ -368,5 +424,20 @@ exports.getUserPreference = function getUserPreference(dcOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(getUserPreferenceRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getGroceryListRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetGroceryList', inputVars);
+}
+getGroceryListRef.operationName = 'GetGroceryList';
+exports.getGroceryListRef = getGroceryListRef;
+
+exports.getGroceryList = function getGroceryList(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getGroceryListRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;

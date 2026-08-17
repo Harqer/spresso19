@@ -1,3 +1,4 @@
+import Logger from "../lib/Logger";
 import { useState, useEffect } from "react";
 import { authFetch } from "../lib/firebase";
 import { ProductItem, HITLPayload } from "../types";
@@ -74,38 +75,25 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
   useEffect(() => {
     const fetchState = async () => {
       try {
-        const [prefsRes, likesRes, bookmarksRes] = await Promise.all([
-          authFetch("/api/user/preferences"),
-          authFetch("/api/user/likes"),
-          authFetch("/api/user/bookmarks")
-        ]);
-        
-        if (prefsRes.ok) {
-          const { preferences } = await prefsRes.json();
+        const storedPrefs = localStorage.getItem("spresso_wardrobe_prefs");
+        if (storedPrefs) {
+          const preferences = JSON.parse(storedPrefs);
           if (preferences?.galleryPermission === "GRANTED" || preferences?.galleryPermission === "DENIED") {
             setPhotoGalleryPermission(preferences.galleryPermission);
           }
           if (preferences?.customWardrobeItems) setUserUploadedItems(preferences.customWardrobeItems);
           if (preferences?.favoriteOutfits) setSavedFavoriteOutfits(preferences.favoriteOutfits);
-        }
-
-        if (likesRes.ok) {
-          const data = await likesRes.json();
-          // Map likes back to full products if possible, or just keep product IDs
-          // ElevatedQuickActionFab needs to know if liked. WardrobeLikedTab needs full objects.
-          // For now, we assume backend gives `{ productId, ... }` and we map it if we can
-          // Actually, if we must have full objects, let's just use the `products` list.
-          const likedIds = data.likes?.map((l: any) => l.productId) || [];
-          const fullLikes = products.filter(p => likedIds.includes(p.id));
-          setLikedProducts(fullLikes);
-        }
-
-        if (bookmarksRes.ok) {
-          const data = await bookmarksRes.json();
-          setBookmarkedProductIds(data.bookmarks?.map((b: any) => b.productId) || []);
+          if (preferences?.likedIds) {
+            const likedIds = preferences.likedIds;
+            const fullLikes = products.filter(p => likedIds.includes(p.id));
+            setLikedProducts(fullLikes);
+          }
+          if (preferences?.bookmarkedIds) {
+            setBookmarkedProductIds(preferences.bookmarkedIds);
+          }
         }
       } catch (err) {
-        console.error("Failed to sync wardrobe state from backend:", err);
+        Logger.error("Failed to sync wardrobe state from local storage:", err);
       }
     };
     fetchState();
@@ -116,18 +104,19 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
 
   // Sync back preferences changes
   useEffect(() => {
-    // debounce or just fire and forget
-    if (userUploadedItems.length === 0 && savedFavoriteOutfits.length === 0 && photoGalleryPermission === "UNDETERMINED") return;
-    authFetch("/api/user/preferences", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    if (userUploadedItems.length === 0 && savedFavoriteOutfits.length === 0 && photoGalleryPermission === "UNDETERMINED" && likedProducts.length === 0 && bookmarkedProductIds.length === 0) return;
+    try {
+      localStorage.setItem("spresso_wardrobe_prefs", JSON.stringify({
         customWardrobeItems: userUploadedItems,
         favoriteOutfits: savedFavoriteOutfits,
-        galleryPermission: photoGalleryPermission
-      })
-    }).catch(console.error);
-  }, [userUploadedItems, savedFavoriteOutfits, photoGalleryPermission]);
+        galleryPermission: photoGalleryPermission,
+        likedIds: likedProducts.map(p => p.id),
+        bookmarkedIds: bookmarkedProductIds
+      }));
+    } catch (e) {
+      Logger.error("Failed to fetch wardrobe state", e);
+    }
+  }, [userUploadedItems, savedFavoriteOutfits, photoGalleryPermission, likedProducts, bookmarkedProductIds]);
 
   const bookmarkedWardrobeItems: CustomWardrobeItem[] = products
     .filter(p => bookmarkedProductIds.includes(p.id))
@@ -176,11 +165,6 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
     } else if (item.type === "bookmarked_product" && item.productId) {
       const updated = bookmarkedProductIds.filter(id => id !== item.productId);
       setBookmarkedProductIds(updated);
-      authFetch("/api/user/bookmark", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: item.productId, action: "remove" })
-      }).catch(console.error);
     }
   };
 

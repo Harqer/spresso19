@@ -1,27 +1,38 @@
-import { Router, Request, Response } from 'express';
+import { onRequest } from 'firebase-functions/v2/https';
+import { defineSecret } from 'firebase-functions/params';
 import Stripe from 'stripe';
 import { executeKitesurfPurchase } from './kitesurfService';
 
-const router = Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', {
-  apiVersion: '2025-01-27.acacia' as any
-});
+const stripeSecretKey = defineSecret('STRIPE_SECRET_KEY');
+const stripeWebhookSecret = defineSecret('STRIPE_WEBHOOK_SECRET');
 
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test_mock';
+export const stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecret] }, async (req, res) => {
+  const stripe = new Stripe(stripeSecretKey.value(), {
+    apiVersion: '2025-01-27.acacia' as any
+  });
 
-router.post('/', async (req: Request, res: Response) => {
   const sig = req.headers['stripe-signature'];
-  let event;
+  if (!sig) {
+    res.status(400).send('Missing signature');
+    return;
+  }
 
+  let event;
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig as string, endpointSecret);
+    event = stripe.webhooks.constructEvent(
+      req.rawBody,
+      sig as string,
+      stripeWebhookSecret.value()
+    );
   } catch (err: any) {
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    console.error('Webhook signature verification failed.', err.message);
+    res.status(400).send(`Webhook Error: ${err.message}`);
+    return;
   }
 
   if (event.type === 'payment_intent.succeeded') {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    const { productId, quantity, shippingAddress, userId, merchantUrl } = paymentIntent.metadata || {};
+    const { productId, shippingAddress, merchantUrl } = paymentIntent.metadata || {};
     
     // Autonomous Kitesurf Trigger
     if (productId) {
@@ -44,4 +55,39 @@ router.post('/', async (req: Request, res: Response) => {
   res.send();
 });
 
-export const webhookRouter = router;
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
+
+export const createStripeIntent = onCall({ secrets: [stripeSecretKey] }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be signed in to checkout.");
+  }
+
+  try {
+    const { productId, quantity, shippingAddress, merchantUrl } = request.data || {};
+    if (!productId) {
+      throw new HttpsError("invalid-argument", "Missing productId");
+    }
+    // Hardcoded amount for demo if not querying product DB
+    const amount = 5000; 
+
+    const stripe = new Stripe(stripeSecretKey.value(), {
+      apiVersion: '2025-01-27.acacia' as any
+    });
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: 'usd',
+      metadata: {
+        productId,
+        quantity: quantity?.toString() || '1',
+        shippingAddress,
+        merchantUrl
+      }
+    });
+
+    return { clientSecret: paymentIntent.client_secret };
+  } catch (err: any) {
+    console.error("Failed to create stripe intent:", err);
+    throw new HttpsError("internal", "Failed to create secure checkout session.");
+  }
+});

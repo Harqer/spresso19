@@ -2,14 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.virtualTryOnFlow = void 0;
 const genkit_1 = require("../genkit");
-const zod_1 = require("zod");
+const genkit_2 = require("genkit");
 exports.virtualTryOnFlow = genkit_1.ai.defineFlow({
     name: "virtualTryOnFlow",
-    inputSchema: zod_1.z.object({
-        base64Image: zod_1.z.string(),
+    inputSchema: genkit_2.z.object({
+        base64Image: genkit_2.z.string(),
     }),
-    outputSchema: zod_1.z.object({
-        response: zod_1.z.string(),
+    outputSchema: genkit_2.z.object({
+        response: genkit_2.z.string(),
     }),
 }, async ({ base64Image }) => {
     const virtualTryOnPrompt = await genkit_1.ai.prompt("virtualTryOn");

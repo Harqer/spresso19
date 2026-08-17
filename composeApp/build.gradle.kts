@@ -60,6 +60,7 @@ kotlin {
             implementation(libs.firebase.crashlytics)
             implementation(libs.firebase.analytics)
             implementation(libs.firebase.dataconnect)
+            implementation(libs.firebase.functions)
             implementation(libs.compose.pay.button)
             implementation(libs.play.services.wallet)
             implementation(libs.androidx.camera.core)

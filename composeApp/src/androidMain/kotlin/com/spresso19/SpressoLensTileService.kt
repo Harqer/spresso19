@@ -14,10 +14,8 @@ class SpressoLensTileService : TileService() {
         }
         sendBroadcast(intent)
         
-        // Collapse the notification shade after clicking
-        @Suppress("DEPRECATION")
-        val it = Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)
-        sendBroadcast(it)
+        // In Android 12+, closing system dialogs requires signature permissions.
+        // We will just let the system handle the panel state.
     }
 
     override fun onStartListening() {

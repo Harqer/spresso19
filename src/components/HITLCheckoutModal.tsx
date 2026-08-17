@@ -5,10 +5,8 @@ import { createOrder } from "../dataconnect";
 import { MaterialIcon } from "./MaterialIcon";
 import { M3ExpressiveCircularProgress } from "./M3ExpressiveCircularProgress";
 import { GoogleWalletButton } from "@/src/components/features/profile/GoogleWalletButton";
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe, Stripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock');
 
 const StripeCheckoutForm = ({ onSuccess, onCancel, totalAmount }: any) => {
   const stripe = useStripe();
@@ -71,6 +69,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
   const [biometricVerified, setBiometricVerified] = useState(false);
   const [isBiometricAuthenticating, setIsBiometricAuthenticating] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
 
   useEffect(() => {
     // Trigger haptic vibration buzz on device to notify user of biometric purchase authorization
@@ -128,18 +127,36 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
 
       // If fiat, fetch clientSecret and render Elements
       if (paymentMethod === "fiat") {
-        const targetUrl = `${import.meta.env.VITE_API_BASE_URL || ""}/api/payment/stripe/create-intent`;
-        const res = await fetch(targetUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const { functions } = await import("../lib/firebase");
+        const { httpsCallable } = await import("firebase/functions");
+
+        // Fetch stripe publishable key securely from the backend
+        try {
+          const getStripeConfig = httpsCallable(functions, "getStripeConfig");
+          const configRes = await getStripeConfig();
+          const pubKey = (configRes.data as any)?.publishableKey;
+          if (!pubKey || pubKey === 'pk_test_mock') {
+              throw new Error("Missing Backend API - Stripe Key Needs Implementation");
+          }
+          if (!stripePromise) {
+            setStripePromise(loadStripe(pubKey));
+          }
+        } catch (e: any) {
+          setErrorMessage(e.message || "Failed to load secure payment configuration.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const createStripeIntent = httpsCallable(functions, "createStripeIntent");
+
+        const res = await createStripeIntent({
              productId: payload.product.id,
              quantity: payload.quantity,
              shippingAddress: "123 Innovation Way, SF",
              merchantUrl: (payload as any).merchantUrl || "https://example.com"
-          })
         });
-        const data = await res.json();
+        
+        const data = res.data as any;
         if (data.clientSecret) {
           setClientSecret(data.clientSecret);
           setIsSubmitting(false);
@@ -209,7 +226,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
         setErrorMessage("Failed to process request. Please try again.");
       }
     } catch (err: any) {
-      setErrorMessage("Failed to process request. Please try again.");
+      setErrorMessage(err?.message || "Failed to process request. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

@@ -1,7 +1,11 @@
+import Logger from "../../../lib/Logger";
 import React, { useState, useEffect } from "react";
 import { MaterialIcon } from "../../MaterialIcon";
 import { ProductItem } from "../../../types";
-import { authFetch } from "../../../lib/firebase";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ErrorStateFallback, EmptyStateFallback } from "../../shared/Fallbacks";
+import { SeasonalStylingResponseSchema } from "../../../lib/schema";
+
 
 interface WardrobePhoto {
   id: string;
@@ -13,9 +17,11 @@ interface WardrobePhoto {
 interface WardrobePageProps {
   onOpenTryOn: (product: ProductItem | null) => void;
   onOpenLens: () => void;
+  userLocation?: string | null;
+  userLatLng?: { lat: number; lng: number } | null;
 }
 
-export const WardrobePage: React.FC<WardrobePageProps> = ({ onOpenTryOn, onOpenLens }) => {
+export const WardrobePage: React.FC<WardrobePageProps> = ({ onOpenTryOn, onOpenLens, userLocation, userLatLng }) => {
   const [photos, setPhotos] = useState<WardrobePhoto[]>([
     {
       id: "w-1",
@@ -32,43 +38,38 @@ export const WardrobePage: React.FC<WardrobePageProps> = ({ onOpenTryOn, onOpenL
   ]);
 
   const [activeSeason, setActiveSeason] = useState<string>("Winter");
-  const [stylingLoading, setStylingLoading] = useState<boolean>(false);
-  const [curatedFits, setCuratedFits] = useState<any[]>([]);
 
-  const fetchSeasonalFits = async (season: string) => {
-    setStylingLoading(true);
-    try {
+  const queryClient = useQueryClient();
+
+  const { data: curatedFits = [], isLoading: stylingLoading, isError: stylingError } = useQuery({
+    queryKey: ["seasonalFits", activeSeason, userLocation],
+    queryFn: async () => {
       const weatherMap: Record<string, string> = {
         Winter: "Winter Season (Cold 32°F / Snow)",
         Summer: "Hot Summer Resort (88°F Sunny)",
         Occasion: "Special Occasion Formal Evening"
       };
 
-      const res = await authFetch("/api/genkit/seasonal-styling", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          weatherCondition: weatherMap[season] || "",
-          season,
-          occasion: season === "Occasion" ? "Special Occasion Wear" : "Casual High-Fashion"
-        })
+      const { functions } = await import("../../../lib/firebase");
+      const { httpsCallable } = await import("firebase/functions");
+      const seasonalStyling = httpsCallable(functions, "seasonalStyling");
+
+      const res = await seasonalStyling({
+        weatherCondition: weatherMap[activeSeason] || "",
+        season: activeSeason,
+        occasion: activeSeason === "Occasion" ? "Special Occasion Wear" : "Casual High-Fashion",
+        userLocation: userLocation,
+        userLatLng: userLatLng
       });
-      const data = await res.json();
-      if (data?.result?.curatedFits) {
-        setCuratedFits(data.result.curatedFits);
+      const parsedData = SeasonalStylingResponseSchema.parse(res.data);
+      if (parsedData?.result?.curatedFits) {
+        return parsedData.result.curatedFits;
       }
-    } catch (err) {
-      console.warn("[Wardrobe] Genkit styling fetch error:", err);
-    } finally {
-      setStylingLoading(false);
+      return [];
     }
-  };
+  });
 
-  useEffect(() => {
-    fetchSeasonalFits(activeSeason);
-  }, [activeSeason]);
-
-  const handleAddPhoto = () => {
+  const handleAddPhoto = async () => {
     const categories = ["Winter Wear", "Hot Girl Summer", "Special Occasion Wear"];
     const randomCat = categories[Math.floor(Math.random() * categories.length)];
     const newPhoto: WardrobePhoto = {
@@ -81,11 +82,14 @@ export const WardrobePage: React.FC<WardrobePageProps> = ({ onOpenTryOn, onOpenL
     setPhotos(prev => [newPhoto, ...prev]);
 
     // Async sync to server
-    authFetch("/api/wardrobe/add-photo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newPhoto)
-    }).catch(err => console.warn("[Wardrobe] Photo upload sync error:", err));
+    try {
+      const { functions } = await import("../../../lib/firebase");
+      const { httpsCallable } = await import("firebase/functions");
+      const addWardrobePhoto = httpsCallable(functions, "addWardrobePhoto");
+      await addWardrobePhoto(newPhoto);
+    } catch (err) {
+      Logger.warn("[Wardrobe] Photo upload sync error:", err);
+    }
   };
 
   return (
@@ -157,10 +161,24 @@ export const WardrobePage: React.FC<WardrobePageProps> = ({ onOpenTryOn, onOpenL
         </div>
 
         {stylingLoading ? (
-          <div className="flex items-center space-x-2 text-xs text-[#446732] font-semibold py-2">
+          <div className="flex items-center justify-center space-x-2 text-xs text-[#446732] font-semibold py-8">
             <MaterialIcon icon="hourglass_empty" size={16} className="animate-spin" />
             <span>Curating tailor-made fits for {activeSeason}...</span>
           </div>
+        ) : stylingError ? (
+          <ErrorStateFallback
+            title="Styling Engine Unavailable"
+            message="Spresso's AI styling engine could not be reached. Please check your connection."
+            onRetry={() => queryClient.invalidateQueries({ queryKey: ["seasonalFits", activeSeason, userLocation] })}
+          />
+        ) : curatedFits.length === 0 ? (
+          <EmptyStateFallback
+            icon="auto_awesome"
+            title="No Outfits Found"
+            description={`We couldn't generate fits for ${activeSeason}.`}
+            actionLabel="Try Another Season"
+            onAction={() => setActiveSeason("Winter")}
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {curatedFits.map((fit, idx) => (
