@@ -1,0 +1,106 @@
+--- composeApp/src/androidMain/kotlin/com/spresso19/wearable/MetaWearablesManager.kt
++++ composeApp/src/androidMain/kotlin/com/spresso19/wearable/MetaWearablesManager.kt
+@@ -16,6 +16,14 @@
+ import java.util.Locale
+ import org.json.JSONObject
+ 
++import com.spresso19.MainActivity
++import com.meta.wearable.dat.core.Wearables
++import com.meta.wearable.dat.core.selectors.AutoDeviceSelector
++import com.meta.wearable.dat.core.models.DeviceSessionState
++import com.meta.wearable.dat.camera.addStream
++import com.meta.wearable.dat.camera.types.StreamConfiguration
++import com.meta.wearable.dat.camera.types.VideoQuality
++import com.meta.wearable.dat.camera.Stream
++import com.meta.wearable.dat.camera.models.StreamState
++
+ /**
+  * Meta Wearables Device Access Toolkit (DAT) Integration Manager.
+@@ -35,6 +43,8 @@
+     private var isPaired = false
+     private var isCameraStreaming = false
++    private var session: com.meta.wearable.dat.core.Session? = null
++    private var stream: Stream? = null
+ 
+     init {
+@@ -53,13 +63,20 @@
+     fun connectWearable(onConnected: (Boolean) -> Unit) {
+         scope.launch {
+             try {
+-                // Registering Meta SDK DeviceManager.getInstance(context).pairGlasses(GlassesModel.RAYBAN_META)
++                val activity = MainActivity.currentActivity ?: run {
++                    withContext(Dispatchers.Main) { onConnected(false) }
++                    return@launch
++                }
+                 Log.d(tag, "[Meta DAT] Registering application and verifying Client Attestation...")
+-                Log.d(tag, "[Meta DAT] Pairing glasses: Ray-Ban Meta Smart Glasses...")
+-                isPaired = true
+-                withContext(Dispatchers.Main) {
+-                    onConnected(true)
++                Wearables.startRegistration(activity)
++                
++                session = Wearables.createSession(AutoDeviceSelector()).getOrElse { error ->
++                    throw IllegalStateException(error.description)
+                 }
++                session?.start()
++                session?.state?.collect { state ->
++                    if (state == DeviceSessionState.STARTED) {
++                        isPaired = true
++                        withContext(Dispatchers.Main) {
++                            onConnected(true)
++                        }
++                    }
++                }
+             } catch (e: Exception) {
+@@ -82,9 +99,15 @@
+         Log.d(tag, "[Meta DAT] Initializing CameraSession. Capturing view at 1440x1080px (30 FPS)...")
+         
+-        // Frame captured by glasses and encoded to base64
+         scope.launch {
+-            kotlinx.coroutines.delay(1000)
+-            val capturedFrameBase64 = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA="
+-            onFrameCaptured(capturedFrameBase64)
++            try {
++                stream = session?.addStream(
++                    StreamConfiguration(videoQuality = VideoQuality.MEDIUM, frameRate = 24)
++                )?.getOrElse { error -> throw IllegalStateException(error.description) }
++                
++                stream?.state?.collect { state ->
++                    if (state == StreamState.STREAMING) {
++                        isCameraStreaming = true
++                    }
++                }
++            } catch (e: Exception) {
++                Log.e(tag, "Camera error: \${e.message}")
++            }
+         }
+@@ -113,8 +136,12 @@
+             
+-            kotlinx.coroutines.delay(1500)
+-            val capturedFrame = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA="
+-
+             try {
+-                // 2. Query Spresso Vision search model to identify product
+-                Log.d(tag, "[Meta DAT] Sending camera frame to visual identification model...")
+-                val detectRes = apiClient.performLensSearch(capturedFrame)
++                stream?.capturePhoto()?.onSuccess { photoData ->
++                    val capturedFrame = Base64.encodeToString(photoData.data, Base64.DEFAULT)
++                    Log.d(tag, "[Meta DAT] Sending camera frame to visual identification model...")
++                    val detectRes = apiClient.performLensSearch(capturedFrame)
+                 
+                 if (detectRes.success && detectRes.detectedResult != null) {
+@@ -165,6 +192,9 @@
+                     onCheckoutComplete(false, "Product not identified")
+                 }
++                }?.onFailure { error, _ ->
++                    speakFeedback("I could not capture a photo.")
++                    onCheckoutComplete(false, error.description)
++                }
+             } catch (e: Exception) {
+                 Log.e(tag, "Wearable checkout error: \${e.message}")
+@@ -181,3 +211,5 @@
+         apiClient.close()
++        stream?.stop()
++        session?.stop()
+     }
+ }

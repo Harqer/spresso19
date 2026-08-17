@@ -147,8 +147,8 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        manifestPlaceholders["mwdat_application_id"] = "0"
-        manifestPlaceholders["mwdat_client_token"] = "0"
+        manifestPlaceholders["mwdat_application_id"] = System.getenv("META_APP_ID") ?: "0"
+        manifestPlaceholders["mwdat_client_token"] = System.getenv("META_CLIENT_TOKEN") ?: "0"
     }
     packaging {
         resources {

@@ -51,11 +51,13 @@ import com.spresso19.engage.EngageBroadcastReceiver
 @kotlin.OptIn(androidx.credentials.ExperimentalDigitalCredentialApi::class)
 class MainActivity : FragmentActivity() {
 
-    private val recordAudioRequestCode = 101
+    private val permissionsRequestCode = 101
     private val isAccessibilityEnabledState = mutableStateOf(false)
     private val hasAccessibilityConsentState = mutableStateOf(false)
     private val accessibilityDisclosureRequestedState = mutableStateOf(false)
     private lateinit var accessibilityConsentStore: AccessibilityConsentStore
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -72,7 +74,7 @@ class MainActivity : FragmentActivity() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
         }
-        checkAndRequestAudioPermission()
+        checkAndRequestPermissions()
 
         setContent {
             val darkTheme = isSystemInDarkTheme()
@@ -420,16 +422,19 @@ class MainActivity : FragmentActivity() {
         )
     }
 
-    private fun checkAndRequestAudioPermission() {
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.RECORD_AUDIO
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
+    private fun checkAndRequestPermissions() {
+        val permissionsToRequest = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            permissionsToRequest.add(Manifest.permission.BLUETOOTH_CONNECT)
+        }
+        val ungranted = permissionsToRequest.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (ungranted.isNotEmpty()) {
             ActivityCompat.requestPermissions(
                 this,
-                arrayOf(Manifest.permission.RECORD_AUDIO),
-                recordAudioRequestCode
+                ungranted.toTypedArray(),
+                permissionsRequestCode
             )
         }
     }

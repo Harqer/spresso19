@@ -32,6 +32,7 @@ function getDc() {
 }
 
 import { getSecret } from "../src/lib/secrets";
+import { agentIdentity } from "./crypto/AgentIdentityManager";
 
 export const router = Router();
 
@@ -572,6 +573,11 @@ router.post("/api/purchase/authorize", verifyFirebaseToken, async (req: AuthRequ
 
 router.post("/api/purchase/automate", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
   try {
+    const agentSignature = req.headers['agent-signature'] as string;
+    if (!agentSignature || !agentIdentity.verifySignature(JSON.stringify(req.body || {}), agentSignature)) {
+      return res.status(403).json({ success: false, error: "Invalid or missing Agent-Signature header for high-risk action." });
+    }
+
     const { productId, quantity, shippingAddress, merchantUrl, userConfirmedToken, biometricAuthorized, deviceSource, userApprovedPaywall } = req.body || {};
     const userId = req.user?.uid;
 
@@ -759,6 +765,11 @@ async function generateVirtualCorporateCard(amount: number): Promise<{ cardNumbe
 // ----------------------------------
 
 router.post("/api/purchase/confirm", verifyFirebaseToken, async (req: AuthRequest, res: Response) => {
+  const agentSignature = req.headers['agent-signature'] as string;
+  if (!agentSignature || !agentIdentity.verifySignature(JSON.stringify(req.body || {}), agentSignature)) {
+    return res.status(403).json({ success: false, error: "Invalid or missing Agent-Signature header for high-risk action." });
+  }
+
   const { productId, quantity, deviceSource, userConfirmedToken, hasWalletCard, paymentToken, stripePaymentMethodId, merchantUrl, shippingAddress } = req.body || {};
   const userId = req.user?.uid;
   const product = await getActiveProductById(productId);

@@ -1,5 +1,6 @@
 import express from "express";
 import http from "http";
+import tls from "tls";
 import path from "path";
 import { WebSocketServer } from "ws";
 import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
@@ -13,6 +14,10 @@ import { router } from "./server/routes.ts";
 const app = express();
 app.use(express.json({ limit: "6mb", strict: true }));
 app.use(router);
+
+// Enforce Hybrid PQC (ML-KEM) for quantum-resistant data-in-transit
+// Note: Requires Node.js 22+ compiled with OpenSSL 3.2+
+tls.DEFAULT_ECDH_CURVE = "X25519Kyber768Draft00";
 
 // Structured JSON Logging & PII Masking Service for Stackdriver compatibility
 const SENSITIVE_KEYS = [

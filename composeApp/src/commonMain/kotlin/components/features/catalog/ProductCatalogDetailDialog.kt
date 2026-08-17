@@ -1,5 +1,6 @@
 package components.features.catalog
 
+import androidx.compose.animation.animateContentSize
 import components.models.*
 
 import androidx.compose.foundation.layout.Arrangement

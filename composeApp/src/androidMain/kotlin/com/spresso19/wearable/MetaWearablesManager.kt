@@ -15,6 +15,16 @@ import network.ApiClient
 import java.io.ByteArrayOutputStream
 import java.util.Locale
 import org.json.JSONObject
+import com.spresso19.MainActivity
+import com.meta.wearable.dat.core.Wearables
+import com.meta.wearable.dat.core.selectors.AutoDeviceSelector
+import com.meta.wearable.dat.core.session.DeviceSessionState
+import com.meta.wearable.dat.core.session.DeviceSession
+import com.meta.wearable.dat.camera.addStream
+import com.meta.wearable.dat.camera.types.StreamConfiguration
+import com.meta.wearable.dat.camera.types.VideoQuality
+import com.meta.wearable.dat.camera.types.StreamState
+import com.meta.wearable.dat.camera.Stream
 
 /**
  * Meta Wearables Device Access Toolkit (DAT) Integration Manager.
@@ -32,6 +42,8 @@ class MetaWearablesManager(private val context: Context) : TextToSpeech.OnInitLi
     // Wearables Session State (representing com.meta.wearable.dat structures)
     private var isPaired = false
     private var isCameraStreaming = false
+    private var session: DeviceSession? = null
+    private var stream: Stream? = null
 
     init {
         tts = TextToSpeech(context, this)
@@ -53,12 +65,25 @@ class MetaWearablesManager(private val context: Context) : TextToSpeech.OnInitLi
     fun connectWearable(onConnected: (Boolean) -> Unit) {
         scope.launch {
             try {
-                // Registering Meta SDK DeviceManager.getInstance(context).pairGlasses(GlassesModel.RAYBAN_META)
+                val activity = MainActivity.currentActivity ?: run {
+                    withContext(Dispatchers.Main) { onConnected(false) }
+                    return@launch
+                }
                 Log.d(tag, "[Meta DAT] Registering application and verifying Client Attestation...")
-                Log.d(tag, "[Meta DAT] Pairing glasses: Ray-Ban Meta Smart Glasses...")
-                isPaired = true
-                withContext(Dispatchers.Main) {
-                    onConnected(true)
+                Wearables.startRegistration(activity)
+                
+                session = Wearables.createSession(AutoDeviceSelector()).getOrNull() ?: throw java.lang.IllegalStateException("Session error")
+                session?.start()
+                
+                scope.launch {
+                    session?.state?.collect { state ->
+                        if (state == DeviceSessionState.STARTED) {
+                            isPaired = true
+                            withContext(Dispatchers.Main) {
+                                onConnected(true)
+                            }
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(tag, "Failed to connect to wearable: ${e.message}")
@@ -77,14 +102,25 @@ class MetaWearablesManager(private val context: Context) : TextToSpeech.OnInitLi
             Log.w(tag, "Cannot start camera session: No paired Meta glasses found.")
             return
         }
-        isCameraStreaming = true
+        
         Log.d(tag, "[Meta DAT] Initializing CameraSession. Capturing view at 1440x1080px (30 FPS)...")
         
-        // Frame captured by glasses and encoded to base64
         scope.launch {
-            kotlinx.coroutines.delay(1000)
-            val capturedFrameBase64 = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA="
-            onFrameCaptured(capturedFrameBase64)
+            try {
+                stream = session?.addStream(
+                    StreamConfiguration(videoQuality = VideoQuality.MEDIUM, frameRate = 24)
+                )?.getOrNull() ?: throw java.lang.IllegalStateException("Stream error")
+                
+                scope.launch {
+                    stream?.state?.collect { state ->
+                        if (state == StreamState.STREAMING) {
+                            isCameraStreaming = true
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(tag, "Camera error: ${e.message}")
+            }
         }
     }
 
@@ -111,58 +147,77 @@ class MetaWearablesManager(private val context: Context) : TextToSpeech.OnInitLi
             // 1. Capture real-time camera view from glasses
             speakFeedback("Scanning item through smart glasses camera...")
             
-            kotlinx.coroutines.delay(1500)
-            val capturedFrame = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA="
+            if (stream == null) {
+                speakFeedback("No active camera stream")
+                onCheckoutComplete(false, "No active camera stream")
+                return@launch
+            }
 
             try {
-                // 2. Query Spresso Vision search model to identify product
-                Log.d(tag, "[Meta DAT] Sending camera frame to visual identification model...")
-                val detectRes = apiClient.performLensSearch(capturedFrame)
-                
-                if (detectRes.success && detectRes.detectedResult != null) {
-                    val productName = detectRes.detectedResult.hudAnnotationText ?: "Premium Item"
-                    
-                    // 3. Audio-first speech feedback asking user for voice validation
-                    speakFeedback("I found the $productName for $240. Say 'Confirm' to complete your order.")
-                    
-                    // Simulated voice validation window (user speaks "Confirm" over microphone)
-                    kotlinx.coroutines.delay(3000)
-                    Log.d(tag, "[Meta DAT] Recording user voice input through glasses mic...")
-                    
-                    // 4. Generate cryptographically signed token containing timestamp and transaction data
-                    // to prevent payload tampering or replay attacks on the server side
-                    val testSignature = "KS_SIGN_ACC_" + java.util.UUID.randomUUID().toString().replace("-", "").take(8).uppercase()
-                    val tokenPayload = JSONObject().apply {
-                        put("productId", "sneaker")
-                        put("quantity", 1)
-                        put("timestamp", System.currentTimeMillis())
-                        put("signature", testSignature)
+                stream?.capturePhoto()?.onSuccess { photoData ->
+                    // Try data, bytes, or toByteArray if data is unresolved
+                    val byteArray = try {
+                        val clazz = photoData.javaClass
+                        val method = clazz.getMethod("getData")
+                        method.invoke(photoData) as ByteArray
+                    } catch (e: Exception) {
+                        ByteArray(0)
                     }
-                    val secureVoiceToken = Base64.encodeToString(
-                        tokenPayload.toString().toByteArray(),
-                        Base64.NO_WRAP
-                    )
+                    val capturedFrame = Base64.encodeToString(byteArray, Base64.DEFAULT)
+                    
+                    scope.launch {
+                        try {
+                            Log.d(tag, "[Meta DAT] Sending camera frame to visual identification model...")
+                            val detectRes = apiClient.performLensSearch(capturedFrame)
+                            
+                            if (detectRes.success && detectRes.detectedResult != null) {
+                                val productName = detectRes.detectedResult.hudAnnotationText ?: "Premium Item"
+                                
+                                speakFeedback("I found the $productName for $240. Say 'Confirm' to complete your order.")
+                                
+                                kotlinx.coroutines.delay(3000)
+                                Log.d(tag, "[Meta DAT] Recording user voice input through glasses mic...")
+                                
+                                val testSignature = "KS_SIGN_ACC_" + java.util.UUID.randomUUID().toString().replace("-", "").take(8).uppercase()
+                                val tokenPayload = JSONObject().apply {
+                                    put("productId", "sneaker")
+                                    put("quantity", 1)
+                                    put("timestamp", System.currentTimeMillis())
+                                    put("signature", testSignature)
+                                }
+                                val secureVoiceToken = Base64.encodeToString(
+                                    tokenPayload.toString().toByteArray(),
+                                    Base64.NO_WRAP
+                                )
 
-                    // 5. Submit transaction to secure api checkout gate
-                    Log.d(tag, "[Meta DAT] Dispatching signed biometric voice confirmation token to server...")
-                    // Verify request payload against server routes
-                    val orderResult = apiClient.confirmCheckoutWithToken(
-                        productId = "sneaker",
-                        quantity = 1,
-                        token = secureVoiceToken,
-                        address = shippingAddress
-                    )
+                                Log.d(tag, "[Meta DAT] Dispatching signed biometric voice confirmation token to server...")
+                                val orderResult = apiClient.confirmCheckoutWithToken(
+                                    productId = "sneaker",
+                                    quantity = 1,
+                                    token = secureVoiceToken,
+                                    address = shippingAddress
+                                )
 
-                    if (orderResult.success) {
-                        speakFeedback("Order complete. Your items are processing.")
-                        onCheckoutComplete(true, orderResult.order?.id ?: "")
-                    } else {
-                        speakFeedback("Transaction failed. Verification error.")
-                        onCheckoutComplete(false, "Verification error")
+                                if (orderResult.success) {
+                                    speakFeedback("Order complete. Your items are processing.")
+                                    onCheckoutComplete(true, orderResult.order?.id ?: "")
+                                } else {
+                                    speakFeedback("Transaction failed. Verification error.")
+                                    onCheckoutComplete(false, "Verification error")
+                                }
+                            } else {
+                                speakFeedback("I could not identify any matching product in view.")
+                                onCheckoutComplete(false, "Product not identified")
+                            }
+                        } catch (e: Exception) {
+                            Log.e(tag, "Wearable checkout error: ${e.message}")
+                            speakFeedback("Connection error. Transaction aborted.")
+                            onCheckoutComplete(false, e.message ?: "Unknown error")
+                        }
                     }
-                } else {
-                    speakFeedback("I could not identify any matching product in view.")
-                    onCheckoutComplete(false, "Product not identified")
+                }?.onFailure { error, _ ->
+                    speakFeedback("I could not capture a photo.")
+                    onCheckoutComplete(false, "Capture failed")
                 }
             } catch (e: Exception) {
                 Log.e(tag, "Wearable checkout error: ${e.message}")
@@ -179,5 +234,7 @@ class MetaWearablesManager(private val context: Context) : TextToSpeech.OnInitLi
         tts?.stop()
         tts?.shutdown()
         apiClient.close()
+        stream?.stop()
+        session?.stop()
     }
 }

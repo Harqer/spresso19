@@ -9,6 +9,8 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <application
         android:name=".SpressoApp"
@@ -22,6 +24,8 @@
         android:theme="@style/Theme.Spresso.Splash">
         
         <meta-data android:name="android.graphics.hwui.render_mode" android:value="vulkan" />
+        <meta-data android:name="com.meta.wearable.mwdat.APPLICATION_ID" android:value="${mwdat_application_id}" />
+        <meta-data android:name="com.meta.wearable.mwdat.CLIENT_TOKEN" android:value="${mwdat_client_token}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -36,6 +40,12 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="spresso" />
             </intent-filter>
             <meta-data
                 android:name="android.app.shortcuts"

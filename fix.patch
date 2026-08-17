@@ -1,0 +1,76 @@
+--- composeApp/src/androidMain/kotlin/com/spresso19/wearable/MetaWearablesManager.kt
++++ composeApp/src/androidMain/kotlin/com/spresso19/wearable/MetaWearablesManager.kt
+@@ -19,12 +19,11 @@
+ import com.spresso19.MainActivity
+ import com.meta.wearable.dat.core.Wearables
+ import com.meta.wearable.dat.core.selectors.AutoDeviceSelector
+-import com.meta.wearable.dat.core.models.DeviceSessionState
++import com.meta.wearable.dat.core.session.DeviceSessionState
+ import com.meta.wearable.dat.camera.addStream
+ import com.meta.wearable.dat.camera.types.StreamConfiguration
+ import com.meta.wearable.dat.camera.types.VideoQuality
+ import com.meta.wearable.dat.camera.Stream
+-import com.meta.wearable.dat.camera.models.StreamState
+ 
+ /**
+  * Meta Wearables Device Access Toolkit (DAT) Integration Manager.
+@@ -31,7 +30,7 @@
+     // Wearables Session State (representing com.meta.wearable.dat structures)
+     private var isPaired = false
+     private var isCameraStreaming = false
+-    private var session: com.meta.wearable.dat.core.Session? = null
++    private var session: com.meta.wearable.dat.core.session.Session? = null
+     private var stream: Stream? = null
+ 
+     init {
+@@ -58,16 +57,18 @@
+                 Wearables.startRegistration(activity)
+                 
+                 session = Wearables.createSession(AutoDeviceSelector()).getOrElse { error ->
+-                    throw IllegalStateException(error.description)
++                    error("Session error: \${error}")
+                 }
+                 session?.start()
+                 
+-                session?.state?.collect { state ->
+-                    if (state == DeviceSessionState.STARTED) {
+-                        isPaired = true
+-                        withContext(Dispatchers.Main) {
+-                            onConnected(true)
++                scope.launch {
++                    session?.state?.collect { state ->
++                        if (state == DeviceSessionState.STARTED) {
++                            isPaired = true
++                            withContext(Dispatchers.Main) {
++                                onConnected(true)
++                            }
+                         }
+                     }
+                 }
+@@ -83,12 +84,14 @@
+         scope.launch {
+             try {
+                 stream = session?.addStream(
+                     StreamConfiguration(videoQuality = VideoQuality.MEDIUM, frameRate = 24)
+-                )?.getOrElse { error -> throw IllegalStateException(error.description) }
++                )?.getOrElse { error -> error("Stream error: \${error}") }
+                 
+-                stream?.state?.collect { state ->
+-                    if (state == StreamState.STREAMING) {
+-                        isCameraStreaming = true
++                scope.launch {
++                    stream?.state?.collect { state ->
++                        if (state.toString() == "STREAMING") {
++                            isCameraStreaming = true
++                        }
+                     }
+                 }
+             } catch (e: Exception) {
+@@ -113,7 +116,7 @@
+             try {
+                 stream?.capturePhoto()?.onSuccess { photoData ->
+-                    val capturedFrame = Base64.encodeToString(photoData.data, Base64.DEFAULT)
++                    val capturedFrame = Base64.encodeToString(photoData.data ?: ByteArray(0), Base64.DEFAULT)
+                     
+                     Log.d(tag, "[Meta DAT] Sending camera frame to visual identification model...")
+                     val detectRes = apiClient.performLensSearch(capturedFrame)
