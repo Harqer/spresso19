@@ -1,7 +1,7 @@
 package components.features.travel
 
 import components.models.*
-import components.features.travel.molecules.BoardingPassMolecule
+import components.features.travel.widgets.BoardingPass
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -64,7 +64,7 @@ fun BoardingPassList(tripEvents: List<ItineraryEvent>, onShowQr: (ItineraryEvent
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         tripEvents.forEach { evt ->
-            BoardingPassMolecule(evt = evt, onShowQr = onShowQr)
+            BoardingPass(evt = evt, onShowQr = onShowQr)
         }
     }
 }

@@ -29,22 +29,7 @@ fun WardrobePage(
     modifier: Modifier = Modifier
 ) {
     var photos by remember {
-        mutableStateOf(
-            listOf(
-                WardrobePhotoItem(
-                    id = "p-1",
-                    title = "Winter Luxe Trench",
-                    category = "Winter Wear",
-                    photoUrl = "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600"
-                ),
-                WardrobePhotoItem(
-                    id = "p-2",
-                    title = "Gala Silk Evening Gown",
-                    category = "Special Occasion Wear",
-                    photoUrl = "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600"
-                )
-            )
-        )
+        mutableStateOf<List<WardrobePhotoItem>>(emptyList())
     }
 
     val weatherSummary = "Cold 32°F Winter Season — Tailored thermal cashmere layering & shearling outerwear curated for your fashion profile."
@@ -85,13 +70,7 @@ fun WardrobePage(
                 photos = photos,
                 weatherSummary = weatherSummary,
                 onAddPhotoClick = {
-                    val newPhoto = WardrobePhotoItem(
-                        id = "p-${photos.size + 1}",
-                        title = "Hot Summer Linen Fit",
-                        category = "Summer Wear",
-                        photoUrl = "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600"
-                    )
-                    photos = photos + newPhoto
+                    throw Exception("Missing Backend API - Needs Implementation: /api/wardrobe/add")
                 },
                 onTryOnPhoto = { photo ->
                     onNavigateToTryOn(photo.id)

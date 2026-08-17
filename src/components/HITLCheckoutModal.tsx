@@ -5,6 +5,49 @@ import { createOrder } from "../dataconnect";
 import { MaterialIcon } from "./MaterialIcon";
 import { M3ExpressiveCircularProgress } from "./M3ExpressiveCircularProgress";
 import { GoogleWalletButton } from "@/src/components/features/profile/GoogleWalletButton";
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock');
+
+const StripeCheckoutForm = ({ onSuccess, onCancel, totalAmount }: any) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setIsProcessing(true);
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      redirect: 'if_required',
+    });
+
+    setIsProcessing(false);
+
+    if (error) {
+      setErrorMsg(error.message || "An error occurred");
+    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+      onSuccess(paymentIntent);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 p-4 border border-[#d8ebd7] rounded-xl bg-white mt-4">
+      <PaymentElement />
+      {errorMsg && <div className="text-red-500 text-xs">{errorMsg}</div>}
+      <div className="flex space-x-2">
+        <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-bold text-gray-700 transition">Cancel</button>
+        <button disabled={isProcessing || !stripe || !elements} className="flex-1 py-2 bg-[#386633] text-white font-bold rounded-xl transition shadow-xs flex items-center justify-center disabled:opacity-50">
+          {isProcessing ? "Processing..." : `Pay $${totalAmount.toFixed(2)}`}
+        </button>
+      </div>
+    </form>
+  );
+};
 
 interface HITLCheckoutModalProps {
   payload: HITLPayload | null;
@@ -27,6 +70,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<"gpay" | "fiat" | "crypto">("gpay");
   const [biometricVerified, setBiometricVerified] = useState(false);
   const [isBiometricAuthenticating, setIsBiometricAuthenticating] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   useEffect(() => {
     // Trigger haptic vibration buzz on device to notify user of biometric purchase authorization
@@ -81,6 +125,31 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
     try {
       const authId = payload.authorizationId;
       const uid = auth.currentUser?.uid || "anonymous_user";
+
+      // If fiat, fetch clientSecret and render Elements
+      if (paymentMethod === "fiat") {
+        const targetUrl = `${import.meta.env.VITE_API_BASE_URL || ""}/api/payment/stripe/create-intent`;
+        const res = await fetch(targetUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+             productId: payload.product.id,
+             quantity: payload.quantity,
+             shippingAddress: "123 Innovation Way, SF",
+             merchantUrl: (payload as any).merchantUrl || "https://example.com"
+          })
+        });
+        const data = await res.json();
+        if (data.clientSecret) {
+          setClientSecret(data.clientSecret);
+          setIsSubmitting(false);
+          return; // Wait for user to fill Elements
+        } else {
+          setErrorMessage("Failed to initialize secure checkout.");
+          setIsSubmitting(false);
+          return;
+        }
+      }
 
       // If Google Pay was selected, build PaymentDataRequest with official Merchant ID BCR2DN6DTK6ZNGLF
       if (paymentMethod === "gpay" && typeof window !== "undefined" && (window as any).google?.payments) {
@@ -336,30 +405,43 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
           </div>
         )}
 
-        {/* Confirmation Button */}
-        <button
-          onClick={handleConfirmPurchase}
-          disabled={isSubmitting || !biometricVerified}
-          className="w-full py-3.5 bg-[#386633] hover:bg-[#2c5227] text-white font-bold text-sm rounded-xl transition shadow-xs flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
-        >
-          {isSubmitting ? (
-            <div className="flex items-center space-x-2">
-              <M3ExpressiveCircularProgress size={22} colorClass="stroke-white" />
-              <span>Processing Settlement Order...</span>
-            </div>
-          ) : (
-            <>
-              <MaterialIcon icon="shopping_bag" size={20} />
-              <span>
-                {paymentMethod === "gpay"
-                  ? "Pay with Google Pay"
-                  : paymentMethod === "crypto"
-                  ? "Confirm USDC Crypto Purchase"
-                  : "Confirm Card Purchase"} • ${(payload.totalAmount || (payload.product.price * payload.quantity)).toFixed(2)}
-              </span>
-            </>
-          )}
-        </button>
+        {/* Confirmation Button or Stripe Elements */}
+        {clientSecret ? (
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <StripeCheckoutForm 
+               totalAmount={payload.totalAmount || (payload.product.price * payload.quantity)}
+               onCancel={() => setClientSecret(null)}
+               onSuccess={(intent: any) => {
+                 if (onSuccess) onSuccess({ orderId: intent.id, total: payload.totalAmount || 0, merchantId: GOOGLE_PAY_MERCHANT_ID });
+                 onClose();
+               }}
+            />
+          </Elements>
+        ) : (
+          <button
+            onClick={handleConfirmPurchase}
+            disabled={isSubmitting || !biometricVerified}
+            className="w-full py-3.5 bg-[#386633] hover:bg-[#2c5227] text-white font-bold text-sm rounded-xl transition shadow-xs flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+          >
+            {isSubmitting ? (
+              <div className="flex items-center space-x-2">
+                <M3ExpressiveCircularProgress size={22} colorClass="stroke-white" />
+                <span>Processing Settlement Order...</span>
+              </div>
+            ) : (
+              <>
+                <MaterialIcon icon="shopping_bag" size={20} />
+                <span>
+                  {paymentMethod === "gpay"
+                    ? "Pay with Google Pay"
+                    : paymentMethod === "crypto"
+                    ? "Confirm USDC Crypto Purchase"
+                    : "Confirm Card Purchase"} • ${(payload.totalAmount || (payload.product.price * payload.quantity)).toFixed(2)}
+                </span>
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

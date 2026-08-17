@@ -31,29 +31,7 @@ export function useWardrobeInteractions(allWardrobeItems: CustomWardrobeItem[], 
     setShowUploadModal(false); setUploadPreview(null); setUploadTitle(""); setUploadColor("");
   };
 
-  const handleRandomizeShuffle = (mode = selectedWeatherMode, tempText = temperaturePrompt) => {
-    setIsGeneratingOutfit(true);
-    const suitable = allWardrobeItems.filter(i => i.weatherSuitability === mode || i.weatherSuitability === "ALL_WEATHER");
-    const pool = suitable.length > 0 ? suitable : allWardrobeItems;
-    const tops = pool.filter(i => i.category === "TOP" || i.category === "DRESS");
-    const bottoms = pool.filter(i => i.category === "BOTTOM");
-    const outer = pool.filter(i => i.category === "SWEATER_OUTERWEAR");
-    const shoes = pool.filter(i => i.category === "SHOES" || i.category === "ACCESSORY");
 
-    const selected: CustomWardrobeItem[] = [];
-    if (tops.length > 0) selected.push(tops[0]);
-    if (mode === "COLD_WINTER" && outer.length > 0) selected.push(outer[0]);
-    else if (outer.length > 0) selected.push(outer[0]);
-    if (bottoms.length > 0) selected.push(bottoms[0]);
-    if (shoes.length > 0) selected.push(shoes[0]);
-
-    const titleList = mode === "HOT_SUMMER" ? ["Sunny Linen & Short Outfit"] : mode === "COLD_WINTER" ? ["Layered Cashmere & Denim Winter Look"] : ["Mild Autumn Breeze Outfit"];
-    setCurrentOutfit({
-      id: `outfit-${Date.now()}`, title: titleList[0], weatherCondition: mode, temperatureText: tempText,
-      items: selected.length > 0 ? selected : allWardrobeItems.slice(0, 3), stylingAdvice: `Curated mix for ${tempText}.`, weatherMatchScore: 95, savedAt: Date.now()
-    });
-    setIsGeneratingOutfit(false);
-  };
 
   const handleGenerateAIOutfit = async (mode = selectedWeatherMode, tempText = temperaturePrompt) => {
     setIsGeneratingOutfit(true);
@@ -111,7 +89,6 @@ export function useWardrobeInteractions(allWardrobeItems: CustomWardrobeItem[], 
     selectedWeatherMode, setSelectedWeatherMode,
     temperaturePrompt, setTemperaturePrompt,
     isGeneratingOutfit, setIsGeneratingOutfit,
-    handleRandomizeShuffle,
     handleGenerateAIOutfit,
     mixMatchTop, setMixMatchTop, mixMatchBottom, setMixMatchBottom,
     mixMatchOuter, setMixMatchOuter, mixMatchShoes, setMixMatchShoes,

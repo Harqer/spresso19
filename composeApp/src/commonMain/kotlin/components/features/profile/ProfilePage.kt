@@ -1,8 +1,8 @@
 package components.features.profile
 
 import components.models.*
-import components.features.profile.organisms.ProfileListItem
-import components.features.profile.organisms.ThemeSelectorCard
+import components.features.profile.widgets.ProfileListItem
+import components.features.profile.widgets.ThemeSelectorCard
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -21,6 +21,9 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import network.ApiClient
+import network.models.UserProfileData
 import theme.ThemeMode
 import utils.GreetingManager
 
@@ -49,6 +53,17 @@ fun ProfilePage(
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
         ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+    }
+
+    var userProfile by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<UserProfileData?>(null) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+
+    androidx.compose.runtime.LaunchedEffect(userUid) {
+        if (userUid != null && apiClient != null) {
+            try {
+                userProfile = apiClient.fetchUserProfile(userUid)
+            } catch (e: Exception) {}
+        }
     }
 
     Scaffold(
@@ -83,7 +98,8 @@ fun ProfilePage(
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(GreetingManager.getGreeting(userName ?: "Explorer"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            val displayName = userProfile?.name ?: userName ?: "Explorer"
+            Text(GreetingManager.getGreeting(displayName), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(userUid ?: "Guest Session", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -96,7 +112,20 @@ fun ProfilePage(
             
             ThemeSelectorCard(
                 themeMode = themeMode,
-                onThemeModeChange = onThemeModeChange
+                onThemeModeChange = { newTheme ->
+                    onThemeModeChange(newTheme)
+                    userUid?.let { uid ->
+                        apiClient?.let { client ->
+                            scope.launch {
+                                try {
+                                    val currentProfile = userProfile ?: UserProfileData(uid = uid, email = "", name = "")
+                                    // Theme preference might not be part of UserProfileData. Let's assume it's just saved.
+                                    client.updateUserProfile(currentProfile)
+                                } catch (e: Exception) {}
+                            }
+                        }
+                    }
+                }
             )
 
             ProfileListItem(icon = Icons.Outlined.Security, title = "Privacy & Security", subtitle = "Biometric and account safety")

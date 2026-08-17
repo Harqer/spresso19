@@ -1,8 +1,8 @@
 package components.features.travel
 
 import components.models.*
-import components.features.travel.molecules.AddExpenseFormMolecule
-import components.features.travel.molecules.LoggedExpenseItemMolecule
+import components.features.travel.widgets.AddExpenseForm
+import components.features.travel.widgets.LoggedExpenseItem
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -111,7 +111,7 @@ fun ReceiptScannerSection(
                 }
             }
 
-            AddExpenseFormMolecule(
+            AddExpenseForm(
                 newExpenseMerchant = newExpenseMerchant,
                 onMerchantChange = { newExpenseMerchant = it },
                 newExpenseAmount = newExpenseAmount,
@@ -159,7 +159,7 @@ fun ReceiptScannerSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 tripExpenses.forEach { exp ->
-                    LoggedExpenseItemMolecule(exp = exp)
+                    LoggedExpenseItem(exp = exp)
                 }
             }
         }

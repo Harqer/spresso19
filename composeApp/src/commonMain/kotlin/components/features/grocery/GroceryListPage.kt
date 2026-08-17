@@ -27,9 +27,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import components.molecules.SpressoListItem
-import components.atoms.SpressoButton
-import components.atoms.SpressoButtonVariant
+import components.shared.widgets.SpressoListItem
+import components.shared.elements.SpressoButton
+import components.shared.elements.SpressoButtonVariant
 import components.features.catalog.StoreLocationHeader
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.jsonArray
@@ -73,7 +73,7 @@ fun GroceryListPage(
                 OutlinedTextField(value = newItemName, onValueChange = { newItemName = it }, placeholder = { Text("Add an item...", fontSize = 13.sp) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
                 SpressoButton(
                     text = "Add",
-                    onClick = { if (newItemName.isNotBlank()) { items = listOf(GroceryItem("c-${items.size}", newItemName, 1, "item", "Produce", 0.0)) + items; newItemName = "" } },
+                    onClick = { throw Exception("Missing Backend API - Needs Implementation: /api/grocery/add") },
                     modifier = Modifier,
                     variant = SpressoButtonVariant.PRIMARY,
                     trackingId = "grocery_add_item",
@@ -117,7 +117,7 @@ fun GroceryListPage(
                     leadingIcon = if (item.checked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                     onClick = { 
                         scope.launch { apiClient.recordInteraction("grocery_toggle_${item.id}", "click") }
-                        items = items.map { if (it.id == item.id) it.copy(checked = !it.checked) else it } 
+                        throw Exception("Missing Backend API - Needs Implementation: /api/grocery/toggle")
                     },
                     trailingContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -129,7 +129,7 @@ fun GroceryListPage(
                             }
                             IconButton(onClick = { 
                                 scope.launch { apiClient.recordInteraction("grocery_delete_${item.id}", "click") }
-                                items = items.filter { it.id != item.id } 
+                                throw Exception("Missing Backend API - Needs Implementation: /api/grocery/delete")
                             }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
                             }

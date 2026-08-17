@@ -27,9 +27,9 @@ import network.models.HITLChallenge
 import network.models.HITLPayload
 import network.models.HITLProduct
 import components.core.NetworkImage
-import components.atoms.SpressoButton
-import components.atoms.SpressoButtonVariant
-import components.molecules.MediaActionCard
+import components.shared.elements.SpressoButton
+import components.shared.elements.SpressoButtonVariant
+import components.shared.widgets.MediaActionCard
 
 @Composable
 fun SmartVisionDetectionOverlay(

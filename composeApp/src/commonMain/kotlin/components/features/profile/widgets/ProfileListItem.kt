@@ -1,4 +1,4 @@
-package components.features.profile.organisms
+package components.features.profile.widgets
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background

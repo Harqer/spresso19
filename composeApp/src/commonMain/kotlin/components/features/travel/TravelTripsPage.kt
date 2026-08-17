@@ -39,6 +39,7 @@ fun TravelTripsPage(
     initialEvents: List<ItineraryEvent> = emptyList(),
     initialExpenses: List<TravelExpense> = emptyList(),
     initialVoiceNotes: List<VoiceNote> = emptyList(),
+    apiClient: network.ApiClient = remember { network.ApiClient() },
     onAskAI: (String) -> Unit = {}
 ) {
     var trips by remember { mutableStateOf(initialTrips) }
@@ -47,6 +48,16 @@ fun TravelTripsPage(
     var voiceNotes by remember { mutableStateOf(initialVoiceNotes) }
 
     var activeTripId by remember { mutableStateOf(trips.firstOrNull()?.id ?: "") }
+
+    LaunchedEffect(Unit) {
+        val fetchedTrips = apiClient.fetchTravelTrips()
+        if (fetchedTrips.isNotEmpty()) {
+            trips = fetchedTrips
+            if (activeTripId.isEmpty() || trips.none { it.id == activeTripId }) {
+                activeTripId = trips.first().id
+            }
+        }
+    }
 
     LaunchedEffect(trips) {
         if (activeTripId.isEmpty() && trips.isNotEmpty()) {
@@ -72,7 +83,7 @@ fun TravelTripsPage(
                 transcript = text,
                 createdAt = "Just now"
             )
-            voiceNotes = listOf(newNote) + voiceNotes
+            throw Exception("Missing Backend API - Needs Implementation: /api/travel/voiceNotes")
         },
         onError = { 
             isRecording = false 
@@ -114,7 +125,7 @@ fun TravelTripsPage(
                 ReceiptScannerSection(
                     activeTripId = activeTripId,
                     tripExpenses = tripExpenses,
-                    onAddExpense = { expenses = listOf(it) + expenses }
+                    onAddExpense = { throw Exception("Missing Backend API - Needs Implementation: /api/travel/expense") }
                 )
             }
         }

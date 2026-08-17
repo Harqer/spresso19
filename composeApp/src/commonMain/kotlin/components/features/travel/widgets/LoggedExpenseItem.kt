@@ -1,4 +1,4 @@
-package components.features.travel.molecules
+package components.features.travel.widgets
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.sp
 import components.models.TravelExpense
 
 @Composable
-fun LoggedExpenseItemMolecule(exp: TravelExpense) {
+fun LoggedExpenseItem(exp: TravelExpense) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

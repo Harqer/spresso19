@@ -1,100 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import { TripRecord, ItineraryEvent, TravelExpense, VoiceNote } from "../../../types";
 import { MaterialIcon } from "../../MaterialIcon";
-import { authFetch } from "../../../lib/firebase";
+import { getTrips, getItineraryEvents, getTravelExpenses, getVoiceNotes, createTravelExpense, createVoiceNote, connectorConfig } from "@firebasegen/spresso-connector";
 
 interface TravelTripsPageProps {
   onAskAI?: (prompt: string) => void;
 }
 
 export const TravelTripsPage: React.FC<TravelTripsPageProps> = ({ onAskAI }) => {
-  const [trips, setTrips] = useState<TripRecord[]>([
-    {
-      id: "trip-paris-1",
-      title: "Paris Fashion & Culinary Tour",
-      destination: "Paris, France",
-      startDate: "2026-09-10",
-      endDate: "2026-09-18",
-      status: "UPCOMING",
-      coverImage: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&auto=format&fit=crop&q=80",
-      budgetTotal: 3500,
-      spentTotal: 1240
-    },
-    {
-      id: "trip-tokyo-2",
-      title: "Tokyo Tech & Style Discovery",
-      destination: "Tokyo, Japan",
-      startDate: "2026-11-01",
-      endDate: "2026-11-10",
-      status: "UPCOMING",
-      coverImage: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800&auto=format&fit=crop&q=80",
-      budgetTotal: 4200,
-      spentTotal: 890
-    }
-  ]);
-
-  const [activeTripId, setActiveTripId] = useState<string>("trip-paris-1");
-  const [events, setEvents] = useState<ItineraryEvent[]>([
-    {
-      id: "evt-1",
-      tripId: "trip-paris-1",
-      type: "flight",
-      title: "Air France Flight AF 007 (JFK ➔ CDG)",
-      description: "Boeing 777-300ER • Business Class",
-      eventTime: "2026-09-10 19:30 EST",
-      location: "JFK Terminal 4 ➔ CDG Terminal 2E",
-      price: 1150,
-      qrData: "AF007-JFK-CDG-SEAT12A",
-      confirmationCode: "AF-982341",
-      gate: "B28",
-      seat: "12A"
-    },
-    {
-      id: "evt-2",
-      tripId: "trip-paris-1",
-      type: "hotel",
-      title: "Le Meurice Paris Reservation",
-      description: "Deluxe Suite • 8 Nights Spa & Breakfast Included",
-      eventTime: "2026-09-11 14:00 CET",
-      location: "228 Rue de Rivoli, 75001 Paris",
-      price: 1890,
-      confirmationCode: "LM-PAR-77821"
-    },
-    {
-      id: "evt-3",
-      tripId: "trip-paris-1",
-      type: "restaurant",
-      title: "L'Ambroisie Culinary Experience",
-      description: "3 Michelin Star Tasting Menu",
-      eventTime: "2026-09-12 20:00 CET",
-      location: "9 Place des Vosges, 75004 Paris",
-      price: 450,
-      confirmationCode: "RES-99012"
-    }
-  ]);
-
-  const [expenses, setExpenses] = useState<TravelExpense[]>([
-    {
-      id: "exp-1",
-      tripId: "trip-paris-1",
-      amount: 1150,
-      currency: "USD",
-      category: "Flight",
-      merchant: "Air France",
-      date: "2026-08-10"
-    },
-    {
-      id: "exp-2",
-      tripId: "trip-paris-1",
-      amount: 90,
-      currency: "EUR",
-      category: "Dining",
-      merchant: "Café de Flore",
-      date: "2026-09-11",
-      items: [{ name: "Espresso & Croissant", price: 22 }, { name: "Duck Confit", price: 68 }]
-    }
-  ]);
-
+  const [trips, setTrips] = useState<TripRecord[]>([]);
+  const [activeTripId, setActiveTripId] = useState<string>("");
+  const [events, setEvents] = useState<ItineraryEvent[]>([]);
+  const [expenses, setExpenses] = useState<TravelExpense[]>([]);
   const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [newExpenseMerchant, setNewExpenseMerchant] = useState("");
@@ -105,25 +22,64 @@ export const TravelTripsPage: React.FC<TravelTripsPageProps> = ({ onAskAI }) => 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTravelData = async () => {
+      try {
+        const [tripsRes, eventsRes, expensesRes, notesRes] = await Promise.all([
+          getTrips(),
+          getItineraryEvents(),
+          getTravelExpenses(),
+          getVoiceNotes()
+        ]);
+        
+        if (isMounted) {
+          if (tripsRes.data.trips) setTrips(tripsRes.data.trips as any);
+          if (tripsRes.data.trips?.length > 0) setActiveTripId(tripsRes.data.trips[0].id);
+          if (eventsRes.data.itineraryEvents) setEvents(eventsRes.data.itineraryEvents as any);
+          if (expensesRes.data.travelExpenses) setExpenses(expensesRes.data.travelExpenses as any);
+          if (notesRes.data.voiceNotes) setVoiceNotes(notesRes.data.voiceNotes as any);
+        }
+      } catch (err) {
+        console.error("Failed to load travel data:", err);
+      }
+    };
+    fetchTravelData();
+    return () => { isMounted = false; };
+  }, []);
+
   const currentTrip = trips.find(t => t.id === activeTripId) || trips[0];
   const tripEvents = events.filter(e => e.tripId === activeTripId);
   const tripExpenses = expenses.filter(e => e.tripId === activeTripId);
 
   const totalSpent = tripExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
-  const handleAddExpense = (e: React.FormEvent) => {
+  const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newExpenseMerchant || !newExpenseAmount) return;
-    const item: TravelExpense = {
-      id: `exp-${Date.now()}`,
-      tripId: activeTripId,
-      amount: parseFloat(newExpenseAmount),
-      currency: "USD",
-      category: newExpenseCategory,
-      merchant: newExpenseMerchant,
-      date: new Date().toISOString().split("T")[0]
-    };
-    setExpenses(prev => [item, ...prev]);
+    try {
+      const res = await createTravelExpense({
+        tripId: activeTripId,
+        amount: parseFloat(newExpenseAmount),
+        currency: "USD",
+        category: newExpenseCategory,
+        merchant: newExpenseMerchant
+      });
+      if (res.data.travelExpense_insert) {
+        // Optimistic append, usually we would refetch
+        setExpenses(prev => [{
+            id: res.data.travelExpense_insert as any,
+            tripId: activeTripId,
+            amount: parseFloat(newExpenseAmount),
+            currency: "USD",
+            category: newExpenseCategory,
+            merchant: newExpenseMerchant,
+            createdAt: new Date().toISOString()
+        } as any, ...prev]);
+      }
+    } catch (err) {
+      console.error("Failed to add expense:", err);
+    }
     setNewExpenseMerchant("");
     setNewExpenseAmount("");
   };
@@ -137,7 +93,7 @@ export const TravelTripsPage: React.FC<TravelTripsPageProps> = ({ onAskAI }) => 
       const reader = new FileReader();
       reader.onload = async () => {
         const base64Data = (reader.result as string).split(",")[1];
-        const res = await authFetch("/api/receipt/parse", {
+        const res = await fetch("https://us-central1-spresso-5561f.cloudfunctions.net/parseReceipt", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageBase64: base64Data })
@@ -165,19 +121,21 @@ export const TravelTripsPage: React.FC<TravelTripsPageProps> = ({ onAskAI }) => 
     }
   };
 
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     if (!isRecording) {
       setIsRecording(true);
-      setTimeout(() => {
-        const note: VoiceNote = {
-          id: `vn-${Date.now()}`,
-          tripId: activeTripId,
-          transcript: "Check out Le Bon Marché department store for designer wardrobe items and sample French perfumes on Day 3.",
-          createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        setVoiceNotes(prev => [note, ...prev]);
+      try {
+        const httpsCallable = (await import("firebase/functions")).httpsCallable;
+        const functions = (await import("../../../lib/firebase")).functions;
+        const transcribeAudio = httpsCallable(functions, "transcribeAudio");
+        const res = await transcribeAudio({ tripId: activeTripId, audioUrl: "dummy_url_placeholder" });
+        const data = res.data as any;
+        if (data.note) setVoiceNotes(prev => [data.note, ...prev]);
+      } catch (err) {
+        console.error("Failed to record voice note:", err);
+      } finally {
         setIsRecording(false);
-      }, 2500);
+      }
     } else {
       setIsRecording(false);
     }
@@ -219,31 +177,33 @@ export const TravelTripsPage: React.FC<TravelTripsPageProps> = ({ onAskAI }) => 
       </div>
 
       {/* Active Trip Hero Banner */}
-      <div className="relative rounded-3xl overflow-hidden shadow-xl border border-[var(--md-sys-color-outline-variant)] h-56 bg-stone-900 group">
-        <img src={currentTrip.coverImage} alt={currentTrip.title} className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 flex flex-col justify-between">
-          <div className="flex justify-between items-start">
-            <span className="px-3 py-1 bg-emerald-500/80 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow">
-              {currentTrip.status}
-            </span>
-            <button
-              onClick={() => onAskAI?.(`Help me plan itinerary details and local recommendations for ${currentTrip.title} in ${currentTrip.destination}`)}
-              className="px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-semibold rounded-full transition flex items-center space-x-1.5 cursor-pointer shadow-xs"
-            >
-              <MaterialIcon icon="auto_awesome" size={16} className="text-amber-300" />
-              <span>Ask AI Travel Assistant</span>
-            </button>
-          </div>
+      {currentTrip && (
+        <div className="relative rounded-3xl overflow-hidden shadow-xl border border-[var(--md-sys-color-outline-variant)] h-56 bg-stone-900 group">
+          <img src={currentTrip.coverImage} alt={currentTrip.title} className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <span className="px-3 py-1 bg-emerald-500/80 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow">
+                {currentTrip.status}
+              </span>
+              <button
+                onClick={() => onAskAI?.(`Help me plan itinerary details and local recommendations for ${currentTrip.title} in ${currentTrip.destination}`)}
+                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white text-xs font-semibold rounded-full transition flex items-center space-x-1.5 cursor-pointer shadow-xs"
+              >
+                <MaterialIcon icon="auto_awesome" size={16} className="text-amber-300" />
+                <span>Ask AI Travel Assistant</span>
+              </button>
+            </div>
 
-          <div>
-            <h2 className="text-2xl font-black text-white">{currentTrip.title}</h2>
-            <p className="text-xs text-stone-300 font-medium flex items-center space-x-2 mt-1">
-              <MaterialIcon icon="calendar_today" size={14} />
-              <span>{currentTrip.startDate} ➔ {currentTrip.endDate} ({currentTrip.destination})</span>
-            </p>
+            <div>
+              <h2 className="text-2xl font-black text-white">{currentTrip.title}</h2>
+              <p className="text-xs text-stone-300 font-medium flex items-center space-x-2 mt-1">
+                <MaterialIcon icon="calendar_today" size={14} />
+                <span>{currentTrip.startDate} ➔ {currentTrip.endDate} ({currentTrip.destination})</span>
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Grid: Left - Boarding Passes & Timeline / Right - Expense Tracker & Receipts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

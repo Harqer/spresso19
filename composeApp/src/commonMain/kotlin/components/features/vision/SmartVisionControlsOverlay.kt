@@ -12,8 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import components.atoms.SpressoButton
-import components.atoms.SpressoButtonVariant
+import components.shared.elements.SpressoButton
+import components.shared.elements.SpressoButtonVariant
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 

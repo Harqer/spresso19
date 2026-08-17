@@ -1,7 +1,7 @@
 package components.features.chat
 
 import components.models.*
-import components.features.chat.molecules.DiscoveryCard
+import components.features.chat.cards.DiscoveryCard
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable

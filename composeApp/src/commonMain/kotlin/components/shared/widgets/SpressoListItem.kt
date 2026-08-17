@@ -1,4 +1,4 @@
-package components.molecules
+package components.shared.widgets
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

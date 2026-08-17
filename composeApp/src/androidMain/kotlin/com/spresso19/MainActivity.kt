@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import java.util.UUID
 
 import androidx.compose.ui.tooling.preview.Preview
@@ -60,6 +61,7 @@ class MainActivity : FragmentActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         currentActivity = this
@@ -85,6 +87,21 @@ class MainActivity : FragmentActivity() {
             
             var user by remember { mutableStateOf(FirebaseAuth.getInstance().currentUser) }
             var externalNavKey by remember { mutableStateOf<NavKey?>(null) }
+
+            LaunchedEffect(intent) {
+                if (intent?.hasExtra("order_id") == true) {
+                    val orderId = intent.getStringExtra("order_id") ?: ""
+                    val arrivalStatus = intent.getStringExtra("arrival_status")
+                    if (arrivalStatus != null) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                network.ApiClient().recordInteraction(orderId, "arrival_status_$arrivalStatus")
+                            } catch (e: Exception) {}
+                        }
+                    }
+                    externalNavKey = NavKey.OrdersKey
+                }
+            }
 
             DisposableEffect(Unit) {
                 val receiver = object : BroadcastReceiver() {
@@ -136,6 +153,7 @@ class MainActivity : FragmentActivity() {
                 App(
                     currentUserUid = user?.uid,
                     currentUserName = cleanUserName,
+                    externalNavKey = externalNavKey,
                     onShare = { productId ->
                         val sendIntent = Intent().apply {
                             action = Intent.ACTION_SEND
@@ -167,7 +185,7 @@ class MainActivity : FragmentActivity() {
                         val credentialManager = CredentialManager.create(this@MainActivity)
                         val googleIdOption = GetGoogleIdOption.Builder()
                             .setFilterByAuthorizedAccounts(false)
-                            .setServerClientId("656500460421-f02h94qsiq3s5hvltdak54r932bvgbnm.apps.googleusercontent.com")
+                            .setServerClientId(getString(R.string.default_web_client_id))
                             .setAutoSelectEnabled(true)
                             .build()
 
@@ -266,10 +284,16 @@ class MainActivity : FragmentActivity() {
                                     if (credentialId != null) {
                                         CoroutineScope(Dispatchers.IO).launch {
                                             val client = network.ApiClient()
-                                            val verified = client.verifyEmailCredential(responseJsonString, "nonce") // Replace nonce with actual if available
+                                            val customToken = client.verifyEmailCredential(responseJsonString, nonce)
                                             withContext(Dispatchers.Main) {
-                                                if (verified) {
-                                                    Toast.makeText(this@MainActivity, "Verified via Backend!", Toast.LENGTH_SHORT).show()
+                                                if (customToken != null) {
+                                                    FirebaseAuth.getInstance().signInWithCustomToken(customToken)
+                                                        .addOnSuccessListener {
+                                                            Toast.makeText(this@MainActivity, "Digital Credential Verified!", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                        .addOnFailureListener {
+                                                            Toast.makeText(this@MainActivity, "Firebase Custom Auth failed", Toast.LENGTH_SHORT).show()
+                                                        }
                                                 } else {
                                                     Toast.makeText(this@MainActivity, "Backend verification failed", Toast.LENGTH_SHORT).show()
                                                 }

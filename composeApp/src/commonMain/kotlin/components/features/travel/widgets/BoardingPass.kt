@@ -1,4 +1,4 @@
-package components.features.travel.molecules
+package components.features.travel.widgets
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.sp
 import components.models.ItineraryEvent
 
 @Composable
-fun BoardingPassMolecule(
+fun BoardingPass(
     evt: ItineraryEvent,
     onShowQr: (ItineraryEvent) -> Unit,
     modifier: Modifier = Modifier

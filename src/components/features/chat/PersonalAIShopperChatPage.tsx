@@ -62,59 +62,32 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
   const locationContext = userLocation ? ` near ${userLocation}` : "";
   const abortControllerRef = React.useRef<AbortController | null>(null);
 
-  const quickPrompts = [
-    {
-      id: "hot_drop",
-      badge: "HOT DROP",
-      badgeBg: "bg-[#b84a39]/10 text-[#b84a39] border-[#b84a39]/20",
-      icon: "local_fire_department",
-      title: "Nike & Brand Drops",
-      subtitle: "Check local sneaker releases & store stock drops",
-      prompt: `Show me latest Nike & brand sneaker drops${locationContext}`
-    },
-    {
-      id: "sale_20",
-      badge: "20%+ OFF",
-      badgeBg: "bg-[#386633]/10 text-[#386633] dark:text-[#9cd695] border-[#386633]/20",
-      icon: "sell",
-      title: "Area Store & Outlet Deals",
-      subtitle: "Discover top local & outlet sales",
-      prompt: `What local outlet sales and store deals are happening${locationContext}?`
-    },
-    {
-      id: "market_steals",
-      badge: "MARKET STEALS",
-      badgeBg: "bg-[#386633]/10 text-[#386633] dark:text-[#9cd695] border-[#386633]/20",
-      icon: "shopping_cart",
-      title: "Fresh Grocery Deals",
-      subtitle: "Weekly grocery specials & local produce sales",
-      prompt: `Find weekly grocery specials and fresh produce deals${locationContext}`
-    },
-    {
-      id: "trending",
-      badge: "TRENDING",
-      badgeBg: "bg-[#b84a39]/10 text-[#b84a39] border-[#b84a39]/20",
-      icon: "auto_awesome",
-      title: "Trending Tech & Style",
-      subtitle: "Popular fashion picks & audio accessories near you",
-      prompt: `Show me trending fashion picks and top audio tech${locationContext}`
-    }
-  ];
+  const [quickPrompts, setQuickPrompts] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    authFetch("/api/chat/quick-prompts")
+      .then(res => res.json())
+      .then(data => {
+        if (isMounted && data.prompts) setQuickPrompts(data.prompts);
+      })
+      .catch(e => console.warn("Failed to fetch quick prompts", e));
+    return () => { isMounted = false; };
+  }, []);
+
 
   const handleSend = async (text: string) => {
     if (!text.trim() || isGenerating) return;
     setInputQuery("");
 
     try {
-      const historyJson = localStorage.getItem("spresso_search_inquiries");
-      const history = historyJson ? JSON.parse(historyJson) : [];
-      if (!history.includes(text.trim())) {
-        history.unshift(text.trim());
-        if (history.length > 20) history.pop();
-        localStorage.setItem("spresso_search_inquiries", JSON.stringify(history));
-      }
+      authFetch("/api/user/search-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: text.trim() })
+      }).catch(e => console.warn("Failed to update search history on backend:", e));
     } catch (e) {
-      console.warn("Failed to update search history:", e);
+      console.warn("Failed to initiate search history update:", e);
     }
 
     const userMsg: PersonalChatMsg = {
@@ -183,24 +156,37 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
 
                 if (jsonBlock) {
                   if (Array.isArray(jsonBlock.recommendedProducts)) {
-                    recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
-                      const match = products.find(cp => cp.id === p.id);
-                      return match || {
-                        id: p.id || `rec-${Math.random()}`,
-                        name: p.name || p.title || "",
-                        brand: p.brand || p.source || "",
-                        price: parseFloat(p.price || "0"),
-                        currency: "USD",
-                        category: p.category || "Shopping",
-                        description: p.description || "",
-                        image: p.image || p.imageUrl || "",
-                        stock: p.stock !== undefined ? p.stock : 0,
-                        sku: p.sku || `REC-${p.id}`,
-                        rating: p.rating !== undefined ? p.rating : undefined,
-                        virtualTryOnEligible: true,
-                        mcpServerId: "spresso-mcp-retail"
-                      };
-                    });
+                    // Collect unknown product IDs
+                    const unknownIds = jsonBlock.recommendedProducts
+                      .filter((p: any) => !products.some(cp => cp.id === p.id))
+                      .map((p: any) => p.id);
+                    
+                    if (unknownIds.length > 0) {
+                      // Fetch full product details for unknown IDs
+                      try {
+                        const { httpsCallable } = await import("firebase/functions");
+                        const { functions } = await import("../../../lib/firebase");
+                        const fetchProducts = httpsCallable(functions, "fetchProductsByIds");
+                        const res = await fetchProducts({ ids: unknownIds });
+                        const fetchedProducts = (res.data as any).products || [];
+                        
+                        recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
+                          const match = products.find(cp => cp.id === p.id) || fetchedProducts.find((cp: any) => cp.id === p.id);
+                          return match || null;
+                        }).filter(Boolean);
+                      } catch (e) {
+                        console.warn("Failed to fetch full product details", e);
+                        recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
+                          const match = products.find(cp => cp.id === p.id);
+                          return match;
+                        }).filter(Boolean);
+                      }
+                    } else {
+                      recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
+                        const match = products.find(cp => cp.id === p.id);
+                        return match;
+                      }).filter(Boolean);
+                    }
                   }
                   if (jsonBlock.locationData) {
                     locationData = jsonBlock.locationData;

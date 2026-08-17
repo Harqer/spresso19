@@ -3,7 +3,7 @@ package com.spresso19
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import components.features.auth.AuthPage
-import components.features.catalog.organisms.ProductCatalogScreen
+import components.features.catalog.screens.ProductCatalogScreen
 import io.ktor.client.HttpClient
 import network.ApiClient
 import network.ProductItem

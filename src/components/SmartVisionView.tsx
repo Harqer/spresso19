@@ -14,32 +14,6 @@ interface SmartVisionViewProps {
   onAskAI?: (text: string, image?: string | null) => void;
 }
 
-const PRESET_CAMERA_FEEDS = [
-  {
-    id: "feed-1",
-    label: "Smart Eyewear & Wearables",
-    image: "",
-    catalogMatchId: "prod-rayban-meta-01"
-  },
-  {
-    id: "feed-2",
-    label: "Tech Apparel & Outerwear",
-    image: "",
-    catalogMatchId: "prod-cyber-jacket-02"
-  },
-  {
-    id: "feed-3",
-    label: "Footwear & Runners",
-    image: "",
-    catalogMatchId: "prod-neo-runner-03"
-  },
-  {
-    id: "feed-4",
-    label: "Audio & Headphones",
-    image: "",
-    catalogMatchId: "prod-synth-headphones-05"
-  }
-];
 
 export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
   onSelectTryOn,
@@ -47,7 +21,6 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
   products,
   onAskAI
 }) => {
-  const [selectedFeed, setSelectedFeed] = useState(PRESET_CAMERA_FEEDS[0]);
   const [customImage, setCustomImage] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [liveCameraOpen, setLiveCameraOpen] = useState(false);
@@ -57,7 +30,7 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
   } | null>(null);
   const [itemThumbnails, setItemThumbnails] = useState<Record<number, string>>({});
 
-  const activeImage = customImage || selectedFeed.image || (products.find(p => p.id === selectedFeed.catalogMatchId)?.image || "");
+  const activeImage = customImage || (products.length > 0 ? products[0].image : "");
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

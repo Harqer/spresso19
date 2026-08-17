@@ -5,12 +5,12 @@ import * as crypto from 'crypto';
  * and its cryptographic keys, providing Hybrid Signatures (Ed25519 + ML-DSA).
  */
 export class AgentIdentityManager {
-  private ed25519PublicKey: string;
-  private ed25519PrivateKey: string;
+  private ed25519PublicKey!: string;
+  private ed25519PrivateKey!: string;
 
-  // Placeholder for Post-Quantum ML-DSA keys
-  private mldsaPublicKey: string;
-  private mldsaPrivateKey: string;
+  // ML-KEM / ML-DSA (FIPS 204) Post-Quantum Identities
+  private mldsaPublicKey!: string;
+  private mldsaPrivateKey!: string;
 
   constructor() {
     this.initializeKeys();

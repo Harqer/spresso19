@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { authFetch } from "../lib/firebase";
 import { ProductItem, HITLPayload } from "../types";
 import { CustomWardrobeItem, GeneratedOutfit, WardrobeCategory, WeatherSuitability } from "../types";
 
@@ -66,66 +67,67 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
   const [activeTab, setActiveTab] = useState<"STACKED_DECKS" | "ALL" | "SEASONAL" | "PHOTO_GALLERY" | "BOOKMARKS" | "LIKED" | "AI_OUTFIT" | "MIX_MATCH" | "SAVED_OUTFITS">("STACKED_DECKS");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedWeatherFilter, setSelectedWeatherFilter] = useState<string>("ALL");
-  const [photoGalleryPermission, setPhotoGalleryPermission] = useState<"UNDETERMINED" | "GRANTED" | "DENIED">(() => {
-    try {
-      const saved = localStorage.getItem("spresso_gallery_permission");
-      return (saved === "GRANTED" || saved === "DENIED") ? saved : "UNDETERMINED";
-    } catch { return "UNDETERMINED"; }
-  });
-
-  const [bookmarkedProductIds, setBookmarkedProductIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem("spresso_wardrobe_items");
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
-
-  const [likedProducts, setLikedProducts] = useState<any[]>(() => {
-    try {
-      const saved = localStorage.getItem("spresso_liked_products");
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
+  const [photoGalleryPermission, setPhotoGalleryPermission] = useState<"UNDETERMINED" | "GRANTED" | "DENIED">("UNDETERMINED");
+  const [bookmarkedProductIds, setBookmarkedProductIds] = useState<string[]>([]);
+  const [likedProducts, setLikedProducts] = useState<any[]>([]);
 
   useEffect(() => {
-    const syncState = () => {
+    const fetchState = async () => {
       try {
-        const savedLikes = localStorage.getItem("spresso_liked_products");
-        if (savedLikes) setLikedProducts(JSON.parse(savedLikes));
-        const savedBMs = localStorage.getItem("spresso_wardrobe_items");
-        if (savedBMs) setBookmarkedProductIds(JSON.parse(savedBMs));
-      } catch {}
+        const [prefsRes, likesRes, bookmarksRes] = await Promise.all([
+          authFetch("/api/user/preferences"),
+          authFetch("/api/user/likes"),
+          authFetch("/api/user/bookmarks")
+        ]);
+        
+        if (prefsRes.ok) {
+          const { preferences } = await prefsRes.json();
+          if (preferences?.galleryPermission === "GRANTED" || preferences?.galleryPermission === "DENIED") {
+            setPhotoGalleryPermission(preferences.galleryPermission);
+          }
+          if (preferences?.customWardrobeItems) setUserUploadedItems(preferences.customWardrobeItems);
+          if (preferences?.favoriteOutfits) setSavedFavoriteOutfits(preferences.favoriteOutfits);
+        }
+
+        if (likesRes.ok) {
+          const data = await likesRes.json();
+          // Map likes back to full products if possible, or just keep product IDs
+          // ElevatedQuickActionFab needs to know if liked. WardrobeLikedTab needs full objects.
+          // For now, we assume backend gives `{ productId, ... }` and we map it if we can
+          // Actually, if we must have full objects, let's just use the `products` list.
+          const likedIds = data.likes?.map((l: any) => l.productId) || [];
+          const fullLikes = products.filter(p => likedIds.includes(p.id));
+          setLikedProducts(fullLikes);
+        }
+
+        if (bookmarksRes.ok) {
+          const data = await bookmarksRes.json();
+          setBookmarkedProductIds(data.bookmarks?.map((b: any) => b.productId) || []);
+        }
+      } catch (err) {
+        console.error("Failed to sync wardrobe state from backend:", err);
+      }
     };
-    syncState();
-    window.addEventListener("storage", syncState);
-    const interval = setInterval(syncState, 1500);
-    return () => {
-      window.removeEventListener("storage", syncState);
-      clearInterval(interval);
-    };
-  }, []);
+    fetchState();
+  }, [products]);
 
-  const [userUploadedItems, setUserUploadedItems] = useState<CustomWardrobeItem[]>(() => {
-    try {
-      const saved = localStorage.getItem("spresso_custom_wardrobe_items");
-      return saved ? JSON.parse(saved) : INITIAL_PHOTO_GALLERY_ITEMS;
-    } catch { return INITIAL_PHOTO_GALLERY_ITEMS; }
-  });
+  const [userUploadedItems, setUserUploadedItems] = useState<CustomWardrobeItem[]>(INITIAL_PHOTO_GALLERY_ITEMS);
+  const [savedFavoriteOutfits, setSavedFavoriteOutfits] = useState<GeneratedOutfit[]>([]);
 
-  const [savedFavoriteOutfits, setSavedFavoriteOutfits] = useState<GeneratedOutfit[]>(() => {
-    try {
-      const saved = localStorage.getItem("spresso_favorite_outfits");
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
-
+  // Sync back preferences changes
   useEffect(() => {
-    try { localStorage.setItem("spresso_custom_wardrobe_items", JSON.stringify(userUploadedItems)); } catch (err) {}
-  }, [userUploadedItems]);
-
-  useEffect(() => {
-    try { localStorage.setItem("spresso_favorite_outfits", JSON.stringify(savedFavoriteOutfits)); } catch (err) {}
-  }, [savedFavoriteOutfits]);
+    // debounce or just fire and forget
+    if (userUploadedItems.length === 0 && savedFavoriteOutfits.length === 0 && photoGalleryPermission === "UNDETERMINED") return;
+    authFetch("/api/user/preferences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customWardrobeItems: userUploadedItems,
+        favoriteOutfits: savedFavoriteOutfits,
+        galleryPermission: photoGalleryPermission
+      })
+    }).catch(console.error);
+  }, [userUploadedItems, savedFavoriteOutfits, photoGalleryPermission]);
 
   const bookmarkedWardrobeItems: CustomWardrobeItem[] = products
     .filter(p => bookmarkedProductIds.includes(p.id))
@@ -174,7 +176,11 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
     } else if (item.type === "bookmarked_product" && item.productId) {
       const updated = bookmarkedProductIds.filter(id => id !== item.productId);
       setBookmarkedProductIds(updated);
-      try { localStorage.setItem("spresso_wardrobe_items", JSON.stringify(updated)); } catch (err) {}
+      authFetch("/api/user/bookmark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: item.productId, action: "remove" })
+      }).catch(console.error);
     }
   };
 
@@ -197,24 +203,17 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
 
   const grantGalleryPermission = () => {
     setPhotoGalleryPermission("GRANTED");
-    try {
-      localStorage.setItem("spresso_gallery_permission", "GRANTED");
-      // Seed user photo gallery items
-      setUserUploadedItems(prev => {
-        const hasSeeds = prev.some(item => item.id.startsWith("gallery-seed-"));
-        if (!hasSeeds) {
-          return [...SEED_PHOTO_GALLERY_ITEMS, ...prev];
-        }
-        return prev;
-      });
-    } catch {}
+    setUserUploadedItems(prev => {
+      const hasSeeds = prev.some(item => item.id.startsWith("gallery-seed-"));
+      if (!hasSeeds) {
+        return [...SEED_PHOTO_GALLERY_ITEMS, ...prev];
+      }
+      return prev;
+    });
   };
 
   const denyGalleryPermission = () => {
     setPhotoGalleryPermission("DENIED");
-    try {
-      localStorage.setItem("spresso_gallery_permission", "DENIED");
-    } catch {}
   };
 
   return {

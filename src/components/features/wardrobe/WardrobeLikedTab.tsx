@@ -1,6 +1,7 @@
 import React from "react";
 import { MaterialIcon } from "../../MaterialIcon";
 import { ProductItem } from "../../../types";
+import { authFetch } from "../../../lib/firebase";
 
 interface WardrobeLikedTabProps {
   likedProducts: any[];
@@ -44,9 +45,14 @@ export const WardrobeLikedTab: React.FC<WardrobeLikedTabProps> = ({
                     <MaterialIcon icon="favorite" size={10} /><span>Liked</span>
                   </span>
                   <button onClick={() => {
+                    const prodId = prod.id || prod.sku || `liked-${idx}`;
                     const updated = likedProducts.filter(p => (p.id || p.sku) !== (prod.id || prod.sku));
                     setLikedProducts(updated);
-                    try { localStorage.setItem("spresso_liked_products", JSON.stringify(updated)); } catch {}
+                    authFetch("/api/user/like", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ productId: prodId, action: "remove" })
+                    }).catch(console.error);
                   }} aria-label="Remove from Liked" className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 text-rose-600 hover:bg-rose-600 hover:text-white transition shadow-sm cursor-pointer" title="Remove from Liked">
                     <MaterialIcon icon="delete" size={15} />
                   </button>

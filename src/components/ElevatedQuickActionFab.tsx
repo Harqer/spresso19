@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem } from "../types";
+import { authFetch } from "../lib/firebase";
 
 interface ElevatedQuickActionFabProps {
   product: ProductItem | any;
@@ -28,7 +29,7 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Synchronize initial state or local storage
+  // Synchronize initial state with backend if not provided
   useEffect(() => {
     if (!product) return;
     const prodId = product.id || product.sku;
@@ -36,27 +37,23 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
     if (isLikedInitial !== undefined) {
       setIsLiked(isLikedInitial);
     } else {
-      try {
-        const savedLikes = localStorage.getItem("spresso_liked_products");
-        const likesArr = savedLikes ? JSON.parse(savedLikes) : [];
-        const found = likesArr.some((item: any) => (typeof item === "string" ? item === prodId : item.id === prodId));
-        setIsLiked(found);
-      } catch {
-        setIsLiked(false);
-      }
+      authFetch("/api/user/likes").then(res => res.json()).then(data => {
+        if (data.likes) {
+          const found = data.likes.some((item: any) => item.productId === prodId);
+          setIsLiked(found);
+        }
+      }).catch(console.error);
     }
 
     if (isBookmarkedInitial !== undefined) {
       setIsBookmarked(isBookmarkedInitial);
     } else {
-      try {
-        const savedBMs = localStorage.getItem("spresso_wardrobe_items");
-        const bmsArr = savedBMs ? JSON.parse(savedBMs) : [];
-        const found = bmsArr.some((item: any) => (typeof item === "string" ? item === prodId : item.id === prodId));
-        setIsBookmarked(found);
-      } catch {
-        setIsBookmarked(false);
-      }
+      authFetch("/api/user/bookmarks").then(res => res.json()).then(data => {
+        if (data.bookmarks) {
+          const found = data.bookmarks.some((item: any) => item.productId === prodId);
+          setIsBookmarked(found);
+        }
+      }).catch(console.error);
     }
   }, [product, isLikedInitial, isBookmarkedInitial]);
 
@@ -74,22 +71,17 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
     const newLiked = !isLiked;
     setIsLiked(newLiked);
 
-    try {
-      const savedLikes = localStorage.getItem("spresso_liked_products");
-      let likesArr = savedLikes ? JSON.parse(savedLikes) : [];
-      if (newLiked) {
-        if (!likesArr.some((item: any) => (typeof item === "string" ? item === prodId : item.id === prodId))) {
-          likesArr.push(product);
-        }
-        showToast("Added to Liked Items in Wardrobe ❤️");
-      } else {
-        likesArr = likesArr.filter((item: any) => (typeof item === "string" ? item !== prodId : item.id !== prodId));
-        showToast("Removed from Liked Items");
-      }
-      localStorage.setItem("spresso_liked_products", JSON.stringify(likesArr));
-    } catch (_err) {
-      // localStorage error is non-fatal — like state remains optimistically updated in UI
+    if (newLiked) {
+      showToast("Added to Liked Items in Wardrobe ❤️");
+    } else {
+      showToast("Removed from Liked Items");
     }
+
+    authFetch("/api/user/like", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: prodId, action: newLiked ? "add" : "remove" })
+    }).catch(console.error);
 
     if (onToggleLikeCallback) {
       onToggleLikeCallback(product, newLiked);
@@ -103,22 +95,17 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
     const newBM = !isBookmarked;
     setIsBookmarked(newBM);
 
-    try {
-      const savedBMs = localStorage.getItem("spresso_wardrobe_items");
-      let bmsArr = savedBMs ? JSON.parse(savedBMs) : [];
-      if (newBM) {
-        if (!bmsArr.includes(prodId)) {
-          bmsArr.push(prodId);
-        }
-        showToast("Saved to Bookmarked Wardrobe");
-      } else {
-        bmsArr = bmsArr.filter((id: string) => id !== prodId);
-        showToast("Removed from Bookmarks");
-      }
-      localStorage.setItem("spresso_wardrobe_items", JSON.stringify(bmsArr));
-    } catch (_err) {
-      // localStorage error is non-fatal — bookmark state remains optimistically updated in UI
+    if (newBM) {
+      showToast("Saved to Bookmarked Wardrobe");
+    } else {
+      showToast("Removed from Bookmarks");
     }
+
+    authFetch("/api/user/bookmark", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: prodId, action: newBM ? "add" : "remove" })
+    }).catch(console.error);
 
     if (onToggleBookmarkCallback) {
       onToggleBookmarkCallback(product, newBM);

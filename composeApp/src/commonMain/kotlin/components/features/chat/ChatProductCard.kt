@@ -32,7 +32,7 @@ fun ChatProductCard(
     httpClient: HttpClient? = null,
     modifier: Modifier = Modifier
 ) {
-    components.molecules.MediaActionCard(
+    components.shared.widgets.MediaActionCard(
         imageUrl = product.imageUrl,
         title = product.name,
         subtitle = "${product.brand.uppercase()} • $${product.price}",
@@ -40,19 +40,19 @@ fun ChatProductCard(
         onClick = null,
         badgeContent = null,
         actionRow = {
-            components.atoms.SpressoButton(
+            components.shared.elements.SpressoButton(
                 text = "Try On",
                 icon = Icons.Default.AutoAwesome,
-                variant = components.atoms.SpressoButtonVariant.OUTLINE,
+                variant = components.shared.elements.SpressoButtonVariant.OUTLINE,
                 onClick = { onSelectTryOn(product) },
                 modifier = Modifier.weight(1f).height(36.dp),
                 trackingId = product.id,
                 trackingAction = "try_on"
             )
-            components.atoms.SpressoButton(
+            components.shared.elements.SpressoButton(
                 text = "Buy Now",
                 icon = Icons.Default.AddShoppingCart,
-                variant = components.atoms.SpressoButtonVariant.PRIMARY,
+                variant = components.shared.elements.SpressoButtonVariant.PRIMARY,
                 onClick = { onAddToCart(product) },
                 modifier = Modifier.weight(1f).height(36.dp),
                 trackingId = product.id,

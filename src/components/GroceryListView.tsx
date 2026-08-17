@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem } from "../types";
+import { authFetch } from "../lib/firebase";
 
 export interface GroceryItem {
   id: string;
@@ -24,15 +25,6 @@ interface GroceryListViewProps {
 
 export function GroceryListView({ onAddToCart, products = [], onAskAI }: GroceryListViewProps) {
   const [items, setItems] = useState<GroceryItem[]>(() => {
-    try {
-      const saved = localStorage.getItem("spresso_vertical_grocery_list");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e: any) {
-      console.warn("Failed to parse local grocery list:", e);
-    }
     return (products || []).map((p) => ({
       id: p.id,
       name: p.name,
@@ -52,12 +44,38 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      localStorage.setItem("spresso_vertical_grocery_list", JSON.stringify(items));
-      setError(null);
-    } catch (e: any) {
-      console.warn("Failed to save local grocery list:", e);
-      setError("Failed to save your list locally.");
+    const fetchGroceryList = async () => {
+      try {
+        const res = await authFetch("/api/grocery/list");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.items) && data.items.length > 0) {
+            setItems(data.items);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch grocery list:", err);
+      }
+    };
+    fetchGroceryList();
+  }, []);
+
+  useEffect(() => {
+    const syncGroceryList = async () => {
+      try {
+        await authFetch("/api/grocery/list", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items })
+        });
+        setError(null);
+      } catch (e: any) {
+        console.warn("Failed to sync grocery list:", e);
+        setError("Failed to sync your list to the server.");
+      }
+    };
+    if (items.length > 0) {
+      syncGroceryList();
     }
   }, [items]);
 

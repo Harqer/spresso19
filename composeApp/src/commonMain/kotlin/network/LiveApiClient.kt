@@ -3,6 +3,7 @@ package network
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.websocket.*
 import io.ktor.http.HttpHeaders
 import kotlinx.coroutines.delay
@@ -10,6 +11,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.coroutines.cancel
@@ -139,8 +142,6 @@ open class LiveApiClient {
         onError: (String) -> Unit = {}
     ) {
         isManuallyClosed = false
-        val configuredUrl = try { SpressoConfig.backendWebSocketUrl } catch (_: Exception) { "" }
-        val url = if (configuredUrl.isNotBlank()) configuredUrl else DEFAULT_WEBSOCKET_URL
 
         var attempt = 0
 
@@ -150,13 +151,18 @@ open class LiveApiClient {
                 connectionState = if (attempt == 0) ConnectionState.CONNECTING else ConnectionState.RECONNECTING
                 onStateChanged(connectionState)
 
-                client.webSocket(
-                    urlString = url,
-                    request = {
-                        if (!authToken.isNullOrEmpty()) {
-                            header(HttpHeaders.Authorization, "Bearer $authToken")
-                        }
+                val functionsUrl = try { SpressoConfig.cloudFunctionsBaseUrl } catch (_: Exception) { "https://us-central1-spresso-5561f.cloudfunctions.net" }
+                val tokenResponse = client.post("$functionsUrl/generateLiveApiToken") {
+                    if (!authToken.isNullOrEmpty()) {
+                        header(HttpHeaders.Authorization, "Bearer $authToken")
                     }
+                }.bodyAsText()
+                val tokenJson = json.parseToJsonElement(tokenResponse)
+                val ephemeralToken = tokenJson.jsonObject["token"]?.jsonPrimitive?.content ?: throw Exception("Failed to retrieve ephemeral token")
+                val wsUrl = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=$ephemeralToken"
+
+                client.webSocket(
+                    urlString = wsUrl
                 ) {
                     session = this
                     connectionState = ConnectionState.CONNECTED

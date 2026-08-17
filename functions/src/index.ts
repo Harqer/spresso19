@@ -4,6 +4,7 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import * as admin from "firebase-admin";
 
 import { PubSub } from "@google-cloud/pubsub";
+import { onCallGenkit } from "@genkit-ai/firebase/functions";
 import { spressoShopperFlow } from "./ai/flows/shopperFlow";
 
 const serpapiKey = defineSecret("SERPAPI_API_KEY");
@@ -31,70 +32,54 @@ import { spin360Flow } from "./ai/flows/spin360Flow";
 const pubSubClient = new PubSub();
 const interactionsTopic = pubSubClient.topic("interactions-topic");
 
-export const generateVirtualTryOn = onCall(async (request) => {
-    // Enforce authentication — unauthenticated callers are rejected
-    if (!request.auth) {
-        throw new HttpsError("unauthenticated", "You must be signed in to use Virtual Try-On.");
+export const generateVirtualTryOn = onCallGenkit({
+    authPolicy: (auth) => {
+        if (!auth) {
+            throw new HttpsError("unauthenticated", "You must be signed in to use Virtual Try-On.");
+        }
     }
+}, virtualTryOnFlow);
 
-    const base64Image = request.data?.image;
-    if (!base64Image) {
-        throw new HttpsError("invalid-argument", 'The function must be called with an "image" field.');
+export const generateSpin360 = onCallGenkit({
+    authPolicy: (auth) => {
+        if (!auth) {
+            throw new HttpsError("unauthenticated", "You must be signed in to use Spin 360.");
+        }
+    }
+}, spin360Flow);
+
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
+
+export const generateLiveApiToken = onCall({ secrets: [geminiApiKey] }, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "You must be signed in to connect to Gemini Live.");
     }
 
     try {
-        const result = await virtualTryOnFlow({ base64Image });
-
-        return {
-            mediaUrl: result.response
-        };
-    } catch (error) {
-        if (error instanceof HttpsError) throw error;
-        console.error("Virtual Try-On generation failed:", error);
-        throw new HttpsError("internal", "AI generation failed");
-    }
-});
-
-export const generateSpin360 = onCall(async (request) => {
-    // Enforce authentication
-    if (!request.auth) {
-        throw new HttpsError("unauthenticated", "You must be signed in to use Spin 360.");
-    }
-
-    const productId = request.data?.productId;
-    if (!productId) {
-        throw new HttpsError("invalid-argument", 'The function must be called with a "productId" field.');
-    }
-
-    try {
-        // Query Firestore for the product's 3D/360 asset URL
-        const productDoc = await admin.firestore().collection("inventory").doc(productId).get();
-        if (!productDoc.exists) {
-            throw new HttpsError("not-found", `Product ${productId} not found.`);
-        }
-
-        const productData = productDoc.data()!;
-        const spin360Url = productData.spin360Url || productData.videoUrl;
-
-        if (spin360Url) {
-            return { mediaUrl: spin360Url };
-        }
-
-        // Fallback: ask Gemini to describe the 360 view from available product metadata
-        const result = await spin360Flow({
-            productId: productData.id || productId,
-            name: productData.name,
-            brand: productData.brand,
-            category: productData.category
+        // Exchange Gemini API key for an Ephemeral Token
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateEphemeralToken", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": geminiApiKey.value()
+            },
+            body: JSON.stringify({
+                ttl: "3600s"
+            })
         });
 
-        return { mediaUrl: result.response };
+        if (!response.ok) {
+            throw new Error(`Failed to generate token: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return { token: data.ephemeralToken };
     } catch (error) {
-        if (error instanceof HttpsError) throw error;
-        console.error("Spin 360 generation failed:", error);
-        throw new HttpsError("internal", "AI generation failed");
+        console.error("Token generation failed:", error);
+        throw new HttpsError("internal", "Failed to generate ephemeral token");
     }
 });
+
 
 // Scalable Backend Architecture: Event-Driven Ingestion API
 export const ingestInteraction = onCall(async (request) => {

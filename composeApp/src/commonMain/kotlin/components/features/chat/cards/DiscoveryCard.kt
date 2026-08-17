@@ -1,4 +1,4 @@
-package components.features.chat.molecules
+package components.features.chat.cards
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable

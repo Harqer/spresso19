@@ -20,9 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import components.molecules.MediaActionCard
-import components.atoms.SpressoButton
-import components.atoms.SpressoButtonVariant
+import components.shared.widgets.MediaActionCard
+import components.shared.elements.SpressoButton
+import components.shared.elements.SpressoButtonVariant
 
 data class WardrobePhotoItem(
     val id: String,

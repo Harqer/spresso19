@@ -22,8 +22,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import network.ApiClient
 import network.models.CREATIVE_TEMPLATES
-import components.atoms.SpressoButton
-import components.atoms.SpressoButtonVariant
+import components.shared.elements.SpressoButton
+import components.shared.elements.SpressoButtonVariant
 
 @Composable
 fun CreatorTemplatesSection(apiClient: ApiClient, scope: kotlinx.coroutines.CoroutineScope) {

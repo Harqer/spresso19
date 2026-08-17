@@ -24,8 +24,8 @@ import androidx.compose.ui.unit.sp
 import components.features.creators.CreatorAgentsSection
 import components.features.creators.CreatorTemplatesSection
 import network.ApiClient
-import components.atoms.SpressoButton
-import components.atoms.SpressoButtonVariant
+import components.shared.elements.SpressoButton
+import components.shared.elements.SpressoButtonVariant
 
 @Composable
 fun CreatorAgentsPage(

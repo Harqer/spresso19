@@ -110,12 +110,12 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     setError(null);
     try {
       const [resTryOn, resVitpose] = await Promise.all([
-        authFetch("/api/try-on", {
+        authFetch("/api/creative-studio/synthesize", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           signal,
           body: JSON.stringify({
-            productId: product.id,
+            productId: product?.id,
             userPhotoBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
             customNotes: `Render in ${selectedBg.name} using ${selectedAnimation.name}`,
             mediaType

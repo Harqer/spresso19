@@ -226,3 +226,22 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
     headers,
   });
 };
+
+if (typeof window !== "undefined") {
+  window.addEventListener("error", (event) => {
+    logToCrashlytics("fatal", "Uncaught Browser Exception", {
+      error: event.message,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      stack: event.error?.stack
+    });
+  });
+
+  window.addEventListener("unhandledrejection", (event) => {
+    logToCrashlytics("fatal", "Unhandled Promise Rejection (Browser)", {
+      reason: String(event.reason),
+      stack: event.reason instanceof Error ? event.reason.stack : undefined
+    });
+  });
+}

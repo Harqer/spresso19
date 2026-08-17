@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.sp
 import components.core.NetworkImage
 import io.ktor.client.HttpClient
 
-import components.molecules.MediaActionCard
+import components.shared.widgets.MediaActionCard
 
 @Composable
 fun WardrobeItemCard(

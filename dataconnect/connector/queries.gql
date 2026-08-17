@@ -71,3 +71,102 @@ query GetUserCart @auth(level: USER) {
     updatedAt
   }
 }
+
+query GetTrips @auth(level: USER) {
+  trips(where: { userId: { eq_expr: "auth.uid" } }, orderBy: [{ startDate: DESC }]) {
+    id
+    title
+    destination
+    startDate
+    endDate
+    status
+    coverImage
+  }
+}
+
+query GetUserPreferences @auth(level: USER) {
+  userPreferences(where: { userId: { eq_expr: "auth.uid" } }) {
+    id
+    theme
+    pushNotifications
+    emailAlerts
+  }
+}
+
+query GetTrips @auth(level: USER) {
+  trips(where: { userId: { eq_expr: "auth.uid" } }) {
+    id
+    title
+    destination
+    startDate
+    endDate
+    status
+    coverImage
+  }
+}
+
+query GetItineraryEvents @auth(level: USER) {
+  itineraryEvents {
+    id
+    tripId
+    type
+    title
+    description
+    eventTime
+    location
+    price
+    qrData
+    confirmationCode
+  }
+}
+
+query GetTravelExpenses @auth(level: USER) {
+  travelExpenses(where: { userId: { eq_expr: "auth.uid" } }) {
+    id
+    tripId
+    amount
+    currency
+    category
+    merchant
+    receiptImageUrl
+    date
+    items
+  }
+}
+
+query GetVoiceNotes @auth(level: USER) {
+  voiceNotes(where: { userId: { eq_expr: "auth.uid" } }) {
+    id
+    tripId
+    transcript
+    audioUrl
+    createdAt
+  }
+}
+
+query GetPaymentMethods @auth(level: USER) {
+  paymentMethods(where: { userId: { eq_expr: "auth.uid" } }) {
+    id
+    isDefault
+    stripePaymentMethodId
+  }
+}
+
+query GetUserSubscription @auth(level: USER) {
+  userSubscriptions(where: { userId: { eq_expr: "auth.uid" } }) {
+    id
+    tier
+    status
+    currentPeriodEnd
+    stripeSubscriptionId
+  }
+}
+
+query GetUserPreference @auth(level: USER) {
+  userPreferences(where: { userId: { eq_expr: "auth.uid" } }) {
+    id
+    theme
+    pushNotifications
+    emailAlerts
+  }
+}

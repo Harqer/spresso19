@@ -1,4 +1,4 @@
-package components.molecules
+package components.shared.widgets
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn

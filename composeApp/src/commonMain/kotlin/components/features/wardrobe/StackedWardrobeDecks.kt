@@ -44,12 +44,8 @@ fun StackedWardrobeDecks(
     var expandedDeckId by remember { mutableStateOf<String?>("ai-curated") }
 
     val decks = remember(products.size) {
-        listOf(
-            ComposeWardrobeDeck("ai-curated", "AI Curated Smart Fits", "Mixed combinations from Likes & Photo Gallery", "5 AI Outfits", Icons.Default.AutoAwesome, 5),
-            ComposeWardrobeDeck("photo-gallery", "Photo Gallery Closet Stack", "Personal clothes uploaded from camera roll", "Gallery Clothes", Icons.Default.PhotoLibrary, 6),
-            ComposeWardrobeDeck("liked-stack", "Liked Outfits Deck", "Outfits composed from liked items", "Liked Items", Icons.Default.Favorite, 4),
-            ComposeWardrobeDeck("bookmarked-stack", "Bookmarked Shop Stack", "Saved catalog items from Spresso Store", "Bookmarks", Icons.Default.Bookmark, products.size)
-        )
+        throw Exception("Missing Backend API - Needs Implementation: /api/wardrobe/decks")
+        emptyList<ComposeWardrobeDeck>()
     }
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {

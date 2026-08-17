@@ -24,9 +24,9 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import components.molecules.MediaActionCard
-import components.atoms.SpressoButton
-import components.atoms.SpressoButtonVariant
+import components.shared.widgets.MediaActionCard
+import components.shared.elements.SpressoButton
+import components.shared.elements.SpressoButtonVariant
 import components.features.orders.OrderReturnDialog
 import components.features.orders.OrderReturnResultCard
 import components.features.orders.OrderTrackerEmptyState

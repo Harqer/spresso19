@@ -1,7 +1,7 @@
 package components.features.catalog
 
 import components.models.*
-import components.features.catalog.organisms.ProductCatalogScreen
+import components.features.catalog.screens.ProductCatalogScreen
 
 import components.shared.ProblemDetailsCard
 import components.shared.HITLCheckoutModal
@@ -16,9 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import components.features.chat.AIShopperInputBar
-import components.molecules.MediaActionCard
-import components.atoms.SpressoButton
-import components.atoms.SpressoButtonVariant
+import components.shared.widgets.MediaActionCard
+import components.shared.elements.SpressoButton
+import components.shared.elements.SpressoButtonVariant
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.launch
 import network.ApiClient

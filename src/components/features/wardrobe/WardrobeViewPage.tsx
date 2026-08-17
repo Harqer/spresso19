@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ProductItem, HITLPayload, CustomWardrobeItem, GeneratedOutfit } from "../../../types";
 import { WardrobeHeaderToolbar } from "@/src/components/features/wardrobe/WardrobeHeaderToolbar";
 import { WardrobeItemGrid } from "@/src/components/features/wardrobe/WardrobeItemGrid";
@@ -21,62 +21,7 @@ interface WardrobeViewProps {
   onAskAI?: (text: string, image?: string | null) => void;
 }
 
-const GALLERY_CAMERA_ROLL_PIECES = [
-  {
-    id: "roll-1",
-    name: "Classic Leather Aviator Jacket",
-    category: "SWEATER_OUTERWEAR" as const,
-    weatherSuitability: "COLD_WINTER" as const,
-    image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=80",
-    brand: "Phone Gallery Roll",
-    price: 189.99
-  },
-  {
-    id: "roll-2",
-    name: "Suede Camel Overcoat",
-    category: "SWEATER_OUTERWEAR" as const,
-    weatherSuitability: "COLD_WINTER" as const,
-    image: "https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=600&q=80",
-    brand: "Phone Gallery Roll",
-    price: 310.00
-  },
-  {
-    id: "roll-3",
-    name: "Minimalist Cashmere Knit Sweater",
-    category: "SWEATER_OUTERWEAR" as const,
-    weatherSuitability: "MILD_SPRING_AUTUMN" as const,
-    image: "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=600&q=80",
-    brand: "Phone Gallery Roll",
-    price: 145.00
-  },
-  {
-    id: "roll-4",
-    name: "Summer Linen Chino Shorts",
-    category: "BOTTOM" as const,
-    weatherSuitability: "HOT_SUMMER" as const,
-    image: "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=600&q=80",
-    brand: "Phone Gallery Roll",
-    price: 45.00
-  },
-  {
-    id: "roll-5",
-    name: "Vogue Cotton Denim Shirt",
-    category: "TOP" as const,
-    weatherSuitability: "MILD_SPRING_AUTUMN" as const,
-    image: "https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=600&q=80",
-    brand: "Phone Gallery Roll",
-    price: 68.00
-  },
-  {
-    id: "roll-6",
-    name: "Retro Athletic Trainers",
-    category: "SHOES" as const,
-    weatherSuitability: "ALL_WEATHER" as const,
-    image: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?auto=format&fit=crop&w=600&q=80",
-    brand: "Phone Gallery Roll",
-    price: 110.00
-  }
-];
+
 
 export const WardrobeViewPage: React.FC<WardrobeViewProps> = ({
   products, onSelectTryOn, onRequestHITLCheckout, onAskAI
@@ -86,9 +31,35 @@ export const WardrobeViewPage: React.FC<WardrobeViewProps> = ({
   const interactions = useWardrobeInteractions(state.allWardrobeItems, state.setUserUploadedItems, setCurrentOutfit);
   const [selectedRollItemIds, setSelectedRollItemIds] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [galleryPieces, setGalleryPieces] = useState<any[]>([]);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  const handleGalleryFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const rawDataUrl = event.target?.result as string;
+        if (rawDataUrl) {
+          const newItem = {
+            id: `local-file-${Date.now()}-${Math.random()}`,
+            name: file.name.replace(/\.[^/.]+$/, ""),
+            category: "TOP" as const,
+            weatherSuitability: "ALL_WEATHER" as const,
+            image: rawDataUrl,
+            brand: "Local Gallery",
+            price: 0
+          };
+          setGalleryPieces(prev => [...prev, newItem]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
 
   useEffect(() => {
-    if (!currentOutfit && state.allWardrobeItems.length > 0) interactions.handleRandomizeShuffle("COLD_WINTER", "38°F Chilly Winter Day");
+    if (!currentOutfit && state.allWardrobeItems.length > 0) interactions.handleGenerateAIOutfit("COLD_WINTER", "38°F Chilly Winter Day");
   }, []);
 
   const showToast = (msg: string) => {
@@ -96,7 +67,7 @@ export const WardrobeViewPage: React.FC<WardrobeViewProps> = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleImportItem = (item: typeof GALLERY_CAMERA_ROLL_PIECES[0]) => {
+  const handleImportItem = (item: any) => {
     const isAlreadyImported = state.userUploadedItems.some(i => i.id === `imported-${item.id}`);
     if (isAlreadyImported) {
       showToast(`${item.name} is already imported!`);
@@ -118,7 +89,7 @@ export const WardrobeViewPage: React.FC<WardrobeViewProps> = ({
   };
 
   const handleStyleSelectedOutfit = () => {
-    const selectedItems = GALLERY_CAMERA_ROLL_PIECES.filter(item => selectedRollItemIds.includes(item.id))
+    const selectedItems = galleryPieces.filter(item => selectedRollItemIds.includes(item.id))
       .map(item => ({
         id: `imported-${item.id}`,
         type: "user_upload",
@@ -244,7 +215,7 @@ export const WardrobeViewPage: React.FC<WardrobeViewProps> = ({
 
       {state.activeTab === "STACKED_DECKS" && <StackedWardrobeDecks userUploadedItems={state.userUploadedItems} bookmarkedItems={state.bookmarkedWardrobeItems} likedProducts={state.likedProducts} products={products} onSelectTryOn={onSelectTryOn} onRequestHITLCheckout={onRequestHITLCheckout} onOpenUploadModal={() => interactions.setShowUploadModal(true)} onSaveFavoriteOutfit={handleSaveFavoriteOutfit} />}
       {state.activeTab === "SEASONAL" && <WardrobeSeasonalTab allWardrobeItems={state.allWardrobeItems} products={products} onSelectTryOn={onSelectTryOn} onGoToMixMatch={() => state.setActiveTab("MIX_MATCH")} />}
-      {state.activeTab === "AI_OUTFIT" && <WardrobeAiOutfitTab userUploadedItemsCount={state.userUploadedItems.length} selectedWeatherMode={interactions.selectedWeatherMode} temperaturePrompt={interactions.temperaturePrompt} isGeneratingOutfit={interactions.isGeneratingOutfit} currentOutfit={currentOutfit} onSetWeatherMode={interactions.setSelectedWeatherMode} onSetTemperaturePrompt={interactions.setTemperaturePrompt} onGenerateAIOutfit={interactions.handleGenerateAIOutfit} onRandomizeShuffle={interactions.handleRandomizeShuffle} onSaveFavoriteOutfit={handleSaveFavoriteOutfit} />}
+      {state.activeTab === "AI_OUTFIT" && <WardrobeAiOutfitTab userUploadedItemsCount={state.userUploadedItems.length} selectedWeatherMode={interactions.selectedWeatherMode} temperaturePrompt={interactions.temperaturePrompt} isGeneratingOutfit={interactions.isGeneratingOutfit} currentOutfit={currentOutfit} onSetWeatherMode={interactions.setSelectedWeatherMode} onSetTemperaturePrompt={interactions.setTemperaturePrompt} onGenerateAIOutfit={interactions.handleGenerateAIOutfit} onRandomizeShuffle={interactions.handleGenerateAIOutfit} onSaveFavoriteOutfit={handleSaveFavoriteOutfit} />}
       {state.activeTab === "MIX_MATCH" && <WardrobeMixMatchTab mixMatchTop={interactions.mixMatchTop} mixMatchBottom={interactions.mixMatchBottom} mixMatchOuter={interactions.mixMatchOuter} mixMatchShoes={interactions.mixMatchShoes} setMixMatchTop={interactions.setMixMatchTop} setMixMatchBottom={interactions.setMixMatchBottom} setMixMatchOuter={interactions.setMixMatchOuter} setMixMatchShoes={interactions.setMixMatchShoes} setSlotDrawerCategory={interactions.setSlotDrawerCategory} onSaveFavoriteOutfit={handleSaveFavoriteOutfit} setActiveTab={state.setActiveTab} slotDrawerCategory={interactions.slotDrawerCategory} allWardrobeItems={state.allWardrobeItems} />}
       
       {state.activeTab === "PHOTO_GALLERY" && state.photoGalleryPermission === "DENIED" && (
@@ -280,19 +251,32 @@ export const WardrobeViewPage: React.FC<WardrobeViewProps> = ({
                 </p>
               </div>
 
-              {selectedRollItemIds.length > 0 && (
-                <button
-                  onClick={handleStyleSelectedOutfit}
-                  className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-[#386633] text-white rounded-xl text-xs font-bold transition shadow-md flex items-center space-x-1.5 cursor-pointer"
-                >
-                  <MaterialIcon icon="style" size={16} />
-                  <span>Stylize Selected Outfit ({selectedRollItemIds.length})</span>
+              <div className="flex items-center space-x-2">
+                {selectedRollItemIds.length > 0 && (
+                  <button
+                    onClick={handleStyleSelectedOutfit}
+                    className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-[#386633] text-white rounded-xl text-xs font-bold transition shadow-md flex items-center space-x-1.5 cursor-pointer"
+                  >
+                    <MaterialIcon icon="style" size={16} />
+                    <span>Stylize Selected Outfit ({selectedRollItemIds.length})</span>
+                  </button>
+                )}
+                <button onClick={() => onAskAI?.("What outfits can I create from my photo gallery?", null)} className="px-4 py-2 bg-[#e8f3e8] text-[#386633] rounded-xl text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer">
+                  <MaterialIcon icon="auto_awesome" size={16} />
+                  <span>Ask AI</span>
                 </button>
-              )}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-              {GALLERY_CAMERA_ROLL_PIECES.map(item => {
+              <div className="flex items-center justify-center border-2 border-dashed border-[#d8ebd7] rounded-2xl min-h-[120px] bg-white hover:bg-[#f9fbf9] cursor-pointer" onClick={() => galleryInputRef.current?.click()}>
+                <input type="file" multiple accept="image/*" ref={galleryInputRef} onChange={handleGalleryFiles} className="hidden" />
+                <div className="text-center space-y-2">
+                  <MaterialIcon icon="add_photo_alternate" size={24} className="text-[#386633] mx-auto" />
+                  <span className="text-[10px] font-bold text-[#386633] uppercase">Select Photos</span>
+                </div>
+              </div>
+              {galleryPieces.map(item => {
                 const isSelected = selectedRollItemIds.includes(item.id);
                 const isImported = state.userUploadedItems.some(i => i.id === `imported-${item.id}`);
                 return (

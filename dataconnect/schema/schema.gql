@@ -94,3 +94,83 @@ type ActiveCookingSession @table {
   startedAt: Timestamp! @default(expr: "request.time")
   lastUpdated: Timestamp! @default(expr: "request.time")
 }
+
+# ----------------------------------------------------
+# TRAVEL & USER PREFERENCES
+# ----------------------------------------------------
+
+type Trip @table {
+  id: UUID! @default(expr: "uuidV4()")
+  userId: String!
+  title: String!
+  destination: String
+  startDate: String
+  endDate: String
+  status: String @default(value: "UPCOMING")
+  coverImage: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type ItineraryEvent @table {
+  id: UUID! @default(expr: "uuidV4()")
+  trip: Trip!
+  type: String!
+  title: String!
+  description: String
+  eventTime: String
+  location: String
+  price: Float
+  qrData: String
+  confirmationCode: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type TravelExpense @table {
+  id: UUID! @default(expr: "uuidV4()")
+  trip: Trip!
+  userId: String!
+  amount: Float!
+  currency: String @default(value: "USD")
+  category: String!
+  merchant: String!
+  receiptImageUrl: String
+  date: String
+  items: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type VoiceNote @table {
+  id: UUID! @default(expr: "uuidV4()")
+  trip: Trip!
+  userId: String!
+  transcript: String!
+  audioUrl: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type PaymentMethod @table {
+  id: UUID! @default(expr: "uuidV4()")
+  userId: String!
+  isDefault: Boolean @default(value: false)
+  stripePaymentMethodId: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type UserSubscription @table {
+  id: UUID! @default(expr: "uuidV4()")
+  userId: String!
+  tier: String @default(value: "VIP Member")
+  status: String @default(value: "active")
+  currentPeriodEnd: String
+  stripeSubscriptionId: String
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type UserPreference @table {
+  id: UUID! @default(expr: "uuidV4()")
+  userId: String!
+  theme: String @default(value: "dark")
+  pushNotifications: Boolean @default(value: true)
+  emailAlerts: Boolean @default(value: true)
+  updatedAt: Timestamp! @default(expr: "request.time")
+}

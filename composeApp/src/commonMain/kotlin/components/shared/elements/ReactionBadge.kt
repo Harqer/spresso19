@@ -1,4 +1,4 @@
-package components.atoms
+package components.shared.elements
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size

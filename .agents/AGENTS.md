@@ -29,10 +29,14 @@ An architecture context document has been copied to the project at `spresso19/do
 1. **STRICTLY NO EMOJIS IN UI**: Never use raw Unicode emoji characters for UI buttons, tabs, labels, actions, or status indicators across any codebase, repository, or frontend app (Android, Web, iOS, React, Flutter, etc.).
 2. **ENTERPRISE VECTOR ICONS ONLY**: Always use official enterprise design system vector icons (such as Material 3 Icons (`androidx.compose.material.icons.Icons`), Lucide React icons (`lucide-react`), or Material Symbols) for all visual icons.
 
-## Production Fallback & Zero-Mock Integrity Standard (STRICT USER MANDATE)
-1. **NO SILENT DUMMY DATA OR FABRICATED PRODUCTS**: When live web search, scrapers, AI models, or backend APIs fail or encounter missing metadata, NEVER inject silent mock products, fake placeholder images, or hallucinated payment confirmations.
-2. **HONEST & TRANSPARENT SYSTEM NOTICES**: Return clear, honest system responses or standard error statuses (e.g. "Live product search is currently unavailable" or "Item temporarily out of stock") so the user is never misled by fake data.
-3. **RESILIENCE & FAIL-FAST**: Follow production RFC 7807 problem details or circuit-breaker patterns rather than disguising API errors as successful dummy transactions.
+## 1. MANDATORY CONTEXT ACQUISITION (NEVER ASSUME)
+1. **READ BEFORE YOU WRITE**: Before proposing or writing any code, you MUST use `grep_search` or `view_file` to locate the exact backend schema, API contract, or relevant files. NEVER assume you know how the backend works or hallucinate a schema. 
+2. **FIND THE SOURCE OF TRUTH**: If you are working on UI and need data, find the exact `.gql` Data Connect schema, Postgres schema, or `routes.ts` file that provides that data first.
+
+## 2. STRICT ZERO-MOCK PROTOCOL (POSITIVE DIRECTIVE)
+1. **FAIL FAST ON MISSING DATA**: If you cannot find the actual backend schema, API endpoint, or data source for a feature, you MUST STOP. You are strictly forbidden from writing `delay()`, hardcoding placeholder arrays, or injecting mock data to make a UI "compile" or "look finished".
+2. **EXPLICIT ERRORS ONLY**: If a backend call is unimplemented or missing, you must write `throw new Error("Missing Backend API - Needs Implementation")` or return standard HTTP 501 / RFC 7807 problem details. Do NOT catch errors silently and return empty lists. Do not fake success.
+3. **HONEST & TRANSPARENT SYSTEM NOTICES**: If an API or live search fails at runtime, surface a clear error to the user (e.g. "Live product search is currently unavailable"). Never mask the error with fabricated dummy data.
 ## Event-Driven Error-Only CI Pipeline & No-Redundant-APK Rule (STRICT USER MANDATE)
 1. **NO RECURRING SUCCESS NOTIFICATIONS OR POLLING**: The agent must NEVER poll or send periodic success status messages when GitHub Actions runs pass. Only engage when an actual failure occurs.
 2. **ZERO LOCAL APK OVERHEAD**: Never invoke `./gradlew assembleDebug` or build `.apk` binaries locally unless the USER explicitly requests a build.

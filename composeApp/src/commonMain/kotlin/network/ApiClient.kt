@@ -136,7 +136,7 @@ open class ApiClient {
     
     private val cloudFunctionsBaseUrl = SpressoConfig.cloudFunctionsBaseUrl
     
-    suspend fun verifyEmailCredential(credential: String, nonce: String): Boolean {
+    suspend fun verifyEmailCredential(credential: String, nonce: String): String? {
         return try {
             val response = client.post("$backendBaseUrl/api/auth/verify-email-credential") {
                 contentType(ContentType.Application.Json)
@@ -145,9 +145,13 @@ open class ApiClient {
                     put("nonce", nonce)
                 })
             }
-            response.status.value in 200..299
+            if (response.status.value in 200..299) {
+                val responseBody = response.bodyAsText()
+                val jsonElement = json.parseToJsonElement(responseBody)
+                jsonElement.jsonObject["custom_token"]?.jsonPrimitive?.content
+            } else null
         } catch (e: Exception) {
-            false
+            null
         }
     }
 
@@ -285,8 +289,9 @@ open class ApiClient {
         token: String,
         address: String
     ): CheckoutResponse {
-        val authSuccess = promptBiometricAuth("Confirm your identity to purchase this item.")
-        if (!authSuccess) {
+        val payloadStr = "{\"productId\":\"$productId\",\"quantity\":$quantity,\"userConfirmedToken\":\"$token\",\"deviceSource\":\"WEARABLE\",\"shippingAddress\":\"$address\"}"
+        val signature = promptBiometricAuth("Confirm your identity to purchase this item.", payloadStr)
+        if (signature == null) {
             return CheckoutResponse(success = false, message = "Biometric authentication failed or was cancelled.")
         }
         val authToken = getCurrentUserIdToken()
@@ -296,6 +301,7 @@ open class ApiClient {
                 if (authToken != null) {
                     header(HttpHeaders.Authorization, "Bearer $authToken")
                 }
+                header("X-Biometric-Signature", signature)
                 setBody(mapOf(
                     "productId" to productId,
                     "quantity" to quantity,
@@ -407,6 +413,35 @@ open class ApiClient {
             response.status.value in 200..299
         } catch (e: Exception) {
             false
+        }
+    }
+
+    suspend fun fetchTravelTrips(): List<components.models.TripRecord> {
+        val authToken = getCurrentUserIdToken()
+        return try {
+            val response = client.get("$backendBaseUrl/api/travel/trips") {
+                if (authToken != null) {
+                    header(HttpHeaders.Authorization, "Bearer $authToken")
+                }
+            }.bodyAsText()
+            val jsonElement = json.parseToJsonElement(response)
+            val tripsArray = jsonElement.jsonObject["trips"]?.jsonArray
+            tripsArray?.mapNotNull { item ->
+                val obj = item.jsonObject
+                components.models.TripRecord(
+                    id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null,
+                    title = obj["title"]?.jsonPrimitive?.content ?: "Untitled Trip",
+                    destination = obj["destination"]?.jsonPrimitive?.content ?: "",
+                    startDate = obj["start_date"]?.jsonPrimitive?.content ?: "",
+                    endDate = obj["end_date"]?.jsonPrimitive?.content ?: "",
+                    status = obj["status"]?.jsonPrimitive?.content ?: "UPCOMING",
+                    coverImage = obj["cover_image"]?.jsonPrimitive?.content ?: "",
+                    budgetTotal = obj["budget_total"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0,
+                    spentTotal = obj["spent_total"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0
+                )
+            } ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 

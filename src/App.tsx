@@ -96,9 +96,17 @@ export default function App() {
       localStorage.setItem("spresso_sec_seed_hex", secondarySeedHex);
     }
 
+    if (user) {
+      authFetch("/api/user/preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme, seedHex, secondarySeedHex })
+      }).catch((err) => console.error("Failed to sync theme to backend", err));
+    }
+
     // Apply Material You Dynamic Scheme & Tokens with Charcoal source & Lime Green secondary
     applyDynamicThemeToDocument(seedHex, theme, secondarySeedHex);
-  }, [theme, seedHex, secondarySeedHex]);
+  }, [theme, seedHex, secondarySeedHex, user]);
 
   const toggleTheme = () => {
     setTheme(prev => (prev === "dark" ? "light" : "dark"));
@@ -148,41 +156,78 @@ export default function App() {
     setProductDetailsModalItem(prod);
   };
 
-  const handleAddToCart = (product: ProductItem) => {
-    setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
-      if (existing) {
-        return prev.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
+  const handleAddToCart = async (product: ProductItem) => {
+    const newCart = [...cart];
+    const existingIndex = newCart.findIndex(item => item.product.id === product.id);
+    if (existingIndex >= 0) {
+      newCart[existingIndex] = { ...newCart[existingIndex], quantity: newCart[existingIndex].quantity + 1 };
+    } else {
+      newCart.push({ product, quantity: 1 });
+    }
+    setCart(newCart);
+    if (user) {
+      await authFetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cart: newCart })
+      });
+    }
+  };
+
+  const handleUpdateCartQuantity = async (productId: string, delta: number) => {
+    const newCart = cart.map(item => {
+      if (item.product.id === productId) {
+        const newQty = item.quantity + delta;
+        return newQty > 0 ? { ...item, quantity: newQty } : null;
       }
-      return [...prev, { product, quantity: 1 }];
-    });
+      return item;
+    }).filter(Boolean) as CartItem[];
+    
+    setCart(newCart);
+    if (user) {
+      await authFetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cart: newCart })
+      });
+    }
   };
 
-  const handleUpdateCartQuantity = (productId: string, delta: number) => {
-    setCart(prev =>
-      prev
-        .map(item => {
-          if (item.product.id === productId) {
-            const newQty = item.quantity + delta;
-            return newQty > 0 ? { ...item, quantity: newQty } : null;
-          }
-          return item;
-        })
-        .filter(Boolean) as CartItem[]
-    );
+  const handleRemoveCartItem = async (productId: string) => {
+    const newCart = cart.filter(item => item.product.id !== productId);
+    setCart(newCart);
+    if (user) {
+      await authFetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cart: newCart })
+      });
+    }
   };
 
-  const handleRemoveCartItem = (productId: string) => {
-    setCart(prev => prev.filter(item => item.product.id !== productId));
-  };
-
-  const handleClearCart = () => {
+  const handleClearCart = async () => {
     setCart([]);
+    if (user) {
+      await authFetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cart: [] })
+      });
+    }
   };
+
+  useEffect(() => {
+    if (user) {
+      authFetch("/api/cart")
+        .then(res => res.json())
+        .then(data => {
+          if (data.cart) setCart(data.cart);
+        })
+        .catch(err => console.error("Failed to load cart", err));
+    } else {
+      setCart([]);
+    }
+  }, [user]);
 
   const totalCartCount = cart.reduce((total, item) => total + item.quantity, 0);
 
@@ -210,8 +255,6 @@ export default function App() {
             mcpServerId: "spresso-mcp-retail"
           }));
           setProducts(fetchedProducts);
-          setOrders([]);
-          return;
         }
       }
     } catch (err) {
@@ -239,9 +282,20 @@ export default function App() {
         })) as unknown as ProductItem[];
         setProducts(dcProducts);
       }
-      setOrders([]);
     } catch (_err) {
       // Errors fetching products are logged by the Crashlytics sink in firebase.ts
+    }
+
+    if (targetUid) {
+      try {
+        const orderRes = await authFetch(`/api/orders`);
+        if (orderRes.ok) {
+          const orderData = await orderRes.json();
+          if (orderData.orders) setOrders(orderData.orders);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch orders:", err);
+      }
     }
   };
 
@@ -271,7 +325,31 @@ export default function App() {
             })
           });
 
-          // 2. Sync profile to Firestore directly for client-side reactive access
+          // 2. Hydrate user preferences
+          const prefRes = await authFetch("/api/user/preferences");
+          if (prefRes.ok) {
+            const prefData = await prefRes.json();
+            if (prefData.preferences) {
+              const p = prefData.preferences;
+              if (p.theme && p.theme !== theme) setTheme(p.theme);
+              if (p.seedHex && p.seedHex !== seedHex) setSeedHex(p.seedHex);
+              if (p.secondarySeedHex && p.secondarySeedHex !== secondarySeedHex) setSecondarySeedHex(p.secondarySeedHex);
+              
+              if (p.location) setUserLocation(p.location);
+              if (p.radius) setSearchRadius(p.radius);
+              if (p.onboardingCompleted) {
+                localStorage.setItem("spresso_onboarding_completed", "true");
+                setOnboardingOpen(false);
+              } else if (!splashVisible) {
+                setOnboardingOpen(true);
+              }
+              if (p.locationEnabled) {
+                localStorage.setItem("spresso_loc_prompted", "true");
+              }
+            }
+          }
+
+          // 3. Sync profile to Firestore directly for client-side reactive access
           await setDoc(doc(firestoreDb, "users", currentUser.uid), {
             uid: currentUser.uid,
             email: currentUser.email || "",
@@ -295,7 +373,7 @@ export default function App() {
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [splashVisible]);
 
   const handleOrderSuccess = (newOrder: OrderRecord) => {
     setOrders(prev => [newOrder, ...prev]);
@@ -476,10 +554,17 @@ export default function App() {
         userLocation={userLocation}
         searchRadius={searchRadius}
         onCloseLocationModal={() => setLocationModalOpen(false)}
-        onLocationGranted={(loc, coords, radius) => {
+        onLocationGranted={async (loc, coords, radius) => {
           setUserLocation(loc);
           if (coords) setUserLatLng({ lat: coords.lat, lng: coords.lng, latitude: coords.lat, longitude: coords.lng });
           if (radius) setSearchRadius(radius);
+          if (user) {
+            await authFetch("/api/user/preferences", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ location: loc, coords, radius })
+            });
+          }
         }}
         onRadiusChange={setSearchRadius}
         productDetailsModalItem={productDetailsModalItem}

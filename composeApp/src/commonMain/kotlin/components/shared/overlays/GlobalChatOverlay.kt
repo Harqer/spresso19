@@ -1,4 +1,4 @@
-package components.organisms
+package components.shared.overlays
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.ExperimentalMaterial3Api

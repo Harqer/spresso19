@@ -5,4 +5,4 @@ package network
  * Uses Strong Biometrics (Class 3) and requires a Cryptographic binding
  * (CryptoObject) linked to the Android Keystore to authorize the action.
  */
-expect suspend fun promptBiometricAuth(reason: String): Boolean
+expect suspend fun promptBiometricAuth(reason: String, payload: String): String?

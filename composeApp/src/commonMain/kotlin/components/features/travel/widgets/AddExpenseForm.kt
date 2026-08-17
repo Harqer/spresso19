@@ -1,4 +1,4 @@
-package components.features.travel.molecules
+package components.features.travel.widgets
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun AddExpenseFormMolecule(
+fun AddExpenseForm(
     newExpenseMerchant: String,
     onMerchantChange: (String) -> Unit,
     newExpenseAmount: String,

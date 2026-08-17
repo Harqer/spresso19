@@ -50,3 +50,88 @@ mutation AddVideo(
 mutation ToggleLike($productId: String!) @auth(level: USER) {
   userLike_upsert(data: { userUid_expr: "auth.uid", productId: $productId })
 }
+
+mutation CreateExpense(
+  $tripId: UUID!
+  $amount: Float!
+  $currency: String
+  $category: String!
+  $merchant: String!
+  $receiptImageUrl: String
+  $date: String
+  $items: String
+) @auth(level: USER) {
+  travelExpense_insert(data: {
+    tripId: $tripId
+    userId_expr: "auth.uid"
+    amount: $amount
+    currency: $currency
+    category: $category
+    merchant: $merchant
+    receiptImageUrl: $receiptImageUrl
+    date: $date
+    items: $items
+  })
+}
+
+mutation UpdateUserPreferences(
+  $id: UUID!
+  $theme: String
+  $pushNotifications: Boolean
+  $emailAlerts: Boolean
+) @auth(level: USER) {
+  userPreference_update(
+    id: $id
+    data: {
+      theme: $theme
+      pushNotifications: $pushNotifications
+      emailAlerts: $emailAlerts
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+mutation CreateTravelExpense($tripId: UUID!, $amount: Float!, $currency: String, $category: String!, $merchant: String!, $items: String) @auth(level: USER) {
+  travelExpense_insert(data: {
+    tripId: $tripId
+    userId_expr: "auth.uid"
+    amount: $amount
+    currency: $currency
+    category: $category
+    merchant: $merchant
+    items: $items
+  })
+}
+
+mutation CreateVoiceNote($tripId: UUID!, $transcript: String!) @auth(level: USER) {
+  voiceNote_insert(data: {
+    tripId: $tripId
+    userId_expr: "auth.uid"
+    transcript: $transcript
+  })
+}
+
+mutation CreatePaymentMethod($stripePaymentMethodId: String!) @auth(level: USER) {
+  paymentMethod_insert(data: {
+    userId_expr: "auth.uid"
+    stripePaymentMethodId: $stripePaymentMethodId
+  })
+}
+
+mutation DeletePaymentMethod($id: UUID!) @auth(level: USER) {
+  paymentMethod_delete(id: $id)
+}
+
+mutation UpdateUserSubscription($id: UUID!, $tier: String!) @auth(level: USER) {
+  userSubscription_update(id: $id, data: {
+    tier: $tier
+  })
+}
+
+mutation UpsertUserPreference($theme: String, $pushNotifications: Boolean, $emailAlerts: Boolean) @auth(level: USER) {
+  userPreference_upsert(data: {
+    userId_expr: "auth.uid"
+    theme: $theme
+    pushNotifications: $pushNotifications
+    emailAlerts: $emailAlerts
+  })
+}

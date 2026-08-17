@@ -82,6 +82,13 @@ class MetaWearablesManager(private val context: Context) : TextToSpeech.OnInitLi
                             withContext(Dispatchers.Main) {
                                 onConnected(true)
                             }
+                        } else if (state.toString().contains("CLOSED") || state.toString().contains("ERROR") || state.toString().contains("STOPPED") || state.toString().contains("FAILED")) {
+                            isPaired = false
+                            isCameraStreaming = false
+                            Log.w(tag, "Wearable disconnected (hinge closed or out of range). State: $state")
+                            withContext(Dispatchers.Main) {
+                                onConnected(false)
+                            }
                         }
                     }
                 }
@@ -115,6 +122,12 @@ class MetaWearablesManager(private val context: Context) : TextToSpeech.OnInitLi
                     stream?.state?.collect { state ->
                         if (state == StreamState.STREAMING) {
                             isCameraStreaming = true
+                        } else if (state.toString().contains("STOPPED") || state.toString().contains("CLOSED")) {
+                            isCameraStreaming = false
+                            Log.w(tag, "Camera stream stopped or closed. State: $state")
+                        } else if (state.name == "THERMAL_THROTTLING" || state.name.contains("THERMAL")) {
+                            Log.w(tag, "Device thermal throttling signal received. Pausing stream.")
+                            speakFeedback("Glasses are too warm. Camera paused to prevent overheating.")
                         }
                     }
                 }
@@ -154,16 +167,51 @@ class MetaWearablesManager(private val context: Context) : TextToSpeech.OnInitLi
             }
 
             try {
-                stream?.capturePhoto()?.onSuccess { photoData ->
-                    // Try data, bytes, or toByteArray if data is unresolved
-                    val byteArray = try {
-                        val clazz = photoData.javaClass
-                        val method = clazz.getMethod("getData")
-                        method.invoke(photoData) as ByteArray
+                var photoData: Any? = null
+                var captureSuccess = false
+                var retryCount = 0
+                val maxRetries = 3
+                var currentDelay = 1000L
+
+                while (!captureSuccess && retryCount < maxRetries) {
+                    try {
+                        val res = stream?.capturePhoto()
+                        if (res != null && res.isSuccess) {
+                            photoData = res.getOrNull()
+                            captureSuccess = true
+                        } else {
+                            retryCount++
+                            if (retryCount < maxRetries) {
+                                Log.w(tag, "Capture failed, retrying in ${currentDelay}ms...")
+                                kotlinx.coroutines.delay(currentDelay)
+                                currentDelay *= 2
+                            }
+                        }
                     } catch (e: Exception) {
-                        ByteArray(0)
+                        retryCount++
+                        if (retryCount < maxRetries) {
+                            Log.w(tag, "Capture exception: ${e.message}, retrying in ${currentDelay}ms...")
+                            kotlinx.coroutines.delay(currentDelay)
+                            currentDelay *= 2
+                        }
                     }
-                    val capturedFrame = Base64.encodeToString(byteArray, Base64.DEFAULT)
+                }
+
+                if (!captureSuccess || photoData == null) {
+                    speakFeedback("I could not capture a photo after multiple attempts.")
+                    onCheckoutComplete(false, "Capture failed")
+                    return@launch
+                }
+
+                // Try data, bytes, or toByteArray if data is unresolved
+                val byteArray = try {
+                    val clazz = photoData.javaClass
+                    val method = clazz.getMethod("getData")
+                    method.invoke(photoData) as ByteArray
+                } catch (e: Exception) {
+                    ByteArray(0)
+                }
+                val capturedFrame = Base64.encodeToString(byteArray, Base64.DEFAULT)
                     
                     scope.launch {
                         try {
@@ -215,10 +263,6 @@ class MetaWearablesManager(private val context: Context) : TextToSpeech.OnInitLi
                             onCheckoutComplete(false, e.message ?: "Unknown error")
                         }
                     }
-                }?.onFailure { error, _ ->
-                    speakFeedback("I could not capture a photo.")
-                    onCheckoutComplete(false, "Capture failed")
-                }
             } catch (e: Exception) {
                 Log.e(tag, "Wearable checkout error: ${e.message}")
                 speakFeedback("Connection error. Transaction aborted.")

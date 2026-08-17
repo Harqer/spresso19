@@ -70,7 +70,7 @@ fun PersonalAIShopperChatPage(
                 }
             },
             confirmButton = { 
-                components.atoms.SpressoButton(
+                components.shared.elements.SpressoButton(
                     text = "I understand",
                     enabled = acknowledged && onAccessibilityConsentAccepted != null, 
                     onClick = { onAccessibilityConsentAccepted?.invoke() },
@@ -79,9 +79,9 @@ fun PersonalAIShopperChatPage(
                 ) 
             },
             dismissButton = { 
-                components.atoms.SpressoButton(
+                components.shared.elements.SpressoButton(
                     text = "Decline",
-                    variant = components.atoms.SpressoButtonVariant.GHOST,
+                    variant = components.shared.elements.SpressoButtonVariant.GHOST,
                     onClick = { onDismissAccessibilityDisclosure?.invoke() },
                     trackingId = "chat_accessibility_consent",
                     trackingAction = "decline"

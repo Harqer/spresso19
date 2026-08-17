@@ -27,9 +27,9 @@ import components.core.NetworkImage
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.BorderStroke
-import components.atoms.SpressoButton
-import components.atoms.SpressoButtonVariant
-import components.molecules.MediaActionCard
+import components.shared.elements.SpressoButton
+import components.shared.elements.SpressoButtonVariant
+import components.shared.widgets.MediaActionCard
 
 // Data Classes
 data class CuratedFit(
@@ -62,46 +62,19 @@ fun WardrobeViewPage(
     modifier: Modifier = Modifier
 ) {
     var photos by remember {
-        mutableStateOf(
-            listOf(
-                WardrobePhoto(
-                    id = "w-1",
-                    title = "Winter Shearling Trench",
-                    category = "Winter Wear",
-                    photoUrl = "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600"
-                ),
-                WardrobePhoto(
-                    id = "w-2",
-                    title = "Silk Evening Cocktail Dress",
-                    category = "Special Occasion Wear",
-                    photoUrl = "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600"
-                )
-            )
-        )
+        mutableStateOf<List<WardrobePhoto>>(emptyList())
     }
+
 
     var activeSeason by remember { mutableStateOf("Winter") }
     var stylingLoading by remember { mutableStateOf(false) }
 
     val curatedFits = remember(activeSeason) {
-        when (activeSeason) {
-            "Winter" -> listOf(
-                CuratedFit("Winter Luxe Trench", "Winter", "Layer over a dark turtleneck for contrast.", listOf("Trench Coat", "Turtleneck", "Boots")),
-                CuratedFit("Cozy Cashmere Wrap", "Winter", "Perfect for indoor lounging or mild cold.", listOf("Cashmere Wrap", "Leggings"))
-            )
-            "Summer" -> listOf(
-                CuratedFit("Summer Linen Fit", "Summer", "Breathable and light for hot days.", listOf("Linen Shirt", "Shorts", "Sandals")),
-                CuratedFit("Beach Ready Set", "Summer", "A versatile look for the beach.", listOf("Swimwear", "Cover-up", "Sunglasses"))
-            )
-            else -> listOf(
-                CuratedFit("Gala Silk Evening Gown", "Occasion", "Elegant evening wear for formal events.", listOf("Silk Gown", "Heels", "Clutch")),
-                CuratedFit("Cocktail Party Suit", "Occasion", "Sharp and sophisticated.", listOf("Tailored Suit", "Dress Shirt", "Oxfords"))
-            )
-        }
+        emptyList<CuratedFit>()
     }
 
     LaunchedEffect(activeSeason) {
-        // Real API invocation should go here. Removed simulated network delay.
+        throw Exception("Missing Backend API - Needs Implementation: /api/wardrobe/fits for season $activeSeason")
     }
 
     val pickImage = ui.rememberImagePicker(

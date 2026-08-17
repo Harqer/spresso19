@@ -3,7 +3,6 @@ import { authFetch } from "../lib/firebase";
 import { OrderRecord } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { AIShopperInputBar } from "./AIShopperInputBar";
-import { collection, getDocs, getFirestore } from "firebase/firestore";
 import { GoogleWalletButton } from "@/src/components/features/profile/GoogleWalletButton";
 import { AnimatedTicketCard } from "@/src/components/features/orders/AnimatedTicketCard";
 
@@ -22,10 +21,13 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
     const fetchOrders = async () => {
       setIsLoading(true);
       try {
-        const db = getFirestore("spresso-5561f");
-        const querySnapshot = await getDocs(collection(db, "orders"));
-        const fetched = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as OrderRecord[];
-        setLiveOrders(fetched);
+        const res = await authFetch("/api/orders");
+        const data = await res.json();
+        if (data.success && data.orders) {
+          setLiveOrders(data.orders);
+        } else {
+          setLiveOrders([]);
+        }
       } catch (e) {
       } finally {
         setIsLoading(false);

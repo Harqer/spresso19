@@ -15,11 +15,11 @@ import java.security.spec.ECGenParameterSpec
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-actual suspend fun promptBiometricAuth(reason: String): Boolean = suspendCoroutine { continuation ->
+actual suspend fun promptBiometricAuth(reason: String, payload: String): String? = suspendCoroutine { continuation ->
     val activity = MainActivity.currentActivity as? FragmentActivity
     if (activity == null) {
         Log.e("BiometricAuth", "Current activity is null or not FragmentActivity")
-        continuation.resume(false)
+        continuation.resume(null)
         return@suspendCoroutine
     }
 
@@ -66,15 +66,34 @@ actual suspend fun promptBiometricAuth(reason: String): Boolean = suspendCorouti
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
                     Log.e("BiometricAuth", "Auth error: $errorCode - $errString")
-                    continuation.resume(false)
+                    continuation.resume(null)
                 }
 
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     super.onAuthenticationSucceeded(result)
                     Log.d("BiometricAuth", "Auth succeeded with CryptoObject")
-                    // In a real app we'd use the unlocked signature to sign the payload.
-                    // For now, simply validating it unlocks is proof of biometric presence.
-                    continuation.resume(true)
+                    val sig = result.cryptoObject?.signature
+                    if (sig != null) {
+                        try {
+                            sig.update(payload.toByteArray(Charsets.UTF_8))
+                            val sigBytes = sig.sign()
+                            val base64Sig = android.util.Base64.encodeToString(sigBytes, android.util.Base64.NO_WRAP)
+                            val cert = keyStore.getCertificate(keyAlias)
+                            val pubKey = cert?.publicKey?.encoded
+                            val base64PubKey = if (pubKey != null) android.util.Base64.encodeToString(pubKey, android.util.Base64.NO_WRAP) else ""
+                            
+                            val escapedPayload = payload.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+                            val jsonString = "{\"payload\":\"${escapedPayload}\",\"signature\":\"$base64Sig\",\"publicKey\":\"$base64PubKey\"}"
+                            val token = android.util.Base64.encodeToString(jsonString.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
+                            
+                            continuation.resume(token)
+                        } catch (e: Exception) {
+                            Log.e("BiometricAuth", "Signature error", e)
+                            continuation.resume(null)
+                        }
+                    } else {
+                        continuation.resume(null)
+                    }
                 }
 
                 override fun onAuthenticationFailed() {
@@ -89,6 +108,6 @@ actual suspend fun promptBiometricAuth(reason: String): Boolean = suspendCorouti
 
     } catch (e: Exception) {
         Log.e("BiometricAuth", "Exception during biometric auth", e)
-        continuation.resume(false)
+        continuation.resume(null)
     }
 }

@@ -25,8 +25,8 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.jsonPrimitive
 import network.ApiClient
 import network.models.AGENTS_METADATA
-import components.atoms.SpressoButton
-import components.atoms.SpressoButtonVariant
+import components.shared.elements.SpressoButton
+import components.shared.elements.SpressoButtonVariant
 
 @Composable
 fun CreatorAgentsSection(apiClient: ApiClient, scope: kotlinx.coroutines.CoroutineScope) {

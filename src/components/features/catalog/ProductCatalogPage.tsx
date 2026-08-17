@@ -62,25 +62,34 @@ export const ProductCatalogPage: React.FC<any> = ({ products: initialProducts, o
 
   useEffect(() => { fetchPersonalizedFeed(selectedCategory); }, [selectedCategory, userLocation, searchRadius]);
 
+  const [userPreferences, setUserPreferences] = useState<{
+    bookmarkedIds: string[],
+    likedIds: string[],
+    searchInquiries: string[]
+  }>({ bookmarkedIds: [], likedIds: [], searchInquiries: [] });
+
+  useEffect(() => {
+    const fetchPrefs = async () => {
+      try {
+        const { authFetch } = await import("../../../lib/firebase");
+        const res = await authFetch("/api/user/preferences");
+        if (res.ok) {
+          const data = await res.json();
+          setUserPreferences({
+            bookmarkedIds: data.bookmarkedIds || [],
+            likedIds: data.likedIds || [],
+            searchInquiries: data.searchInquiries || []
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to fetch user preferences:", err);
+      }
+    };
+    fetchPrefs();
+  }, []);
+
   const curatedPersonalizedProducts = useMemo(() => {
-    let bookmarkedIds: string[] = [];
-    try {
-      const saved = localStorage.getItem("spresso_wardrobe_items");
-      bookmarkedIds = saved ? JSON.parse(saved) : [];
-    } catch {}
-
-    let likedIds: string[] = [];
-    try {
-      const saved = localStorage.getItem("spresso_liked_products");
-      const likedObjs = saved ? JSON.parse(saved) : [];
-      likedIds = likedObjs.map((p: any) => p.id).filter(Boolean);
-    } catch {}
-
-    let searchInquiries: string[] = [];
-    try {
-      const saved = localStorage.getItem("spresso_search_inquiries");
-      searchInquiries = saved ? JSON.parse(saved) : [];
-    } catch {}
+    const { bookmarkedIds, likedIds, searchInquiries } = userPreferences;
 
     const scored = personalizedProducts.map(p => {
       let score = 0;
@@ -114,7 +123,7 @@ export const ProductCatalogPage: React.FC<any> = ({ products: initialProducts, o
     } else {
       return personalizedProducts.slice(0, 3);
     }
-  }, [personalizedProducts]);
+  }, [personalizedProducts, userPreferences]);
 
   return (
     <div className="space-y-6">

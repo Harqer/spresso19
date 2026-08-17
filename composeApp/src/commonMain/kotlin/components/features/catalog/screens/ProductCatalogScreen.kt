@@ -1,4 +1,4 @@
-package components.features.catalog.organisms
+package components.features.catalog.screens
 
 import components.models.*
 
@@ -18,9 +18,9 @@ import components.features.catalog.ProductCatalogHeader
 import components.features.catalog.AICurationFeed
 import components.features.catalog.ProductCatalogDetailDialog
 import components.features.chat.AIShopperInputBar
-import components.molecules.MediaActionCard
-import components.atoms.SpressoButton
-import components.atoms.SpressoButtonVariant
+import components.shared.widgets.MediaActionCard
+import components.shared.elements.SpressoButton
+import components.shared.elements.SpressoButtonVariant
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.launch
 import network.ApiClient

@@ -1,4 +1,4 @@
-package components.molecules
+package components.shared.widgets
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -24,8 +24,8 @@ import components.core.NetworkImage
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import network.ApiClient
-import components.atoms.ReactionBadge
-import components.molecules.ExpressiveReactionPalette
+import components.shared.elements.ReactionBadge
+import components.shared.widgets.ExpressiveReactionPalette
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

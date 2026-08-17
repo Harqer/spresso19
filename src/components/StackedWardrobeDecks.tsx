@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { authFetch } from "../lib/firebase";
 import { motion, AnimatePresence } from "motion/react";
 import { ProductItem, HITLPayload, CustomWardrobeItem, GeneratedOutfit } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
@@ -62,168 +63,28 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
     return [...userUploadedItems, ...bookmarkedItems, ...likedWardrobeItems];
   }, [userUploadedItems, bookmarkedItems, likedWardrobeItems]);
 
-  // AI Intelligent Curation engine to build randomized/curated fashion fits from Likes, Bookmarks, and Photo Gallery
-  const curatedDecks = useMemo(() => {
-    // Helper to randomly pick 1 top, 1 bottom/skirt, 1 outerwear/acc, 1 shoes
-    const pickRandomFit = (title: string, theme: string, weatherText: string, weatherScore: number): GeneratedOutfit => {
-      const tops = poolItems.filter((i) => i.category === "TOP" || i.category === "DRESS");
-      const bottoms = poolItems.filter((i) => i.category === "BOTTOM");
-      const outer = poolItems.filter((i) => i.category === "SWEATER_OUTERWEAR" || i.category === "ACCESSORY");
-      const shoes = poolItems.filter((i) => i.category === "SHOES");
+  const [curatedDecks, setCuratedDecks] = useState<DeckCategory[]>([]);
 
-      const pickOne = (arr: CustomWardrobeItem[], fallbackIndex: number) => {
-        if (arr.length === 0) return poolItems[fallbackIndex % Math.max(1, poolItems.length)];
-        const idx = Math.floor(arr.length / 2); // deterministic mid-point selection
-        return arr[idx];
-      };
-
-      const selected = [
-        pickOne(tops, 0),
-        pickOne(bottoms, 1),
-        pickOne(outer, 2),
-        pickOne(shoes, 3),
-      ].filter(Boolean) as CustomWardrobeItem[];
-
-      // Deduplicate items in outfit
-      const uniqueItems = Array.from(new Map(selected.map((item) => [item.id, item])).values());
-
-      return {
-        id: `fit-${crypto.randomUUID().replace(/-/g, '').substring(0, 9)}`,
-        title,
-        weatherCondition: "MILD_SPRING_AUTUMN",
-        temperatureText: weatherText,
-        items: uniqueItems.length > 0 ? uniqueItems : poolItems.slice(0, 3),
-        stylingAdvice: `Intelligent AI curation combining your ${
-          userUploadedItems.length > 0 ? "Photo Gallery Uploads," : ""
-        } Liked Items (${likedProducts.length}), and Bookmarks. Perfect balance of colors and silhouette for ${theme}.`,
-        weatherMatchScore: weatherScore,
-        savedAt: Date.now(),
-      };
+  useEffect(() => {
+    const fetchCurated = async () => {
+      try {
+        const res = await authFetch("/api/wardrobe/curate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userUploadedItems, bookmarkedItems, likedProducts: likedWardrobeItems, shuffleSeed })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.decks) {
+            setCuratedDecks(data.decks);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch curated outfits", err);
+      }
     };
-
-    // 1. AI Curated Fits Deck
-    const aiFits: GeneratedOutfit[] = [
-      pickRandomFit("Elevated Minimalist Streetwear", "everyday urban elegance", "72°F Sunny & Breeze", 98),
-      pickRandomFit("Vernal Chic & Silk Promenade", "breezy outdoor lunch", "68°F Spring Bloom", 95),
-      pickRandomFit("Alpine Wool & Cashmere Layering", "cozy coffee & chilly autumn walks", "45°F Crisp Air", 99),
-      pickRandomFit("Solstice Resort & Resortwear", "warm coastal vacations", "84°F Tropical Sun", 94),
-      pickRandomFit("Monochrome Minimalist Fit", "contemporary evening gallery outings", "65°F Mild Evening", 97),
-    ];
-
-    // 2. Liked Outfits Deck
-    const likedFits: GeneratedOutfit[] = [
-      {
-        id: "liked-fit-1",
-        title: "Community Liked Best Look",
-        weatherCondition: "MILD_SPRING_AUTUMN",
-        temperatureText: "Community Hot Favorite",
-        items: likedWardrobeItems.length > 0 ? likedWardrobeItems.slice(0, 3) : poolItems.slice(0, 3),
-        stylingAdvice: "Assembled from items you liked during Google Lens visual discovery sessions.",
-        weatherMatchScore: 96,
-        savedAt: Date.now(),
-      },
-      {
-        id: "liked-fit-2",
-        title: "Trending Liked Capsule",
-        weatherCondition: "HOT_SUMMER",
-        temperatureText: "78°F Warm Afternoon",
-        items: likedWardrobeItems.length > 2 ? likedWardrobeItems.slice(1, 4) : poolItems.slice(1, 4),
-        stylingAdvice: "High contrast pairing featuring your highest-ranked liked catalog pieces.",
-        weatherMatchScore: 92,
-        savedAt: Date.now(),
-      },
-    ];
-
-    // 3. Bookmarked Shop Fits Deck
-    const bookmarkedFits: GeneratedOutfit[] = [
-      {
-        id: "bm-fit-1",
-        title: "Saved Store Wishlist Ensemble",
-        weatherCondition: "MILD_SPRING_AUTUMN",
-        temperatureText: "Full Shop Look",
-        items: bookmarkedItems.length > 0 ? bookmarkedItems.slice(0, 4) : poolItems.slice(0, 3),
-        stylingAdvice: "Directly curated from your saved e-commerce bookmarks ready for instant checkout.",
-        weatherMatchScore: 97,
-        savedAt: Date.now(),
-      },
-      {
-        id: "bm-fit-2",
-        title: "Tailored Boutique Capsule",
-        weatherCondition: "COLD_WINTER",
-        temperatureText: "38°F Chilly Day",
-        items: bookmarkedItems.length > 2 ? bookmarkedItems.slice(2, 5) : poolItems.slice(0, 3),
-        stylingAdvice: "Tailored luxury aesthetic matching your bookmarked catalog outerwear and footwear.",
-        weatherMatchScore: 94,
-        savedAt: Date.now(),
-      },
-    ];
-
-    // 4. Photo Gallery Personal Closet Deck
-    const photoGalleryFits: GeneratedOutfit[] = [
-      {
-        id: "pg-fit-1",
-        title: "Personal Closet Hand-Picked Look",
-        weatherCondition: "ALL_WEATHER" as any,
-        temperatureText: "Camera Photo Gallery",
-        items: userUploadedItems.length > 0 ? userUploadedItems.slice(0, 4) : poolItems.slice(0, 3),
-        stylingAdvice: "100% your own physical clothes snapped via camera and Google Photos library.",
-        weatherMatchScore: 100,
-        savedAt: Date.now(),
-      },
-      {
-        id: "pg-fit-2",
-        title: "Closet Essentials Layering",
-        weatherCondition: "COLD_WINTER",
-        temperatureText: "50°F Chilly Breeze",
-        items: userUploadedItems.length > 2 ? userUploadedItems.slice(2, 6) : poolItems.slice(0, 3),
-        stylingAdvice: "Smart layering composed of your uploaded sweaters, jeans, and coat.",
-        weatherMatchScore: 98,
-        savedAt: Date.now(),
-      },
-    ];
-
-    return [
-      {
-        id: "ai-curated",
-        title: "AI Curated Smart Fits",
-        subtitle: "Intelligently mixed combinations from your Likes, Bookmarks & Photo Gallery",
-        badge: `${aiFits.length} AI Outfits`,
-        badgeColor: "bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] border border-[var(--md-sys-color-primary)]",
-        icon: "auto_awesome",
-        outfits: aiFits,
-      },
-      {
-        id: "photo-gallery",
-        title: "Photo Gallery Closet Stack",
-        subtitle: "Personal clothes uploaded from your camera roll & Google Photos gallery",
-        badge: `${userUploadedItems.length} Gallery Clothes`,
-        badgeColor: "bg-amber-600 text-white border border-amber-700",
-        icon: "photo_library",
-        outfits: photoGalleryFits,
-        singleItems: userUploadedItems,
-      },
-      {
-        id: "liked-stack",
-        title: "Liked Outfits Deck",
-        subtitle: "Outfits composed from items you liked in Google Lens & Try-On",
-        badge: `${likedProducts.length} Liked Items`,
-        badgeColor: "bg-rose-600 text-white border border-rose-700",
-        icon: "favorite",
-        outfits: likedFits,
-        singleItems: likedWardrobeItems,
-      },
-      {
-        id: "bookmarked-stack",
-        title: "Bookmarked Shop Stack",
-        subtitle: "Saved catalog items from Spresso Store ready to style & buy",
-        badge: `${bookmarkedItems.length} Bookmarks`,
-        badgeColor: "bg-emerald-700 text-white border border-emerald-800",
-        icon: "bookmark",
-        outfits: bookmarkedFits,
-        singleItems: bookmarkedItems,
-      },
-    ] as DeckCategory[];
-  }, [poolItems, userUploadedItems, bookmarkedItems, likedProducts, shuffleSeed]);
+    fetchCurated();
+  }, [userUploadedItems, bookmarkedItems, likedWardrobeItems, shuffleSeed]);
 
   return (
     <div className="space-y-6 animate-fadeIn">

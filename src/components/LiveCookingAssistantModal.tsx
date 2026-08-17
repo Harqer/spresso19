@@ -92,21 +92,14 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
     // Connect to WebSocket endpoint directly to Gemini Live API
     setStatusText("Establishing real-time voice & video connection...");
     
-    // Connect to backend proxy with auth token
-    setStatusText("Establishing secure connection to server...");
-    
-    let token = "";
     try {
-      const auth = getAuth();
-      token = await auth.currentUser?.getIdToken() || "";
-    } catch (e) {
-      console.warn("Failed to get auth token", e);
-    }
-    
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/api/live-chef?token=${token}`;
-
-    try {
+      const { httpsCallable } = await import("firebase/functions");
+      const { functions } = await import("../lib/firebase");
+      const generateLiveApiToken = httpsCallable(functions, "generateLiveApiToken");
+      const tokenRes = await generateLiveApiToken();
+      const tokenData = tokenRes.data as any;
+      
+      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${tokenData.token}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 

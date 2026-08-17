@@ -19,13 +19,7 @@ export const AGENTS_METADATA: AgentMeta[] = [
   { id: "GLOBAL_CLIENT_AUDIT_AGENT", title: "Global Client Audit Agent", badge: "Security", subtitle: "Compliance, risk & account forensics", icon: "shield", color: "text-amber-700", bgColor: "bg-amber-50", borderColor: "border-amber-200", capabilities: ["Fraud Detection", "GDPR Checks", "Contract Analysis"], quickPrompts: [{ label: "Run Compliance Check", prompt: "Run a compliance check on our latest user data policy." }] }
 ];
 
-export const CREATIVE_TEMPLATES: CreativeTemplate[] = [
-  { id: "tmpl-1", name: "Cinematic Product Reveal", creator: "SpressoStudio", category: "Video", description: "A dramatic 60fps slow-pan across luxury textures with cinematic lighting.", icon: "movie", promptExample: "Generate a slow panning shot of a sleek leather handbag under dramatic spotlight." },
-  { id: "tmpl-2", name: "Minimalist E-Comm", creator: "AI_Design_Lab", category: "Image", description: "Clean white background, soft shadow, perfect for Shopify / web catalogs.", icon: "image", promptExample: "A minimalist studio shot of a modern ceramic coffee mug on a white background." },
-  { id: "tmpl-3", name: "GenZ UGC Style", creator: "TrendSetter_99", category: "Community", description: "Handheld phone style, dynamic, bright colors, TikTok ready format.", icon: "smartphone", promptExample: "A bright, energetic vertical video of someone unboxing a new sneaker." },
-  { id: "tmpl-4", name: "Cyberpunk Glow", creator: "NeonDreamer", category: "Experimental", description: "Neon rim lights, dark moody backgrounds, tech-wear styling.", icon: "lightbulb", promptExample: "A futuristic smartwatch floating with glowing neon blue rim lighting." },
-  { id: "tmpl-5", name: "High-Fashion Editorial", creator: "Vogue_AI", category: "Prompting", description: "Complex prompt template for achieving magazine-cover quality output.", icon: "auto_awesome", promptExample: "A high-fashion editorial photo of a model wearing an avant-garde dress, studio lighting." }
-];
+
 
 interface CreatorGenAIAgentsChatPageProps {
   user: User | null;
@@ -41,13 +35,32 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
   const [selectedAgent, setSelectedAgent] = useState<GenAIAgentType>("ECONOMIC_RESEARCH_AGENT");
   const [templateCategory, setTemplateCategory] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [activeTemplate, setActiveTemplate] = useState<CreativeTemplate | null>(CREATIVE_TEMPLATES[0]);
+  const [creativeTemplates, setCreativeTemplates] = useState<CreativeTemplate[]>([]);
+  const [activeTemplate, setActiveTemplate] = useState<CreativeTemplate | null>(null);
   const [customGenPrompt, setCustomGenPrompt] = useState<string>("");
   const [isGeneratingMedia, setIsGeneratingMedia] = useState<boolean>(false);
   const [generatedResult, setGeneratedResult] = useState<{ prompt: string; templateName: string; imageUrl: string; videoConcept: string; } | null>(null);
   const [inputPrompt, setInputPrompt] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([{ id: "welcome-creator-1", sender: "ai", agentType: "ECONOMIC_RESEARCH_AGENT", timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), text: `Welcome, ${userName}! Select a workspace below to conduct market research, coordinate campaigns, create on-brand descriptions, or audit global client accounts.` }]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const res = await authFetch("/api/creator/templates");
+        if (res.ok) {
+          const data = await res.json();
+          setCreativeTemplates(data.templates || []);
+          if (data.templates?.length > 0) {
+            setActiveTemplate(data.templates[0]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch creative templates", err);
+      }
+    };
+    fetchTemplates();
+  }, []);
 
   const activeAgentMeta = AGENTS_METADATA.find(a => a.id === selectedAgent) || AGENTS_METADATA[0];
 
@@ -82,7 +95,8 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
   };
 
   const handleRunTemplateGeneration = async (tmpl?: CreativeTemplate) => {
-    const t = tmpl || activeTemplate || CREATIVE_TEMPLATES[0];
+    const t = tmpl || activeTemplate;
+    if (!t) return;
     const promptToUse = customGenPrompt.trim() || t.promptExample;
     setIsGeneratingMedia(true); setGeneratedResult(null);
 
@@ -99,7 +113,7 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
     }
   };
 
-  const filteredTemplates = CREATIVE_TEMPLATES.filter(tmpl => (templateCategory === "ALL" || tmpl.category === templateCategory) && (!searchQuery.trim() || tmpl.name.toLowerCase().includes(searchQuery.toLowerCase()) || tmpl.creator.toLowerCase().includes(searchQuery.toLowerCase()) || tmpl.description.toLowerCase().includes(searchQuery.toLowerCase())));
+  const filteredTemplates = creativeTemplates.filter(tmpl => (templateCategory === "ALL" || tmpl.category === templateCategory) && (!searchQuery.trim() || tmpl.name.toLowerCase().includes(searchQuery.toLowerCase()) || tmpl.creator.toLowerCase().includes(searchQuery.toLowerCase()) || tmpl.description.toLowerCase().includes(searchQuery.toLowerCase())));
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-5">
@@ -107,7 +121,7 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center space-x-3.5"><div className="w-12 h-12 rounded-2xl bg-[#e8f3e8] border border-[#386633]/20 flex items-center justify-center text-[#386633]"><MaterialIcon icon="auto_awesome" size={28} /></div><div><div className="flex items-center space-x-2"><h2 className="text-xl font-serif font-bold text-[#18211e] dark:text-[#e1e4d9]">Spresso Creative Studio</h2><span className="px-2.5 py-0.5 bg-[#386633] text-white text-[10px] font-mono font-bold rounded-full">AI Video & Image Hub</span></div><p className="text-xs text-[#52645b] mt-0.5">Community Templates • Video & Image Generation • Style Reference Randomizer</p></div></div>
           <div className="flex items-center p-1 bg-[#f2f8f2] rounded-2xl border border-[#d8ebd7] shrink-0">
-            <button onClick={() => setActiveMainTab("templates")} className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 ${activeMainTab === "templates" ? "bg-[#386633] text-white shadow-xs" : "text-[#52645b] hover:text-[#18211e]"}`}><MaterialIcon icon="grid_view" size={16} /><span>Community & Media ({CREATIVE_TEMPLATES.length})</span></button>
+            <button onClick={() => setActiveMainTab("templates")} className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 ${activeMainTab === "templates" ? "bg-[#386633] text-white shadow-xs" : "text-[#52645b] hover:text-[#18211e]"}`}><MaterialIcon icon="grid_view" size={16} /><span>Community & Media ({creativeTemplates.length})</span></button>
             <button onClick={() => setActiveMainTab("agents")} className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center space-x-1.5 ${activeMainTab === "agents" ? "bg-[#386633] text-white shadow-xs" : "text-[#52645b] hover:text-[#18211e]"}`}><MaterialIcon icon="deployed_code_account" size={16} /><span>GenAI Agent Workspaces</span></button>
           </div>
         </div>
@@ -116,8 +130,8 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
         <div className="space-y-6">
           <div className="bg-white p-4 rounded-3xl border border-[#d8ebd7] shadow-xs space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-1.5">{["ALL", "Community", "Image", "Video", "Prompting", "Experimental"].map(cat => ( <button key={cat} onClick={() => setTemplateCategory(cat)} className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${templateCategory === cat ? "bg-[#386633] text-white shadow-xs" : "bg-[#f2f8f2] text-[#5e635f]"}`}>{cat === "ALL" ? `All (${CREATIVE_TEMPLATES.length})` : cat}</button> ))}</div>
-              <button onClick={() => { const c = CREATIVE_TEMPLATES[Math.floor(Math.random() * CREATIVE_TEMPLATES.length)]; setActiveTemplate(c); setCustomGenPrompt(c.promptExample); }} className="px-4 py-2 bg-gradient-to-r from-[#386633] to-[#2c5227] text-white text-xs font-bold rounded-xl shadow-xs"><MaterialIcon icon="shuffle" size={16} /><span>Randomize Style</span></button>
+              <div className="flex flex-wrap items-center gap-1.5">{["ALL", "Community", "Image", "Video", "Prompting", "Experimental"].map(cat => ( <button key={cat} onClick={() => setTemplateCategory(cat)} className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${templateCategory === cat ? "bg-[#386633] text-white shadow-xs" : "bg-[#f2f8f2] text-[#5e635f]"}`}>{cat === "ALL" ? `All (${creativeTemplates.length})` : cat}</button> ))}</div>
+              <button onClick={() => { if (creativeTemplates.length === 0) return; const c = creativeTemplates[Math.floor(Math.random() * creativeTemplates.length)]; setActiveTemplate(c); setCustomGenPrompt(c.promptExample); }} className="px-4 py-2 bg-gradient-to-r from-[#386633] to-[#2c5227] text-white text-xs font-bold rounded-xl shadow-xs"><MaterialIcon icon="shuffle" size={16} /><span>Randomize Style</span></button>
             </div>
             <div className="relative"><MaterialIcon icon="search" size={18} className="absolute left-3.5 top-3 text-[#5e635f]" /><input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search community templates..." className="w-full pl-10 pr-4 py-2.5 bg-[#f8faf8] border border-[#d8ebd7] rounded-xl text-xs" /></div>
           </div>
