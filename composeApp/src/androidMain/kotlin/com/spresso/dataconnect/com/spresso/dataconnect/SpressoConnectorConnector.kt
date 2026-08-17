@@ -21,21 +21,51 @@ public interface SpressoConnectorConnector : com.google.firebase.dataconnect.gen
   
     public val addVideo: AddVideoMutation
   
+    public val createExpense: CreateExpenseMutation
+  
     public val createOrder: CreateOrderMutation
   
+    public val createPaymentMethod: CreatePaymentMethodMutation
+  
+    public val createTravelExpense: CreateTravelExpenseMutation
+  
+    public val createVoiceNote: CreateVoiceNoteMutation
+  
+    public val deletePaymentMethod: DeletePaymentMethodMutation
+  
+    public val getItineraryEvents: GetItineraryEventsQuery
+  
+    public val getPaymentMethods: GetPaymentMethodsQuery
+  
     public val getProductById: GetProductByIdQuery
+  
+    public val getTravelExpenses: GetTravelExpensesQuery
+  
+    public val getTrips: GetTripsQuery
   
     public val getUserCart: GetUserCartQuery
   
     public val getUserOrders: GetUserOrdersQuery
   
+    public val getUserPreference: GetUserPreferenceQuery
+  
+    public val getUserPreferences: GetUserPreferencesQuery
+  
     public val getUserProfile: GetUserProfileQuery
   
+    public val getUserSubscription: GetUserSubscriptionQuery
+  
     public val getUserVideos: GetUserVideosQuery
+  
+    public val getVoiceNotes: GetVoiceNotesQuery
   
     public val listProducts: ListProductsQuery
   
     public val toggleLike: ToggleLikeMutation
+  
+    public val updateUserSubscription: UpdateUserSubscriptionMutation
+  
+    public val upsertUserPreference: UpsertUserPreferenceMutation
   
     public val upsertUserProfile: UpsertUserProfileMutation
   
@@ -86,12 +116,48 @@ private class SpressoConnectorConnectorImpl(
       AddVideoMutationImpl(this)
     }
   
+    override val createExpense by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      CreateExpenseMutationImpl(this)
+    }
+  
     override val createOrder by lazy(LazyThreadSafetyMode.PUBLICATION) {
       CreateOrderMutationImpl(this)
     }
   
+    override val createPaymentMethod by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      CreatePaymentMethodMutationImpl(this)
+    }
+  
+    override val createTravelExpense by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      CreateTravelExpenseMutationImpl(this)
+    }
+  
+    override val createVoiceNote by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      CreateVoiceNoteMutationImpl(this)
+    }
+  
+    override val deletePaymentMethod by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      DeletePaymentMethodMutationImpl(this)
+    }
+  
+    override val getItineraryEvents by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetItineraryEventsQueryImpl(this)
+    }
+  
+    override val getPaymentMethods by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetPaymentMethodsQueryImpl(this)
+    }
+  
     override val getProductById by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetProductByIdQueryImpl(this)
+    }
+  
+    override val getTravelExpenses by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetTravelExpensesQueryImpl(this)
+    }
+  
+    override val getTrips by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetTripsQueryImpl(this)
     }
   
     override val getUserCart by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -102,12 +168,28 @@ private class SpressoConnectorConnectorImpl(
       GetUserOrdersQueryImpl(this)
     }
   
+    override val getUserPreference by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetUserPreferenceQueryImpl(this)
+    }
+  
+    override val getUserPreferences by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetUserPreferencesQueryImpl(this)
+    }
+  
     override val getUserProfile by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetUserProfileQueryImpl(this)
     }
   
+    override val getUserSubscription by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetUserSubscriptionQueryImpl(this)
+    }
+  
     override val getUserVideos by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetUserVideosQueryImpl(this)
+    }
+  
+    override val getVoiceNotes by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetVoiceNotesQueryImpl(this)
     }
   
     override val listProducts by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -116,6 +198,14 @@ private class SpressoConnectorConnectorImpl(
   
     override val toggleLike by lazy(LazyThreadSafetyMode.PUBLICATION) {
       ToggleLikeMutationImpl(this)
+    }
+  
+    override val updateUserSubscription by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      UpdateUserSubscriptionMutationImpl(this)
+    }
+  
+    override val upsertUserPreference by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      UpsertUserPreferenceMutationImpl(this)
     }
   
     override val upsertUserProfile by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -131,8 +221,15 @@ private class SpressoConnectorConnectorImpl(
   override fun mutations(): List<com.google.firebase.dataconnect.generated.GeneratedMutation<SpressoConnectorConnector, *, *>> =
     listOf(
       addVideo,
+        createExpense,
         createOrder,
+        createPaymentMethod,
+        createTravelExpense,
+        createVoiceNote,
+        deletePaymentMethod,
         toggleLike,
+        updateUserSubscription,
+        upsertUserPreference,
         upsertUserProfile,
         
     )
@@ -140,11 +237,19 @@ private class SpressoConnectorConnectorImpl(
   @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
   override fun queries(): List<com.google.firebase.dataconnect.generated.GeneratedQuery<SpressoConnectorConnector, *, *>> =
     listOf(
-      getProductById,
+      getItineraryEvents,
+        getPaymentMethods,
+        getProductById,
+        getTravelExpenses,
+        getTrips,
         getUserCart,
         getUserOrders,
+        getUserPreference,
+        getUserPreferences,
         getUserProfile,
+        getUserSubscription,
         getUserVideos,
+        getVoiceNotes,
         listProducts,
         
     )
@@ -296,6 +401,21 @@ private class AddVideoMutationImpl(
   )
 
 
+private class CreateExpenseMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  CreateExpenseMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      CreateExpenseMutation.Data,
+      CreateExpenseMutation.Variables
+  >(
+    connector,
+    CreateExpenseMutation.Companion.operationName,
+    CreateExpenseMutation.Companion.dataDeserializer,
+    CreateExpenseMutation.Companion.variablesSerializer,
+  )
+
+
 private class CreateOrderMutationImpl(
   connector: SpressoConnectorConnector
 ):
@@ -311,6 +431,96 @@ private class CreateOrderMutationImpl(
   )
 
 
+private class CreatePaymentMethodMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  CreatePaymentMethodMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      CreatePaymentMethodMutation.Data,
+      CreatePaymentMethodMutation.Variables
+  >(
+    connector,
+    CreatePaymentMethodMutation.Companion.operationName,
+    CreatePaymentMethodMutation.Companion.dataDeserializer,
+    CreatePaymentMethodMutation.Companion.variablesSerializer,
+  )
+
+
+private class CreateTravelExpenseMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  CreateTravelExpenseMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      CreateTravelExpenseMutation.Data,
+      CreateTravelExpenseMutation.Variables
+  >(
+    connector,
+    CreateTravelExpenseMutation.Companion.operationName,
+    CreateTravelExpenseMutation.Companion.dataDeserializer,
+    CreateTravelExpenseMutation.Companion.variablesSerializer,
+  )
+
+
+private class CreateVoiceNoteMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  CreateVoiceNoteMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      CreateVoiceNoteMutation.Data,
+      CreateVoiceNoteMutation.Variables
+  >(
+    connector,
+    CreateVoiceNoteMutation.Companion.operationName,
+    CreateVoiceNoteMutation.Companion.dataDeserializer,
+    CreateVoiceNoteMutation.Companion.variablesSerializer,
+  )
+
+
+private class DeletePaymentMethodMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  DeletePaymentMethodMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      DeletePaymentMethodMutation.Data,
+      DeletePaymentMethodMutation.Variables
+  >(
+    connector,
+    DeletePaymentMethodMutation.Companion.operationName,
+    DeletePaymentMethodMutation.Companion.dataDeserializer,
+    DeletePaymentMethodMutation.Companion.variablesSerializer,
+  )
+
+
+private class GetItineraryEventsQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetItineraryEventsQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetItineraryEventsQuery.Data,
+      Unit
+  >(
+    connector,
+    GetItineraryEventsQuery.Companion.operationName,
+    GetItineraryEventsQuery.Companion.dataDeserializer,
+    GetItineraryEventsQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetPaymentMethodsQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetPaymentMethodsQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetPaymentMethodsQuery.Data,
+      Unit
+  >(
+    connector,
+    GetPaymentMethodsQuery.Companion.operationName,
+    GetPaymentMethodsQuery.Companion.dataDeserializer,
+    GetPaymentMethodsQuery.Companion.variablesSerializer,
+  )
+
+
 private class GetProductByIdQueryImpl(
   connector: SpressoConnectorConnector
 ):
@@ -323,6 +533,36 @@ private class GetProductByIdQueryImpl(
     GetProductByIdQuery.Companion.operationName,
     GetProductByIdQuery.Companion.dataDeserializer,
     GetProductByIdQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetTravelExpensesQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetTravelExpensesQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetTravelExpensesQuery.Data,
+      Unit
+  >(
+    connector,
+    GetTravelExpensesQuery.Companion.operationName,
+    GetTravelExpensesQuery.Companion.dataDeserializer,
+    GetTravelExpensesQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetTripsQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetTripsQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetTripsQuery.Data,
+      Unit
+  >(
+    connector,
+    GetTripsQuery.Companion.operationName,
+    GetTripsQuery.Companion.dataDeserializer,
+    GetTripsQuery.Companion.variablesSerializer,
   )
 
 
@@ -356,6 +596,36 @@ private class GetUserOrdersQueryImpl(
   )
 
 
+private class GetUserPreferenceQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetUserPreferenceQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetUserPreferenceQuery.Data,
+      Unit
+  >(
+    connector,
+    GetUserPreferenceQuery.Companion.operationName,
+    GetUserPreferenceQuery.Companion.dataDeserializer,
+    GetUserPreferenceQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetUserPreferencesQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetUserPreferencesQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetUserPreferencesQuery.Data,
+      Unit
+  >(
+    connector,
+    GetUserPreferencesQuery.Companion.operationName,
+    GetUserPreferencesQuery.Companion.dataDeserializer,
+    GetUserPreferencesQuery.Companion.variablesSerializer,
+  )
+
+
 private class GetUserProfileQueryImpl(
   connector: SpressoConnectorConnector
 ):
@@ -371,6 +641,21 @@ private class GetUserProfileQueryImpl(
   )
 
 
+private class GetUserSubscriptionQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetUserSubscriptionQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetUserSubscriptionQuery.Data,
+      Unit
+  >(
+    connector,
+    GetUserSubscriptionQuery.Companion.operationName,
+    GetUserSubscriptionQuery.Companion.dataDeserializer,
+    GetUserSubscriptionQuery.Companion.variablesSerializer,
+  )
+
+
 private class GetUserVideosQueryImpl(
   connector: SpressoConnectorConnector
 ):
@@ -383,6 +668,21 @@ private class GetUserVideosQueryImpl(
     GetUserVideosQuery.Companion.operationName,
     GetUserVideosQuery.Companion.dataDeserializer,
     GetUserVideosQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetVoiceNotesQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetVoiceNotesQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetVoiceNotesQuery.Data,
+      Unit
+  >(
+    connector,
+    GetVoiceNotesQuery.Companion.operationName,
+    GetVoiceNotesQuery.Companion.dataDeserializer,
+    GetVoiceNotesQuery.Companion.variablesSerializer,
   )
 
 
@@ -413,6 +713,36 @@ private class ToggleLikeMutationImpl(
     ToggleLikeMutation.Companion.operationName,
     ToggleLikeMutation.Companion.dataDeserializer,
     ToggleLikeMutation.Companion.variablesSerializer,
+  )
+
+
+private class UpdateUserSubscriptionMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  UpdateUserSubscriptionMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      UpdateUserSubscriptionMutation.Data,
+      UpdateUserSubscriptionMutation.Variables
+  >(
+    connector,
+    UpdateUserSubscriptionMutation.Companion.operationName,
+    UpdateUserSubscriptionMutation.Companion.dataDeserializer,
+    UpdateUserSubscriptionMutation.Companion.variablesSerializer,
+  )
+
+
+private class UpsertUserPreferenceMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  UpsertUserPreferenceMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      UpsertUserPreferenceMutation.Data,
+      UpsertUserPreferenceMutation.Variables
+  >(
+    connector,
+    UpsertUserPreferenceMutation.Companion.operationName,
+    UpsertUserPreferenceMutation.Companion.dataDeserializer,
+    UpsertUserPreferenceMutation.Companion.variablesSerializer,
   )
 
 

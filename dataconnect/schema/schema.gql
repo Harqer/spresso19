@@ -166,8 +166,7 @@ type UserSubscription @table {
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
-type UserPreference @table {
-  id: UUID! @default(expr: "uuidV4()")
+type UserPreference @table(key: "userId") {
   userId: String!
   theme: String @default(value: "dark")
   pushNotifications: Boolean @default(value: true)

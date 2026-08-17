@@ -35,6 +35,55 @@ function toggleLike(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.toggleLike = toggleLike;
 
+function createExpense(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreateExpense', inputVars, inputOpts);
+}
+exports.createExpense = createExpense;
+
+function createTravelExpense(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreateTravelExpense', inputVars, inputOpts);
+}
+exports.createTravelExpense = createTravelExpense;
+
+function createVoiceNote(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreateVoiceNote', inputVars, inputOpts);
+}
+exports.createVoiceNote = createVoiceNote;
+
+function createPaymentMethod(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreatePaymentMethod', inputVars, inputOpts);
+}
+exports.createPaymentMethod = createPaymentMethod;
+
+function deletePaymentMethod(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('DeletePaymentMethod', inputVars, inputOpts);
+}
+exports.deletePaymentMethod = deletePaymentMethod;
+
+function updateUserSubscription(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpdateUserSubscription', inputVars, inputOpts);
+}
+exports.updateUserSubscription = updateUserSubscription;
+
+function upsertUserPreference(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpsertUserPreference', inputVars, inputOpts);
+}
+exports.upsertUserPreference = upsertUserPreference;
+
 function listProducts(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
   dcInstance.useGen(true);
@@ -76,4 +125,60 @@ function getUserCart(dcOrOptions, options) {
   return dcInstance.executeQuery('GetUserCart', undefined, inputOpts);
 }
 exports.getUserCart = getUserCart;
+
+function getTrips(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetTrips', undefined, inputOpts);
+}
+exports.getTrips = getTrips;
+
+function getUserPreferences(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetUserPreferences', undefined, inputOpts);
+}
+exports.getUserPreferences = getUserPreferences;
+
+function getItineraryEvents(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetItineraryEvents', undefined, inputOpts);
+}
+exports.getItineraryEvents = getItineraryEvents;
+
+function getTravelExpenses(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetTravelExpenses', undefined, inputOpts);
+}
+exports.getTravelExpenses = getTravelExpenses;
+
+function getVoiceNotes(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetVoiceNotes', undefined, inputOpts);
+}
+exports.getVoiceNotes = getVoiceNotes;
+
+function getPaymentMethods(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetPaymentMethods', undefined, inputOpts);
+}
+exports.getPaymentMethods = getPaymentMethods;
+
+function getUserSubscription(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetUserSubscription', undefined, inputOpts);
+}
+exports.getUserSubscription = getUserSubscription;
+
+function getUserPreference(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetUserPreference', undefined, inputOpts);
+}
+exports.getUserPreference = getUserPreference;
 

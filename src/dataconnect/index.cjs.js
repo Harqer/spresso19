@@ -63,6 +63,104 @@ exports.toggleLike = function toggleLike(dcOrVars, vars) {
 }
 ;
 
+const createExpenseRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateExpense', inputVars);
+}
+createExpenseRef.operationName = 'CreateExpense';
+exports.createExpenseRef = createExpenseRef;
+
+exports.createExpense = function createExpense(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createExpenseRef(dcInstance, inputVars));
+}
+;
+
+const createTravelExpenseRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateTravelExpense', inputVars);
+}
+createTravelExpenseRef.operationName = 'CreateTravelExpense';
+exports.createTravelExpenseRef = createTravelExpenseRef;
+
+exports.createTravelExpense = function createTravelExpense(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createTravelExpenseRef(dcInstance, inputVars));
+}
+;
+
+const createVoiceNoteRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateVoiceNote', inputVars);
+}
+createVoiceNoteRef.operationName = 'CreateVoiceNote';
+exports.createVoiceNoteRef = createVoiceNoteRef;
+
+exports.createVoiceNote = function createVoiceNote(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createVoiceNoteRef(dcInstance, inputVars));
+}
+;
+
+const createPaymentMethodRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreatePaymentMethod', inputVars);
+}
+createPaymentMethodRef.operationName = 'CreatePaymentMethod';
+exports.createPaymentMethodRef = createPaymentMethodRef;
+
+exports.createPaymentMethod = function createPaymentMethod(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createPaymentMethodRef(dcInstance, inputVars));
+}
+;
+
+const deletePaymentMethodRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeletePaymentMethod', inputVars);
+}
+deletePaymentMethodRef.operationName = 'DeletePaymentMethod';
+exports.deletePaymentMethodRef = deletePaymentMethodRef;
+
+exports.deletePaymentMethod = function deletePaymentMethod(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(deletePaymentMethodRef(dcInstance, inputVars));
+}
+;
+
+const updateUserSubscriptionRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdateUserSubscription', inputVars);
+}
+updateUserSubscriptionRef.operationName = 'UpdateUserSubscription';
+exports.updateUserSubscriptionRef = updateUserSubscriptionRef;
+
+exports.updateUserSubscription = function updateUserSubscription(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updateUserSubscriptionRef(dcInstance, inputVars));
+}
+;
+
+const upsertUserPreferenceRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertUserPreference', inputVars);
+}
+upsertUserPreferenceRef.operationName = 'UpsertUserPreference';
+exports.upsertUserPreferenceRef = upsertUserPreferenceRef;
+
+exports.upsertUserPreference = function upsertUserPreference(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars);
+  return executeMutation(upsertUserPreferenceRef(dcInstance, inputVars));
+}
+;
+
 const listProductsRef = (dc) => {
   const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
@@ -150,5 +248,125 @@ exports.getUserCart = function getUserCart(dcOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(getUserCartRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getTripsRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetTrips');
+}
+getTripsRef.operationName = 'GetTrips';
+exports.getTripsRef = getTripsRef;
+
+exports.getTrips = function getTrips(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getTripsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getUserPreferencesRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetUserPreferences');
+}
+getUserPreferencesRef.operationName = 'GetUserPreferences';
+exports.getUserPreferencesRef = getUserPreferencesRef;
+
+exports.getUserPreferences = function getUserPreferences(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getUserPreferencesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getItineraryEventsRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetItineraryEvents');
+}
+getItineraryEventsRef.operationName = 'GetItineraryEvents';
+exports.getItineraryEventsRef = getItineraryEventsRef;
+
+exports.getItineraryEvents = function getItineraryEvents(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getItineraryEventsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getTravelExpensesRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetTravelExpenses');
+}
+getTravelExpensesRef.operationName = 'GetTravelExpenses';
+exports.getTravelExpensesRef = getTravelExpensesRef;
+
+exports.getTravelExpenses = function getTravelExpenses(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getTravelExpensesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getVoiceNotesRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetVoiceNotes');
+}
+getVoiceNotesRef.operationName = 'GetVoiceNotes';
+exports.getVoiceNotesRef = getVoiceNotesRef;
+
+exports.getVoiceNotes = function getVoiceNotes(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getVoiceNotesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getPaymentMethodsRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetPaymentMethods');
+}
+getPaymentMethodsRef.operationName = 'GetPaymentMethods';
+exports.getPaymentMethodsRef = getPaymentMethodsRef;
+
+exports.getPaymentMethods = function getPaymentMethods(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getPaymentMethodsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getUserSubscriptionRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetUserSubscription');
+}
+getUserSubscriptionRef.operationName = 'GetUserSubscription';
+exports.getUserSubscriptionRef = getUserSubscriptionRef;
+
+exports.getUserSubscription = function getUserSubscription(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getUserSubscriptionRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getUserPreferenceRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetUserPreference');
+}
+getUserPreferenceRef.operationName = 'GetUserPreference';
+exports.getUserPreferenceRef = getUserPreferenceRef;
+
+exports.getUserPreference = function getUserPreference(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getUserPreferenceRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;

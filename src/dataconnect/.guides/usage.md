@@ -14,7 +14,7 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { upsertUserProfile, createOrder, addVideo, toggleLike, listProducts, getProductById, getUserProfile, getUserOrders, getUserVideos, getUserCart } from '@firebasegen/spresso-connector';
+import { upsertUserProfile, createOrder, addVideo, toggleLike, createExpense, createTravelExpense, createVoiceNote, createPaymentMethod, deletePaymentMethod, updateUserSubscription } from '@firebasegen/spresso-connector';
 
 
 // Operation UpsertUserProfile:  For variables, look at type UpsertUserProfileVars in ../index.d.ts
@@ -29,23 +29,23 @@ const { data } = await AddVideo(dataConnect, addVideoVars);
 // Operation ToggleLike:  For variables, look at type ToggleLikeVars in ../index.d.ts
 const { data } = await ToggleLike(dataConnect, toggleLikeVars);
 
-// Operation ListProducts: 
-const { data } = await ListProducts(dataConnect);
+// Operation CreateExpense:  For variables, look at type CreateExpenseVars in ../index.d.ts
+const { data } = await CreateExpense(dataConnect, createExpenseVars);
 
-// Operation GetProductById:  For variables, look at type GetProductByIdVars in ../index.d.ts
-const { data } = await GetProductById(dataConnect, getProductByIdVars);
+// Operation CreateTravelExpense:  For variables, look at type CreateTravelExpenseVars in ../index.d.ts
+const { data } = await CreateTravelExpense(dataConnect, createTravelExpenseVars);
 
-// Operation GetUserProfile: 
-const { data } = await GetUserProfile(dataConnect);
+// Operation CreateVoiceNote:  For variables, look at type CreateVoiceNoteVars in ../index.d.ts
+const { data } = await CreateVoiceNote(dataConnect, createVoiceNoteVars);
 
-// Operation GetUserOrders: 
-const { data } = await GetUserOrders(dataConnect);
+// Operation CreatePaymentMethod:  For variables, look at type CreatePaymentMethodVars in ../index.d.ts
+const { data } = await CreatePaymentMethod(dataConnect, createPaymentMethodVars);
 
-// Operation GetUserVideos: 
-const { data } = await GetUserVideos(dataConnect);
+// Operation DeletePaymentMethod:  For variables, look at type DeletePaymentMethodVars in ../index.d.ts
+const { data } = await DeletePaymentMethod(dataConnect, deletePaymentMethodVars);
 
-// Operation GetUserCart: 
-const { data } = await GetUserCart(dataConnect);
+// Operation UpdateUserSubscription:  For variables, look at type UpdateUserSubscriptionVars in ../index.d.ts
+const { data } = await UpdateUserSubscription(dataConnect, updateUserSubscriptionVars);
 
 
 ```

@@ -32,14 +32,13 @@ import { AppModalManager } from "./components/shared/AppModalManager";
 import { ProfilePage } from "./components/features/profile/ProfilePage";
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    const hash = window.location.hash.replace("#", "");
-    const validTabs = ["chat", "products", "scaffold", "vision", "wardrobe", "orders", "grocery", "creator", "profile"];
-    return validTabs.includes(hash) ? hash : "chat";
-  });
+  const [activeTab, setActiveTab] = useState<"catalog" | "chat" | "wardrobe" | "travel" | "grocery" | "orders" | "profile" | "vision" | "products" | "creator">("catalog");
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [pendingChatQuery, setPendingChatQuery] = useState<{ query: string; image?: string | null } | null>(null);
+
+  // Real Firebase User State
+  const [user, setUser] = useState<User | null>(null);
 
   // Synchronize activeTab with URL Hash
   useEffect(() => {
@@ -51,7 +50,7 @@ export default function App() {
       const hash = window.location.hash.replace("#", "");
       const validTabs = ["chat", "products", "scaffold", "vision", "wardrobe", "orders", "grocery", "creator", "profile"];
       if (validTabs.includes(hash)) {
-        setActiveTab(hash);
+        setActiveTab(hash as any);
       }
     };
     window.addEventListener("hashchange", handleHashChange);
@@ -117,8 +116,6 @@ export default function App() {
     setActiveTab("chat");
   };
 
-  // Real Firebase User State
-  const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   const [products, setProducts] = useState<ProductItem[]>([]);
@@ -429,7 +426,7 @@ export default function App() {
       totalCartCount={totalCartCount}
       theme={theme}
       user={user}
-      onSelectTab={setActiveTab}
+      onSelectTab={setActiveTab as any}
       onToggleSidebar={() => setSidebarOpen(prev => !prev)}
       onToggleMobileMenu={(open) => setMobileMenuOpen(open !== undefined ? open : !mobileMenuOpen)}
       onToggleTheme={toggleTheme}
@@ -450,7 +447,7 @@ export default function App() {
               onRequestHITLCheckout={payload => setHitlPayload(payload)}
               onAddToCart={handleAddToCart}
               onOpenVisionSearch={() => setActiveTab("vision")}
-              onSelectTab={tabId => setActiveTab(tabId)}
+              onSelectTab={tabId => setActiveTab(tabId as any)}
               userLocation={userLocation}
               userLatLng={userLatLng}
               searchRadius={searchRadius}

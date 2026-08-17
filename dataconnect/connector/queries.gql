@@ -86,24 +86,13 @@ query GetTrips @auth(level: USER) {
 
 query GetUserPreferences @auth(level: USER) {
   userPreferences(where: { userId: { eq_expr: "auth.uid" } }) {
-    id
+    userId
     theme
     pushNotifications
     emailAlerts
   }
 }
 
-query GetTrips @auth(level: USER) {
-  trips(where: { userId: { eq_expr: "auth.uid" } }) {
-    id
-    title
-    destination
-    startDate
-    endDate
-    status
-    coverImage
-  }
-}
 
 query GetItineraryEvents @auth(level: USER) {
   itineraryEvents {
@@ -164,7 +153,7 @@ query GetUserSubscription @auth(level: USER) {
 
 query GetUserPreference @auth(level: USER) {
   userPreferences(where: { userId: { eq_expr: "auth.uid" } }) {
-    id
+    userId
     theme
     pushNotifications
     emailAlerts

@@ -80,16 +80,16 @@ val connector: SpressoConnectorConnector = SpressoConnectorConnector.getInstance
 ### SpressoConnectorConnector - Query and Mutation Properties
 
 The `spresso-connector` Data Connect connector defines
-6 queries and
-4 mutations,
-a total of 10 operations.
+14 queries and
+11 mutations,
+a total of 25 operations.
 Each of these operations is exposed
 as a property of [SpressoConnectorConnector].
 
 
 An example of the property for a query
-is the query named "GetProductById",
-which can be accessed via the [SpressoConnectorConnector.getProductById] property.
+is the query named "GetItineraryEvents",
+which can be accessed via the [SpressoConnectorConnector.getItineraryEvents] property.
 
 
 An example of the property for a mutation
@@ -172,15 +172,15 @@ last argument of the `execute()` method.
 If a query has no variables then it can be easily executed
 by calling the `execute()` method with no arguments.
 
-For example, the "GetUserCart" query has no variables
+For example, the "GetItineraryEvents" query has no variables
 and can be executed via the
-[SpressoConnectorConnector.getUserCart]
+[SpressoConnectorConnector.getItineraryEvents]
 property as follows:
 
 ```kotlin
 val connector = SpressoConnectorConnector.instance
-val queryResult = connector.getUserCart.execute()
-println("GetUserCart query returned: ${queryResult.data}")
+val queryResult = connector.getItineraryEvents.execute()
+println("GetItineraryEvents query returned: ${queryResult.data}")
 ```
 
 
@@ -240,17 +240,18 @@ however, if they _are_ specified,
 then they are specified in a Kotlin DSL block as the last argument
 of the `execute()` method.
 
-For example, the "UpsertUserProfile" mutation has 3 optional variables ("email", "displayName", and "avatarUrl")
-and can be executed via the [SpressoConnectorConnector.upsertUserProfile]
+For example, the "CreateExpense" mutation has 4 optional variables ("currency", "receiptImageUrl", "date", and "items")
+and can be executed via the [SpressoConnectorConnector.createExpense]
 property as follows:
 
 ```kotlin
 val connector = SpressoConnectorConnector.instance
-val mutationResult = connector.upsertUserProfile.execute {
-  email = "qux"
-  displayName = "garply"
-  avatarUrl = "garply"
+val mutationResult = connector.createExpense.execute(tripId=java.util.UUID.randomUUID(), amount=5666.45, category="grault", merchant="baz") {
+  currency = "foo"
+  receiptImageUrl = "foo"
+  date = "qux"
+  items = "grault"
 }
-println("UpsertUserProfile mutation returned: ${mutationResult.data}")
+println("CreateExpense mutation returned: ${mutationResult.data}")
 ```
 

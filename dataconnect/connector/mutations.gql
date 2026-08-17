@@ -74,22 +74,7 @@ mutation CreateExpense(
   })
 }
 
-mutation UpdateUserPreferences(
-  $id: UUID!
-  $theme: String
-  $pushNotifications: Boolean
-  $emailAlerts: Boolean
-) @auth(level: USER) {
-  userPreference_update(
-    id: $id
-    data: {
-      theme: $theme
-      pushNotifications: $pushNotifications
-      emailAlerts: $emailAlerts
-      updatedAt_expr: "request.time"
-    }
-  )
-}
+
 mutation CreateTravelExpense($tripId: UUID!, $amount: Float!, $currency: String, $category: String!, $merchant: String!, $items: String) @auth(level: USER) {
   travelExpense_insert(data: {
     tripId: $tripId
