@@ -8,8 +8,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -56,7 +57,8 @@ fun OrdersTrackerPage(
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         val layoutDirection = LocalLayoutDirection.current
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(300.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .consumeWindowInsets(innerPadding),

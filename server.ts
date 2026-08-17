@@ -6,9 +6,10 @@ import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import { initDbSchema, initPool } from "./src/db/index.ts";
 import { getSecret, initializeSecrets } from "./src/lib/secrets.ts";
-import jwt from "jsonwebtoken";
+import { getAuth } from "firebase-admin/auth";
+import { getApp } from "firebase-admin/app";
+import fs from "fs";
 import { router } from "./server/routes.ts";
-
 const app = express();
 app.use(express.json({ limit: "6mb", strict: true }));
 app.use(router);
@@ -182,6 +183,27 @@ const getGeminiAI = async () => {
   });
 };
 
+// Cache system instruction globally
+let cachedSystemInstruction: string | null = null;
+const loadSystemInstruction = () => {
+  if (cachedSystemInstruction) return cachedSystemInstruction;
+  let systemInstruction = "You are Chef AI, a real-time voice and video cooking assistant.";
+  try {
+    const promptPath = path.join(process.cwd(), "functions/src/ai/prompts/bargainChef.prompt");
+    const promptContent = fs.readFileSync(promptPath, "utf-8");
+    const parts = promptContent.split("---");
+    if (parts.length >= 3) {
+      systemInstruction = parts.slice(2).join("---").trim();
+    } else {
+      systemInstruction = promptContent.trim();
+    }
+    cachedSystemInstruction = systemInstruction;
+  } catch (e) {
+    logStructured("WARNING", "Failed to load bargainChef.prompt", e);
+  }
+  return systemInstruction;
+};
+
 // Vite middleware / production static file serving and lifecycle management
 async function startServer() {
   const isProduction = process.env.NODE_ENV === "production";
@@ -223,8 +245,31 @@ async function startServer() {
   // Setup WebSocket Server for Live Real-time Camera & Voice Cooking Agent
   const wss = new WebSocketServer({ server, path: "/api/live-chef" });
 
-  wss.on("connection", async (clientWs) => {
+  wss.on("connection", async (clientWs, req) => {
     let session: any = null;
+
+    // Token-based auth
+    try {
+      const url = new URL(req.url || "", `ws://${req.headers.host}`);
+      const token = url.searchParams.get("token");
+      if (!token) {
+        clientWs.close(1008, "Authentication token required");
+        return;
+      }
+      const decoded = await getAuth(getApp()).verifyIdToken(token);
+      if (!decoded) {
+        clientWs.close(1008, "Invalid or expired token");
+        return;
+      }
+    } catch (err) {
+      clientWs.close(1008, "Auth error");
+      return;
+    }
+
+    // Load system instruction from Genkit dotprompt file
+    const systemInstruction = loadSystemInstruction();
+
+    let sessionClosed = false;
 
     try {
       const ai = await getGeminiAI();
@@ -235,12 +280,25 @@ async function startServer() {
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } },
           },
-          systemInstruction: "You are Chef AI, a real-time voice and video cooking assistant. You observe the user's kitchen counter or cooking ingredients via camera video stream, listen to their questions via live mic audio, and speak back with friendly, real-time step-by-step culinary guidance, ingredient substitutions, and local bargain grocery tips.",
+          systemInstruction,
           inputAudioTranscription: {},
           outputAudioTranscription: {},
+          tools: [{
+            functionDeclarations: [
+              {
+                name: "startCookingAssistance",
+                description: "Execute this function when the user asks for cooking assistance, recipes, or chef help."
+              },
+              {
+                name: "startGroceryScanner",
+                description: "Execute this function when the user asks to scan groceries or start a shopping list."
+              }
+            ]
+          }],
         },
         callbacks: {
           onmessage: (message: LiveServerMessage) => {
+            if (sessionClosed) return;
             const content = message.serverContent;
             if (content?.modelTurn?.parts) {
               for (const part of content.modelTurn.parts) {
@@ -250,6 +308,15 @@ async function startServer() {
                 if (part.text && clientWs.readyState === 1) {
                   clientWs.send(JSON.stringify({ type: "text", text: part.text }));
                 }
+                if (part.functionCall && clientWs.readyState === 1) {
+                  const fnName = part.functionCall.name;
+                  const allowedFunctions = ["startCookingAssistance", "startGroceryScanner"];
+                  if (fnName && allowedFunctions.includes(fnName)) {
+                    clientWs.send(JSON.stringify({ type: "functionCall", functionName: fnName }));
+                  } else {
+                    logStructured("WARNING", `Invalid or unnamed functionCall from model: ${fnName}`);
+                  }
+                }
               }
             }
 
@@ -258,12 +325,12 @@ async function startServer() {
             }
           },
           onerror: (err: any) => {
-            if (clientWs.readyState === 1) {
+            if (!sessionClosed && clientWs.readyState === 1) {
               clientWs.send(JSON.stringify({ type: "error", error: "Session error from Gemini Live" }));
             }
           },
           onclose: () => {
-            // Session closed — no action needed, client will handle reconnect
+            sessionClosed = true;
           }
         },
       });
@@ -307,7 +374,8 @@ async function startServer() {
     });
 
     clientWs.on("close", () => {
-      if (session) {
+      if (!sessionClosed && session) {
+        sessionClosed = true;
         try {
           session.close();
         } catch (e: any) {
@@ -322,10 +390,19 @@ async function startServer() {
   });
 
   // Graceful shutdown lifecycle management (SIGTERM/SIGINT) for GKE and Cloud Run
+  let isShuttingDown = false;
+  let forceExitTimer: NodeJS.Timeout | null = null;
+  
   const gracefulShutdown = () => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
     logStructured("INFO", "SIGTERM/SIGINT signal received. Draining connections for graceful shutdown.");
     
+    // Close WebSocket server
+    wss.close();
+    
     server.close(async () => {
+      if (forceExitTimer) clearTimeout(forceExitTimer);
       logStructured("INFO", "All in-flight requests drained. Closing database connection pools.");
       try {
         const pool = initPool();
@@ -338,7 +415,7 @@ async function startServer() {
     });
 
     // Enforce shutdown threshold limit (15 seconds) to prevent container timeouts
-    setTimeout(() => {
+    forceExitTimer = setTimeout(() => {
       logStructured("WARNING", "Shutdown threshold limit exceeded. Forcing container exit.");
       process.exit(1);
     }, 15000);
@@ -348,4 +425,7 @@ async function startServer() {
   process.on("SIGINT", gracefulShutdown);
 }
 
-startServer();
+startServer().catch((err) => {
+  logStructured("ERROR", "Failed to start server", err);
+  process.exit(1);
+});

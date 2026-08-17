@@ -18,7 +18,7 @@ actual fun rememberImagePicker(
     var showCamera by remember { mutableStateOf(false) }
     
     val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
             val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
@@ -63,7 +63,7 @@ actual fun rememberImagePicker(
                 TextButton(
                     onClick = {
                         showDialog = false
-                        galleryLauncher.launch("image/*")
+                        galleryLauncher.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     }
                 ) {
                     Text("Gallery")
@@ -74,7 +74,7 @@ actual fun rememberImagePicker(
 
     if (showCamera) {
         androidx.compose.ui.window.Dialog(
-            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
             onDismissRequest = { showCamera = false }
         ) {
             CameraCaptureView(

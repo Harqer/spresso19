@@ -43,16 +43,6 @@ export async function getSecret(secretName: string): Promise<string> {
     cachedSecrets.set(secretName, payload);
     return payload;
   } catch (error: any) {
-    // Local development fallback if GCP Secret Manager retrieval fails
-    const isProduction = process.env.NODE_ENV === "production";
-    if (!isProduction) {
-      const localVal = process.env[secretName];
-      if (localVal) {
-        console.warn(`[Secrets] Failed to access secret "${secretName}" from GCP Secret Manager: ${error.message}. Falling back to process.env.`);
-        cachedSecrets.set(secretName, localVal);
-        return localVal;
-      }
-    }
     // Never print secret values in logs; log only the secret name and exact error message
     throw new Error(`Failed to access secret "${secretName}" (version: ${versionId}) from GCP Secret Manager: ${error.message}`);
   }
@@ -65,15 +55,8 @@ export async function initializeSecrets(requiredSecrets: string[]): Promise<void
       await getSecret(name);
       console.log(`[Secrets] Successfully loaded and cached secret: ${name}`);
     } catch (err: any) {
-      const isProduction = process.env.NODE_ENV === "production";
-      if (isProduction) {
-        console.error(`[Secrets] [FATAL] Fail-fast block triggered. ${err.message}`);
-        process.exit(1);
-      } else {
-        console.warn(`[Secrets] [WARNING] Failed to load required secret: ${name}. Bypassing fatal exit for local development.`);
-        // Set a dummy fallback so the server doesn't crash later when retrieving it
-        cachedSecrets.set(name, "DUMMY_LOCAL_SECRET");
-      }
+      console.error(`[Secrets] [FATAL] Fail-fast block triggered. ${err.message}`);
+      process.exit(1);
     }
   }
 }

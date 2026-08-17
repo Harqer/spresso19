@@ -161,7 +161,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
           source: item.brandGuess || "Spresso Lens Match",
           thumbnail: imageBase64,
           category: item.category || "",
-          description: item.buyActionPrompt || "Visual match detected by Gemini."
+          description: item.buyActionPrompt || "Visual item detected."
         });
       });
 

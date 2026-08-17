@@ -26,13 +26,23 @@ fun NetworkImage(
     client: HttpClient,
     contentDescription: String?,
     modifier: Modifier = Modifier,
-    contentScale: ContentScale = ContentScale.Fit
+    contentScale: ContentScale = ContentScale.Fit,
+    fallbackBytes: ByteArray? = null
 ) {
-    var imageBitmap by remember(url) { mutableStateOf<ImageBitmap?>(null) }
-    var isLoading by remember(url) { mutableStateOf(true) }
-    var isError by remember(url) { mutableStateOf(false) }
+    var imageBitmap by remember(url, fallbackBytes) { mutableStateOf<ImageBitmap?>(null) }
+    var isLoading by remember(url, fallbackBytes) { mutableStateOf(url.isNotEmpty() && fallbackBytes == null) }
+    var isError by remember(url, fallbackBytes) { mutableStateOf(false) }
 
-    LaunchedEffect(url) {
+    LaunchedEffect(url, fallbackBytes) {
+        if (fallbackBytes != null) {
+            try {
+                imageBitmap = fallbackBytes.makeImageBitmap()
+                isLoading = false
+            } catch (e: Exception) {
+                isError = true
+            }
+            return@LaunchedEffect
+        }
         if (url.isEmpty()) { isLoading = false; isError = true; return@LaunchedEffect }
         try {
             val responseBytes: ByteArray = client.get(url).body()

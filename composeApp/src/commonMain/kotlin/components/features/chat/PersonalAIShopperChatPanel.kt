@@ -35,6 +35,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import components.features.chat.ChatBubbleText
 import components.features.chat.AIShopperInputBar
 import components.features.chat.ChatEmptyStateCard
@@ -90,8 +95,14 @@ fun PersonalAIShopperChatPanel(
             item { ChatEmptyStateCard(userName = userName, userLocation = userLocation, onSelectSuggestion = onSendMessage, modifier = Modifier.padding(top = 24.dp)) }
             items(messages) { message ->
                 val isUser = message.isUser
-                Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = if (isUser) Alignment.End else Alignment.Start, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    ChatMessageHeader(isUser = isUser, timestamp = message.timestamp)
+                var visible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) { visible = true }
+                AnimatedVisibility(
+                    visible = visible,
+                    enter = androidx.compose.animation.slideInVertically(initialOffsetY = { 50 }, animationSpec = androidx.compose.animation.core.tween(300)) + androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300))
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = if (isUser) Alignment.End else Alignment.Start, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        ChatMessageHeader(isUser = isUser, timestamp = message.timestamp)
                     ChatBubbleText(
                         text = message.text, isUser = isUser, thought = message.thought, sources = message.sources,
                         mediaUrl = message.mediaUrl, mediaType = message.mediaType, isStreaming = isGenerating && message == messages.lastOrNull() && !isUser, httpClient = httpClient
@@ -112,6 +123,7 @@ fun PersonalAIShopperChatPanel(
                                 }
                             }
                         }
+                    }
                     }
                 }
             }

@@ -59,7 +59,7 @@ export const GoogleLensResultCard: React.FC<GoogleLensResultCardProps> = ({
             )}
           </div>
 
-          <p className="text-[11px] text-slate-400 line-clamp-2">{region.description || "Visual match detected via Google Lens"}</p>
+          <p className="text-[11px] text-slate-400 line-clamp-2">{region.description || "Visual item detected"}</p>
 
           <div className="flex items-center justify-between pt-2 gap-2">
             <span className="text-[10px] text-slate-500 font-mono">{region.source || "Google Catalog"}</span>

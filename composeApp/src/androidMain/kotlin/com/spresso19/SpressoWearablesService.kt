@@ -38,10 +38,6 @@ class SpressoWearablesService : Service() {
     private var stream: Stream? = null
     private var webSocket: WebSocket? = null
     private var audioManager: AudioManager? = null
-
-    // Fallback if not injected via BuildConfig
-    private val apiKey = "AIzaSy_YOUR_API_KEY_HERE"
-
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -60,60 +56,23 @@ class SpressoWearablesService : Service() {
 
     private fun setupWebSocket() {
         val client = OkHttpClient()
-        val url = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.BidiService/BidiGenerateContent?key=$apiKey"
+        val backendUrl = network.SpressoConfig.backendBaseUrl.replace("http", "ws")
+        val url = "$backendUrl/api/live-chef"
         val request = Request.Builder().url(url).build()
 
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                Log.i("SpressoWearables", "Gemini WebSocket Opened")
-                
-                // Send setup message with the correct model and tool declarations
-                val setupMessage = JSONObject().apply {
-                    put("setup", JSONObject().apply {
-                        put("model", "models/gemini-2.0-flash-exp")
-                        put("systemInstruction", JSONObject().apply {
-                            put("parts", JSONArray().apply {
-                                put(JSONObject().apply {
-                                    put("text", "You are Spresso, an AI personal shopper and cooking assistant. Use the provided tools when the user asks for cooking assistance or grocery scanning.")
-                                })
-                            })
-                        })
-                        put("tools", JSONArray().apply {
-                            put(JSONObject().apply {
-                                put("functionDeclarations", JSONArray().apply {
-                                    put(JSONObject().apply {
-                                        put("name", "startCookingAssistance")
-                                        put("description", "Execute this function when the user asks for cooking assistance, recipes, or chef help.")
-                                    })
-                                    put(JSONObject().apply {
-                                        put("name", "startGroceryScanner")
-                                        put("description", "Execute this function when the user asks to scan groceries or start a shopping list.")
-                                    })
-                                })
-                            })
-                        })
-                    })
-                }
-                webSocket.send(setupMessage.toString())
+                Log.i("SpressoWearables", "Gemini WebSocket Opened to Backend proxy")
+                // No setup message needed; backend handles setup and tool declarations securely
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
                 Log.d("SpressoWearables", "Gemini text msg: $text")
                 try {
                     val json = JSONObject(text)
-                    if (json.has("serverContent")) {
-                        val serverContent = json.getJSONObject("serverContent")
-                        if (serverContent.has("modelTurn")) {
-                            val parts = serverContent.getJSONObject("modelTurn").getJSONArray("parts")
-                            for (i in 0 until parts.length()) {
-                                val part = parts.getJSONObject(i)
-                                if (part.has("functionCall")) {
-                                    val functionCall = part.getJSONObject("functionCall")
-                                    val functionName = functionCall.getString("name")
-                                    handleIntentRouting(functionName)
-                                }
-                            }
-                        }
+                    if (json.has("type") && json.getString("type") == "functionCall") {
+                        val functionName = json.getString("functionName")
+                        handleIntentRouting(functionName)
                     }
                 } catch (e: Exception) {
                     Log.e("SpressoWearables", "Error parsing JSON: ", e)
@@ -130,16 +89,20 @@ class SpressoWearablesService : Service() {
         Log.i("SpressoWearables", "Routing Intent: $functionName")
         when (functionName) {
             "startCookingAssistance" -> {
-                Log.i("SpressoWearables", "Executing Cooking Agent...")
-                // In a real implementation, we would broadcast this intent to the UI
-                // so the Compose layer can navigate to the ChefAssistancePage
-                val intent = Intent("com.spresso19.intent.action.START_COOKING")
+                Log.i("SpressoWearables", "Executing Cooking Agent with Safeguard...")
+                // SAFEGUARD: Do not blindly execute device-level actions.
+                // Broadcast a confirmation intent to require explicit user consent in the UI.
+                val intent = Intent("com.spresso19.intent.action.CONFIRM_START_COOKING")
                 sendBroadcast(intent)
             }
             "startGroceryScanner" -> {
-                Log.i("SpressoWearables", "Executing Grocery Scanner...")
-                val intent = Intent("com.spresso19.intent.action.START_GROCERY")
+                Log.i("SpressoWearables", "Executing Grocery Scanner with Safeguard...")
+                // SAFEGUARD: Do not blindly execute device-level actions.
+                val intent = Intent("com.spresso19.intent.action.CONFIRM_START_GROCERY")
                 sendBroadcast(intent)
+            }
+            else -> {
+                Log.w("SpressoWearables", "Rejected unauthorized function call: $functionName")
             }
         }
     }
@@ -182,14 +145,8 @@ class SpressoWearablesService : Service() {
                     // Send actual frames to Gemini Multimodal Live API
                     try {
                         val message = JSONObject().apply {
-                            put("realtimeInput", JSONObject().apply {
-                                put("mediaChunks", JSONArray().apply {
-                                    put(JSONObject().apply {
-                                        put("mimeType", "image/jpeg")
-                                        put("data", android.util.Base64.encodeToString(frame.buffer.array(), android.util.Base64.NO_WRAP))
-                                    })
-                                })
-                            })
+                            put("type", "video")
+                            put("video", android.util.Base64.encodeToString(frame.buffer.array(), android.util.Base64.NO_WRAP))
                         }
                         webSocket?.send(message.toString())
                     } catch (e: Exception) {
@@ -214,7 +171,7 @@ class SpressoWearablesService : Service() {
 
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle("Spresso Glasses Active")
-            .setContentText("Connected to Meta Wearables & Gemini Live API")
+            .setContentText("Connected to Smart Glasses")
             .setSmallIcon(android.R.drawable.ic_menu_camera)
             .build()
     }

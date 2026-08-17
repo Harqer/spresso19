@@ -62,7 +62,11 @@ fun CreatorAgentsSection(apiClient: ApiClient, scope: kotlinx.coroutines.Corouti
 
         Surface(modifier = Modifier.weight(1f), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(300.dp),
+                    modifier = Modifier.weight(1f), 
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     items(messages) { (text, isUser) ->
                         Surface(
                             color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,

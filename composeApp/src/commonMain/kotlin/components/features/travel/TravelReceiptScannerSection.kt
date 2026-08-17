@@ -1,6 +1,8 @@
 package components.features.travel
 
 import components.models.*
+import components.features.travel.molecules.AddExpenseFormMolecule
+import components.features.travel.molecules.LoggedExpenseItemMolecule
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,6 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
+@OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
 @Composable
 fun ReceiptScannerSection(
     activeTripId: String,
@@ -43,6 +46,28 @@ fun ReceiptScannerSection(
     var newExpenseMerchant by remember { mutableStateOf("") }
     var newExpenseAmount by remember { mutableStateOf("") }
     var newExpenseCategory by remember { mutableStateOf("Dining") }
+
+    val receiptScanner = ui.rememberReceiptScanner(
+        onResult = { merchant, amount ->
+            newExpenseMerchant = merchant
+            newExpenseAmount = amount
+            isScanningReceipt = false
+        },
+        onError = { error ->
+            newExpenseMerchant = "Error scanning: $error"
+            newExpenseAmount = "0.0"
+            isScanningReceipt = false
+        }
+    )
+
+    val imagePicker = ui.rememberImagePicker { bytes ->
+        if (bytes != null) {
+            isScanningReceipt = true
+            receiptScanner(bytes)
+        } else {
+            isScanningReceipt = false
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -67,23 +92,7 @@ fun ReceiptScannerSection(
                     modifier = Modifier
                         .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(50))
                         .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))
-                        .clickable {
-                            isScanningReceipt = true
-                            scope.launch { 
-                                try {
-                                    val client = network.ApiClient()
-                                    val response = client.performLensSearch("sample_base64_image_data")
-                                    val firstItem = response.detectedResult?.detectedItems?.firstOrNull()
-                                    newExpenseMerchant = firstItem?.brandGuess ?: firstItem?.detectedName ?: response.apifyResults.firstOrNull()?.title ?: "Parsed Merchant"
-                                    newExpenseAmount = firstItem?.priceEstimate?.toString() ?: response.apifyResults.firstOrNull()?.price?.toString() ?: "120.0"
-                                } catch (e: Exception) {
-                                    newExpenseMerchant = "Error scanning"
-                                    newExpenseAmount = "0.0"
-                                } finally {
-                                    isScanningReceipt = false 
-                                }
-                            }
-                        }
+                        .clickable { imagePicker() }
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -102,96 +111,31 @@ fun ReceiptScannerSection(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = newExpenseMerchant,
-                    onValueChange = { newExpenseMerchant = it },
-                    placeholder = { Text("Merchant / Vendor Name", style = MaterialTheme.typography.bodySmall) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
-                    textStyle = MaterialTheme.typography.bodySmall,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary
-                    ),
-                    singleLine = true
-                )
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = newExpenseAmount,
-                        onValueChange = { newExpenseAmount = it },
-                        placeholder = { Text("Amount ($)", style = MaterialTheme.typography.bodySmall) },
-                        modifier = Modifier.weight(1f).heightIn(min = 40.dp),
-                        textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary
-                        ),
-                        singleLine = true
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                            .clickable {
-                                newExpenseCategory = if (newExpenseCategory == "Dining") "Flight" else "Dining"
-                            }
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Text(newExpenseCategory, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+            AddExpenseFormMolecule(
+                newExpenseMerchant = newExpenseMerchant,
+                onMerchantChange = { newExpenseMerchant = it },
+                newExpenseAmount = newExpenseAmount,
+                onAmountChange = { newExpenseAmount = it },
+                newExpenseCategory = newExpenseCategory,
+                onCategoryChange = { newExpenseCategory = it },
+                onAddExpense = {
+                    if (newExpenseMerchant.isNotBlank() && newExpenseAmount.isNotBlank()) {
+                        val amt = newExpenseAmount.toDoubleOrNull() ?: 0.0
+                        val item = TravelExpense(
+                            id = "exp-${kotlin.random.Random.nextInt()}",
+                            tripId = activeTripId,
+                            amount = amt,
+                            currency = "USD",
+                            category = newExpenseCategory,
+                            merchant = newExpenseMerchant,
+                            date = "Today"
+                        )
+                        onAddExpense(item)
+                        newExpenseMerchant = ""
+                        newExpenseAmount = ""
                     }
                 }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
-                        .clickable {
-                            if (newExpenseMerchant.isNotBlank() && newExpenseAmount.isNotBlank()) {
-                                val amt = newExpenseAmount.toDoubleOrNull() ?: 0.0
-                                val item = TravelExpense(
-                                    id = "exp-${kotlin.random.Random.nextInt()}",
-                                    tripId = activeTripId,
-                                    amount = amt,
-                                    currency = "USD",
-                                    category = newExpenseCategory,
-                                    merchant = newExpenseMerchant,
-                                    date = "Today"
-                                )
-                                onAddExpense(item)
-                                newExpenseMerchant = ""
-                                newExpenseAmount = ""
-                            }
-                        }
-                        .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AddCircle,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Log Travel Expense",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            }
+            )
 
             val outlineVariantColor = MaterialTheme.colorScheme.outlineVariant
             Column(
@@ -215,33 +159,7 @@ fun ReceiptScannerSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 tripExpenses.forEach { exp ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                            .padding(10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = exp.merchant,
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "${exp.category} • ${exp.date}",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Text(
-                            text = "$${exp.amount}",
-                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    LoggedExpenseItemMolecule(exp = exp)
                 }
             }
         }

@@ -45,27 +45,28 @@ class ChatViewModel(
         val currentProducts = mutableListOf<ProductItem>()
         
         scope.launch {
-            errorMessage = null
-            apiClient.streamChat(
-                prompt = prompt,
-                imageBase64 = imageBase64,
-                location = location,
-                latLng = latLng,
-                agentType = agentType
-            )
-                .onStart { isGenerating = true }
-                .onCompletion { isGenerating = false }
-                .catch { e ->
-                    isGenerating = false
-                    val errorText = e.message ?: "Unable to complete request. Please verify connection and retry."
-                    updateOrAddAiMessage(
-                        id = aiMsgId,
-                        text = if (aiText.isNotBlank()) aiText else "Unable to fetch live recommendations: $errorText",
-                        thought = null,
-                        sources = currentSources,
-                        products = currentProducts
-                    )
-                }
+            try {
+                errorMessage = null
+                apiClient.streamChat(
+                    prompt = prompt,
+                    imageBase64 = imageBase64,
+                    location = location,
+                    latLng = latLng,
+                    agentType = agentType
+                )
+                    .onStart { isGenerating = true }
+                    .onCompletion { isGenerating = false }
+                    .catch { e ->
+                        isGenerating = false
+                        val errorText = e.message ?: "Unable to complete request. Please verify connection and retry."
+                        updateOrAddAiMessage(
+                            id = aiMsgId,
+                            text = if (aiText.isNotBlank()) aiText else "Unable to fetch live recommendations: $errorText",
+                            thought = null,
+                            sources = currentSources,
+                            products = currentProducts
+                        )
+                    }
                 .collect { chunk ->
                     when (chunk.type) {
                         "text", "text_delta" -> {
@@ -102,6 +103,17 @@ class ChatViewModel(
                         }
                     }
                 }
+            } catch (e: Exception) {
+                isGenerating = false
+                val errorText = e.message ?: "An unexpected error occurred."
+                updateOrAddAiMessage(
+                    id = aiMsgId,
+                    text = if (aiText.isNotBlank()) aiText else "Unable to fetch live recommendations: $errorText",
+                    thought = null,
+                    sources = currentSources,
+                    products = currentProducts
+                )
+            }
         }
     }
 
@@ -132,23 +144,23 @@ class ChatViewModel(
                                 category = item.category,
                                 price = item.priceEstimate,
                                 imageUrl = "",
-                                rating = 4.8
+                                rating = null
                             )
                         )
                     }
 
                     lensResponse.apifyResults.forEachIndexed { index, match ->
                         if (!match.title.isNullOrBlank()) {
-                            val priceVal = match.price?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull() ?: 0.0
+                            val priceVal = match.price?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
                             products.add(
                                 ProductItem(
                                     id = "lens-apify-$index",
                                     name = match.title,
                                     brand = match.source ?: "Lens Result",
                                     category = "Search Match",
-                                    price = priceVal,
+                                    price = priceVal ?: 0.0, // UI layer requires a double, but maybe we can make price nullable? Wait, I will keep 0.0 if it's not nullable, or if nullable use null
                                     imageUrl = match.imageUrl ?: "",
-                                    rating = 4.8
+                                    rating = null
                                 )
                             )
                         }
@@ -224,7 +236,11 @@ class ChatViewModel(
     fun sendVoiceChunk(base64Audio: String) {
         if (isVoiceActive) {
             scope.launch {
-                liveApiClient.sendAudioChunk(base64Audio)
+                try {
+                    liveApiClient.sendAudioChunk(base64Audio)
+                } catch (e: Exception) {
+                    println("ChatViewModel sendVoiceChunk error: ${e.message}")
+                }
             }
         }
     }
@@ -232,7 +248,11 @@ class ChatViewModel(
     fun sendLiveVideoFrame(base64Image: String) {
         if (isVoiceActive) {
             scope.launch {
-                liveApiClient.sendVideoFrame(base64Image)
+                try {
+                    liveApiClient.sendVideoFrame(base64Image)
+                } catch (e: Exception) {
+                    println("ChatViewModel sendLiveVideoFrame error: ${e.message}")
+                }
             }
         }
     }
@@ -263,6 +283,13 @@ class ChatViewModel(
         } else {
             messages.add(newMessage)
         }
+    }
+
+    fun clearSession() {
+        stopVoiceStream()
+        messages.clear()
+        errorMessage = null
+        isGenerating = false
     }
 }
 

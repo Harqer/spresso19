@@ -72,15 +72,12 @@ public object ProjectedContext {
      */
     @JvmStatic
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    public fun getProjectedDeviceName(context: Context): String? =
-        // TODO: b/424812882 - Turn this into a lint check with an annotation.
-        if (isProjectedDeviceContext(context)) {
-            getVirtualDevice(context)?.name
-        } else {
-            throw IllegalArgumentException(
-                "Provided context is not the Projected device context. Can't get the device name."
-            )
+    public fun getProjectedDeviceName(context: Context): String? {
+        require(isProjectedDeviceContext(context)) {
+            "Provided context is not the Projected device context. Can't get the device name."
         }
+        return getVirtualDevice(context)?.name
+    }
 
     /** Returns whether the provided context is the Projected device context. */
     @JvmStatic
@@ -223,8 +220,7 @@ public object ProjectedContext {
         context
             .getSystemService(VirtualDeviceManager::class.java)
             .virtualDevices
-            // TODO: b/424824481 - Replace the name matching with a better method.
-            .find { it.name?.startsWith(PROJECTED_DEVICE_NAME) ?: false }
+            .find { it.name?.startsWith(PROJECTED_DEVICE_NAME) == true }
             ?.deviceId
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)

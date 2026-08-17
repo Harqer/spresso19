@@ -54,11 +54,6 @@ fun PersonalAIShopperChatPage(
         }
     }
 
-    LaunchedEffect(liveTranscript) {
-        if (liveTranscript.isNotEmpty()) {
-            messages.add(ChatMessage(id = "live-" + messages.size, text = liveTranscript, isUser = false))
-        }
-    }
 
     if (showAccessibilityDisclosure) {
         var acknowledged by remember(showAccessibilityDisclosure) { mutableStateOf(false) }

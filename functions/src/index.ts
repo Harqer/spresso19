@@ -1,8 +1,21 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
 import { setGlobalOptions } from "firebase-functions/v2";
 import * as admin from "firebase-admin";
-import { GoogleGenAI } from "@google/genai";
+
 import { PubSub } from "@google-cloud/pubsub";
+import { spressoShopperFlow } from "./ai/flows/shopperFlow";
+
+const serpapiKey = defineSecret("SERPAPI_API_KEY");
+
+export const spressoShopper = onCall({ secrets: [serpapiKey] }, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "You must be signed in.");
+    }
+    const { prompt } = request.data;
+    const result = await spressoShopperFlow({ prompt }, { context: { auth: request.auth } });
+    return { response: result.response };
+});
 
 admin.initializeApp();
 
@@ -12,7 +25,9 @@ setGlobalOptions({
     concurrency: 80
 });
 
-const ai = new GoogleGenAI({});
+import { virtualTryOnFlow } from "./ai/flows/virtualTryOnFlow";
+import { spin360Flow } from "./ai/flows/spin360Flow";
+
 const pubSubClient = new PubSub();
 const interactionsTopic = pubSubClient.topic("interactions-topic");
 
@@ -28,30 +43,10 @@ export const generateVirtualTryOn = onCall(async (request) => {
     }
 
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-3.5-flash",
-            contents: [
-                {
-                    role: "user",
-                    parts: [
-                        {
-                            text: "You are a virtual try-on AI. Analyze this image of a person and describe how the featured clothing or accessory looks on them in detail. Provide realistic feedback on fit, style, and color compatibility."
-                        },
-                        {
-                            inlineData: { mimeType: "image/jpeg", data: base64Image }
-                        }
-                    ]
-                }
-            ]
-        });
-
-        const outputText = response.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!outputText) {
-            throw new Error("Empty response from Gemini");
-        }
+        const result = await virtualTryOnFlow({ base64Image });
 
         return {
-            mediaUrl: outputText
+            mediaUrl: result.response
         };
     } catch (error) {
         if (error instanceof HttpsError) throw error;
@@ -86,18 +81,14 @@ export const generateSpin360 = onCall(async (request) => {
         }
 
         // Fallback: ask Gemini to describe the 360 view from available product metadata
-        const response = await ai.models.generateContent({
-            model: "gemini-3.5-flash",
-            contents: [{
-                role: "user",
-                parts: [{
-                    text: `Generate a detailed 360-degree product description for: ${productData.name || productId}. Brand: ${productData.brand || "unknown"}. Category: ${productData.category || "unknown"}.`
-                }]
-            }]
+        const result = await spin360Flow({
+            productId: productData.id || productId,
+            name: productData.name,
+            brand: productData.brand,
+            category: productData.category
         });
 
-        const outputText = response.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-        return { mediaUrl: outputText };
+        return { mediaUrl: result.response };
     } catch (error) {
         if (error instanceof HttpsError) throw error;
         console.error("Spin 360 generation failed:", error);

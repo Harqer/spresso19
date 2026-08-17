@@ -12,10 +12,9 @@ import { MaterialIcon } from "./MaterialIcon";
 
 interface AuthScreenProps {
   onSuccess?: () => void;
-  onDevBypass?: () => void;
 }
 
-export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onDevBypass }) => {
+export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -151,17 +150,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, onDevBypass }
 
         {/* Container for invisible reCAPTCHA */}
         <div id="recaptcha-container" />
-
-        {/* Development Bypass Button */}
-        {import.meta.env.DEV && onDevBypass && (
-          <button
-            type="button"
-            onClick={onDevBypass}
-            className="w-full py-3 px-5 mb-3 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-bold text-xs rounded-full transition-all shadow-sm flex items-center justify-center cursor-pointer active:scale-[0.98]"
-          >
-            Bypass Login (Dev Mode)
-          </button>
-        )}
 
         {/* Reusable Social Auth Action Buttons: Continue with Google & Continue with Phone */}
         <div className="space-y-3">

@@ -34,7 +34,6 @@ fun AuthForm(
     loading: Boolean,
     errorMsg: String?,
     onGoogleSignInRequested: () -> Unit,
-    onDevLoginRequested: () -> Unit,
     onSubmitRequested: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -70,12 +69,6 @@ fun AuthForm(
                 Text(if (mode == "signin") "Sign In" else "Create Account", fontWeight = FontWeight.Bold)
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
             }
-        }
-        TextButton(
-            onClick = onDevLoginRequested,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Dev Login Bypass", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

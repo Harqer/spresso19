@@ -16,6 +16,10 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Recommend
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import components.features.onboarding.OnboardingStepCard
@@ -37,6 +41,8 @@ fun GamifiedOnboardingSection(
     onSyncWardrobe: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -88,17 +94,21 @@ fun GamifiedOnboardingSection(
 
                 else -> {
                     val scope = androidx.compose.runtime.rememberCoroutineScope()
+                    val apiClient = androidx.compose.runtime.remember { network.ApiClient() }
                     OnboardingStepCard(
                         title = "For You Recommendations",
                         description = "We are curating your personalized recommendations, exclusive deals, and trending styles based on your unique fashion profile as we learn more about your tastes.",
                         icon = Icons.Default.Recommend,
                         isCompleted = true,
-                        actionText = "Claim SPRESSO10 VIP Pass",
+                        actionText = if (errorMessage != null) errorMessage!! else "Claim SPRESSO10 VIP Pass",
                         onActionClick = { 
                             scope.launch {
                                 try {
-                                    network.ApiClient().recordInteraction("VIP_PASS", "CLAIM")
-                                } catch (e: Exception) {}
+                                    apiClient.recordInteraction("VIP_PASS", "CLAIM")
+                                } catch (e: Exception) {
+                                    errorMessage = "Failed to claim VIP pass. Please try again."
+                                    network.Telemetry.recordError("Failed to claim VIP pass", e)
+                                }
                             }
                         }
                     )

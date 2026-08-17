@@ -33,23 +33,34 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ingestInteraction = exports.generateSpin360 = exports.generateVirtualTryOn = void 0;
+exports.ingestInteraction = exports.generateSpin360 = exports.generateVirtualTryOn = exports.spressoShopper = void 0;
 const https_1 = require("firebase-functions/v2/https");
+const params_1 = require("firebase-functions/params");
 const v2_1 = require("firebase-functions/v2");
 const admin = __importStar(require("firebase-admin"));
-const genai_1 = require("@google/genai");
 const pubsub_1 = require("@google-cloud/pubsub");
+const shopperFlow_1 = require("./ai/flows/shopperFlow");
+const serpapiKey = (0, params_1.defineSecret)("SERPAPI_API_KEY");
+exports.spressoShopper = (0, https_1.onCall)({ secrets: [serpapiKey] }, async (request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError("unauthenticated", "You must be signed in.");
+    }
+    const { prompt } = request.data;
+    const result = await (0, shopperFlow_1.spressoShopperFlow)({ prompt }, { context: { auth: request.auth } });
+    return { response: result.response };
+});
 admin.initializeApp();
 // Set 2nd Gen global options for optimal region, concurrency and runtime defaults
 (0, v2_1.setGlobalOptions)({
     region: "us-central1",
     concurrency: 80
 });
-const ai = new genai_1.GoogleGenAI({});
+const virtualTryOnFlow_1 = require("./ai/flows/virtualTryOnFlow");
+const spin360Flow_1 = require("./ai/flows/spin360Flow");
 const pubSubClient = new pubsub_1.PubSub();
 const interactionsTopic = pubSubClient.topic("interactions-topic");
 exports.generateVirtualTryOn = (0, https_1.onCall)(async (request) => {
-    var _a, _b, _c, _d, _e, _f;
+    var _a;
     // Enforce authentication — unauthenticated callers are rejected
     if (!request.auth) {
         throw new https_1.HttpsError("unauthenticated", "You must be signed in to use Virtual Try-On.");
@@ -59,38 +70,20 @@ exports.generateVirtualTryOn = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("invalid-argument", 'The function must be called with an "image" field.');
     }
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-3.5-flash",
-            contents: [
-                {
-                    role: "user",
-                    parts: [
-                        {
-                            text: "You are a virtual try-on AI. Analyze this image of a person and describe how the featured clothing or accessory looks on them in detail. Provide realistic feedback on fit, style, and color compatibility."
-                        },
-                        {
-                            inlineData: { mimeType: "image/jpeg", data: base64Image }
-                        }
-                    ]
-                }
-            ]
-        });
-        const outputText = (_f = (_e = (_d = (_c = (_b = response.candidates) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.content) === null || _d === void 0 ? void 0 : _d.parts) === null || _e === void 0 ? void 0 : _e[0]) === null || _f === void 0 ? void 0 : _f.text;
-        if (!outputText) {
-            throw new Error("Empty response from Gemini");
-        }
+        const result = await (0, virtualTryOnFlow_1.virtualTryOnFlow)({ base64Image });
         return {
-            mediaUrl: outputText
+            mediaUrl: result.response
         };
     }
     catch (error) {
         if (error instanceof https_1.HttpsError)
             throw error;
+        console.error("Virtual Try-On generation failed:", error);
         throw new https_1.HttpsError("internal", "AI generation failed");
     }
 });
 exports.generateSpin360 = (0, https_1.onCall)(async (request) => {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a;
     // Enforce authentication
     if (!request.auth) {
         throw new https_1.HttpsError("unauthenticated", "You must be signed in to use Spin 360.");
@@ -111,21 +104,18 @@ exports.generateSpin360 = (0, https_1.onCall)(async (request) => {
             return { mediaUrl: spin360Url };
         }
         // Fallback: ask Gemini to describe the 360 view from available product metadata
-        const response = await ai.models.generateContent({
-            model: "gemini-3.5-flash",
-            contents: [{
-                    role: "user",
-                    parts: [{
-                            text: `Generate a detailed 360-degree product description for: ${productData.name || productId}. Brand: ${productData.brand || "unknown"}. Category: ${productData.category || "unknown"}.`
-                        }]
-                }]
+        const result = await (0, spin360Flow_1.spin360Flow)({
+            productId: productData.id || productId,
+            name: productData.name,
+            brand: productData.brand,
+            category: productData.category
         });
-        const outputText = (_g = (_f = (_e = (_d = (_c = (_b = response.candidates) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.content) === null || _d === void 0 ? void 0 : _d.parts) === null || _e === void 0 ? void 0 : _e[0]) === null || _f === void 0 ? void 0 : _f.text) !== null && _g !== void 0 ? _g : "";
-        return { mediaUrl: outputText };
+        return { mediaUrl: result.response };
     }
     catch (error) {
         if (error instanceof https_1.HttpsError)
             throw error;
+        console.error("Spin 360 generation failed:", error);
         throw new https_1.HttpsError("internal", "AI generation failed");
     }
 });
@@ -157,6 +147,7 @@ exports.ingestInteraction = (0, https_1.onCall)(async (request) => {
         };
     }
     catch (e) {
+        console.error("Interaction ingestion failed:", e);
         throw new https_1.HttpsError("internal", "Failed to process interaction");
     }
 });

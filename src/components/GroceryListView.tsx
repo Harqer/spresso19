@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem } from "../types";
 
@@ -29,7 +30,9 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (e) {}
+    } catch (e: any) {
+      console.warn("Failed to parse local grocery list:", e);
+    }
     return (products || []).map((p) => ({
       id: p.id,
       name: p.name,
@@ -46,11 +49,40 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
   const [newItemCategory, setNewItemCategory] = useState("Produce");
   const [filterCategory, setFilterCategory] = useState("All");
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     try {
       localStorage.setItem("spresso_vertical_grocery_list", JSON.stringify(items));
-    } catch (e) {}
+      setError(null);
+    } catch (e: any) {
+      console.warn("Failed to save local grocery list:", e);
+      setError("Failed to save your list locally.");
+    }
   }, [items]);
+
+  useEffect(() => {
+    if (products && products.length > 0) {
+      setItems(prev => {
+        const newItems = products
+          .filter(p => !prev.some(item => item.id === p.id))
+          .map(p => ({
+            id: p.id,
+            name: p.name,
+            quantity: 1,
+            unit: "item",
+            category: p.category ? p.category.replace(/^Grocery\s*-\s*/, '') : "Produce",
+            estimatedPrice: p.price,
+            checked: false,
+            storeNote: p.brand ? `${p.brand} • $${(p.price || 0).toFixed(2)}` : undefined
+          }));
+        if (newItems.length > 0) {
+          return [...newItems, ...prev];
+        }
+        return prev;
+      });
+    }
+  }, [products]);
 
   const toggleCheck = (id: string) => {
     setItems(prev => prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
@@ -146,6 +178,13 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
         )}
       </div>
 
+      {error && (
+        <div className="bg-red-50 text-[#a84a32] text-xs px-6 py-2 border-b border-red-100 flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="cursor-pointer font-bold">✕</button>
+        </div>
+      )}
+
       {/* Quick Add Input Bar */}
       <form onSubmit={handleAddItem} className="p-4 border-b border-[#d8ebd7] bg-white flex items-center gap-2">
         <input
@@ -198,8 +237,14 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
             <p className="text-xs">No items found in this category.</p>
           </div>
         ) : (
-          filteredItems.map(item => (
-            <div
+          <AnimatePresence mode="popLayout">
+            {filteredItems.map(item => (
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: 15, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
               key={item.id}
               className={`flex items-center justify-between p-3.5 rounded-2xl transition ${
                 item.checked
@@ -290,8 +335,9 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
                   <MaterialIcon icon="delete_outline" size={18} />
                 </button>
               </div>
-            </div>
-          ))
+            </motion.div>
+          ))}
+          </AnimatePresence>
         )}
       </div>
     </div>

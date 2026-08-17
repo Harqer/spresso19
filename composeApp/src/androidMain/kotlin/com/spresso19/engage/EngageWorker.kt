@@ -57,7 +57,7 @@ class EngageWorker(context: Context, workerParams: WorkerParameters) : Coroutine
 
     private suspend fun publishRecommendations(): Result {
         val publishTask: Task<Void> = client.publishRecommendationClusters(
-            clusterRequestFactory.constructRecommendationClustersRequest()
+            clusterRequestFactory.constructRecommendationClustersRequest(emptyList())
         )
         return publishAndProvideResult(publishTask)
     }

@@ -59,8 +59,8 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
 
   // Generate dynamic time-of-day greeting (e.g., "Good evening.")
   const greeting = generateDynamicGreeting(userName);
-
   const locationContext = userLocation ? ` near ${userLocation}` : "";
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   const quickPrompts = [
     {
@@ -113,7 +113,9 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
         if (history.length > 20) history.pop();
         localStorage.setItem("spresso_search_inquiries", JSON.stringify(history));
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("Failed to update search history:", e);
+    }
 
     const userMsg: PersonalChatMsg = {
       id: `user-${Date.now()}`,
@@ -132,6 +134,11 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
     setMessages(prev => [...prev, userMsg, aiMsg]);
     setIsGenerating(true);
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
       const response = await authFetch("/api/chat/stream", {
         method: "POST",
@@ -141,7 +148,8 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
           userName,
           location: userLocation,
           agentType: "SHOPPING_CONCIERGE"
-        })
+        }),
+        signal: abortControllerRef.current.signal
       });
 
       if (!response.ok) {
@@ -186,9 +194,9 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
                         category: p.category || "Shopping",
                         description: p.description || "",
                         image: p.image || p.imageUrl || "",
-                        stock: 10,
-                        sku: `REC-${p.id}`,
-                        rating: 5.0,
+                        stock: p.stock !== undefined ? p.stock : 0,
+                        sku: p.sku || `REC-${p.id}`,
+                        rating: p.rating !== undefined ? p.rating : undefined,
                         virtualTryOnEligible: true,
                         mcpServerId: "spresso-mcp-retail"
                       };
@@ -214,7 +222,9 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
                   )
                 );
               }
-            } catch (e) {}
+            } catch (e) {
+              console.warn("Failed to parse SSE JSON chunk");
+            }
           }
         }
       }
@@ -247,9 +257,19 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
         const jsonStr = match[1] || match[0];
         return JSON.parse(jsonStr.trim());
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("Failed to extract JSON block from AI output");
+    }
     return null;
   };
+
+  React.useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px)] bg-[var(--md-sys-color-surface)]">

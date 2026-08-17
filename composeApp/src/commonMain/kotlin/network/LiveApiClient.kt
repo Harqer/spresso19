@@ -12,6 +12,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlinx.coroutines.cancel
 
 enum class ConnectionState {
     DISCONNECTED,
@@ -140,11 +141,11 @@ open class LiveApiClient {
         isManuallyClosed = false
         val configuredUrl = try { SpressoConfig.backendWebSocketUrl } catch (_: Exception) { "" }
         val url = if (configuredUrl.isNotBlank()) configuredUrl else DEFAULT_WEBSOCKET_URL
-        val authToken = getCurrentUserIdToken()
 
         var attempt = 0
 
         while (!isManuallyClosed) {
+            val authToken = getCurrentUserIdToken()
             try {
                 connectionState = if (attempt == 0) ConnectionState.CONNECTING else ConnectionState.RECONNECTING
                 onStateChanged(connectionState)
@@ -162,8 +163,8 @@ open class LiveApiClient {
                     onStateChanged(ConnectionState.CONNECTED)
                     attempt = 0 // Reset reconnect attempts on successful handshake
 
-                    while (isActive && !isManuallyClosed) {
-                        val incomingFrame = incoming.receive()
+                    for (incomingFrame in incoming) {
+                        if (!isActive || isManuallyClosed) break
                         if (incomingFrame is Frame.Text) {
                             val frameText = incomingFrame.readText()
                             try {
@@ -216,6 +217,11 @@ open class LiveApiClient {
                     }
                 }
             } catch (e: Exception) {
+                try {
+                    session?.cancel()
+                } catch (ce: Exception) {
+                    println("LiveApiClient cancel session error: ${ce.message}")
+                }
                 session = null
                 if (isManuallyClosed) {
                     connectionState = ConnectionState.DISCONNECTED
@@ -327,9 +333,18 @@ open class LiveApiClient {
 
     open fun close() {
         isManuallyClosed = true
+        try {
+            session?.cancel()
+        } catch (e: Exception) {
+            println("LiveApiClient session cancel error: ${e.message}")
+        }
         session = null
         connectionState = ConnectionState.DISCONNECTED
-        client.close()
+        try {
+            client.close()
+        } catch (e: Exception) {
+            println("LiveApiClient client close error: ${e.message}")
+        }
     }
 }
 

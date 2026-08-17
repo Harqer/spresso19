@@ -1,14 +1,20 @@
 package components.molecules
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -18,13 +24,17 @@ import components.core.NetworkImage
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import network.ApiClient
+import components.atoms.ReactionBadge
+import components.molecules.ExpressiveReactionPalette
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MediaActionCard(
     imageUrl: String,
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    imageBytes: ByteArray? = null,
     onClick: (() -> Unit)? = null,
     badgeContent: (@Composable () -> Unit)? = null,
     actionRow: (@Composable RowScope.() -> Unit)? = null,
@@ -32,7 +42,9 @@ fun MediaActionCard(
     trackingAction: String? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val apiClient = ApiClient()
+    val apiClient = androidx.compose.runtime.remember { network.ApiClient() }
+    var showReactionPalette by remember { mutableStateOf(false) }
+    var selectedReaction by remember { mutableStateOf<ImageVector?>(null) }
 
     val trackedOnClick: (() -> Unit)? = onClick?.let { clickAction ->
         {
@@ -48,7 +60,10 @@ fun MediaActionCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (trackedOnClick != null) Modifier.clickable { trackedOnClick() } else Modifier),
+            .combinedClickable(
+                onClick = { trackedOnClick?.invoke() },
+                onLongClick = { showReactionPalette = true }
+            ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
@@ -57,7 +72,8 @@ fun MediaActionCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column {
             // Media Area
             Box(
                 modifier = Modifier
@@ -69,7 +85,8 @@ fun MediaActionCard(
                     client = apiClient.client,
                     contentDescription = title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    fallbackBytes = imageBytes
                 )
                 
                 if (badgeContent != null) {
@@ -80,6 +97,15 @@ fun MediaActionCard(
                     ) {
                         badgeContent()
                     }
+                }
+                
+                if (selectedReaction != null) {
+                    ReactionBadge(
+                        icon = selectedReaction!!,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .align(Alignment.BottomEnd)
+                    )
                 }
             }
 
@@ -116,7 +142,22 @@ fun MediaActionCard(
                         content = actionRow
                     )
                 }
-            }
+            } // Content Area
+            } // Outer Column
+            
+            ExpressiveReactionPalette(
+                visible = showReactionPalette,
+                onReactionSelected = { icon ->
+                    showReactionPalette = false
+                    selectedReaction = icon
+                    if (trackingId != null) {
+                        coroutineScope.launch {
+                            apiClient.recordInteraction(trackingId, "reacted_${icon.name}")
+                        }
+                    }
+                },
+                modifier = Modifier.align(Alignment.Center)
+            )
         }
     }
 }

@@ -37,7 +37,7 @@ fun AuthPage(
     initialMode: String = "signin",
     onSuccess: () -> Unit = {},
     onGoogleSignInRequested: () -> Unit = {},
-    onDevLoginRequested: () -> Unit = {},
+    onPhoneSignInRequested: () -> Unit = {},
     onEmailSignInRequested: (String, String) -> Unit = { _, _ -> },
     onEmailSignUpRequested: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
@@ -98,7 +98,7 @@ fun AuthPage(
                 }
 
                 OutlinedButton(
-                    onClick = onGoogleSignInRequested,
+                    onClick = onPhoneSignInRequested,
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     shape = RoundedCornerShape(25.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -164,14 +164,6 @@ fun AuthPage(
                     )
                 }
                 
-                // Temporary Dev Login bypass for monkey testing without backend
-                TextButton(onClick = onDevLoginRequested) {
-                    Text(
-                        text = "DEV ONLY: Bypass Login",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
             }
             
             Spacer(modifier = Modifier.height(48.dp))

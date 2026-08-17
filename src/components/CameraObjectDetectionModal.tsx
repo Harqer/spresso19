@@ -21,6 +21,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -70,6 +71,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
         audio: false
       });
 
+      streamRef.current = mediaStream;
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
@@ -87,6 +89,10 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
   };
 
   const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
@@ -197,6 +203,8 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
         })
       });
 
+      if (!res.ok) throw new Error("Vision API returned an error");
+
       const data = await res.json();
       if (data.success && data.result) {
         const items = data.result.detectedItems || [];
@@ -204,13 +212,15 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
         setHudStatusText(data.result.hudAnnotationText || "Object isolated. Product listing ready!");
 
         if (items.length > 0) {
-          const crop = await cropImageSnippet(photoDataUrl, items[0].boundingBox, point);
+          const crop = await cropImageSnippet(photoDataUrl, items[0].boundingBox, point).catch(() => null);
           setCroppedThumbnail(crop);
         }
+      } else {
+        throw new Error("Failed to parse vision response");
       }
     } catch (err) {
       logToCrashlytics("error", "Camera object detection error", { error: String(err) });
-      setHudStatusText("Object detection completed.");
+      setHudStatusText("Object detection failed.");
     } finally {
       setIsAnalyzing(false);
     }

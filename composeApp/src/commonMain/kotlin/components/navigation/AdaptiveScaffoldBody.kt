@@ -45,6 +45,14 @@ import org.jetbrains.compose.resources.vectorResource
 import theme.ThemeMode
 import components.features.chat.AIShopperInputBar
 
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdaptiveScaffoldBody(
@@ -66,9 +74,42 @@ fun AdaptiveScaffoldBody(
         ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
     }
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
+    var isNavBarVisible by remember { mutableStateOf(showBottomBar) }
+
+
+    LaunchedEffect(showBottomBar) {
+        isNavBarVisible = showBottomBar
+    }
+    
+    val layoutType = if (isNavBarVisible) {
+        NavigationSuiteType.NavigationBar
+    } else {
+        NavigationSuiteType.None
+    }
+
+    NavigationSuiteScaffold(
+        navigationSuiteItems = {
+            defaultNavDestinations.forEach { item ->
+                item(
+                    selected = isSameDestinationGroup(currentKey, item.key),
+                    onClick = { onNavigate(item.key) },
+                    icon = {
+                        if (item.icon != null) {
+                            Icon(imageVector = item.icon, contentDescription = item.label)
+                        } else if (item.iconResource != null) {
+                            Icon(imageVector = org.jetbrains.compose.resources.vectorResource(item.iconResource), contentDescription = item.label)
+                        }
+                    },
+                    label = { Text(item.label) }
+                )
+            }
+        },
+        layoutType = layoutType,
+        modifier = modifier
+    ) {
+        Scaffold(
+            topBar = {
+
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -129,5 +170,6 @@ fun AdaptiveScaffoldBody(
                 content(targetKey)
             }
         }
+    }
     }
 }

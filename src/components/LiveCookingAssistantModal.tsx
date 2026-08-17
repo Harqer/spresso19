@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { M3ExpressiveCircularProgress } from "./M3ExpressiveCircularProgress";
 import { logToCrashlytics } from "../lib/firebase";
+import { getAuth } from "firebase/auth";
 
 interface LiveCookingAssistantModalProps {
   isOpen: boolean;
@@ -20,8 +21,19 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isMicMuted, setIsMicMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isMicMuted, setIsMicMutedState] = useState(false);
+  const [isVideoOff, setIsVideoOffState] = useState(false);
+  const isMicMutedRef = useRef(false);
+  const isVideoOffRef = useRef(false);
+
+  const setIsMicMuted = (muted: boolean) => {
+    isMicMutedRef.current = muted;
+    setIsMicMutedState(muted);
+  };
+  const setIsVideoOff = (off: boolean) => {
+    isVideoOffRef.current = off;
+    setIsVideoOffState(off);
+  };
   const [statusText, setStatusText] = useState("Connecting to Chef AI Live Agent...");
   const [transcript, setTranscript] = useState<{ sender: "user" | "ai"; text: string }[]>([]);
   const [aiIsSpeaking, setAiIsSpeaking] = useState(false);
@@ -80,40 +92,32 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
     // Connect to WebSocket endpoint directly to Gemini Live API
     setStatusText("Establishing real-time voice & video connection...");
     
-    // Fallback to empty string for safety if env is missing
-    const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "YOUR_API_KEY";
-    const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
+    // Connect to backend proxy with auth token
+    setStatusText("Establishing secure connection to server...");
+    
+    let token = "";
+    try {
+      const auth = getAuth();
+      token = await auth.currentUser?.getIdToken() || "";
+    } catch (e) {
+      console.warn("Failed to get auth token", e);
+    }
+    
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/api/live-chef?token=${token}`;
 
     try {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        logToCrashlytics("info", "[Live Cooking Modal] Connected to Gemini Live WebSocket");
+        logToCrashlytics("info", "[Live Cooking Modal] Connected to Backend WS Proxy");
         setIsConnected(true);
         setIsConnecting(false);
         setStatusText("Live Agent Ready — Speak or show your kitchen!");
         
-        // Send Setup message to Gemini
-        ws.send(JSON.stringify({
-          setup: {
-            model: "models/gemini-2.0-flash-exp",
-            generationConfig: {
-              responseModalities: ["AUDIO"],
-              speechConfig: {
-                voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } },
-              }
-            },
-            systemInstruction: {
-              parts: [{ text: "You are Chef AI, a real-time voice and video cooking assistant. You observe the user's kitchen counter or cooking ingredients via camera video stream, listen to their questions via live mic audio, and speak back with friendly, real-time step-by-step culinary guidance, ingredient substitutions, and local bargain grocery tips." }]
-            }
-          }
-        }));
-
         if (recipeContext) {
-          ws.send(JSON.stringify({
-             clientContent: { turns: [{ role: "user", parts: [{ text: `Current cooking context / recipe requested: ${recipeContext}` }] }], turnComplete: true }
-          }));
+          ws.send(JSON.stringify({ text: `Current cooking context / recipe requested: ${recipeContext}` }));
         }
 
         startMediaPipelines(mediaStream!, ws);
@@ -123,11 +127,11 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
         try {
           const data = JSON.parse(event.data);
           
-          if (data.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data) {
+          if (data.type === "audio" && data.audio) {
              setAiIsSpeaking(true);
-             playPCMChunk(data.serverContent.modelTurn.parts[0].inlineData.data);
-          } else if (data.serverContent?.modelTurn?.parts?.[0]?.text) {
-             const text = data.serverContent.modelTurn.parts[0].text;
+             playPCMChunk(data.audio);
+          } else if (data.type === "text" && data.text) {
+             const text = data.text;
              setTranscript(prev => {
                 const last = prev[prev.length - 1];
                 if (last && last.sender === "ai") {
@@ -135,7 +139,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
                 }
                 return [...prev, { sender: "ai", text: text }];
              });
-          } else if (data.serverContent?.interrupted) {
+          } else if (data.type === "interrupted") {
              setAiIsSpeaking(false);
              if (outputAudioCtxRef.current) {
                 queueTimeRef.current = outputAudioCtxRef.current.currentTime;
@@ -178,12 +182,10 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
       processor.connect(inputCtx.destination);
 
       processor.onaudioprocess = (e) => {
-        if (ws.readyState === WebSocket.OPEN && !isMicMuted) {
+        if (ws.readyState === WebSocket.OPEN && !isMicMutedRef.current) {
           const inputData = e.inputBuffer.getChannelData(0);
           const pcmBase64 = convertFloat32ToPCM16(inputData);
-          ws.send(JSON.stringify({ 
-             realtimeInput: { mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: pcmBase64 }] }
-          }));
+          ws.send(JSON.stringify({ audio: pcmBase64 }));
         }
       };
     } catch (e) {
@@ -202,7 +204,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
     // 3. Video Stream (1 FPS JPEG frame capture)
     if (videoFrameTimerRef.current) clearInterval(videoFrameTimerRef.current);
     videoFrameTimerRef.current = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN && videoRef.current && canvasRef.current && !isVideoOff) {
+      if (ws.readyState === WebSocket.OPEN && videoRef.current && canvasRef.current && !isVideoOffRef.current) {
         const video = videoRef.current;
         const canvas = canvasRef.current;
         canvas.width = 640;
@@ -211,10 +213,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
         if (ctx && video.videoWidth > 0) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
-          const base64Img = dataUrl.split(",")[1];
-          ws.send(JSON.stringify({
-             realtimeInput: { mediaChunks: [{ mimeType: "image/jpeg", data: base64Img }] }
-          }));
+          ws.send(JSON.stringify({ image: dataUrl }));
         }
       }
     }, 1000); // 1 Frame Per Second as recommended by skill

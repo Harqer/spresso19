@@ -46,6 +46,8 @@ kotlin {
     
     sourceSets {
         androidMain.dependencies {
+            implementation(libs.androidx.navigation3.ui)
+            implementation(libs.androidx.navigation3.runtime)
             implementation(libs.mwdat.core)
             implementation(libs.mwdat.camera)
             implementation(libs.mwdat.display)
@@ -67,6 +69,7 @@ kotlin {
             implementation(libs.androidx.camera.extensions)
             implementation(libs.androidx.camera.mlkit.vision)
             implementation(libs.mlkit.vision.detection)
+            implementation(libs.mlkit.vision.text)
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.play.services.auth)
             implementation(libs.googleid)
@@ -106,6 +109,7 @@ kotlin {
             implementation(libs.androidx.compose.ui.test.junit4)
         }
         commonMain.dependencies {
+            implementation(libs.material3.adaptive.navigation.suite)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -139,7 +143,7 @@ android {
     defaultConfig {
         applicationId = "com.spresso19"
         minSdk = 30
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

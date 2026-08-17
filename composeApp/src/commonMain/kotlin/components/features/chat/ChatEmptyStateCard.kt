@@ -1,6 +1,7 @@
 package components.features.chat
 
 import components.models.*
+import components.features.chat.molecules.DiscoveryCard
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -108,89 +109,6 @@ fun ChatEmptyStateCard(
                     modifier = Modifier.weight(1f),
                     trackingId = "trending",
                     trackingAction = "click_suggestion"
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun DiscoveryCard(
-    id: String,
-    badge: String,
-    isErrorTheme: Boolean,
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    prompt: String,
-    onClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    trackingId: String? = null,
-    trackingAction: String? = null
-) {
-    val coroutineScope = rememberCoroutineScope()
-    val apiClient = ApiClient()
-    val themeColor = if (isErrorTheme) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    val themeBgColor = if (isErrorTheme) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer
-
-    Surface(
-        modifier = modifier.clickable { 
-            if (trackingId != null && trackingAction != null) {
-                coroutineScope.launch {
-                    apiClient.recordInteraction(trackingId, trackingAction)
-                }
-            }
-            onClick(prompt) 
-        },
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = themeBgColor,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(icon, contentDescription = null, tint = themeColor, modifier = Modifier.size(18.dp))
-                    }
-                }
-                
-                Surface(
-                    shape = CircleShape,
-                    color = themeBgColor.copy(alpha = 0.5f),
-                    border = BorderStroke(1.dp, themeColor.copy(alpha = 0.2f))
-                ) {
-                    Text(
-                        text = badge,
-                        color = themeColor,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.ExtraBold),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp)
-                    )
-                }
-            }
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 14.sp
                 )
             }
         }

@@ -30,7 +30,7 @@ export const WardrobeLikedTab: React.FC<WardrobeLikedTabProps> = ({
             <MaterialIcon icon="favorite" size={28} />
           </div>
           <h3 className="text-sm font-bold text-[#18211e]">No Liked Products Yet</h3>
-          <p className="text-xs text-[#5e635f] max-w-sm mx-auto">Tap the elevated widget floating action button (FAB) in Google Lens or Virtual Try-On to like any product!</p>
+          <p className="text-xs text-[#5e635f] max-w-sm mx-auto">Tap the floating action button (FAB) in Google Lens or Virtual Try-On to like any product!</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

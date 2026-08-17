@@ -1,5 +1,4 @@
-import { getActiveInventory } from "./geminiService.ts";
-import type { ProductItem } from "../src/types.ts";
+import type { ProductItem } from "../src/types";
 
 export interface ApifyActorInput {
   category?: string;
@@ -101,22 +100,31 @@ export async function runGoogleLensActor(imageUrlOrBase64: string) {
   }
 }
 
-/**
- * Fetches Apify-curated product feeds for the front-end catalog:
- * - deals (Live discount actor)
- * - trending (Viral trending items actor)
- * - hot_drops (Limited drop releases actor)
- * - for_you (Personalized actor based on bookmarks and likes)
- *
- * STRICT ZERO MOCK RULE:
- * If for_you is requested and there are NO bookmarked or liked items,
- * return empty results with an explicit empty state reason!
- */
 export async function getApifyCategoryFeed(input: ApifyActorInput) {
   const feedType = input.feedType || "trending";
   const bookmarked = input.bookmarkedItemIds || [];
   const liked = input.likedItemIds || [];
-  const liveInventory = await getActiveInventory();
+
+  const { initPool } = require("../src/db/index");
+  let liveInventory: any[] = [];
+  try {
+    const pool = initPool();
+    const result = await pool.query('SELECT * FROM "Product" LIMIT 50');
+    liveInventory = result.rows.map((row: any) => ({
+      id: row.id || row.id_val || "",
+      name: row.name || "",
+      brand: row.brand || "Spresso Store",
+      category: row.category || "Apparel",
+      price: parseFloat(row.price || "0"),
+      image: row.imageUrl || row.image || "",
+      description: row.description || "",
+      rating: 4.8,
+      stock: 25
+    }));
+  } catch (err: any) {
+    console.error("[PostgreSQL] Error fetching inventory for Apify feed:", err);
+    throw new Error("Database service unavailable");
+  }
 
   // 1. FOR YOU FEED - Tied directly to user bookmarks & likes
   if (feedType === "for_you") {

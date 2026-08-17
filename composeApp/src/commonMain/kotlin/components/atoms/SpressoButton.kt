@@ -8,6 +8,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import network.ApiClient
@@ -33,7 +40,14 @@ fun SpressoButton(
     trackingAction: String? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val apiClient = ApiClient()
+    val apiClient = androidx.compose.runtime.remember { network.ApiClient() }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = tween(durationMillis = 150)
+    )
 
     val trackedOnClick = {
         if (trackingId != null && trackingAction != null) {
@@ -90,10 +104,11 @@ fun SpressoButton(
         SpressoButtonVariant.OUTLINE -> {
             OutlinedButton(
                 onClick = trackedOnClick,
-                modifier = modifier.heightIn(min = 48.dp),
+                modifier = modifier.heightIn(min = 48.dp).graphicsLayer { scaleX = scale; scaleY = scale },
                 enabled = enabled && !isLoading,
                 shape = shape,
                 colors = buttonColors,
+                interactionSource = interactionSource,
                 contentPadding = contentPadding,
                 content = content
             )
@@ -101,10 +116,11 @@ fun SpressoButton(
         SpressoButtonVariant.GHOST -> {
             TextButton(
                 onClick = trackedOnClick,
-                modifier = modifier.heightIn(min = 48.dp),
+                modifier = modifier.heightIn(min = 48.dp).graphicsLayer { scaleX = scale; scaleY = scale },
                 enabled = enabled && !isLoading,
                 shape = shape,
                 colors = buttonColors,
+                interactionSource = interactionSource,
                 contentPadding = contentPadding,
                 content = content
             )
@@ -112,10 +128,11 @@ fun SpressoButton(
         else -> {
             Button(
                 onClick = trackedOnClick,
-                modifier = modifier.heightIn(min = 48.dp),
+                modifier = modifier.heightIn(min = 48.dp).graphicsLayer { scaleX = scale; scaleY = scale },
                 enabled = enabled && !isLoading,
                 shape = shape,
                 colors = buttonColors,
+                interactionSource = interactionSource,
                 contentPadding = contentPadding,
                 content = content
             )

@@ -63,7 +63,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
         }
       }
     } catch (error: any) {
-      setErrorMessage("Authentication failed: " + error.message);
+      setErrorMessage("Authentication failed. Please try again.");
     } finally {
       setIsBiometricAuthenticating(false);
     }
@@ -137,10 +137,10 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
         onSuccess({ orderId: response.data.order_insert, total: payload.totalAmount || 0, merchantId: GOOGLE_PAY_MERCHANT_ID });
         onClose();
       } else {
-        setErrorMessage("Failed to confirm purchase via Data Connect.");
+        setErrorMessage("Failed to process request. Please try again.");
       }
     } catch (err: any) {
-      setErrorMessage("Data Connect error during checkout: " + err.message);
+      setErrorMessage("Failed to process request. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

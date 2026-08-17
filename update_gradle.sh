@@ -1,0 +1,2 @@
+sed -i 's/\[versions\]/\[versions\]\nnav3Core = "1.1.0-alpha01"/' gradle/libs.versions.toml
+sed -i 's/\[libraries\]/\[libraries\]\nandroidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }\nandroidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }\nmaterial3-adaptive-navigation-suite = { module = "org.jetbrains.compose.material3:material3-adaptive-navigation-suite", version.ref = "compose-plugin" }/' gradle/libs.versions.toml

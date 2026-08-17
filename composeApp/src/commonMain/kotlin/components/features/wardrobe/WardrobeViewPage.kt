@@ -43,7 +43,8 @@ data class WardrobePhoto(
     val id: String,
     val title: String,
     val category: String,
-    val photoUrl: String
+    val photoUrl: String,
+    val photoBytes: ByteArray? = null
 )
 
 
@@ -103,16 +104,25 @@ fun WardrobeViewPage(
         // Real API invocation should go here. Removed simulated network delay.
     }
 
+    val pickImage = ui.rememberImagePicker(
+        onImagePicked = { bytes ->
+            if (bytes != null) {
+                val categories = listOf("Winter Wear", "Hot Girl Summer", "Special Occasion Wear")
+                val randomCat = categories.random()
+                val newPhoto = WardrobePhoto(
+                    id = "w-${kotlin.random.Random.nextInt()}",
+                    title = "Custom $randomCat Look",
+                    category = randomCat,
+                    photoUrl = "",
+                    photoBytes = bytes
+                )
+                photos = listOf(newPhoto) + photos
+            }
+        }
+    )
+
     val handleAddPhoto = {
-        val categories = listOf("Winter Wear", "Hot Girl Summer", "Special Occasion Wear")
-        val randomCat = categories.random()
-        val newPhoto = WardrobePhoto(
-            id = "w-${kotlin.random.Random.nextInt()}",
-            title = "Custom $randomCat Look",
-            category = randomCat,
-            photoUrl = "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600"
-        )
-        photos = listOf(newPhoto) + photos
+        pickImage()
     }
 
     val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
@@ -326,6 +336,7 @@ fun WardrobeViewPage(
                 MediaActionCard(
                     imageUrl = p.photoUrl,
                     title = p.title,
+                    imageBytes = p.photoBytes,
                     badgeContent = {
                         Surface(
                             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),

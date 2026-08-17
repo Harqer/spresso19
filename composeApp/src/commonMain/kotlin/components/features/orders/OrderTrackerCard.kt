@@ -69,11 +69,7 @@ fun OrderTrackerCard(
                     IconButton(onClick = onSetReminder) { Icon(if (order.reminderSet) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationAdd, null, tint = MaterialTheme.colorScheme.primary) }
                     IconButton(onClick = onReturnClick) { Icon(Icons.AutoMirrored.Outlined.AssignmentReturn, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                     IconButton(onClick = { onAskAI("Where is order ${order.id}?") }) { Icon(Icons.Outlined.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary) }
-                    GoogleWalletButton(onClick = { 
-                        try {
-                            uriHandler.openUri("https://pay.google.com/gp/v/save/${order.id}")
-                        } catch (e: Exception) {}
-                    })
+                    ui.GoogleWalletSaveButton(passId = order.id)
                 }
                 Text("$${order.totalAmount.toPriceString()}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
             }

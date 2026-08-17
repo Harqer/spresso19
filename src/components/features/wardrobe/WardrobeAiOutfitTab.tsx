@@ -31,7 +31,7 @@ export const WardrobeAiOutfitTab: React.FC<WardrobeAiOutfitTabProps> = ({
             <h3 className="font-bold text-sm text-[#18211e]">Select Current Weather or Season</h3>
           </div>
           <span className="text-[11px] text-[#5e635f] font-mono font-semibold">
-            Grounded in your uploaded photo gallery ({userUploadedItemsCount} items)
+            Using your uploaded photo gallery ({userUploadedItemsCount} items)
           </span>
         </div>
 

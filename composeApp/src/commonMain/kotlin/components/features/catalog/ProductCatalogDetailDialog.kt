@@ -35,7 +35,10 @@ fun ProductCatalogDetailDialog(
         onDismissRequest = onDismiss,
         title = { Text(product.name) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.animateContentSize(animationSpec = androidx.compose.animation.core.spring()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Text("${product.brand} • $${product.price}", style = MaterialTheme.typography.titleMedium)
                 if (checkoutStatus != null) {
                     Text(checkoutStatus, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)

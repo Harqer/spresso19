@@ -44,7 +44,6 @@ fun App(
     onCloseGlobalChat: () -> Unit = {},
     onTriggerGlobalLens: () -> Unit = {},
     onLensResult: (String) -> Unit = {},
-    onDevLoginRequested: () -> Unit = {},
     onGoogleSignInRequested: () -> Unit = {},
     onEmailSignInRequested: (String, String) -> Unit = { _, _ -> },
     onEmailSignUpRequested: (String, String, String) -> Unit = { _, _, _ -> },
@@ -63,7 +62,6 @@ fun App(
 
         if (currentUserUid == null) {
             AuthPage(
-                onDevLoginRequested = onDevLoginRequested,
                 onGoogleSignInRequested = onGoogleSignInRequested,
                 onEmailSignInRequested = onEmailSignInRequested,
                 onEmailSignUpRequested = onEmailSignUpRequested
@@ -77,6 +75,14 @@ fun App(
         val chatViewModel = remember { viewmodels.ChatViewModel(apiClient, scope, liveApiClient) }
         val audioRecorder = remember { AudioRecorder() }
         val audioPlayer = remember { AudioPlayer() }
+
+        androidx.compose.runtime.DisposableEffect(Unit) {
+            onDispose {
+                apiClient.client.close()
+                liveApiClient.close()
+                audioRecorder.stopRecording()
+            }
+        }
 
         var isVideoPlaying by remember { mutableStateOf(false) }
         var displayMediaUrl by remember { mutableStateOf<String?>(null) }
@@ -151,7 +157,6 @@ fun App(
             when (targetKey) {
                 is NavKey.AuthKey -> {
                     AuthPage(
-                        onDevLoginRequested = onDevLoginRequested,
                         onGoogleSignInRequested = onGoogleSignInRequested,
                         onEmailSignInRequested = onEmailSignInRequested,
                         onEmailSignUpRequested = onEmailSignUpRequested
@@ -266,7 +271,7 @@ fun App(
                         themeMode = themeMode,
                         onThemeModeChange = { themeMode = it },
                         onSignOut = {
-                            backStack.push(NavKey.AuthKey)
+                            backStack.replace(NavKey.AuthKey)
                         },
                         onVerifyEmail = onVerifyEmailRequested
                     )

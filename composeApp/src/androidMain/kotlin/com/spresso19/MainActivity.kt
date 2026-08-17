@@ -13,7 +13,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -36,6 +36,7 @@ import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
 import com.google.firebase.auth.PhoneAuthOptions
@@ -48,7 +49,7 @@ import theme.ThemeMode
 import com.spresso19.engage.EngageBroadcastReceiver
 
 @kotlin.OptIn(androidx.credentials.ExperimentalDigitalCredentialApi::class)
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     private val recordAudioRequestCode = 101
     private val isAccessibilityEnabledState = mutableStateOf(false)
@@ -75,16 +76,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val darkTheme = isSystemInDarkTheme()
-            val controller = WindowCompat.getInsetsController(window, window.decorView)
-            controller.isAppearanceLightStatusBars = !darkTheme
-            controller.isAppearanceLightNavigationBars = !darkTheme
 
             val isAccessEnabled by isAccessibilityEnabledState
             val hasConsent by hasAccessibilityConsentState
             val showDisclosure by accessibilityDisclosureRequestedState
             
             var user by remember { mutableStateOf(FirebaseAuth.getInstance().currentUser) }
-            var devOverrideUid by remember { mutableStateOf<String?>(null) }
             var externalNavKey by remember { mutableStateOf<NavKey?>(null) }
 
             DisposableEffect(Unit) {
@@ -135,7 +132,7 @@ class MainActivity : ComponentActivity() {
 
             SpressoAndroidTheme(themeMode = themeMode) {
                 App(
-                    currentUserUid = devOverrideUid ?: user?.uid,
+                    currentUserUid = user?.uid,
                     currentUserName = cleanUserName,
                     onShare = { productId ->
                         val sendIntent = Intent().apply {
@@ -164,7 +161,6 @@ class MainActivity : ComponentActivity() {
                         sendBroadcast(intent)
                         moveTaskToBack(true)
                     },
-                    onDevLoginRequested = { devOverrideUid = "dev_user_123" },
                     onGoogleSignInRequested = {
                         val credentialManager = CredentialManager.create(this@MainActivity)
                         val googleIdOption = GetGoogleIdOption.Builder()
@@ -266,8 +262,17 @@ class MainActivity : ComponentActivity() {
                                     val vpToken = jsonObj.optJSONObject("vp_token")
                                     val credentialId = vpToken?.keys()?.let { if (it.hasNext()) it.next() else null }
                                     if (credentialId != null) {
-                                        Toast.makeText(this@MainActivity, "Received verified email SD-JWT!", Toast.LENGTH_SHORT).show()
-                                        // TODO: Send responseJsonString and nonce to /api/auth/verify-email-credential for server-side validation
+                                        CoroutineScope(Dispatchers.IO).launch {
+                                            val client = network.ApiClient()
+                                            val verified = client.verifyEmailCredential(responseJsonString, "nonce") // Replace nonce with actual if available
+                                            withContext(Dispatchers.Main) {
+                                                if (verified) {
+                                                    Toast.makeText(this@MainActivity, "Verified via Backend!", Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    Toast.makeText(this@MainActivity, "Backend verification failed", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             } catch (e: Exception) {
@@ -431,7 +436,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_OPEN_ACCESSIBILITY_DISCLOSURE = "open_accessibility_disclosure"
-        var currentActivity: ComponentActivity? = null
+        var currentActivity: FragmentActivity? = null
     }
 }
 

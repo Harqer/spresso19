@@ -14,7 +14,7 @@ export const GoogleLensCategoryTabs: React.FC<GoogleLensCategoryTabsProps> = ({
     { id: "all", label: "All Visual Results", icon: "grid_view" },
     { id: "gourmet", label: "Gourmet & Dining", icon: "restaurant" },
     { id: "shopping", label: "Fashion & Store", icon: "shopping_bag" },
-    { id: "web", label: "Google Grounded", icon: "travel_explore" },
+    { id: "web", label: "Web Search", icon: "travel_explore" },
   ] as const;
 
   return (

@@ -18,12 +18,12 @@ import theme.AppTheme
 @Composable
 fun ChatSuggestionChip(
     label: String,
-    onClick: () -> Unit,
+    onClick: (String) -> Unit,
     icon: ImageVector? = null,
     modifier: Modifier = Modifier
 ) {
     AssistChip(
-        onClick = onClick,
+        onClick = { onClick(label) },
         label = { Text(label, style = MaterialTheme.typography.labelMedium) },
         leadingIcon = if (icon != null) {
             { Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp)) }
@@ -43,7 +43,7 @@ fun ChatSuggestionChipPreview() {
     AppTheme {
         ChatSuggestionChip(
             label = "Summer Outfits",
-            onClick = {}
+            onClick = { }
         )
     }
 }

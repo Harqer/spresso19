@@ -16,8 +16,9 @@ export const orders = pgTable('orders', {
   status: text('status').notNull(),
   deviceSource: text('device_source'),
   items: text('items'), // serialized JSON array
-  returnStatus: text('return_status'),
-  returnReason: text('return_reason'),
+  vendorId: text('vendor_id'),
+  vendorOrderRef: text('vendor_order_ref'),
+  fulfillmentType: text('fulfillment_type'),
   reminderSet: boolean('reminder_set').default(false),
   reminderTime: text('reminder_time'),
   createdAt: timestamp('created_at').defaultNow(),
@@ -75,9 +76,6 @@ export const voiceNotes = pgTable('voice_notes', {
 export const paymentMethods = pgTable('payment_methods', {
   id: serial('id').primaryKey(),
   userId: text('user_id').notNull(),
-  brand: text('brand').notNull(),
-  last4: text('last4').notNull(),
-  expiry: text('expiry').notNull(),
   isDefault: boolean('is_default').default(false),
   stripePaymentMethodId: text('stripe_payment_method_id'),
   createdAt: timestamp('created_at').defaultNow(),

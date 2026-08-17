@@ -1,0 +1,3 @@
+sed -i 's/import androidx.compose.foundation.lazy.LazyColumn/import androidx.compose.foundation.lazy.grid.GridCells\nimport androidx.compose.foundation.lazy.grid.LazyVerticalGrid\nimport androidx.compose.foundation.lazy.grid.items/g' /home/shaolin/Spresso/composeApp/src/commonMain/kotlin/components/features/grocery/GroceryListPage.kt
+sed -i 's/LazyColumn(/LazyVerticalGrid(\n            columns = GridCells.Adaptive(300.dp),/g' /home/shaolin/Spresso/composeApp/src/commonMain/kotlin/components/features/grocery/GroceryListPage.kt
+sed -i 's/import androidx.compose.foundation.lazy.items//g' /home/shaolin/Spresso/composeApp/src/commonMain/kotlin/components/features/grocery/GroceryListPage.kt

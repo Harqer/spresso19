@@ -28,14 +28,47 @@
     ],
     "rewrites": [
       {
-        "source": "/api/**",
-        "run": {
-          "serviceId": "spresso-api",
-          "region": "us-central1"
-        }
+        "source": "/api/personalized-feed",
+        "run": { "serviceId": "spresso-go-api", "region": "us-central1" }
+      },
+      {
+        "source": "/api/vision/**",
+        "run": { "serviceId": "spresso-go-api", "region": "us-central1" }
+      },
+      {
+        "source": "/api/chat/**",
+        "run": { "serviceId": "spresso-go-api", "region": "us-central1" }
+      },
+      {
+        "source": "/api/creator/**",
+        "run": { "serviceId": "spresso-go-api", "region": "us-central1" }
+      },
+      {
+        "source": "/api/receipt/**",
+        "run": { "serviceId": "spresso-go-api", "region": "us-central1" }
+      },
+      {
+        "source": "/api/wardrobe/generate-outfit",
+        "run": { "serviceId": "spresso-go-api", "region": "us-central1" }
+      },
+      {
+        "source": "/api/try-on",
+        "run": { "serviceId": "spresso-go-api", "region": "us-central1" }
+      },
+      {
+        "source": "/api/vitpose/**",
+        "run": { "serviceId": "spresso-go-api", "region": "us-central1" }
+      },
+      {
+        "source": "/api/genkit/**",
+        "run": { "serviceId": "spresso-go-api", "region": "us-central1" }
       },
       {
         "source": "/api/live-chef",
+        "run": { "serviceId": "spresso-api", "region": "us-central1" }
+      },
+      {
+        "source": "/api/**",
         "run": {
           "serviceId": "spresso-api",
           "region": "us-central1"

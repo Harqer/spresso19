@@ -384,12 +384,12 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
                         Surface Level 3
                       </span>
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--md-sys-color-tertiary-container)] text-[var(--md-sys-color-on-tertiary-container)] font-mono">
-                        Elevated Card
+                        High Card
                       </span>
                     </div>
                     <h5 className="font-bold text-xs">Surface Container High</h5>
                     <p className="text-[11px] opacity-80">
-                      Elevated cards, filter toolbars, & interactive dropdown sheets.
+                      Floating cards, filter toolbars, & interactive dropdown sheets.
                     </p>
                   </div>
 

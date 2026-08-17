@@ -63,14 +63,26 @@ fun TravelTripsPage(
     var isRecording by remember { mutableStateOf(false) }
     var activeQrModalEvent by remember { mutableStateOf<ItineraryEvent?>(null) }
 
+    val speechRecognizer = ui.rememberSpeechRecognizer(
+        onResult = { text ->
+            isRecording = false
+            val newNote = VoiceNote(
+                id = "note-${kotlin.random.Random.nextInt()}",
+                tripId = activeTripId,
+                transcript = text,
+                createdAt = "Just now"
+            )
+            voiceNotes = listOf(newNote) + voiceNotes
+        },
+        onError = { 
+            isRecording = false 
+        }
+    )
+
     fun toggleRecording() {
         if (!isRecording) {
             isRecording = true
-            scope.launch {
-                // Real voice recording transcription API integration should go here
-                // Removed simulated delay and fake voice note injection
-                isRecording = false
-            }
+            speechRecognizer()
         } else {
             isRecording = false
         }

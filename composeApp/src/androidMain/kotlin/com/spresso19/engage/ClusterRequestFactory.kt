@@ -17,11 +17,7 @@ import com.google.android.engage.shopping.service.PublishShoppingOrderTrackingCl
 
 class ClusterRequestFactory(context: Context) {
 
-    fun constructRecommendationClustersRequest(): PublishRecommendationClustersRequest {
-        // Dummy data for example
-        val items = listOf(
-            ProductItem("1", "Coffee Beans", 12.99, "http://example.com/coffee.png", "http://example.com/p/1")
-        )
+    fun constructRecommendationClustersRequest(items: List<ProductItem>): PublishRecommendationClustersRequest {
         val recommendationCluster = RecommendationCluster.Builder()
             .setTitle("Recommended For You")
             .setRecommendationClusterType(RecommendationClusterType.TYPE_TOP_PICKS_FOR_YOU)

@@ -22,9 +22,9 @@ data class ProductItem(
     val name: String,
     val brand: String,
     val category: String,
-    val price: Double,
+    val price: Double?,
     val imageUrl: String,
-    val rating: Double? = 4.8,
+    val rating: Double? = null,
     val description: String? = null
 )
 
@@ -136,6 +136,21 @@ open class ApiClient {
     
     private val cloudFunctionsBaseUrl = SpressoConfig.cloudFunctionsBaseUrl
     
+    suspend fun verifyEmailCredential(credential: String, nonce: String): Boolean {
+        return try {
+            val response = client.post("$backendBaseUrl/api/auth/verify-email-credential") {
+                contentType(ContentType.Application.Json)
+                setBody(buildJsonObject {
+                    put("credential", credential)
+                    put("nonce", nonce)
+                })
+            }
+            response.status.value in 200..299
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     suspend fun recordInteraction(productId: String, action: String): Boolean {
         logCrashlyticsBreadcrumb(action, "productId=$productId")
         val authToken = getCurrentUserIdToken()
@@ -199,38 +214,40 @@ open class ApiClient {
         agentType: String? = null
     ): Flow<ChatStreamChunk> = flow {
         val authToken = getCurrentUserIdToken()
-        val url = "$backendBaseUrl/api/chat/stream"
+        val url = "$backendBaseUrl/spressoShopper"
         
-        client.preparePost(url) {
-            contentType(ContentType.Application.Json)
-            if (authToken != null) {
-                header(HttpHeaders.Authorization, "Bearer $authToken")
-            }
-            setBody(mapOf(
-                "prompt" to prompt,
-                "imageBase64" to imageBase64,
-                "location" to location,
-                "latLng" to latLng?.let { mapOf("latitude" to it.first, "longitude" to it.second) },
-                "agentType" to agentType
-            ))
-        }.execute { response ->
-            val channel = response.bodyAsChannel()
-            while (!channel.isClosedForRead) {
-                val line = channel.readUTF8Line() ?: break
-                val cleanedLine = line.trim()
-                if (cleanedLine.startsWith("data:")) {
-                    val data = cleanedLine.substring(5).trim()
-                    if (data == "[DONE]") break
-                    if (data.isNotEmpty()) {
-                        try {
-                            val chunk = json.decodeFromString<ChatStreamChunk>(data)
-                            emit(chunk)
-                        } catch (_: Exception) {
-                            emit(ChatStreamChunk(type = "text", text = data))
-                        }
-                    }
+        try {
+            val response = client.post(url) {
+                contentType(ContentType.Application.Json)
+                if (authToken != null) {
+                    header(HttpHeaders.Authorization, "Bearer $authToken")
                 }
+                setBody(mapOf(
+                    "data" to mapOf(
+                        "prompt" to prompt,
+                        "imageBase64" to imageBase64,
+                        "location" to location,
+                        "latLng" to latLng?.let { mapOf("latitude" to it.first, "longitude" to it.second) },
+                        "agentType" to agentType
+                    )
+                ))
             }
+            
+            val responseBody = response.bodyAsText()
+            try {
+                // Parse Firebase Callable response format: {"result": {"response": "..."}}
+                val jsonResponse = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }.parseToJsonElement(responseBody)
+                val result = jsonResponse.jsonObject["result"]?.jsonObject
+                val text = result?.get("response")?.jsonPrimitive?.content ?: "Sorry, I couldn't process that."
+                emit(ChatStreamChunk(type = "text", text = text))
+                emit(ChatStreamChunk(type = "done"))
+            } catch (e: Exception) {
+                emit(ChatStreamChunk(type = "text", text = "Error parsing response: ${e.message}"))
+                emit(ChatStreamChunk(type = "done"))
+            }
+        } catch (e: Exception) {
+            emit(ChatStreamChunk(type = "text", text = "Network error: ${e.message}"))
+            emit(ChatStreamChunk(type = "done"))
         }
     }
     
@@ -244,21 +261,21 @@ open class ApiClient {
                 }
                 setBody(mapOf("imageBase64" to base64Image))
             }.body()
-        } catch (_: Exception) {
-            LensSearchResponse(success = false)
+        } catch (e: Exception) {
+            throw Exception("Failed to perform Spresso Lens Search: ${e.message}", e)
         }
     }
 
     suspend fun performAccessibilityLensSearch(base64Image: String): LensSearchResponse {
-        val authToken = getCurrentUserIdToken() ?: return LensSearchResponse(success = false)
+        val authToken = getCurrentUserIdToken() ?: throw Exception("Unauthenticated user")
         return try {
             client.post("$backendBaseUrl/api/accessibility/lens-search") {
                 contentType(ContentType.Application.Json)
                 header(HttpHeaders.Authorization, "Bearer $authToken")
                 setBody(mapOf("imageBase64" to base64Image))
             }.body()
-        } catch (_: Exception) {
-            LensSearchResponse(success = false)
+        } catch (e: Exception) {
+            throw Exception("Failed to perform Accessibility Lens Search: ${e.message}", e)
         }
     }
 

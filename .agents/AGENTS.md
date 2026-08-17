@@ -39,3 +39,8 @@ An architecture context document has been copied to the project at `spresso19/do
 
 
 
+
+## Strict Prohibition of Developmental Bypasses & Local Setup Hacks (STRICT USER MANDATE)
+1. **NO LOCAL SETUP OR DEV BYPASSES**: The codebase must remain in a production-ready state at all times. Never introduce or leave behind developmental bypasses such as `onDevLoginRequested`, `devOverrideUid`, or `token === "bypass"`/`"dummy"` authentication backdoors.
+2. **PRODUCTION API KEY PRACTICES ONLY**: All API keys and environment variables must strictly follow production best practices (e.g., Vault-driven secrets or GCP Secret Manager). Developmental "quick starts" or local `.env` setup guidelines that compromise security are strictly forbidden.
+3. **MANDATORY CLEANUP**: Any generated code meant for temporary local testing must be fully removed and replaced with actual production logic prior to completion.

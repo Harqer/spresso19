@@ -337,16 +337,7 @@ export default function App() {
   }
 
   if (!user) {
-    return <AuthScreen onDevBypass={() => {
-      const dummyUser = {
-        uid: "dev-dummy-user-123",
-        email: "dev@localhost",
-        displayName: "Dev User",
-        isAnonymous: true,
-        photoURL: null,
-      } as unknown as User;
-      setUser(dummyUser);
-    }} />;
+    return <AuthScreen />;
   }
 
   return (

@@ -53,7 +53,7 @@ export const ProductCatalogPage: React.FC<any> = ({ products: initialProducts, o
         setPersonalizedProducts(initialProducts);
       }
     } catch (err: any) {
-      setFetchError(err?.message || "Failed to load product catalog. Check Data Connect connection.");
+      setFetchError("Unable to load product catalog. Please try again later.");
       setPersonalizedProducts(initialProducts);
     } finally {
       setIsLoadingPersonalized(false);
@@ -183,7 +183,7 @@ export const ProductCatalogPage: React.FC<any> = ({ products: initialProducts, o
       {fetchError && (
         <ProblemDetailsCard
           error={{
-            title: "Data Connect Connection Warning",
+            title: "Connection Warning",
             status: 503,
             detail: fetchError
           }}

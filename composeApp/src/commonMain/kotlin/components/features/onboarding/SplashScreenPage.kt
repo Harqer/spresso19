@@ -34,13 +34,19 @@ fun SplashScreenPage(
     modifier: Modifier = Modifier
 ) {
     var isVisible by remember { mutableStateOf(true) }
+    val apiClient = remember { network.ApiClient() }
 
     LaunchedEffect(Unit) {
+        val startTime = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
         try {
             // Simulate real application boot/configuration fetch instead of mock delay
-            val config = network.ApiClient().getInventory()
+            val config = apiClient.getInventory()
         } catch (e: Exception) {
             // ignore network fail on splash
+        }
+        val elapsed = kotlinx.datetime.Clock.System.now().toEpochMilliseconds() - startTime
+        if (elapsed < 500) {
+            kotlinx.coroutines.delay(500 - elapsed)
         }
         isVisible = false
         onSplashComplete()

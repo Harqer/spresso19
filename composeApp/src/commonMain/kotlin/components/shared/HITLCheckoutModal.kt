@@ -35,6 +35,16 @@ fun HITLCheckoutModal(
     var biometricVerified by remember { mutableStateOf(false) }
     var isAuthenticating by remember { mutableStateOf(false) }
 
+    val biometricAuthenticator = com.spresso19.auth.rememberBiometricAuthenticator(
+        onSuccess = {
+            biometricVerified = true
+            isAuthenticating = false
+        },
+        onError = {
+            isAuthenticating = false
+        }
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier.fillMaxWidth(0.92f),
@@ -108,7 +118,12 @@ fun HITLCheckoutModal(
                                 Text("Biometric Lock", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                             AssistChip(
-                                onClick = {},
+                                onClick = {
+                                    if (!biometricVerified) {
+                                        isAuthenticating = true
+                                        biometricAuthenticator.authenticate()
+                                    }
+                                },
                                 label = { Text(if (biometricVerified) "Verified" else "Action Required", fontSize = 9.sp) },
                                 leadingIcon = { Icon(if (biometricVerified) Icons.Default.Check else Icons.Default.Warning, null, modifier = Modifier.size(12.dp)) }
                             )
@@ -117,8 +132,7 @@ fun HITLCheckoutModal(
                             Button(
                                 onClick = {
                                     isAuthenticating = true
-                                    biometricVerified = true
-                                    isAuthenticating = false
+                                    biometricAuthenticator.authenticate()
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),
@@ -135,16 +149,30 @@ fun HITLCheckoutModal(
             }
         },
         confirmButton = {
-            Button(
-                onClick = { onConfirmPurchase(selectedPaymentMethod) },
-                enabled = biometricVerified,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-                Icon(Icons.Default.ShoppingBag, null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Confirm Purchase • $${payload.totalAmount.toPriceString()}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            if (biometricVerified && selectedPaymentMethod == "Google Pay") {
+                ui.GooglePayButton(
+                    amount = payload.totalAmount.toPriceString(),
+                    onResult = { success, msg -> 
+                        if (success) {
+                            onConfirmPurchase("Google Pay - Success")
+                        } else {
+                            println("LOG: Google Pay Failed: $msg")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                Button(
+                    onClick = { onConfirmPurchase(selectedPaymentMethod) },
+                    enabled = biometricVerified,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.ShoppingBag, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Confirm Purchase • $${payload.totalAmount.toPriceString()}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
     )

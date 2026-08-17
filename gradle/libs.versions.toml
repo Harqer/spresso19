@@ -1,7 +1,8 @@
 [versions]
+nav3Core = "1.1.0-alpha01"
 agp = "9.3.1"
 kotlin = "2.1.0"
-compose-plugin = "1.6.11"
+compose-plugin = "1.7.3"
 androidx-activity-compose = "1.9.0"
 ktor = "3.0.0"
 coroutines = "1.8.1"
@@ -28,6 +29,7 @@ pay-button = "1.1.0"
 play-services-wallet = "19.4.0"
 camera-mlkit-vision = "1.4.0-beta02"
 object-detection = "17.0.2"
+text-recognition = "16.0.0"
 core-splashscreen = "1.0.1"
 billing-ktx = "7.1.0"
 engage-core = "1.6.0"
@@ -36,6 +38,9 @@ glance = "1.1.0"
 xr = "1.0.0-alpha01"
 
 [libraries]
+androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }
+androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }
+material3-adaptive-navigation-suite = { module = "org.jetbrains.compose.material3:material3-adaptive-navigation-suite", version.ref = "compose-plugin" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity-compose" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
@@ -78,6 +83,7 @@ compose-pay-button = { module = "com.google.pay.button:compose-pay-button", vers
 play-services-wallet = { module = "com.google.android.gms:play-services-wallet", version.ref = "play-services-wallet" }
 androidx-camera-mlkit-vision = { module = "androidx.camera:camera-mlkit-vision", version.ref = "camera-mlkit-vision" }
 mlkit-vision-detection = { module = "com.google.mlkit:object-detection", version.ref = "object-detection" }
+mlkit-vision-text = { module = "com.google.mlkit:text-recognition", version.ref = "text-recognition" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
 googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { authFetch } from "../lib/firebase";
 import { ProductItem, HITLPayload } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
@@ -40,7 +41,6 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   onRequestHITLCheckout,
   onOpenLens
 }) => {
-  if (!product) return null;
 
   const [modeChosen, setModeChosen] = useState<boolean>(true);
   const [selectedMediaType, setSelectedMediaType] = useState<"image" | "video">("video");
@@ -50,6 +50,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [tryOnMeta, setTryOnMeta] = useState({
     mediaType: "video",
@@ -88,13 +89,31 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     runTryOnAnalysis("video");
   };
 
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   const runTryOnAnalysis = async (mediaType: "image" | "video" = selectedMediaType) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setIsProcessing(true);
+    setError(null);
     try {
       const [resTryOn, resVitpose] = await Promise.all([
         authFetch("/api/try-on", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal,
           body: JSON.stringify({
             productId: product.id,
             userPhotoBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
@@ -105,13 +124,19 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
         authFetch("/api/vitpose/orchestrate-fit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal,
           body: JSON.stringify({
             userImageBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
             desiredFitStyle: selectedAnimation.name,
-            preferredCategory: product.category
+            preferredCategory: product?.category || ""
           })
-        }).catch(() => null)
+        }).catch((err) => {
+          if (err.name !== "AbortError") console.error("Vitpose error:", err);
+          return null;
+        })
       ]);
+
+      if (!resTryOn.ok) throw new Error("Virtual Try-On service returned an error.");
 
       const data = await resTryOn.json();
       let fitReason = "";
@@ -129,8 +154,11 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
           ...(fitReason ? { styleMatchAnalysis: `${data.tryOnMeta.styleMatchAnalysis} ViTPose Dimensions: ${fitReason}` } : {})
         }));
       }
-    } catch {
-      // Fallback
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        console.error("Try-on analysis failed:", err);
+        setError(err.message || "Failed to process virtual try-on. Please try again.");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -155,6 +183,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   };
 
   const handleCheckout = () => {
+    if (!product) return;
     const payload: HITLPayload = {
       authorizationId: `ORDER-${crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase()}`,
       product: {
@@ -187,9 +216,23 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
 
   const activePersonImage = customAvatar || (selectedAvatar ? selectedAvatar.url : null);
 
+  if (!product) return null;
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white border border-[#e2e2e2] rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-6 relative text-[#18211e] my-auto">
+    <AnimatePresence>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+      >
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.9, opacity: 0, y: 20 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          className="bg-white border border-[#e2e2e2] rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-6 relative text-[#18211e] my-auto"
+        >
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -265,6 +308,12 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
           </div>
         ) : (
           <>
+            {error && (
+              <div className="mb-4 bg-red-50 text-[#a84a32] text-xs px-4 py-3 rounded-xl border border-red-100 flex items-center space-x-2">
+                <MaterialIcon icon="error_outline" size={16} />
+                <span>{error}</span>
+              </div>
+            )}
             {/* Title Header */}
             <div className="flex items-center justify-between pr-10">
               <div className="flex items-center space-x-3">
@@ -555,8 +604,9 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
           onOpenLens={onOpenLens}
           positionClassName="bottom-6 right-6 z-50"
         />
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

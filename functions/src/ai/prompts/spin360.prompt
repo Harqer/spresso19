@@ -1,0 +1,10 @@
+---
+model: googleai/gemini-3.5-flash
+input:
+  schema:
+    name?: string
+    productId: string
+    brand?: string
+    category?: string
+---
+Generate a detailed 360-degree product description for: {{#if name}}{{name}}{{else}}{{productId}}{{/if}}. Brand: {{#if brand}}{{brand}}{{else}}unknown{{/if}}. Category: {{#if category}}{{category}}{{else}}unknown{{/if}}.
