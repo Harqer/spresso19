@@ -96,5 +96,21 @@ service cloud.firestore {
         request.resource.data.userId == request.auth.uid;
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
+
+    // Chat messages (Append-only logs)
+    match /chats/{chatId}/messages/{messageId} {
+      allow read: if isSignedIn() && get(/databases/$(database)/documents/chats/$(chatId)).data.userId == request.auth.uid;
+      allow create: if isSignedIn() && 
+        get(/databases/$(database)/documents/chats/$(chatId)).data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid &&
+        isValidString(request.resource.data.content, 1, 10000);
+      allow update, delete: if false; // Prevent manipulating AI chat history
+    }
+
+    // Gamified XP & Achievements (Server-authoritative only)
+    match /users/{userId}/gamification/{docId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Only Cloud Functions can award XP, prevents client-side cheating
+    }
   }
 }
