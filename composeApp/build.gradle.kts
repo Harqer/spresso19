@@ -111,6 +111,8 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(libs.material3.adaptive.navigation.suite)
+            implementation(libs.androidx.navigation3.runtime)
+            implementation(libs.androidx.navigation3.ui)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
