@@ -31,7 +31,11 @@ data class UserProfileData(
     val notificationsEnabled: Boolean = true,
     val emailAlertsEnabled: Boolean = true,
     val biometricEnabled: Boolean = false,
-    val themePreference: String = "system"
+    val themePreference: String = "system",
+    val explicitInterests: List<String> = emptyList(),
+    val inferredPainPoints: List<String> = emptyList(),
+    val behavioralProfileSummary: String? = null,
+    val web3WalletAddress: String? = null
 )
 
 object GooglePayConfig {

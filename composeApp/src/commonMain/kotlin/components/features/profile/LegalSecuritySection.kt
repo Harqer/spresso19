@@ -20,9 +20,9 @@ import components.features.profile.ProfileListItem
 
 @Composable
 fun LegalSecuritySection(
-    onShowRefundPolicy: () -> Unit = {},
-    onShowPlayPolicy: () -> Unit = {},
-    onShowPrivacyTerms: () -> Unit = {},
+    onShowRefundPolicy: (() -> Unit)? = null,
+    onShowPlayPolicy: (() -> Unit)? = null,
+    onShowPrivacyTerms: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -50,7 +50,7 @@ fun LegalSecuritySection(
             ProfileListItem(
                 icon = Icons.Outlined.Gavel,
                 title = "Google Play Developer Policy",
-                subtitle = "Target SDK 35 & E-Commerce Compliance",
+                subtitle = "Google Play Store Standards",
                 onClick = onShowPlayPolicy
             )
 

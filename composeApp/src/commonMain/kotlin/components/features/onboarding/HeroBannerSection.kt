@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.sp
 fun HeroBannerSection(
     title: String,
     subtitle: String,
-    badgeText: String = "JETPACK MOTION UI",
     ratingText: String = "★ 4.8",
     onBannerClick: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -43,15 +42,9 @@ fun HeroBannerSection(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(8.dp)) {
-                    Text(
-                        text = badgeText, color = MaterialTheme.colorScheme.surface, fontSize = 9.sp,
-                        fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-                }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Icon(Icons.Default.Star, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(12.dp))
                     Text(ratingText, color = MaterialTheme.colorScheme.surface, fontSize = 11.sp, fontWeight = FontWeight.Bold)

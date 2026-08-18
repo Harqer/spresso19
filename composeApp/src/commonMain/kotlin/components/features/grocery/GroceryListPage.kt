@@ -78,7 +78,19 @@ fun GroceryListPage(
                     text = "Add",
                     onClick = { 
                         scope.launch { 
-                            snackbarHostState.showSnackbar("Unable to add grocery item right now. Please try again.") 
+                            if (newItemName.isNotBlank()) {
+                                val success = apiClient.addGroceryItem(
+                                    listId = "b90c13bc-33b2-4d1a-8c2f-87000d11f67f", // default list ID
+                                    productName = newItemName,
+                                    productId = null,
+                                    addedVia = "MANUAL_INPUT"
+                                )
+                                if (success) {
+                                    newItemName = ""
+                                } else {
+                                    snackbarHostState.showSnackbar("Unable to add grocery item right now. Please try again.") 
+                                }
+                            }
                         } 
                     },
                     modifier = Modifier,
@@ -125,7 +137,12 @@ fun GroceryListPage(
                     onClick = { 
                         scope.launch { 
                             apiClient.recordInteraction("grocery_toggle_${item.id}", "click")
-                            snackbarHostState.showSnackbar("Unable to update item right now. Please try again.")
+                            val success = apiClient.toggleGroceryItem(item.id, !item.checked)
+                            if (!success) {
+                                snackbarHostState.showSnackbar("Unable to update item right now. Please try again.")
+                            } else {
+                                items = items.map { if (it.id == item.id) it.copy(checked = !it.checked) else it }
+                            }
                         }
                     },
                     trailingContent = {
@@ -139,7 +156,12 @@ fun GroceryListPage(
                             IconButton(onClick = { 
                                 scope.launch { 
                                     apiClient.recordInteraction("grocery_delete_${item.id}", "click")
-                                    snackbarHostState.showSnackbar("Unable to delete item right now. Please try again.")
+                                    val success = apiClient.deleteGroceryItem(item.id)
+                                    if (!success) {
+                                        snackbarHostState.showSnackbar("Unable to delete item right now. Please try again.")
+                                    } else {
+                                        items = items.filter { it.id != item.id }
+                                    }
                                 }
                             }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)

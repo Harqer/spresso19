@@ -7,6 +7,12 @@
       "skillPath": "skills/brainstorming/SKILL.md",
       "computedHash": "b58d55b64742ecd37923985ec7bdfbe678ffbcb9895562abd28c0a32dcacd7fb"
     },
+    "cds-docs": {
+      "source": "coinbase/cds",
+      "sourceType": "github",
+      "skillPath": "skills/cds-docs/SKILL.md",
+      "computedHash": "08973a95752007e00e347e28a229bb84fd2239a63d13a30b3a8fe15a2d346983"
+    },
     "dispatching-parallel-agents": {
       "source": "obra/superpowers",
       "sourceType": "github",

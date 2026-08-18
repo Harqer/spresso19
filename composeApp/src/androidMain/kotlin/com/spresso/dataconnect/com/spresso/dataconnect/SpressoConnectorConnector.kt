@@ -23,6 +23,10 @@ public interface SpressoConnectorConnector : com.google.firebase.dataconnect.gen
   
     public val addVideo: AddVideoMutation
   
+    public val addWardrobeItem: AddWardrobeItemMutation
+  
+    public val connectCoinbaseWallet: ConnectCoinbaseWalletMutation
+  
     public val createExpense: CreateExpenseMutation
   
     public val createGroceryList: CreateGroceryListMutation
@@ -35,13 +39,21 @@ public interface SpressoConnectorConnector : com.google.firebase.dataconnect.gen
   
     public val createVoiceNote: CreateVoiceNoteMutation
   
+    public val createWardrobeOutfit: CreateWardrobeOutfitMutation
+  
     public val deleteGroceryItem: DeleteGroceryItemMutation
   
     public val deletePaymentMethod: DeletePaymentMethodMutation
   
+    public val getCreativeTemplates: GetCreativeTemplatesQuery
+  
+    public val getCreatorAgents: GetCreatorAgentsQuery
+  
     public val getGroceryList: GetGroceryListQuery
   
     public val getItineraryEvents: GetItineraryEventsQuery
+  
+    public val getOnboardingStatus: GetOnboardingStatusQuery
   
     public val getPaymentMethods: GetPaymentMethodsQuery
   
@@ -65,13 +77,25 @@ public interface SpressoConnectorConnector : com.google.firebase.dataconnect.gen
   
     public val getUserVideos: GetUserVideosQuery
   
+    public val getVisionHistory: GetVisionHistoryQuery
+  
     public val getVoiceNotes: GetVoiceNotesQuery
   
+    public val getWardrobeItems: GetWardrobeItemsQuery
+  
+    public val getWardrobeOutfits: GetWardrobeOutfitsQuery
+  
     public val listProducts: ListProductsQuery
+  
+    public val logVisionEvent: LogVisionEventMutation
+  
+    public val registerPasskey: RegisterPasskeyMutation
   
     public val toggleGroceryItem: ToggleGroceryItemMutation
   
     public val toggleLike: ToggleLikeMutation
+  
+    public val updateOnboardingStatus: UpdateOnboardingStatusMutation
   
     public val updateUserSubscription: UpdateUserSubscriptionMutation
   
@@ -130,6 +154,14 @@ private class SpressoConnectorConnectorImpl(
       AddVideoMutationImpl(this)
     }
   
+    override val addWardrobeItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      AddWardrobeItemMutationImpl(this)
+    }
+  
+    override val connectCoinbaseWallet by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      ConnectCoinbaseWalletMutationImpl(this)
+    }
+  
     override val createExpense by lazy(LazyThreadSafetyMode.PUBLICATION) {
       CreateExpenseMutationImpl(this)
     }
@@ -154,6 +186,10 @@ private class SpressoConnectorConnectorImpl(
       CreateVoiceNoteMutationImpl(this)
     }
   
+    override val createWardrobeOutfit by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      CreateWardrobeOutfitMutationImpl(this)
+    }
+  
     override val deleteGroceryItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
       DeleteGroceryItemMutationImpl(this)
     }
@@ -162,12 +198,24 @@ private class SpressoConnectorConnectorImpl(
       DeletePaymentMethodMutationImpl(this)
     }
   
+    override val getCreativeTemplates by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetCreativeTemplatesQueryImpl(this)
+    }
+  
+    override val getCreatorAgents by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetCreatorAgentsQueryImpl(this)
+    }
+  
     override val getGroceryList by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetGroceryListQueryImpl(this)
     }
   
     override val getItineraryEvents by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetItineraryEventsQueryImpl(this)
+    }
+  
+    override val getOnboardingStatus by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetOnboardingStatusQueryImpl(this)
     }
   
     override val getPaymentMethods by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -214,12 +262,32 @@ private class SpressoConnectorConnectorImpl(
       GetUserVideosQueryImpl(this)
     }
   
+    override val getVisionHistory by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetVisionHistoryQueryImpl(this)
+    }
+  
     override val getVoiceNotes by lazy(LazyThreadSafetyMode.PUBLICATION) {
       GetVoiceNotesQueryImpl(this)
     }
   
+    override val getWardrobeItems by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetWardrobeItemsQueryImpl(this)
+    }
+  
+    override val getWardrobeOutfits by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      GetWardrobeOutfitsQueryImpl(this)
+    }
+  
     override val listProducts by lazy(LazyThreadSafetyMode.PUBLICATION) {
       ListProductsQueryImpl(this)
+    }
+  
+    override val logVisionEvent by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      LogVisionEventMutationImpl(this)
+    }
+  
+    override val registerPasskey by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      RegisterPasskeyMutationImpl(this)
     }
   
     override val toggleGroceryItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -228,6 +296,10 @@ private class SpressoConnectorConnectorImpl(
   
     override val toggleLike by lazy(LazyThreadSafetyMode.PUBLICATION) {
       ToggleLikeMutationImpl(this)
+    }
+  
+    override val updateOnboardingStatus by lazy(LazyThreadSafetyMode.PUBLICATION) {
+      UpdateOnboardingStatusMutationImpl(this)
     }
   
     override val updateUserSubscription by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -252,16 +324,22 @@ private class SpressoConnectorConnectorImpl(
     listOf(
       addGroceryItem,
         addVideo,
+        addWardrobeItem,
+        connectCoinbaseWallet,
         createExpense,
         createGroceryList,
         createOrder,
         createPaymentMethod,
         createTravelExpense,
         createVoiceNote,
+        createWardrobeOutfit,
         deleteGroceryItem,
         deletePaymentMethod,
+        logVisionEvent,
+        registerPasskey,
         toggleGroceryItem,
         toggleLike,
+        updateOnboardingStatus,
         updateUserSubscription,
         upsertUserPreference,
         upsertUserProfile,
@@ -271,8 +349,11 @@ private class SpressoConnectorConnectorImpl(
   @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
   override fun queries(): List<com.google.firebase.dataconnect.generated.GeneratedQuery<SpressoConnectorConnector, *, *>> =
     listOf(
-      getGroceryList,
+      getCreativeTemplates,
+        getCreatorAgents,
+        getGroceryList,
         getItineraryEvents,
+        getOnboardingStatus,
         getPaymentMethods,
         getProductById,
         getTravelExpenses,
@@ -284,7 +365,10 @@ private class SpressoConnectorConnectorImpl(
         getUserProfile,
         getUserSubscription,
         getUserVideos,
+        getVisionHistory,
         getVoiceNotes,
+        getWardrobeItems,
+        getWardrobeOutfits,
         listProducts,
         
     )
@@ -451,6 +535,36 @@ private class AddVideoMutationImpl(
   )
 
 
+private class AddWardrobeItemMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  AddWardrobeItemMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      AddWardrobeItemMutation.Data,
+      AddWardrobeItemMutation.Variables
+  >(
+    connector,
+    AddWardrobeItemMutation.Companion.operationName,
+    AddWardrobeItemMutation.Companion.dataDeserializer,
+    AddWardrobeItemMutation.Companion.variablesSerializer,
+  )
+
+
+private class ConnectCoinbaseWalletMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  ConnectCoinbaseWalletMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      ConnectCoinbaseWalletMutation.Data,
+      ConnectCoinbaseWalletMutation.Variables
+  >(
+    connector,
+    ConnectCoinbaseWalletMutation.Companion.operationName,
+    ConnectCoinbaseWalletMutation.Companion.dataDeserializer,
+    ConnectCoinbaseWalletMutation.Companion.variablesSerializer,
+  )
+
+
 private class CreateExpenseMutationImpl(
   connector: SpressoConnectorConnector
 ):
@@ -541,6 +655,21 @@ private class CreateVoiceNoteMutationImpl(
   )
 
 
+private class CreateWardrobeOutfitMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  CreateWardrobeOutfitMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      CreateWardrobeOutfitMutation.Data,
+      CreateWardrobeOutfitMutation.Variables
+  >(
+    connector,
+    CreateWardrobeOutfitMutation.Companion.operationName,
+    CreateWardrobeOutfitMutation.Companion.dataDeserializer,
+    CreateWardrobeOutfitMutation.Companion.variablesSerializer,
+  )
+
+
 private class DeleteGroceryItemMutationImpl(
   connector: SpressoConnectorConnector
 ):
@@ -571,6 +700,36 @@ private class DeletePaymentMethodMutationImpl(
   )
 
 
+private class GetCreativeTemplatesQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetCreativeTemplatesQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetCreativeTemplatesQuery.Data,
+      Unit
+  >(
+    connector,
+    GetCreativeTemplatesQuery.Companion.operationName,
+    GetCreativeTemplatesQuery.Companion.dataDeserializer,
+    GetCreativeTemplatesQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetCreatorAgentsQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetCreatorAgentsQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetCreatorAgentsQuery.Data,
+      Unit
+  >(
+    connector,
+    GetCreatorAgentsQuery.Companion.operationName,
+    GetCreatorAgentsQuery.Companion.dataDeserializer,
+    GetCreatorAgentsQuery.Companion.variablesSerializer,
+  )
+
+
 private class GetGroceryListQueryImpl(
   connector: SpressoConnectorConnector
 ):
@@ -598,6 +757,21 @@ private class GetItineraryEventsQueryImpl(
     GetItineraryEventsQuery.Companion.operationName,
     GetItineraryEventsQuery.Companion.dataDeserializer,
     GetItineraryEventsQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetOnboardingStatusQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetOnboardingStatusQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetOnboardingStatusQuery.Data,
+      Unit
+  >(
+    connector,
+    GetOnboardingStatusQuery.Companion.operationName,
+    GetOnboardingStatusQuery.Companion.dataDeserializer,
+    GetOnboardingStatusQuery.Companion.variablesSerializer,
   )
 
 
@@ -766,6 +940,21 @@ private class GetUserVideosQueryImpl(
   )
 
 
+private class GetVisionHistoryQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetVisionHistoryQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetVisionHistoryQuery.Data,
+      Unit
+  >(
+    connector,
+    GetVisionHistoryQuery.Companion.operationName,
+    GetVisionHistoryQuery.Companion.dataDeserializer,
+    GetVisionHistoryQuery.Companion.variablesSerializer,
+  )
+
+
 private class GetVoiceNotesQueryImpl(
   connector: SpressoConnectorConnector
 ):
@@ -781,6 +970,36 @@ private class GetVoiceNotesQueryImpl(
   )
 
 
+private class GetWardrobeItemsQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetWardrobeItemsQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetWardrobeItemsQuery.Data,
+      Unit
+  >(
+    connector,
+    GetWardrobeItemsQuery.Companion.operationName,
+    GetWardrobeItemsQuery.Companion.dataDeserializer,
+    GetWardrobeItemsQuery.Companion.variablesSerializer,
+  )
+
+
+private class GetWardrobeOutfitsQueryImpl(
+  connector: SpressoConnectorConnector
+):
+  GetWardrobeOutfitsQuery,
+  SpressoConnectorConnectorGeneratedQueryImpl<
+      GetWardrobeOutfitsQuery.Data,
+      Unit
+  >(
+    connector,
+    GetWardrobeOutfitsQuery.Companion.operationName,
+    GetWardrobeOutfitsQuery.Companion.dataDeserializer,
+    GetWardrobeOutfitsQuery.Companion.variablesSerializer,
+  )
+
+
 private class ListProductsQueryImpl(
   connector: SpressoConnectorConnector
 ):
@@ -793,6 +1012,36 @@ private class ListProductsQueryImpl(
     ListProductsQuery.Companion.operationName,
     ListProductsQuery.Companion.dataDeserializer,
     ListProductsQuery.Companion.variablesSerializer,
+  )
+
+
+private class LogVisionEventMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  LogVisionEventMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      LogVisionEventMutation.Data,
+      LogVisionEventMutation.Variables
+  >(
+    connector,
+    LogVisionEventMutation.Companion.operationName,
+    LogVisionEventMutation.Companion.dataDeserializer,
+    LogVisionEventMutation.Companion.variablesSerializer,
+  )
+
+
+private class RegisterPasskeyMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  RegisterPasskeyMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      RegisterPasskeyMutation.Data,
+      RegisterPasskeyMutation.Variables
+  >(
+    connector,
+    RegisterPasskeyMutation.Companion.operationName,
+    RegisterPasskeyMutation.Companion.dataDeserializer,
+    RegisterPasskeyMutation.Companion.variablesSerializer,
   )
 
 
@@ -823,6 +1072,21 @@ private class ToggleLikeMutationImpl(
     ToggleLikeMutation.Companion.operationName,
     ToggleLikeMutation.Companion.dataDeserializer,
     ToggleLikeMutation.Companion.variablesSerializer,
+  )
+
+
+private class UpdateOnboardingStatusMutationImpl(
+  connector: SpressoConnectorConnector
+):
+  UpdateOnboardingStatusMutation,
+  SpressoConnectorConnectorGeneratedMutationImpl<
+      UpdateOnboardingStatusMutation.Data,
+      UpdateOnboardingStatusMutation.Variables
+  >(
+    connector,
+    UpdateOnboardingStatusMutation.Companion.operationName,
+    UpdateOnboardingStatusMutation.Companion.dataDeserializer,
+    UpdateOnboardingStatusMutation.Companion.variablesSerializer,
   )
 
 

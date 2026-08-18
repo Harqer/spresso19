@@ -34,15 +34,16 @@ fun SplashScreenPage(
     modifier: Modifier = Modifier
 ) {
     var isVisible by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     val apiClient = remember { network.ApiClient() }
 
     LaunchedEffect(Unit) {
         val startTime = kotlinx.datetime.Clock.System.now().toEpochMilliseconds()
         try {
             // Simulate real application boot/configuration fetch instead of mock delay
-            val config = apiClient.getInventory()
+            val config = apiClient.discoverPersonalizedProducts()
         } catch (e: Exception) {
-            // ignore network fail on splash
+            errorMessage = "Failed to load config: ${e.message}"
         }
         val elapsed = kotlinx.datetime.Clock.System.now().toEpochMilliseconds() - startTime
         if (elapsed < 500) {
@@ -69,6 +70,16 @@ fun SplashScreenPage(
                 modifier = Modifier.fillMaxSize()
             ) {
                 SplashVideoPlayer(modifier = Modifier.fillMaxSize())
+            }
+
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 64.dp)
+                )
             }
 
             Text(

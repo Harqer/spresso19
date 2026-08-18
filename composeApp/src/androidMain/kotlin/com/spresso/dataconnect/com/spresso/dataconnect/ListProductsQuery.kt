@@ -42,9 +42,9 @@ public interface ListProductsQuery :
   
     val name: String,
   
-    val brand: String?,
+    val brand: String,
   
-    val category: String?,
+    val category: String,
   
     val price: Double,
   

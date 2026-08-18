@@ -10,7 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,7 +23,7 @@ import network.models.SubscriptionTier
 fun SubscriptionMembershipSection(
     currentTier: SubscriptionTier,
     renewalDate: String?,
-    onManageSubscription: () -> Unit = {},
+    onManageSubscription: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -97,7 +97,7 @@ fun SubscriptionMembershipSection(
             }
 
             Button(
-                onClick = onManageSubscription,
+                onClick = { onManageSubscription?.invoke() },
                 modifier = Modifier.fillMaxWidth().height(44.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)

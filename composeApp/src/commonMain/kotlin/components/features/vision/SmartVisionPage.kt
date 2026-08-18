@@ -3,11 +3,7 @@ package components.features.vision
 import components.models.*
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
@@ -15,16 +11,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import components.core.makeImageBitmap
-import components.core.NetworkImage
 import components.features.chat.AIShopperInputBar
 import components.shared.HITLCheckoutModal
 import components.features.vision.SmartVisionControlsOverlay
@@ -35,9 +26,7 @@ import kotlinx.coroutines.launch
 import network.ApiClient
 import network.DetectedItem
 import network.ProductItem
-import network.models.HITLChallenge
 import network.models.HITLPayload
-import network.models.HITLProduct
 import ui.rememberImagePicker
 
 @OptIn(ExperimentalEncodingApi::class)
@@ -57,7 +46,7 @@ fun SmartVisionPage(
 
     LaunchedEffect(Unit) {
         try {
-            inventory = apiClient.getInventory()
+            inventory = apiClient.discoverPersonalizedProducts()
         } catch (e: Exception) {
             scope.launch { snackbarHostState.showSnackbar("Failed to load inventory: ${e.message}") }
         }
@@ -83,6 +72,7 @@ fun SmartVisionPage(
                         }
                     } catch (e: Exception) {
                         detectedItems = emptyList()
+                        snackbarHostState.showSnackbar("Search failed: ${e.message}")
                     } finally {
                         isScanning = false
                     }
@@ -101,54 +91,15 @@ fun SmartVisionPage(
                 contentDescription = "Smart Vision and Virtual Try-On page"
             }) {
         // Viewport
-        if (activeImage != null) {
-            val activeImageBitmap = activeImage?.makeImageBitmap()
-            if (activeImageBitmap != null) {
-                androidx.compose.foundation.Image(
-                    bitmap = activeImageBitmap,
-                    contentDescription = "Camera Stream",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(if (isScanning) Modifier.blur(1.dp) else Modifier)
-                )
-            }
-            if (isScanning) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(48.dp))
-                        Text(
-                            "Scanning frame...",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.padding(top = 12.dp)
-                        )
-                    }
-                }
-            } else {
-                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                    val width = maxWidth
-                    val height = maxHeight
-                    detectedItems.forEach { item ->
-                        val matchedProduct = inventory.find { it.id == item.matchingCatalogId }
-                        SmartVisionDetectionOverlay(
-                            item = item,
-                            matchedProduct = matchedProduct,
-                            width = width,
-                            height = height,
-                            apiClient = apiClient,
-                            onSelectProduct = onSelectProduct,
-                            onHitlCheckout = { hitlCheckoutPayload = it }
-                        )
-                    }
-                }
-            }
-        }
+        SmartVisionViewport(
+            activeImage = activeImage,
+            isScanning = isScanning,
+            detectedItems = detectedItems,
+            inventory = inventory,
+            apiClient = apiClient,
+            onSelectProduct = onSelectProduct,
+            onHitlCheckout = { hitlCheckoutPayload = it }
+        )
         
         // Floating Controls Overlay
         SmartVisionControlsOverlay(
@@ -163,8 +114,16 @@ fun SmartVisionPage(
                 .padding(start = 16.dp, end = 16.dp)
         ) {
             AIShopperInputBar(
-                onSend = { /* Implement onAskAI */ },
-                placeholder = "Ask AI about object detection & vision search..."
+                onSend = { 
+                    scope.launch {
+                        try {
+                            network.SpressoBackend.logVisionEvent(detectedObjects = it, context = "chat", imageUrl = null)
+                        } catch(e: Exception) {
+                            snackbarHostState.showSnackbar("Error: ${e.message}")
+                        }
+                    }
+                },
+                placeholder = "Ask Spresso AI about these items..."
             )
         }
         
@@ -175,8 +134,7 @@ fun SmartVisionPage(
                 onConfirmPurchase = { _ ->
                     scope.launch {
                         try {
-                            apiClient.confirmCheckoutWithToken(payload.product.id, payload.quantity, payload.authorizationId, "123 Main St")
-                        val res = apiClient.confirmCheckoutWithToken(payload.product.id, payload.quantity, payload.authorizationId, "123 Main St")
+                            val res = apiClient.confirmCheckoutWithToken(payload.product.id, payload.quantity, payload.authorizationId, "123 Main St")
                             snackbarHostState.showSnackbar(res.message ?: "Order confirmed")
                         } catch (e: Exception) {
                             snackbarHostState.showSnackbar("Checkout failed: ${e.message}")

@@ -106,7 +106,6 @@ data class InlineData(
 
 open class LiveApiClient {
     companion object {
-        const val DEFAULT_WEBSOCKET_URL = "wss://spresso-5561f.web.app/api/live-chef"
         const val INPUT_SAMPLE_RATE = 16000
         const val OUTPUT_SAMPLE_RATE = 24000
         const val DEFAULT_INPUT_MIME = "audio/pcm;rate=16000"

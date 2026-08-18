@@ -19,7 +19,7 @@ import { GamifiedOnboardingModal } from "./components/GamifiedOnboardingModal";
 import { SplashScreen } from "./components/SplashScreen";
 import { SpressoLogo } from "./components/SpressoLogo";
 import { MaterialIcon } from "./components/MaterialIcon";
-import { AuthScreen } from "./components/AuthScreen";
+import { AuthScreen } from "./components/features/auth/AuthScreen";
 import { DynamicThemePickerModal } from "./components/DynamicThemePickerModal";
 import { applyDynamicThemeToDocument } from "./lib/dynamicColorEngine";
 import { getCleanDisplayName } from "./lib/userUtils";

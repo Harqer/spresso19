@@ -7,5 +7,5 @@ generate:
     outputDir: "../../src/dataconnect"
     package: "@firebasegen/spresso-connector"
   adminNodeSdk:
-    outputDir: "../../server/dataconnect"
+    outputDir: "../../functions/src/dataconnect"
     package: "@dataconnect/admin-generated"

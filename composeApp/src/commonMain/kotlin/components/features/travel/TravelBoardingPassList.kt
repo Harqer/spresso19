@@ -63,8 +63,17 @@ fun BoardingPassList(tripEvents: List<ItineraryEvent>, onShowQr: (ItineraryEvent
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        tripEvents.forEach { evt ->
-            BoardingPass(evt = evt, onShowQr = onShowQr)
+        if (tripEvents.isEmpty()) {
+            Text(
+                text = "No upcoming flights or events found for this trip.",
+                style = MaterialTheme.typography.bodySmall,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            tripEvents.forEach { evt ->
+                BoardingPass(evt = evt, onShowQr = onShowQr)
+            }
         }
     }
 }

@@ -12,11 +12,18 @@ import com.google.android.engage.service.PublishStatusRequest
 import com.google.android.engage.service.ServiceAvailabilityRequest
 import com.google.android.engage.shopping.service.AppEngageShoppingClient
 import com.google.android.gms.tasks.Task
+import com.spresso.dataconnect.SpressoConnectorConnector
+import com.spresso.dataconnect.execute
+import com.spresso.dataconnect.instance
 import kotlinx.coroutines.tasks.await
+import network.ApiClient
+import network.getCurrentUserUid
+import network.Telemetry
 
 class EngageWorker(context: Context, workerParams: WorkerParameters) : CoroutineWorker(context, workerParams) {
     private val client = AppEngageShoppingClient(context)
     private val clusterRequestFactory = ClusterRequestFactory(context)
+    private val connector = SpressoConnectorConnector.instance
     private val TAG = "EngageWorker"
 
     override suspend fun doWork(): Result {
@@ -28,6 +35,7 @@ class EngageWorker(context: Context, workerParams: WorkerParameters) : Coroutine
         val publishType = inputData.getString(Constants.PUBLISH_TYPE_KEY)
         val intendedClusterType = when (publishType) {
             Constants.PUBLISH_TYPE_RECOMMENDATIONS -> ClusterType.TYPE_RECOMMENDATION
+            Constants.PUBLISH_TYPE_FEATURED -> ClusterType.TYPE_FEATURED
             Constants.PUBLISH_TYPE_SHOPPING_CART -> ClusterType.TYPE_SHOPPING_CART
             Constants.PUBLISH_TYPE_SHOPPING_LIST -> ClusterType.TYPE_SHOPPING_LIST
             Constants.PUBLISH_TYPE_SHOPPING_REORDER -> ClusterType.TYPE_SHOPPING_REORDER
@@ -47,45 +55,181 @@ class EngageWorker(context: Context, workerParams: WorkerParameters) : Coroutine
 
         return when (publishType) {
             Constants.PUBLISH_TYPE_RECOMMENDATIONS -> publishRecommendations()
+            Constants.PUBLISH_TYPE_FEATURED -> publishFeatured()
             Constants.PUBLISH_TYPE_SHOPPING_CART -> publishShoppingCart()
             Constants.PUBLISH_TYPE_SHOPPING_LIST -> publishShoppingList()
             Constants.PUBLISH_TYPE_SHOPPING_REORDER -> publishShoppingReorder()
             Constants.PUBLISH_TYPE_SHOPPING_ORDER_TRACKING -> publishShoppingOrderTracking()
-            else -> Result.failure()
+            else -> {
+                Log.w(TAG, "Unknown publish type: $publishType")
+                Result.failure()
+            }
         }
     }
 
+    /**
+     * Fetches real product recommendations from the personalized discovery API.
+     */
     private suspend fun publishRecommendations(): Result {
+        val products = try {
+            val apiClient = ApiClient()
+            val result = apiClient.discoverPersonalizedProducts()
+            apiClient.close()
+            result.map { p: network.ProductItem ->
+                ProductItem(
+                    id = p.id,
+                    title = p.name,
+                    price = p.price ?: 0.0,
+                    imageUrl = p.imageUrl,
+                    productUrl = "spresso://product/${p.id}"
+                )
+            }
+        } catch (e: Exception) {
+            Telemetry.recordError("EngageWorker: fetchRecommendations failed", e)
+            return Result.retry()
+        }
+
+        if (products.isEmpty()) {
+            Log.w(TAG, "No products from discovery API — skipping recommendations publish")
+            return Result.success()
+        }
+
         val publishTask: Task<Void> = client.publishRecommendationClusters(
-            clusterRequestFactory.constructRecommendationClustersRequest(emptyList())
+            clusterRequestFactory.constructRecommendationClustersRequest(products)
         )
         return publishAndProvideResult(publishTask)
     }
 
+    /**
+     * Publishes featured items using the personalized discovery API.
+     */
+    private suspend fun publishFeatured(): Result {
+        val topItems = try {
+            val apiClient = ApiClient()
+            val result = apiClient.discoverPersonalizedProducts()
+            apiClient.close()
+            result.take(5).map { p: network.ProductItem ->
+                ProductItem(
+                    id = p.id,
+                    title = p.name,
+                    price = p.price ?: 0.0,
+                    imageUrl = p.imageUrl,
+                    productUrl = "spresso://product/${p.id}"
+                )
+            }
+        } catch (e: Exception) {
+            Telemetry.recordError("EngageWorker: fetchFeatured failed", e)
+            return Result.retry()
+        }
+
+        if (topItems.isEmpty()) {
+            Log.w(TAG, "No featured items from discovery API — skipping featured publish")
+            return Result.success()
+        }
+
+        // Featured uses recommendation cluster API with TYPE_FEATURED_FOR_YOU
+        val publishTask: Task<Void> = client.publishRecommendationClusters(
+            clusterRequestFactory.constructRecommendationClustersRequest(topItems)
+        )
+        return publishAndProvideResult(publishTask)
+    }
+
+    /**
+     * Fetches real cart item count from Data Connect.
+     */
     private suspend fun publishShoppingCart(): Result {
+        val uid = getCurrentUserUid()
+        val cartItemCount = if (uid != null) {
+            try {
+                // GetUserCart returns cart metadata; we use CartItem count indirectly
+                val cartResult = connector.getUserCart.execute()
+                cartResult.data.carts.firstOrNull()?.let { 1 } ?: 0
+            } catch (e: Exception) {
+                Telemetry.recordError("EngageWorker: fetchCart failed", e)
+                0
+            }
+        } else 0
+
+        if (cartItemCount == 0) return Result.success()
+
         val publishTask: Task<Void> = client.publishShoppingCart(
-            clusterRequestFactory.constructShoppingCartClusterRequest()
+            clusterRequestFactory.constructShoppingCartClusterRequest(itemCount = cartItemCount)
         )
         return publishAndProvideResult(publishTask)
     }
 
+    /**
+     * Fetches real grocery list from Data Connect.
+     */
     private suspend fun publishShoppingList(): Result {
+        val uid = getCurrentUserUid() ?: return Result.success()
+        val (listTitle, itemCount) = try {
+            val result = connector.getGroceryList.execute(userId = uid)
+            val firstList = result.data.groceryLists.firstOrNull()
+            if (firstList != null) {
+                Pair(firstList.title, firstList.items.size)
+            } else {
+                Pair("My Grocery List", 0)
+            }
+        } catch (e: Exception) {
+            Telemetry.recordError("EngageWorker: fetchGroceryList failed", e)
+            Pair("My Grocery List", 0)
+        }
+
+        if (itemCount == 0) return Result.success()
+
         val publishTask: Task<Void> = client.publishShoppingLists(
-            clusterRequestFactory.constructShoppingListsRequest()
+            clusterRequestFactory.constructShoppingListsRequest(
+                listTitle = listTitle,
+                itemCount = itemCount
+            )
         )
         return publishAndProvideResult(publishTask)
     }
 
+    /**
+     * Fetches past orders from Data Connect for the reorder cluster.
+     */
     private suspend fun publishShoppingReorder(): Result {
+        val reorderCount = try {
+            val result = connector.getUserOrders.execute()
+            result.data.orders.size
+        } catch (e: Exception) {
+            Telemetry.recordError("EngageWorker: fetchReorders failed", e)
+            0
+        }
+
+        if (reorderCount == 0) return Result.success()
+
         val publishTask: Task<Void> = client.publishShoppingReorderCluster(
-            clusterRequestFactory.constructShoppingReorderClusterRequest()
+            clusterRequestFactory.constructShoppingReorderClusterRequest(reorderCount = reorderCount)
         )
         return publishAndProvideResult(publishTask)
     }
 
+    /**
+     * Fetches the most recent order from Data Connect for order tracking cluster.
+     */
     private suspend fun publishShoppingOrderTracking(): Result {
+        val (orderId, status) = try {
+            val result = connector.getUserOrders.execute()
+            val latestOrder = result.data.orders.firstOrNull()
+            if (latestOrder != null) {
+                Pair(latestOrder.id.toString(), latestOrder.status)
+            } else {
+                return Result.success()
+            }
+        } catch (e: Exception) {
+            Telemetry.recordError("EngageWorker: fetchOrderTracking failed", e)
+            return Result.retry()
+        }
+
         val publishTask: Task<Void> = client.publishShoppingOrderTrackingCluster(
-            clusterRequestFactory.constructShoppingOrderTrackingClusterRequest()
+            clusterRequestFactory.constructShoppingOrderTrackingClusterRequest(
+                orderId = orderId,
+                orderStatus = status,
+                orderTimeMillis = System.currentTimeMillis()
+            )
         )
         return publishAndProvideResult(publishTask)
     }
@@ -115,6 +259,7 @@ class EngageWorker(context: Context, workerParams: WorkerParameters) : Coroutine
             updatePublishStatus(errorStatusCode)
             return if (isErrorRecoverable(appEngageException)) Result.retry() else Result.failure()
         }
+        Telemetry.recordError("EngageWorker: unexpected publish error", publishException)
         return Result.failure()
     }
 

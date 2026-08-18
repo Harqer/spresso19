@@ -41,10 +41,14 @@ fun CategoryTilesBar(
         CategoryTile("Winter Wear", "Winter Wear", Icons.Default.AcUnit),
         CategoryTile("Sports Wear", "Sports Wear", Icons.Default.FitnessCenter),
         CategoryTile("Makeup", "Makeup & Beauty", Icons.Default.Brush),
-        CategoryTile("Accessories", "Accessories", Icons.Default.Watch),
-        CategoryTile("Smart Wearables", "Wearables", Icons.Default.SmartToy),
-        CategoryTile("Electronics", "Electronics", Icons.Default.Headphones)
-    )
+        CategoryTile("Accessories", "Accessories", Icons.Default.Watch)
+    ).toMutableList()
+
+    if (utils.PlatformFeatures.isWearablesSupported) {
+        categories.add(CategoryTile("Smart Wearables", "Wearables", Icons.Default.SmartToy))
+    }
+    
+    categories.add(CategoryTile("Electronics", "Electronics", Icons.Default.Headphones))
 
     LazyRow(modifier = modifier, contentPadding = PaddingValues(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(categories) { category ->

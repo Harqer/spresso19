@@ -36,7 +36,7 @@ fun ProductActions(
         )
         // Additional description for Virtual Try-On to pad out molecule UI
         androidx.compose.material3.Text(
-            text = "See how this product looks on you using our AI draping engine.",
+            text = "See how this product looks on you before buying.",
             style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
             color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 16.dp, start = 4.dp, end = 4.dp)
@@ -50,7 +50,7 @@ fun ProductActions(
         )
         // Additional description for Spin 360 to pad out molecule UI
         androidx.compose.material3.Text(
-            text = "Rotate the product in high fidelity 3D space powered by Veo.",
+            text = "View the product from every angle in high fidelity 3D.",
             style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
             color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 16.dp, start = 4.dp, end = 4.dp)

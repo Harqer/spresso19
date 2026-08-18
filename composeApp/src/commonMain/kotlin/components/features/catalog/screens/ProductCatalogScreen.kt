@@ -25,7 +25,9 @@ import io.ktor.client.HttpClient
 import kotlinx.coroutines.launch
 import network.ApiClient
 import network.ProductItem
+import network.VideoInteractionEvent
 import network.models.*
+import kotlinx.datetime.Clock
 
 @Composable
 fun ProductCatalogScreen(
@@ -38,8 +40,8 @@ fun ProductCatalogScreen(
     var activeDetailProduct by remember { mutableStateOf<ProductItem?>(null) }
     var checkoutStatus by remember { mutableStateOf<String?>(null) }
     var hitlCheckoutPayload by remember { mutableStateOf<HITLPayload?>(null) }
+    var viewStartTime by remember { mutableStateOf(0L) }
     val scope = rememberCoroutineScope()
-    val curatedProducts = remember(products) { products.take(3) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(checkoutStatus) {
@@ -64,6 +66,16 @@ fun ProductCatalogScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             if (isLoading && products.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (products.isEmpty() && errorMessage == null) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("No products available", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("We couldn't find any products in this category. Check back later!", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 160.dp),
@@ -91,8 +103,8 @@ fun ProductCatalogScreen(
                         }
                     }
 
-                    if (selectedCategoryId == "ALL" && curatedProducts.isNotEmpty()) {
-                        item(span = { GridItemSpan(this.maxCurrentLineSpan) }) { AICurationFeed(curatedProducts = curatedProducts, httpClient = httpClient, onTryOnRequested = onTryOnRequested) }
+                    if (selectedCategoryId == "ALL" && products.isNotEmpty()) {
+                        item(span = { GridItemSpan(this.maxCurrentLineSpan) }) { AICurationFeed(curatedProducts = products.take(3), httpClient = httpClient, onTryOnRequested = onTryOnRequested) }
                     }
                     items(filteredProducts) { product ->
                         MediaActionCard(
@@ -101,6 +113,7 @@ fun ProductCatalogScreen(
                             subtitle = "${product.brand} • $${product.price}",
                             onClick = {
                                 activeDetailProduct = product
+                                viewStartTime = Clock.System.now().toEpochMilliseconds()
                                 onProductSelected(product.id)
                             },
                             trackingId = "catalog_product_${product.id}",
@@ -131,9 +144,49 @@ fun ProductCatalogScreen(
 
             activeDetailProduct?.let { prod ->
                 ProductCatalogDetailDialog(
-                    product = prod, checkoutStatus = checkoutStatus, onDismiss = { activeDetailProduct = null }, onTryOn = { activeDetailProduct = null; onTryOnRequested(it) },
+                    product = prod, checkoutStatus = checkoutStatus, 
+                    onDismiss = { 
+                        val duration = Clock.System.now().toEpochMilliseconds() - viewStartTime
+                        scope.launch {
+                            apiClient.streamTelemetry(
+                                VideoInteractionEvent(
+                                    uid = "current_user", // In production, use actual UID
+                                    itemId = prod.id,
+                                    watchRatio = minOf(1.0, duration / 5000.0), // Simulate watch ratio (5s = 1.0)
+                                    scrollVelocityMs = duration.toInt(),
+                                    pauseCount = 0,
+                                    likePressed = false,
+                                    sharedExternal = false
+                                )
+                            )
+                        }
+                        activeDetailProduct = null 
+                    }, 
+                    onTryOn = { activeDetailProduct = null; onTryOnRequested(it) },
                     onSpin360 = { id -> scope.launch { try { apiClient.requestSpin360(id); checkoutStatus = "Spin 360 generated!" } catch (e: Exception) { checkoutStatus = "Spin 360 note: ${e.message}" } } },
-                    onLike = { checkoutStatus = "Saved to favorites!" }, onShare = { onShareRequested(it) }, onBuyNow = { activeDetailProduct = null; hitlCheckoutPayload = prod.toHITLPayload() }
+                    onLike = { 
+                        scope.launch {
+                            apiClient.streamTelemetry(
+                                VideoInteractionEvent(
+                                    uid = "current_user", itemId = prod.id,
+                                    watchRatio = 1.0, scrollVelocityMs = 5000, pauseCount = 0, likePressed = true, sharedExternal = false
+                                )
+                            )
+                        }
+                        checkoutStatus = "Saved to favorites!" 
+                    }, 
+                    onShare = { 
+                        scope.launch {
+                            apiClient.streamTelemetry(
+                                VideoInteractionEvent(
+                                    uid = "current_user", itemId = prod.id,
+                                    watchRatio = 1.0, scrollVelocityMs = 5000, pauseCount = 0, likePressed = false, sharedExternal = true
+                                )
+                            )
+                        }
+                        onShareRequested(it) 
+                    }, 
+                    onBuyNow = { activeDetailProduct = null; hitlCheckoutPayload = prod.toHITLPayload() }
                 )
             }
 
@@ -147,7 +200,4 @@ fun ProductCatalogScreen(
     }
 }
 
-private fun ProductItem.toHITLPayload(quantity: Int = 1): HITLPayload {
-    val safePrice = price ?: 0.0
-    return HITLPayload(authorizationId = "AUTH-${id.uppercase()}", product = HITLProduct(id = id, name = name, price = safePrice, sku = "SKU-${id.uppercase()}", image = imageUrl), quantity = quantity, totalAmount = safePrice * quantity, currency = "USD", deviceSource = "WEARABLE", inventoryConfirmed = true, stockRemaining = 10, humanInTheLoopChallenge = HITLChallenge(title = "Biometric Verification Required", message = "Confirm purchase with fingerprint or passkey"))
-}
+

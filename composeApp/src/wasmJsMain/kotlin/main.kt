@@ -12,6 +12,12 @@ external fun signInWithEmail(email: String, pass: String)
 @JsName("signUpWithEmail")
 external fun signUpWithEmail(name: String, email: String, pass: String)
 
+@JsName("signInWithPhone")
+external fun signInWithPhone(phoneNumber: String): kotlin.js.Promise<kotlin.js.JsAny?>
+
+@JsName("verifyPhoneCode")
+external fun verifyPhoneCode(code: String): kotlin.js.Promise<kotlin.js.JsAny?>
+
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     ComposeViewport(document.body!!) {
@@ -26,18 +32,27 @@ fun main() {
                     window.alert("Google Sign-In failed: ${e.message}")
                 }
             },
-            onEmailSignInRequested = { email, password ->
-                try {
-                    signInWithEmail(email, password)
-                } catch (e: Exception) {
-                    window.alert("Email Sign-In failed: ${e.message}")
-                }
-            },
-            onEmailSignUpRequested = { name, email, password ->
-                try {
-                    signUpWithEmail(name, email, password)
-                } catch (e: Exception) {
-                    window.alert("Email Sign-Up failed: ${e.message}")
+            onPhoneSignInRequested = {
+                val phoneNumber = window.prompt("Enter phone number (e.g. +1234567890)")
+                if (!phoneNumber.isNullOrBlank()) {
+                    try {
+                        signInWithPhone(phoneNumber).then { _ ->
+                            val code = window.prompt("Enter SMS Code")
+                            if (!code.isNullOrBlank()) {
+                                verifyPhoneCode(code).then { success ->
+                                    if (success != null) {
+                                        window.alert("Phone authentication successful!")
+                                    } else {
+                                        window.alert("Phone authentication failed.")
+                                    }
+                                    null
+                                }
+                            }
+                            null
+                        }
+                    } catch (e: Exception) {
+                        window.alert("Phone Sign-In failed: ${e.message}")
+                    }
                 }
             }
         )

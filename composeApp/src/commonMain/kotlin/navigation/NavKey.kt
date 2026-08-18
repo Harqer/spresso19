@@ -46,4 +46,16 @@ sealed interface NavKey {
 
     @Serializable
     data object ProfileKey : NavKey
+
+    @Serializable
+    data object FavoritesKey : NavKey
+
+    @Serializable
+    data object NotificationsKey : NavKey
+
+    @Serializable
+    data object PrivacySecurityKey : NavKey
+
+    @Serializable
+    data object SupportKey : NavKey
 }

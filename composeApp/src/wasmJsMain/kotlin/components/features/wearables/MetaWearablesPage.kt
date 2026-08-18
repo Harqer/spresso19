@@ -19,6 +19,6 @@ actual fun MetaWearablesPage(
     modifier: Modifier
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Meta Wearables DAT is only supported on Android.")
+        Text("Meta Smart Glasses integration is only supported on Android.")
     }
 }

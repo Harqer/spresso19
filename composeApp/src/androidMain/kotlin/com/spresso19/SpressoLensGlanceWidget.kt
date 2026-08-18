@@ -55,6 +55,7 @@ class TriggerLensActionCallback : ActionCallback {
         parameters: ActionParameters
     ) {
         val intent = Intent(AccessibilityServiceCommands.ACTION_REQUEST_SCREEN_SCAN).apply {
+            setPackage(context.packageName)
             putExtra(AccessibilityServiceCommands.EXTRA_REQUEST_TOKEN, UUID.randomUUID().toString())
             putExtra(AccessibilityServiceCommands.EXTRA_REQUESTED_AT, System.currentTimeMillis())
         }

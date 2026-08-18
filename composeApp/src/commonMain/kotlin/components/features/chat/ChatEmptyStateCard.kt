@@ -58,7 +58,6 @@ fun ChatEmptyStateCard(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 DiscoveryCard(
                     id = "hot_drop",
-                    badge = "HOT DROP",
                     isErrorTheme = true,
                     icon = Icons.Default.LocalFireDepartment,
                     title = "Nike & Brand Drops",
@@ -71,7 +70,6 @@ fun ChatEmptyStateCard(
                 )
                 DiscoveryCard(
                     id = "sale_20",
-                    badge = "20%+ OFF",
                     isErrorTheme = false,
                     icon = Icons.Default.Sell,
                     title = "Area Store & Outlet Deals",
@@ -86,7 +84,6 @@ fun ChatEmptyStateCard(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 DiscoveryCard(
                     id = "market_steals",
-                    badge = "MARKET STEALS",
                     isErrorTheme = false,
                     icon = Icons.Default.ShoppingCart,
                     title = "Fresh Grocery Deals",
@@ -99,7 +96,6 @@ fun ChatEmptyStateCard(
                 )
                 DiscoveryCard(
                     id = "trending",
-                    badge = "TRENDING",
                     isErrorTheme = true,
                     icon = Icons.Default.AutoAwesome,
                     title = "Trending Tech & Style",

@@ -11,7 +11,9 @@ import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,7 +43,9 @@ fun SmartVisionDetectionOverlay(
     onSelectProduct: (String) -> Unit,
     onHitlCheckout: (HITLPayload) -> Unit
 ) {
-    val box = item.boundingBox ?: listOf(250.0, 250.0, 750.0, 750.0)
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var apiError by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    val box = item.boundingBox ?: listOf(0.0, 0.0, 0.0, 0.0)
     val yMin = (box.getOrNull(0) ?: 0.0) / 1000f
     val xMin = (box.getOrNull(1) ?: 0.0) / 1000f
     val yMax = (box.getOrNull(2) ?: 0.0) / 1000f
@@ -63,6 +67,15 @@ fun SmartVisionDetectionOverlay(
                 .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
         ) {
+            val errorMsg = apiError
+            if (errorMsg != null) {
+                Text(
+                    text = errorMsg,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.align(Alignment.TopCenter).padding(4.dp).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(4.dp))
+                )
+            }
             if (matchedProduct != null && (matchedProduct.rating ?: 0.0) > 0.0) {
                 Row(
                     modifier = Modifier
@@ -125,28 +138,13 @@ fun SmartVisionDetectionOverlay(
                         icon = Icons.Default.ShoppingBag,
                         variant = SpressoButtonVariant.PRIMARY,
                         onClick = {
-                            val payload = HITLPayload(
-                                authorizationId = "ORDER-1234567890",
-                                product = HITLProduct(
-                                    id = matchedProduct?.id ?: "prod-detected",
-                                    name = item.detectedName,
-                                    price = price,
-                                    sku = "VIS-SKU",
-                                    image = matchedProduct?.imageUrl ?: ""
-                                ),
-                                quantity = 1,
-                                totalAmount = price,
-                                currency = "USD",
-                                deviceSource = "MOBILE_ANDROID",
-                                inventoryConfirmed = true,
-                                stockRemaining = 10,
-                                humanInTheLoopChallenge = HITLChallenge(
-                                    title = "Confirm Purchase",
-                                    message = "Confirm purchase of ${item.detectedName} for $${price}?",
-                                    safetyChecks = listOf("In stock and reserved", "Includes free express delivery", "Click confirm to place order")
-                                )
-                            )
-                            onHitlCheckout(payload)
+                            scope.launch {
+                                try {
+                                    network.SpressoBackend.logVisionEvent(detectedObjects = item.detectedName, context = "buy_click", imageUrl = matchedProduct?.imageUrl)
+                                } catch(e: Exception) {
+                                    apiError = "Vision API Error: ${e.message}"
+                                }
+                            }
                         },
                         trackingId = "btn_buy_${matchedProduct?.id ?: "detected"}",
                         trackingAction = "click_buy"

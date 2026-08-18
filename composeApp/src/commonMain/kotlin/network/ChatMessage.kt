@@ -14,5 +14,6 @@ data class ChatMessage(
     val sources: List<GroundingSource> = emptyList(),
     val products: List<ProductItem> = emptyList(),
     val mediaUrl: String? = null,
-    val mediaType: String? = null // "video", "image", "360"
+    val mediaType: String? = null,
+    val widget: String? = null
 )

@@ -43,9 +43,16 @@ fun StackedWardrobeDecks(
 ) {
     var expandedDeckId by remember { mutableStateOf<String?>("ai-curated") }
 
-    val decks = remember(products.size) {
-        throw Exception("Missing Backend API - Needs Implementation: /api/wardrobe/decks")
-        emptyList<ComposeWardrobeDeck>()
+    var decks by remember(products.size) { mutableStateOf<List<ComposeWardrobeDeck>>(emptyList()) }
+
+    var apiError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(products.size) {
+        try {
+            network.SpressoBackend.getWardrobeOutfits()
+        } catch(e: Exception) {
+            apiError = "Error: ${e.message}"
+        }
     }
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -79,6 +86,15 @@ fun StackedWardrobeDecks(
                     Text("Add", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
+        }
+
+        if (apiError != null) {
+            Text(
+                text = apiError!!,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
         }
 
         decks.forEach { deck ->

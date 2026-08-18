@@ -61,6 +61,8 @@ kotlin {
             implementation(libs.firebase.analytics)
             implementation(libs.firebase.dataconnect)
             implementation(libs.firebase.functions)
+            implementation(libs.firebase.messaging)
+            implementation(libs.firebase.ui.auth)
             implementation(libs.compose.pay.button)
             implementation(libs.play.services.wallet)
             implementation(libs.androidx.camera.core)
@@ -88,6 +90,7 @@ kotlin {
             implementation(libs.androidx.xr.glimmer)
             implementation(libs.androidx.xr.runtime)
             implementation(libs.androidx.xr.scenecore)
+            implementation(libs.coinbase.wallet.mobile.sdk)
         }
         val androidUnitTest = sourceSets.getByName("androidUnitTest")
         androidUnitTest.dependencies {

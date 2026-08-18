@@ -51,7 +51,7 @@ fun AttachmentChipsBar(
                 Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Box(modifier = Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
-                        Text(text = when { isSpeaking -> "Streaming..."; isListening -> "Listening... Speak now"; else -> "Bi-directional Voice Mode Active" }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        Text(text = when { isSpeaking -> "Streaming..."; isListening -> "Listening... Speak now"; else -> "Voice Chat Active" }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     }
                     if (onStopVoice != null) {
                         Text(text = "End Voice", modifier = Modifier.clickable { onStopVoice() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

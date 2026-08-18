@@ -19,7 +19,7 @@ fun SpressoGlimmerApp(isCooking: Boolean) {
             contentAlignment = Alignment.BottomCenter // Bottom-aligned UI
         ) {
             if (isCooking) {
-                ChefAssistanceCard()
+                ChefAssistanceCard(instructions = emptyList())
             } else {
                 GroceryListStack()
             }

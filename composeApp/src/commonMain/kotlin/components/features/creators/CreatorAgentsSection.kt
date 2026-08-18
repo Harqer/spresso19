@@ -24,90 +24,60 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.jsonPrimitive
 import network.ApiClient
-import network.models.AGENTS_METADATA
 import components.shared.elements.SpressoButton
 import components.shared.elements.SpressoButtonVariant
 
 @Composable
 fun CreatorAgentsSection(apiClient: ApiClient, scope: kotlinx.coroutines.CoroutineScope) {
-    var selectedAgent by remember { mutableStateOf(AGENTS_METADATA[0]) }
-    var input by remember { mutableStateOf("") }
-    var isGenerating by remember { mutableStateOf(false) }
-    val messages = remember { mutableStateListOf<Pair<String, Boolean>>() }
+    var agents by remember { mutableStateOf<List<network.CreatorAgentData>>(emptyList()) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 300.dp),
-            modifier = Modifier.heightIn(max = 240.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(AGENTS_METADATA) { agent ->
-                val isSelected = selectedAgent.id == agent.id
-                Surface(
-                    onClick = { selectedAgent = agent },
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
-                    shadowElevation = if (isSelected) 2.dp else 0.dp
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Icon(agent.icon, null, tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-                        Text(agent.title, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
-                        Text(agent.subtitle, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                    }
-                }
-            }
+    LaunchedEffect(Unit) {
+        try {
+            val result = network.SpressoBackend.getCreatorAgents()
+            agents = result
+        } catch (e: Exception) {
+            errorMessage = e.message
+        } finally {
+            isLoading = false
         }
+    }
 
-        Surface(modifier = Modifier.weight(1f), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(300.dp),
-                    modifier = Modifier.weight(1f), 
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(messages) { (text, isUser) ->
-                        Surface(
-                            color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.align(if (isUser) Alignment.End else Alignment.Start).fillMaxWidth(0.85f)
-                        ) {
-                            Text(text, color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
-                        }
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = input, onValueChange = { input = it },
-                        placeholder = { Text("Ask ${selectedAgent.title}...", fontSize = 12.sp) },
-                        modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)
-                    )
-                    SpressoButton(
-                        text = "Send",
-                        icon = Icons.AutoMirrored.Outlined.Send,
-                        onClick = {
-                            if (input.isNotBlank()) {
-                                messages.add(input to true)
-                                val currentInput = input
-                                input = ""
-                                isGenerating = true
-                                scope.launch {
-                                    try {
-                                        val res = apiClient.generateCreatorCampaign(currentInput, selectedAgent.id)
-                                        val out = res["campaign"]?.jsonPrimitive?.content ?: res["brief"]?.jsonPrimitive?.content ?: "Response generated."
-                                        messages.add(out to false)
-                                    } catch (e: Exception) { messages.add("Error: ${e.message}" to false) }
-                                    finally { isGenerating = false }
-                                }
-                            }
-                        },
-                        enabled = !isGenerating && input.isNotBlank(),
-                        isLoading = isGenerating,
-                        trackingId = "creator_agent_msg_${selectedAgent.id}",
-                        trackingAction = "send"
-                    )
-                }
+    if (errorMessage != null) {
+        Text(text = "Error: $errorMessage", modifier = Modifier.padding(16.dp))
+    } else if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else if (agents.isEmpty()) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.Send,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "No agents found",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "You haven't created any agents yet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(agents) { agent ->
+                Text(text = agent.title, modifier = Modifier.padding(16.dp))
             }
         }
     }

@@ -5,6 +5,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import audio.AudioPlayer
 import audio.AudioRecorder
 import components.features.auth.AuthPage
@@ -14,6 +21,7 @@ import components.features.orders.OrdersTrackerPage
 import components.features.chat.PersonalAIShopperChatPage
 import components.features.catalog.ProductCatalogPage
 import components.features.profile.ProfilePage
+import components.features.profile.LegalSecuritySection
 import components.features.vision.SmartVisionPage
 import components.features.wardrobe.WardrobeViewPage
 import components.navigation.MainAppTemplate
@@ -45,8 +53,7 @@ fun App(
     onTriggerGlobalLens: () -> Unit = {},
     onLensResult: (String) -> Unit = {},
     onGoogleSignInRequested: () -> Unit = {},
-    onEmailSignInRequested: (String, String) -> Unit = { _, _ -> },
-    onEmailSignUpRequested: (String, String, String) -> Unit = { _, _, _ -> },
+    onPhoneSignInRequested: () -> Unit = {},
     onVerifyEmailRequested: () -> Unit = {},
     externalNavKey: NavKey? = null
 ) {
@@ -63,8 +70,7 @@ fun App(
         if (currentUserUid == null) {
             AuthPage(
                 onGoogleSignInRequested = onGoogleSignInRequested,
-                onEmailSignInRequested = onEmailSignInRequested,
-                onEmailSignUpRequested = onEmailSignUpRequested
+                onPhoneSignInRequested = onPhoneSignInRequested
             )
             return@AppTheme
         }
@@ -158,8 +164,7 @@ fun App(
                 is NavKey.AuthKey -> {
                     AuthPage(
                         onGoogleSignInRequested = onGoogleSignInRequested,
-                        onEmailSignInRequested = onEmailSignInRequested,
-                        onEmailSignUpRequested = onEmailSignUpRequested
+                        onPhoneSignInRequested = onPhoneSignInRequested
                     )
                 }
                 is NavKey.ChatKey -> {
@@ -180,7 +185,15 @@ fun App(
                         onRequestAccessibilityScan = onRequestAccessibilityScan,
                         onTriggerGlobalLens = onTriggerGlobalLens,
                         onLaunchCamera = { pickImage() },
-                        onAddToCart = { _ -> },
+                        onAddToCart = { product -> 
+                            scope.launch {
+                                try {
+                                    apiClient.recordInteraction(product.id, "add_to_cart")
+                                } catch (e: Exception) {
+                                    errorMessage = "Error adding to cart: ${e.message}"
+                                }
+                            }
+                        },
                         onSelectTryOn = { product ->
                             activeProductId = product.id
                             pickImage()
@@ -246,6 +259,16 @@ fun App(
                         apiClient = apiClient,
                         onAskAI = { prompt ->
                             backStack.push(NavKey.ChatKey(initialPrompt = prompt))
+                        },
+                        onSetReminder = { orderId ->
+                            scope.launch {
+                                try {
+                                    apiClient.setOrderReminder(orderId, "1_HOUR")
+                                    println("Reminder scheduled successfully.")
+                                } catch (e: Exception) {
+                                    println("Failed to schedule reminder.")
+                                }
+                            }
                         }
                     )
                 }
@@ -273,8 +296,93 @@ fun App(
                         onSignOut = {
                             backStack.replace(NavKey.AuthKey)
                         },
-                        onVerifyEmail = onVerifyEmailRequested
+                        onVerifyEmail = onVerifyEmailRequested,
+                        onNavigateToOrderHistory = { backStack.push(NavKey.OrdersKey) },
+                        onNavigateToFavorites = { backStack.push(NavKey.FavoritesKey) },
+                        onNavigateToNotifications = { backStack.push(NavKey.NotificationsKey) },
+                        onNavigateToPrivacySecurity = { backStack.push(NavKey.PrivacySecurityKey) },
+                        onNavigateToSupport = { backStack.push(NavKey.SupportKey) }
                     )
+                }
+                is NavKey.FavoritesKey -> {
+                    androidx.compose.material3.Scaffold(
+                        topBar = {
+                            @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+                            androidx.compose.material3.TopAppBar(
+                                title = { Text("My Favorites") },
+                                navigationIcon = {
+                                    IconButton(onClick = { backStack.pop() }) {
+                                        Icon(androidx.compose.material.icons.Icons.Filled.ArrowBack, "Back")
+                                    }
+                                }
+                            )
+                        }
+                    ) { innerPadding ->
+                        Box(modifier = Modifier.padding(innerPadding).fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("No saved favorites yet.")
+                        }
+                    }
+                }
+                is NavKey.NotificationsKey -> {
+                    androidx.compose.material3.Scaffold(
+                        topBar = {
+                            @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+                            androidx.compose.material3.TopAppBar(
+                                title = { Text("Notifications") },
+                                navigationIcon = {
+                                    IconButton(onClick = { backStack.pop() }) {
+                                        Icon(androidx.compose.material.icons.Icons.Filled.ArrowBack, "Back")
+                                    }
+                                }
+                            )
+                        }
+                    ) { innerPadding ->
+                        Box(modifier = Modifier.padding(innerPadding).fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("You're all caught up!")
+                        }
+                    }
+                }
+                is NavKey.PrivacySecurityKey -> {
+                    androidx.compose.material3.Scaffold(
+                        topBar = {
+                            @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+                            androidx.compose.material3.TopAppBar(
+                                title = { Text("Privacy & Security") },
+                                navigationIcon = {
+                                    IconButton(onClick = { backStack.pop() }) {
+                                        Icon(androidx.compose.material.icons.Icons.Filled.ArrowBack, "Back")
+                                    }
+                                }
+                            )
+                        }
+                    ) { innerPadding ->
+                        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(16.dp)) {
+                            LegalSecuritySection(
+                                onShowRefundPolicy = { },
+                                onShowPlayPolicy = { },
+                                onShowPrivacyTerms = { }
+                            )
+                        }
+                    }
+                }
+                is NavKey.SupportKey -> {
+                    androidx.compose.material3.Scaffold(
+                        topBar = {
+                            @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+                            androidx.compose.material3.TopAppBar(
+                                title = { Text("Support") },
+                                navigationIcon = {
+                                    IconButton(onClick = { backStack.pop() }) {
+                                        Icon(androidx.compose.material.icons.Icons.Filled.ArrowBack, "Back")
+                                    }
+                                }
+                            )
+                        }
+                    ) { innerPadding ->
+                        Box(modifier = Modifier.padding(innerPadding).fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Contact us at support@spresso19.com")
+                        }
+                    }
                 }
             }
         }

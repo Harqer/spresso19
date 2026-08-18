@@ -1,4 +1,4 @@
-package ui
+package components.features.camera
 
 import androidx.compose.material3.MaterialTheme
 
@@ -37,6 +37,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import java.io.File
 import java.util.concurrent.Executors
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -95,6 +97,9 @@ fun CameraCaptureView(
     // Recording state
     var isRecording by remember { mutableStateOf(false) }
     var activeRecording by remember { mutableStateOf<Recording?>(null) }
+    
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
 
@@ -163,6 +168,16 @@ fun CameraCaptureView(
         }
     }
 
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val bytes = inputStream?.readBytes()
+                if (bytes != null) onImageCaptured(bytes)
+            }
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(
             factory = { ctx ->
@@ -176,38 +191,10 @@ fun CameraCaptureView(
             modifier = Modifier.fillMaxSize()
         )
 
-        val primaryColor = MaterialTheme.colorScheme.primary
-        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
-            detectedObjects.forEach { obj ->
-                val box = obj.boundingBox
-                drawRect(
-                    color = primaryColor,
-                    topLeft = androidx.compose.ui.geometry.Offset(box.left.toFloat(), box.top.toFloat()),
-                    size = androidx.compose.ui.geometry.Size(box.width().toFloat(), box.height().toFloat()),
-                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6f),
-                    alpha = 0.8f
-                )
-            }
-        }
+        ObjectDetectionOverlay(detectedObjects = detectedObjects)
 
         if (showGrid) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight().border(0.5.dp, Color.White.copy(alpha = 0.3f)))
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight().border(0.5.dp, Color.White.copy(alpha = 0.3f)))
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight().border(0.5.dp, Color.White.copy(alpha = 0.3f)))
-                }
-                Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight().border(0.5.dp, Color.White.copy(alpha = 0.3f)))
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight().border(0.5.dp, Color.White.copy(alpha = 0.3f)))
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight().border(0.5.dp, Color.White.copy(alpha = 0.3f)))
-                }
-                Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight().border(0.5.dp, Color.White.copy(alpha = 0.3f)))
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight().border(0.5.dp, Color.White.copy(alpha = 0.3f)))
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight().border(0.5.dp, Color.White.copy(alpha = 0.3f)))
-                }
-            }
+            CameraGridOverlay()
         }
 
         if (isShutterFlashVisible) Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.8f)))
@@ -237,65 +224,37 @@ fun CameraCaptureView(
                 if (!isRecording) activeMode = it 
             }, 
             onGalleryClick = {
-                // In future, launch image picker here
+                galleryLauncher.launch("image/*")
             },
             onToggleRecordVideo = {
-                if (isRecording) {
-                    activeRecording?.stop()
-                    activeRecording = null
-                } else {
-                    val tempFile = File.createTempFile("spresso_video", ".mp4", context.cacheDir)
-                    val outputOptions = FileOutputOptions.Builder(tempFile).build()
-                    val audioConfig = AudioConfig.create(hasAudioPermission)
-                    
-                    val recording = cameraController.startRecording(
-                        outputOptions,
-                        audioConfig,
-                        ContextCompat.getMainExecutor(context)
-                    ) { event ->
-                        when (event) {
-                            is VideoRecordEvent.Start -> {
-                                isRecording = true
-                            }
-                            is VideoRecordEvent.Finalize -> {
-                                isRecording = false
-                                if (!event.hasError()) {
-                                    val bytes = tempFile.readBytes()
-                                    tempFile.delete()
-                                    onImageCaptured(bytes) // We use the same callback for simplicity to upload
-                                } else {
-                                    tempFile.delete()
-                                }
-                            }
-                        }
-                    }
-                    activeRecording = recording
-                }
+                activeRecording = CameraCaptureActions.toggleVideoRecording(
+                    context = context,
+                    cameraController = cameraController,
+                    isRecording = isRecording,
+                    activeRecording = activeRecording,
+                    hasAudioPermission = hasAudioPermission,
+                    onRecordingStarted = { isRecording = true },
+                    onRecordingStopped = { isRecording = false },
+                    onVideoCaptured = { onImageCaptured(it) }
+                )
             },
             onCapturePhoto = {
-                isShutterFlashVisible = true
-                val tempFile = File.createTempFile("spresso_capture", ".jpg", context.cacheDir)
-                val outputOptions = ImageCapture.OutputFileOptions.Builder(tempFile)
-                    .setMetadata(ImageCapture.Metadata().apply { isReversedHorizontal = isFrontLens })
-                    .build()
-
-                cameraController.takePicture(
-                    outputOptions, cameraExecutor,
-                    object : ImageCapture.OnImageSavedCallback {
-                        override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                            val bytes = tempFile.readBytes()
-                            tempFile.delete()
-                            ContextCompat.getMainExecutor(context).execute { isShutterFlashVisible = false; onImageCaptured(bytes) }
-                        }
-
-                        override fun onError(exception: ImageCaptureException) {
-                            tempFile.delete()
-                            ContextCompat.getMainExecutor(context).execute { isShutterFlashVisible = false }
-                        }
-                    }
+                CameraCaptureActions.capturePhoto(
+                    context = context,
+                    cameraController = cameraController,
+                    cameraExecutor = cameraExecutor,
+                    isFrontLens = isFrontLens,
+                    onShutter = { isShutterFlashVisible = true },
+                    onImageCaptured = onImageCaptured,
+                    onComplete = { isShutterFlashVisible = false }
                 )
             },
             modifier = Modifier.align(Alignment.BottomCenter)
+        )
+
+        androidx.compose.material3.SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 120.dp)
         )
     }
 }

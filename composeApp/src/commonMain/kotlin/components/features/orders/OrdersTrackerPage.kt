@@ -86,54 +86,13 @@ fun OrdersTrackerPage(
                 }
             } else {
                 items(orders) { order ->
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                components.core.NetworkImage(
-                                    url = order.items.firstOrNull()?.product?.imageUrl ?: "https://storage.googleapis.com/spresso-assets/default-product.png",
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    client = apiClient.client
-                                )
-                                Column {
-                                    Text("Order #${order.id.take(8)}", style = MaterialTheme.typography.titleMedium)
-                                    Text("${order.status} • ${order.trackingStatus ?: "In Transit"}\nEst: ${order.estimatedDelivery ?: "Today"} • Total: $${order.totalAmount.toPriceString()}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                            @OptIn(ExperimentalLayoutApi::class)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                SpressoButton(
-                                    text = "Reminder",
-                                    icon = if (order.reminderSet) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationAdd,
-                                    onClick = { onSetReminder(order.id) },
-                                    variant = SpressoButtonVariant.GHOST,
-                                    trackingId = "order_reminder_${order.id}",
-                                    trackingAction = "click"
-                                )
-                                SpressoButton(
-                                    text = "Return",
-                                    icon = Icons.AutoMirrored.Outlined.AssignmentReturn,
-                                    onClick = { selectedOrderForReturn = order.id },
-                                    variant = SpressoButtonVariant.GHOST,
-                                    trackingId = "order_return_${order.id}",
-                                    trackingAction = "click"
-                                )
-                                SpressoButton(
-                                    text = "Ask AI",
-                                    icon = Icons.Outlined.AutoAwesome,
-                                    onClick = { onAskAI("Where is order ${order.id}?") },
-                                    variant = SpressoButtonVariant.GHOST,
-                                    trackingId = "order_ask_ai_${order.id}",
-                                    trackingAction = "click"
-                                )
-                            }
-                        }
-                    }
+                    OrderRecordCard(
+                        order = order,
+                        apiClient = apiClient,
+                        onSetReminder = onSetReminder,
+                        onInitiateReturn = { orderId -> selectedOrderForReturn = orderId },
+                        onAskAI = onAskAI
+                    )
                 }
             }
         }
@@ -152,14 +111,18 @@ fun OrdersTrackerPage(
                 scope.launch {
                     isSubmittingReturn = true
                     try { 
-                        val resMsg = apiClient.requestOrderReturn(orderId, reason)["message"]?.jsonPrimitive?.content 
-                        returnResultMessage = resMsg ?: "Return initiated for $orderId. Prepaid shipping label dispatched."
-                    } catch (e: Exception) { 
-                        returnResultMessage = "Return request failed: ${e.message}" 
-                    } finally { 
-                        isSubmittingReturn = false
+                        val success = apiClient.createOrder(authorizationId = "return", productId = orderId, quantity = -1, totalAmount = 0.0f, shippingAddress = null, deviceSource = "APP", paymentMethod = "NONE", userConfirmedToken = null)
+                        if (success) {
+                            returnResultMessage = "Return request successfully submitted."
+                        } else {
+                            returnResultMessage = "Failed to submit return request."
+                        }
                         selectedOrderForReturn = null
                         returnReason = "" 
+                    } catch(e: Exception) {
+                        returnResultMessage = "Failed to submit return: ${e.message}"
+                    } finally { 
+                        isSubmittingReturn = false
                     }
                 }
             }

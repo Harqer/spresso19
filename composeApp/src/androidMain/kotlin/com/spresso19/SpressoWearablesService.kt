@@ -12,17 +12,20 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.meta.wearable.dat.camera.Stream
 import com.meta.wearable.dat.camera.addStream
+import com.meta.wearable.dat.camera.removeStream
 import com.meta.wearable.dat.camera.types.StreamConfiguration
 import com.meta.wearable.dat.camera.types.VideoQuality
 import com.meta.wearable.dat.core.Wearables
 import com.meta.wearable.dat.core.selectors.AutoDeviceSelector
 import com.meta.wearable.dat.core.session.DeviceSession
 import com.meta.wearable.dat.core.session.DeviceSessionState
+import com.meta.wearable.dat.core.types.RegistrationState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -40,9 +43,27 @@ class SpressoWearablesService : Service() {
     private var audioManager: AudioManager? = null
     override fun onBind(intent: Intent?): IBinder? = null
 
+    companion object {
+        // Singleton OkHttpClient shared across all service instances — prevents socket exhaustion
+        private val okHttpClient: OkHttpClient by lazy {
+            OkHttpClient.Builder()
+                .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(0, java.util.concurrent.TimeUnit.SECONDS) // No timeout for WebSocket
+                .build()
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
-        startForeground(1919, createNotification())
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            startForeground(
+                1919, 
+                createNotification(), 
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            )
+        } else {
+            startForeground(1919, createNotification())
+        }
         setupAudioManager()
         setupWebSocket()
         setupWearables()
@@ -50,39 +71,90 @@ class SpressoWearablesService : Service() {
 
     private fun setupAudioManager() {
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        audioManager?.startBluetoothSco()
-        audioManager?.isBluetoothScoOn = true
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val devices = audioManager?.availableCommunicationDevices ?: emptyList()
+            val bluetoothDevice = devices.firstOrNull { it.type == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO }
+            bluetoothDevice?.let {
+                audioManager?.setCommunicationDevice(it)
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager?.startBluetoothSco()
+            @Suppress("DEPRECATION")
+            audioManager?.isBluetoothScoOn = true
+        }
     }
 
     private fun setupWebSocket() {
-        val client = OkHttpClient()
-        val backendUrl = network.SpressoConfig.backendBaseUrl.replace("http", "ws")
-        val url = "$backendUrl/api/live-chef"
-        val request = Request.Builder().url(url).build()
+        val client = okHttpClient
+        
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Generate Ephemeral Token via Cloud Functions
+                val responseJson = network.callFirebaseFunction(network.FirebaseRoutes.GENERATE_LIVE_API_TOKEN, "{}")
+                val response = org.json.JSONObject(responseJson)
+                val result = if (response.has("result")) response.getJSONObject("result") else response
+                val token = result.getString("token")
+                
+                // 2. Connect directly to Gemini Live API
+                val url = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=$token"
+                val request = Request.Builder().url(url).build()
 
-        webSocket = client.newWebSocket(request, object : WebSocketListener() {
-            override fun onOpen(webSocket: WebSocket, response: Response) {
-                Log.i("SpressoWearables", "Gemini WebSocket Opened to Backend proxy")
-                // No setup message needed; backend handles setup and tool declarations securely
-            }
-
-            override fun onMessage(webSocket: WebSocket, text: String) {
-                Log.d("SpressoWearables", "Gemini text msg: $text")
-                try {
-                    val json = JSONObject(text)
-                    if (json.has("type") && json.getString("type") == "functionCall") {
-                        val functionName = json.getString("functionName")
-                        handleIntentRouting(functionName)
+                webSocket = client.newWebSocket(request, object : WebSocketListener() {
+                    override fun onOpen(webSocket: WebSocket, response: Response) {
+                        Log.i("SpressoWearables", "Gemini WebSocket Opened directly to Gemini")
                     }
-                } catch (e: Exception) {
-                    Log.e("SpressoWearables", "Error parsing JSON: ", e)
-                }
-            }
 
-            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                Log.e("SpressoWearables", "Gemini WebSocket Error", t)
+                    override fun onMessage(webSocket: WebSocket, text: String) {
+                        Log.d("SpressoWearables", "Gemini text msg: $text")
+                        try {
+                            val json = JSONObject(text)
+                            // Parse Gemini Tool Call format
+                            if (json.has("toolCall")) {
+                                val toolCall = json.getJSONObject("toolCall")
+                                val functionCalls = toolCall.getJSONArray("functionCalls")
+                                for (i in 0 until functionCalls.length()) {
+                                    val functionCall = functionCalls.getJSONObject(i)
+                                    val functionName = functionCall.getString("name")
+                                    handleIntentRouting(functionName)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("SpressoWearables", "Error parsing JSON: ", e)
+                        }
+                    }
+
+                    override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                        Log.w("SpressoWearables", "Gemini WebSocket Closed: $reason")
+                        reconnectWebSocket()
+                    }
+
+                    override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                        Log.e("SpressoWearables", "Gemini WebSocket Error", t)
+                        reconnectWebSocket()
+                    }
+                })
+            } catch (e: Exception) {
+                Log.e("SpressoWearables", "Failed to setup WS", e)
+                reconnectWebSocket()
             }
-        })
+        }
+    }
+
+    private var reconnectAttempts = 0
+    private fun reconnectWebSocket() {
+        if (reconnectAttempts > 5) {
+            Log.e("SpressoWearables", "Max reconnect attempts reached.")
+            return
+        }
+        val delayMs = (1000L * (1 shl reconnectAttempts)).coerceAtMost(30000L)
+        reconnectAttempts++
+        Log.i("SpressoWearables", "Reconnecting WebSocket in ${delayMs}ms (Attempt $reconnectAttempts)")
+        
+        serviceScope.launch {
+            kotlinx.coroutines.delay(delayMs)
+            setupWebSocket()
+        }
     }
 
     private fun handleIntentRouting(functionName: String) {
@@ -90,14 +162,11 @@ class SpressoWearablesService : Service() {
         when (functionName) {
             "startCookingAssistance" -> {
                 Log.i("SpressoWearables", "Executing Cooking Agent with Safeguard...")
-                // SAFEGUARD: Do not blindly execute device-level actions.
-                // Broadcast a confirmation intent to require explicit user consent in the UI.
                 val intent = Intent("com.spresso19.intent.action.CONFIRM_START_COOKING")
                 sendBroadcast(intent)
             }
             "startGroceryScanner" -> {
                 Log.i("SpressoWearables", "Executing Grocery Scanner with Safeguard...")
-                // SAFEGUARD: Do not blindly execute device-level actions.
                 val intent = Intent("com.spresso19.intent.action.CONFIRM_START_GROCERY")
                 sendBroadcast(intent)
             }
@@ -110,25 +179,51 @@ class SpressoWearablesService : Service() {
     private fun setupWearables() {
         Wearables.initialize(this).onFailure { error, _ ->
             Log.e("SpressoWearables", "Failed to initialize Wearables: ${error.description}")
+            return
         }
-        
+
+        // Must observe RegistrationState before creating a session
+        serviceScope.launch {
+            Wearables.registrationState.collect { regState ->
+                Log.i("SpressoWearables", "Registration state: $regState")
+                if (regState == RegistrationState.REGISTERED && session == null) {
+                    createAndStartSession()
+                }
+            }
+        }
+    }
+
+    private fun createAndStartSession() {
         session = Wearables.createSession(AutoDeviceSelector()).getOrElse { error ->
             Log.e("SpressoWearables", "Failed to create session: $error")
             return
         }
         
         session?.let { currentSession ->
+            // Observe session errors natively
+            serviceScope.launch {
+                currentSession.errors.collect { error ->
+                    Log.e("SpressoWearables", "Async Session Error: $error")
+                }
+            }
+            
+            // Wait for DeviceSessionState.STARTED to attach capabilities
             serviceScope.launch {
                 currentSession.state.collect { state ->
                     Log.i("SpressoWearables", "Session state: $state")
-                    if (state == DeviceSessionState.STARTED) {
+                    if (state == DeviceSessionState.STARTED && stream == null) {
                         attachCapabilities(currentSession)
+                    } else if (state == DeviceSessionState.STOPPED) {
+                        Log.w("SpressoWearables", "Session stopped.")
                     }
                 }
             }
+            
             currentSession.start()
         }
     }
+
+    private val frameOutStream = java.io.ByteArrayOutputStream(65536)
 
     private fun attachCapabilities(currentSession: DeviceSession) {
         // Add Camera Stream Capability
@@ -137,25 +232,45 @@ class SpressoWearablesService : Service() {
         ).onSuccess { currentStream ->
             stream = currentStream
             currentStream.start().onFailure { error, _ ->
-                Log.e("SpressoWearables", "Failed to start stream: $error")
+                Log.e("SpressoWearables", "Failed to start stream: ${error.description}")
             }
 
             serviceScope.launch {
                 currentStream.videoStream.collect { frame ->
-                    // Send actual frames to Gemini Multimodal Live API
-                    try {
-                        val message = JSONObject().apply {
-                            put("type", "video")
-                            put("video", android.util.Base64.encodeToString(frame.buffer.array(), android.util.Base64.NO_WRAP))
+                    // Dispatch heavy image processing off the Main thread
+                    withContext(Dispatchers.Default) {
+                        try {
+                            val bitmap = com.spresso19.wearable.YuvToBitmapConverter.convert(
+                                frame.buffer,
+                                frame.width,
+                                frame.height
+                            )
+                            if (bitmap != null) {
+                                frameOutStream.reset()
+                                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, frameOutStream)
+                                val byteArray = frameOutStream.toByteArray()
+                                val base64Data = android.util.Base64.encodeToString(byteArray, android.util.Base64.NO_WRAP)
+                                
+                                val message = JSONObject().apply {
+                                    put("realtimeInput", JSONObject().apply {
+                                        put("mediaChunks", JSONArray().apply {
+                                            put(JSONObject().apply {
+                                                put("mimeType", "image/jpeg")
+                                                put("data", base64Data)
+                                            })
+                                        })
+                                    })
+                                }
+                                webSocket?.send(message.toString())
+                            }
+                        } catch (e: Exception) {
+                            Log.e("SpressoWearables", "Frame convert/send error", e)
                         }
-                        webSocket?.send(message.toString())
-                    } catch (e: Exception) {
-                        Log.e("SpressoWearables", "Frame send error", e)
                     }
                 }
             }
         }.onFailure { error, _ ->
-            Log.e("SpressoWearables", "Failed to add stream: $error")
+            Log.e("SpressoWearables", "Failed to add stream: ${error.description}")
         }
     }
 
@@ -172,18 +287,27 @@ class SpressoWearablesService : Service() {
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle("Spresso Glasses Active")
             .setContentText("Connected to Smart Glasses")
-            .setSmallIcon(android.R.drawable.ic_menu_camera)
+            .setSmallIcon(R.drawable.ic_lens)
             .build()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        audioManager?.stopBluetoothSco()
-        audioManager?.isBluetoothScoOn = false
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            audioManager?.clearCommunicationDevice()
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager?.stopBluetoothSco()
+            @Suppress("DEPRECATION")
+            audioManager?.isBluetoothScoOn = false
+        }
         
         webSocket?.close(1000, "Service destroyed")
         
         stream?.stop()
+        session?.removeStream()?.onFailure { error, _ ->
+            Log.e("SpressoWearables", "Failed to remove stream: ${error.description}")
+        }
         session?.stop()
         
         serviceScope.cancel()

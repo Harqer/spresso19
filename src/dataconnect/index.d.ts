@@ -36,6 +36,23 @@ export interface AddVideoVariables {
   videoType: string;
 }
 
+export interface AddWardrobeItemData {
+  wardrobeItem_insert: WardrobeItem_Key;
+}
+
+export interface AddWardrobeItemVariables {
+  outfitId?: UUIDString | null;
+  category: string;
+  brand?: string | null;
+  imageUrl: string;
+  color?: string | null;
+}
+
+export interface AgentQuickPrompt_Key {
+  id: UUIDString;
+  __typename?: 'AgentQuickPrompt_Key';
+}
+
 export interface CartItem_Key {
   id: UUIDString;
   __typename?: 'CartItem_Key';
@@ -44,6 +61,19 @@ export interface CartItem_Key {
 export interface Cart_Key {
   id: UUIDString;
   __typename?: 'Cart_Key';
+}
+
+export interface CoinbaseWallet_Key {
+  userId: string;
+  __typename?: 'CoinbaseWallet_Key';
+}
+
+export interface ConnectCoinbaseWalletData {
+  coinbaseWallet_upsert: CoinbaseWallet_Key;
+}
+
+export interface ConnectCoinbaseWalletVariables {
+  walletAddress: string;
 }
 
 export interface CreateExpenseData {
@@ -115,6 +145,26 @@ export interface CreateVoiceNoteVariables {
   transcript: string;
 }
 
+export interface CreateWardrobeOutfitData {
+  wardrobeOutfit_insert: WardrobeOutfit_Key;
+}
+
+export interface CreateWardrobeOutfitVariables {
+  title: string;
+  description?: string | null;
+  imageUrl?: string | null;
+}
+
+export interface CreativeTemplate_Key {
+  id: UUIDString;
+  __typename?: 'CreativeTemplate_Key';
+}
+
+export interface CreatorAgent_Key {
+  id: UUIDString;
+  __typename?: 'CreatorAgent_Key';
+}
+
 export interface DeleteGroceryItemData {
   groceryListItem_delete?: GroceryListItem_Key | null;
 }
@@ -129,6 +179,36 @@ export interface DeletePaymentMethodData {
 
 export interface DeletePaymentMethodVariables {
   id: UUIDString;
+}
+
+export interface GetCreativeTemplatesData {
+  creativeTemplates: ({
+    id: UUIDString;
+    name: string;
+    creator: string;
+    category: string;
+    description?: string | null;
+    iconName: string;
+    promptExample?: string | null;
+    createdAt: TimestampString;
+  } & CreativeTemplate_Key)[];
+}
+
+export interface GetCreatorAgentsData {
+  creatorAgents: ({
+    id: UUIDString;
+    title: string;
+    badge?: string | null;
+    subtitle: string;
+    iconName: string;
+    capabilities: string;
+    createdAt: TimestampString;
+    quickPrompts: ({
+      id: UUIDString;
+      label: string;
+      prompt: string;
+    } & AgentQuickPrompt_Key)[];
+  } & CreatorAgent_Key)[];
 }
 
 export interface GetGroceryListData {
@@ -166,6 +246,15 @@ export interface GetItineraryEventsData {
   } & ItineraryEvent_Key)[];
 }
 
+export interface GetOnboardingStatusData {
+  onboardingStatuses: ({
+    userId: string;
+    currentStep: number;
+    isCompleted: boolean;
+    updatedAt: TimestampString;
+  } & OnboardingStatus_Key)[];
+}
+
 export interface GetPaymentMethodsData {
   paymentMethods: ({
     id: UUIDString;
@@ -178,8 +267,8 @@ export interface GetProductByIdData {
   product?: {
     id: string;
     name: string;
-    brand?: string | null;
-    category?: string | null;
+    brand: string;
+    category: string;
     price: number;
     image?: string | null;
     description?: string | null;
@@ -293,6 +382,16 @@ export interface GetUserVideosData {
   } & Video_Key)[];
 }
 
+export interface GetVisionHistoryData {
+  visionHistories: ({
+    id: UUIDString;
+    detectedObjects: string;
+    context?: string | null;
+    imageUrl?: string | null;
+    createdAt: TimestampString;
+  } & VisionHistory_Key)[];
+}
+
 export interface GetVoiceNotesData {
   voiceNotes: ({
     id: UUIDString;
@@ -301,6 +400,34 @@ export interface GetVoiceNotesData {
     audioUrl?: string | null;
     createdAt: TimestampString;
   } & VoiceNote_Key)[];
+}
+
+export interface GetWardrobeItemsData {
+  wardrobeItems: ({
+    id: UUIDString;
+    category: string;
+    brand?: string | null;
+    imageUrl: string;
+    color?: string | null;
+    createdAt: TimestampString;
+  } & WardrobeItem_Key)[];
+}
+
+export interface GetWardrobeOutfitsData {
+  wardrobeOutfits: ({
+    id: UUIDString;
+    title: string;
+    description?: string | null;
+    imageUrl?: string | null;
+    createdAt: TimestampString;
+    items: ({
+      id: UUIDString;
+      category: string;
+      brand?: string | null;
+      imageUrl: string;
+      color?: string | null;
+    } & WardrobeItem_Key)[];
+  } & WardrobeOutfit_Key)[];
 }
 
 export interface GroceryListItem_Key {
@@ -322,8 +449,8 @@ export interface ListProductsData {
   products: ({
     id: string;
     name: string;
-    brand?: string | null;
-    category?: string | null;
+    brand: string;
+    category: string;
     price: number;
     image?: string | null;
     description?: string | null;
@@ -331,9 +458,29 @@ export interface ListProductsData {
   } & Product_Key)[];
 }
 
+export interface LogVisionEventData {
+  visionHistory_insert: VisionHistory_Key;
+}
+
+export interface LogVisionEventVariables {
+  detectedObjects: string;
+  context?: string | null;
+  imageUrl?: string | null;
+}
+
+export interface OnboardingStatus_Key {
+  userId: string;
+  __typename?: 'OnboardingStatus_Key';
+}
+
 export interface Order_Key {
   id: UUIDString;
   __typename?: 'Order_Key';
+}
+
+export interface PasskeyCredential_Key {
+  userId: string;
+  __typename?: 'PasskeyCredential_Key';
 }
 
 export interface PaymentMethod_Key {
@@ -344,6 +491,15 @@ export interface PaymentMethod_Key {
 export interface Product_Key {
   id: string;
   __typename?: 'Product_Key';
+}
+
+export interface RegisterPasskeyData {
+  passkeyCredential_upsert: PasskeyCredential_Key;
+}
+
+export interface RegisterPasskeyVariables {
+  credentialId: string;
+  publicKey: string;
 }
 
 export interface ToggleGroceryItemData {
@@ -371,6 +527,15 @@ export interface TravelExpense_Key {
 export interface Trip_Key {
   id: UUIDString;
   __typename?: 'Trip_Key';
+}
+
+export interface UpdateOnboardingStatusData {
+  onboardingStatus_upsert: OnboardingStatus_Key;
+}
+
+export interface UpdateOnboardingStatusVariables {
+  currentStep: number;
+  isCompleted: boolean;
 }
 
 export interface UpdateUserSubscriptionData {
@@ -428,9 +593,24 @@ export interface Video_Key {
   __typename?: 'Video_Key';
 }
 
+export interface VisionHistory_Key {
+  id: UUIDString;
+  __typename?: 'VisionHistory_Key';
+}
+
 export interface VoiceNote_Key {
   id: UUIDString;
   __typename?: 'VoiceNote_Key';
+}
+
+export interface WardrobeItem_Key {
+  id: UUIDString;
+  __typename?: 'WardrobeItem_Key';
+}
+
+export interface WardrobeOutfit_Key {
+  id: UUIDString;
+  __typename?: 'WardrobeOutfit_Key';
 }
 
 interface UpsertUserProfileRef {
@@ -613,6 +793,78 @@ export const deleteGroceryItemRef: DeleteGroceryItemRef;
 export function deleteGroceryItem(vars: DeleteGroceryItemVariables): MutationPromise<DeleteGroceryItemData, DeleteGroceryItemVariables>;
 export function deleteGroceryItem(dc: DataConnect, vars: DeleteGroceryItemVariables): MutationPromise<DeleteGroceryItemData, DeleteGroceryItemVariables>;
 
+interface CreateWardrobeOutfitRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateWardrobeOutfitVariables): MutationRef<CreateWardrobeOutfitData, CreateWardrobeOutfitVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CreateWardrobeOutfitVariables): MutationRef<CreateWardrobeOutfitData, CreateWardrobeOutfitVariables>;
+  operationName: string;
+}
+export const createWardrobeOutfitRef: CreateWardrobeOutfitRef;
+
+export function createWardrobeOutfit(vars: CreateWardrobeOutfitVariables): MutationPromise<CreateWardrobeOutfitData, CreateWardrobeOutfitVariables>;
+export function createWardrobeOutfit(dc: DataConnect, vars: CreateWardrobeOutfitVariables): MutationPromise<CreateWardrobeOutfitData, CreateWardrobeOutfitVariables>;
+
+interface AddWardrobeItemRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: AddWardrobeItemVariables): MutationRef<AddWardrobeItemData, AddWardrobeItemVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: AddWardrobeItemVariables): MutationRef<AddWardrobeItemData, AddWardrobeItemVariables>;
+  operationName: string;
+}
+export const addWardrobeItemRef: AddWardrobeItemRef;
+
+export function addWardrobeItem(vars: AddWardrobeItemVariables): MutationPromise<AddWardrobeItemData, AddWardrobeItemVariables>;
+export function addWardrobeItem(dc: DataConnect, vars: AddWardrobeItemVariables): MutationPromise<AddWardrobeItemData, AddWardrobeItemVariables>;
+
+interface LogVisionEventRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: LogVisionEventVariables): MutationRef<LogVisionEventData, LogVisionEventVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: LogVisionEventVariables): MutationRef<LogVisionEventData, LogVisionEventVariables>;
+  operationName: string;
+}
+export const logVisionEventRef: LogVisionEventRef;
+
+export function logVisionEvent(vars: LogVisionEventVariables): MutationPromise<LogVisionEventData, LogVisionEventVariables>;
+export function logVisionEvent(dc: DataConnect, vars: LogVisionEventVariables): MutationPromise<LogVisionEventData, LogVisionEventVariables>;
+
+interface UpdateOnboardingStatusRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateOnboardingStatusVariables): MutationRef<UpdateOnboardingStatusData, UpdateOnboardingStatusVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateOnboardingStatusVariables): MutationRef<UpdateOnboardingStatusData, UpdateOnboardingStatusVariables>;
+  operationName: string;
+}
+export const updateOnboardingStatusRef: UpdateOnboardingStatusRef;
+
+export function updateOnboardingStatus(vars: UpdateOnboardingStatusVariables): MutationPromise<UpdateOnboardingStatusData, UpdateOnboardingStatusVariables>;
+export function updateOnboardingStatus(dc: DataConnect, vars: UpdateOnboardingStatusVariables): MutationPromise<UpdateOnboardingStatusData, UpdateOnboardingStatusVariables>;
+
+interface ConnectCoinbaseWalletRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ConnectCoinbaseWalletVariables): MutationRef<ConnectCoinbaseWalletData, ConnectCoinbaseWalletVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ConnectCoinbaseWalletVariables): MutationRef<ConnectCoinbaseWalletData, ConnectCoinbaseWalletVariables>;
+  operationName: string;
+}
+export const connectCoinbaseWalletRef: ConnectCoinbaseWalletRef;
+
+export function connectCoinbaseWallet(vars: ConnectCoinbaseWalletVariables): MutationPromise<ConnectCoinbaseWalletData, ConnectCoinbaseWalletVariables>;
+export function connectCoinbaseWallet(dc: DataConnect, vars: ConnectCoinbaseWalletVariables): MutationPromise<ConnectCoinbaseWalletData, ConnectCoinbaseWalletVariables>;
+
+interface RegisterPasskeyRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: RegisterPasskeyVariables): MutationRef<RegisterPasskeyData, RegisterPasskeyVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: RegisterPasskeyVariables): MutationRef<RegisterPasskeyData, RegisterPasskeyVariables>;
+  operationName: string;
+}
+export const registerPasskeyRef: RegisterPasskeyRef;
+
+export function registerPasskey(vars: RegisterPasskeyVariables): MutationPromise<RegisterPasskeyData, RegisterPasskeyVariables>;
+export function registerPasskey(dc: DataConnect, vars: RegisterPasskeyVariables): MutationPromise<RegisterPasskeyData, RegisterPasskeyVariables>;
+
 interface ListProductsRef {
   /* Allow users to create refs without passing in DataConnect */
   (): QueryRef<ListProductsData, undefined>;
@@ -792,4 +1044,76 @@ export const getGroceryListRef: GetGroceryListRef;
 
 export function getGroceryList(vars: GetGroceryListVariables, options?: ExecuteQueryOptions): QueryPromise<GetGroceryListData, GetGroceryListVariables>;
 export function getGroceryList(dc: DataConnect, vars: GetGroceryListVariables, options?: ExecuteQueryOptions): QueryPromise<GetGroceryListData, GetGroceryListVariables>;
+
+interface GetCreatorAgentsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetCreatorAgentsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetCreatorAgentsData, undefined>;
+  operationName: string;
+}
+export const getCreatorAgentsRef: GetCreatorAgentsRef;
+
+export function getCreatorAgents(options?: ExecuteQueryOptions): QueryPromise<GetCreatorAgentsData, undefined>;
+export function getCreatorAgents(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetCreatorAgentsData, undefined>;
+
+interface GetCreativeTemplatesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetCreativeTemplatesData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetCreativeTemplatesData, undefined>;
+  operationName: string;
+}
+export const getCreativeTemplatesRef: GetCreativeTemplatesRef;
+
+export function getCreativeTemplates(options?: ExecuteQueryOptions): QueryPromise<GetCreativeTemplatesData, undefined>;
+export function getCreativeTemplates(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetCreativeTemplatesData, undefined>;
+
+interface GetWardrobeOutfitsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetWardrobeOutfitsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetWardrobeOutfitsData, undefined>;
+  operationName: string;
+}
+export const getWardrobeOutfitsRef: GetWardrobeOutfitsRef;
+
+export function getWardrobeOutfits(options?: ExecuteQueryOptions): QueryPromise<GetWardrobeOutfitsData, undefined>;
+export function getWardrobeOutfits(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetWardrobeOutfitsData, undefined>;
+
+interface GetWardrobeItemsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetWardrobeItemsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetWardrobeItemsData, undefined>;
+  operationName: string;
+}
+export const getWardrobeItemsRef: GetWardrobeItemsRef;
+
+export function getWardrobeItems(options?: ExecuteQueryOptions): QueryPromise<GetWardrobeItemsData, undefined>;
+export function getWardrobeItems(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetWardrobeItemsData, undefined>;
+
+interface GetVisionHistoryRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetVisionHistoryData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetVisionHistoryData, undefined>;
+  operationName: string;
+}
+export const getVisionHistoryRef: GetVisionHistoryRef;
+
+export function getVisionHistory(options?: ExecuteQueryOptions): QueryPromise<GetVisionHistoryData, undefined>;
+export function getVisionHistory(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetVisionHistoryData, undefined>;
+
+interface GetOnboardingStatusRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<GetOnboardingStatusData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<GetOnboardingStatusData, undefined>;
+  operationName: string;
+}
+export const getOnboardingStatusRef: GetOnboardingStatusRef;
+
+export function getOnboardingStatus(options?: ExecuteQueryOptions): QueryPromise<GetOnboardingStatusData, undefined>;
+export function getOnboardingStatus(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetOnboardingStatusData, undefined>;
 

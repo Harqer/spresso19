@@ -3,6 +3,8 @@ import { defineSecret } from "firebase-functions/params";
 import { GoogleGenAI } from "@google/genai";
 import { virtualTryOnFlow } from "./flows/virtualTryOnFlow";
 import { spin360Flow } from "./flows/spin360Flow";
+import { behavioralAnalysisFlow } from "./flows/behavioralAnalysisFlow";
+import { discoverPersonalizedProductsFlow } from "./flows/discoverPersonalizedProductsFlow";
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
@@ -25,6 +27,28 @@ export const generateSpin360 = onCall({ enforceAppCheck: true }, async (request)
         return result;
     } catch (e) {
         throw new HttpsError("internal", "Failed to run spin 360 flow");
+    }
+});
+
+export const analyzeUserBehavior = onCall({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
+    try {
+        const result = await behavioralAnalysisFlow(request.data);
+        // We could also update the user's profile in Firestore here.
+        // For now, we return the data to the client.
+        return result;
+    } catch (e) {
+        throw new HttpsError("internal", "Failed to run behavioral analysis flow");
+    }
+});
+
+export const discoverPersonalizedProducts = onCall({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
+    try {
+        const result = await discoverPersonalizedProductsFlow(request.data);
+        return result;
+    } catch (e) {
+        throw new HttpsError("internal", "Failed to run discover personalized products flow");
     }
 });
 
@@ -60,10 +84,45 @@ export const generateLiveApiToken = onCall({ secrets: [geminiApiKey], enforceApp
     }
 });
 
-export const identifyVisionObject = onCall(async (request) => {
+export const identifyVisionObject = onCall({ secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
-    // Wait for real implementation or routing to Genkit. This satisfies the frontend without failing silently.
-    throw new HttpsError("unimplemented", "Vision object identification is not fully implemented.");
+    const { imageBase64 } = request.data || {};
+    if (!imageBase64) throw new HttpsError("invalid-argument", "Missing imageBase64");
+
+    const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-1.5-flash",
+            contents: [
+                {
+                    role: "user",
+                    parts: [
+                        { text: "Identify the primary product in this image. Respond with a JSON object containing the fields: 'productName' (string, short and clean name) and 'estimatedPrice' (number, reasonable estimate)." },
+                        { inlineData: { data: imageBase64, mimeType: "image/jpeg" } }
+                    ]
+                }
+            ],
+            config: {
+                responseMimeType: "application/json",
+            }
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("Empty response from Gemini");
+        const json = JSON.parse(text);
+
+        return {
+            success: true,
+            detectedResult: {
+                hudAnnotationText: json.productName || "Unknown Item",
+                price: json.estimatedPrice || 0
+            }
+        };
+    } catch (e: any) {
+        console.error("Vision API error:", e);
+        throw new HttpsError("internal", "Failed to identify vision object");
+    }
 });
 
 export const creatorAgentTemplates = onCall(async (request) => {

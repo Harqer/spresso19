@@ -51,5 +51,6 @@ data class ChatStreamChunk(
     val recommendedProducts: List<ProductItem>? = null,
     val name: String? = null,
     val args: Map<String, String>? = null,
-    val result: ToolCallResult? = null
+    val result: ToolCallResult? = null,
+    val widget: String? = null
 )

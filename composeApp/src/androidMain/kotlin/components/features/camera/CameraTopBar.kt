@@ -1,4 +1,4 @@
-package ui
+package components.features.camera
 
 import androidx.compose.material3.MaterialTheme
 

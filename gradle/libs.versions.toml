@@ -36,6 +36,7 @@ engage-core = "1.6.0"
 work-runtime-ktx = "2.11.2"
 glance = "1.1.0"
 xr = "1.0.0-alpha01"
+coinbase-wallet = "1.2.0"
 
 [libraries]
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }
@@ -80,6 +81,8 @@ firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-dataconnect = { module = "com.google.firebase:firebase-dataconnect", version.ref = "firebase-dataconnect" }
 firebase-functions = { module = "com.google.firebase:firebase-functions" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
+firebase-ui-auth = { module = "com.firebaseui:firebase-ui-auth", version = "8.0.2" }
 compose-pay-button = { module = "com.google.pay.button:compose-pay-button", version.ref = "pay-button" }
 play-services-wallet = { module = "com.google.android.gms:play-services-wallet", version.ref = "play-services-wallet" }
 androidx-camera-mlkit-vision = { module = "androidx.camera:camera-mlkit-vision", version.ref = "camera-mlkit-vision" }
@@ -101,6 +104,7 @@ androidx-xr-runtime = { module = "androidx.xr.runtime:runtime", version.ref = "x
 androidx-xr-scenecore = { module = "androidx.xr.scenecore:scenecore", version.ref = "xr" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
+coinbase-wallet-mobile-sdk = { module = "com.coinbase:coinbase-wallet-sdk", version.ref = "coinbase-wallet" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

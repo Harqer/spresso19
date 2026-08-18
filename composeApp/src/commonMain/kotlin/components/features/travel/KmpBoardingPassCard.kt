@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 
 
 data class KmpBoardingPass(
@@ -37,7 +39,11 @@ fun KmpBoardingPassCard(pass: KmpBoardingPass) {
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(text = "Flight ${pass.flightNumber}", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                Text(text = "${pass.origin} ➔ ${pass.destination} • ${pass.departureTime}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(text = pass.origin, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(imageVector = Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(11.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "${pass.destination} • ${pass.departureTime}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
 
             Column(horizontalAlignment = Alignment.End) {

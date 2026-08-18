@@ -34,6 +34,7 @@ fun HITLCheckoutModal(
     var selectedPaymentMethod by remember { mutableStateOf("Google Pay") }
     var biometricVerified by remember { mutableStateOf(false) }
     var isAuthenticating by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val biometricAuthenticator = com.spresso19.auth.rememberBiometricAuthenticator(
         onSuccess = {
@@ -58,7 +59,7 @@ fun HITLCheckoutModal(
                     }
                     Column {
                         Text("Biometric Authorization", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("Human-in-the-Loop Safeguard", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Security Verification", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -66,27 +67,10 @@ fun HITLCheckoutModal(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Summary Card
-                Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                            Text(payload.product.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.weight(1f))
-                            Text("Qty: ${payload.quantity}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                            Text("SKU: ${payload.product.sku}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Free Express Delivery", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                            Text("Total Cost:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            Text("$${payload.totalAmount.toPriceString()}", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                }
+                HITLCheckoutSummaryCard(payload)
 
-                // Payment Settlement Selector
-                Text("Select Settlement Method:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                // Payment Method Selector
+                Text("Select Payment Method:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("Google Pay", "Coinbase USDC", "Card").forEach { method ->
                         val isSelected = selectedPaymentMethod == method
@@ -110,6 +94,9 @@ fun HITLCheckoutModal(
                 }
 
                 // Biometric Verification Box
+                if (errorMessage != null) {
+                    Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                }
                 Surface(color = MaterialTheme.colorScheme.surfaceContainerLowest, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -156,7 +143,7 @@ fun HITLCheckoutModal(
                         if (success) {
                             onConfirmPurchase("Google Pay - Success")
                         } else {
-                            println("LOG: Google Pay Failed: $msg")
+                            errorMessage = "Google Pay Failed: $msg"
                         }
                     },
                     modifier = Modifier.fillMaxWidth()

@@ -80,16 +80,16 @@ val connector: SpressoConnectorConnector = SpressoConnectorConnector.getInstance
 ### SpressoConnectorConnector - Query and Mutation Properties
 
 The `spresso-connector` Data Connect connector defines
-15 queries and
-15 mutations,
-a total of 30 operations.
+21 queries and
+21 mutations,
+a total of 42 operations.
 Each of these operations is exposed
 as a property of [SpressoConnectorConnector].
 
 
 An example of the property for a query
-is the query named "GetGroceryList",
-which can be accessed via the [SpressoConnectorConnector.getGroceryList] property.
+is the query named "GetCreativeTemplates",
+which can be accessed via the [SpressoConnectorConnector.getCreativeTemplates] property.
 
 
 An example of the property for a mutation
@@ -172,15 +172,15 @@ last argument of the `execute()` method.
 If a query has no variables then it can be easily executed
 by calling the `execute()` method with no arguments.
 
-For example, the "GetItineraryEvents" query has no variables
+For example, the "GetCreativeTemplates" query has no variables
 and can be executed via the
-[SpressoConnectorConnector.getItineraryEvents]
+[SpressoConnectorConnector.getCreativeTemplates]
 property as follows:
 
 ```kotlin
 val connector = SpressoConnectorConnector.instance
-val queryResult = connector.getItineraryEvents.execute()
-println("GetItineraryEvents query returned: ${queryResult.data}")
+val queryResult = connector.getCreativeTemplates.execute()
+println("GetCreativeTemplates query returned: ${queryResult.data}")
 ```
 
 

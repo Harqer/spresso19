@@ -137,31 +137,7 @@ fun ReceiptScannerSection(
                 }
             )
 
-            val outlineVariantColor = MaterialTheme.colorScheme.outlineVariant
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .drawBehind {
-                        val strokeWidth = 1.dp.toPx()
-                        drawLine(
-                            color = outlineVariantColor,
-                            start = Offset(0f, 0f),
-                            end = Offset(size.width, 0f),
-                            strokeWidth = strokeWidth
-                        )
-                    }
-                    .padding(top = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "LOGGED EXPENSES",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                tripExpenses.forEach { exp ->
-                    LoggedExpenseItem(exp = exp)
-                }
-            }
+            components.features.travel.widgets.LoggedExpensesList(tripExpenses = tripExpenses)
         }
     }
 }

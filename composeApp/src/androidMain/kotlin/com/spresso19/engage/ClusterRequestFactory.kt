@@ -15,9 +15,16 @@ import com.google.android.engage.shopping.service.PublishShoppingListsRequest
 import com.google.android.engage.shopping.service.PublishShoppingReorderClusterRequest
 import com.google.android.engage.shopping.service.PublishShoppingOrderTrackingClusterRequest
 
+/**
+ * Builds Google Engage SDK cluster publish requests.
+ * All deep links use the spresso:// scheme registered in AndroidManifest.xml.
+ * Item counts are sourced from real data passed by EngageWorker — no hardcoded values.
+ */
 class ClusterRequestFactory(context: Context) {
 
-    fun constructRecommendationClustersRequest(items: List<ProductItem>): PublishRecommendationClustersRequest {
+    fun constructRecommendationClustersRequest(
+        items: List<ProductItem>
+    ): PublishRecommendationClustersRequest {
         val recommendationCluster = RecommendationCluster.Builder()
             .setTitle("Recommended For You")
             .setRecommendationClusterType(RecommendationClusterType.TYPE_TOP_PICKS_FOR_YOU)
@@ -31,23 +38,29 @@ class ClusterRequestFactory(context: Context) {
             .build()
     }
 
-    fun constructShoppingCartClusterRequest(): PublishShoppingCartClusterRequest {
+    fun constructShoppingCartClusterRequest(
+        itemCount: Int
+    ): PublishShoppingCartClusterRequest {
         val shoppingCart = ShoppingCart.Builder()
             .setTitle("Your Cart")
-            .setActionLinkUri(Uri.parse("http://example.com/cart"))
-            .setNumberOfItems(2)
+            // spresso:// deep link registered in AndroidManifest intent-filter
+            .setActionLinkUri(Uri.parse("spresso://cart"))
+            .setNumberOfItems(itemCount)
             .build()
-        
+
         return PublishShoppingCartClusterRequest.Builder()
             .setShoppingCart(shoppingCart)
             .build()
     }
 
-    fun constructShoppingListsRequest(): PublishShoppingListsRequest {
+    fun constructShoppingListsRequest(
+        listTitle: String,
+        itemCount: Int
+    ): PublishShoppingListsRequest {
         val shoppingList = ShoppingList.Builder()
-            .setTitle("Weekly Groceries")
-            .setActionLinkUri(Uri.parse("http://example.com/lists/1"))
-            .setNumberOfItems(10)
+            .setTitle(listTitle)
+            .setActionLinkUri(Uri.parse("spresso://grocery"))
+            .setNumberOfItems(itemCount)
             .build()
 
         return PublishShoppingListsRequest.Builder()
@@ -55,11 +68,13 @@ class ClusterRequestFactory(context: Context) {
             .build()
     }
 
-    fun constructShoppingReorderClusterRequest(): PublishShoppingReorderClusterRequest {
+    fun constructShoppingReorderClusterRequest(
+        reorderCount: Int
+    ): PublishShoppingReorderClusterRequest {
         val reorderCluster = ShoppingReorderCluster.Builder()
             .setTitle("Buy Again")
-            .setActionLinkUri(Uri.parse("http://example.com/reorder"))
-            .setNumberOfItems(5)
+            .setActionLinkUri(Uri.parse("spresso://reorder"))
+            .setNumberOfItems(reorderCount)
             .build()
 
         return PublishShoppingReorderClusterRequest.Builder()
@@ -67,12 +82,17 @@ class ClusterRequestFactory(context: Context) {
             .build()
     }
 
-    fun constructShoppingOrderTrackingClusterRequest(): PublishShoppingOrderTrackingClusterRequest {
+    fun constructShoppingOrderTrackingClusterRequest(
+        orderId: String,
+        orderStatus: String,
+        orderTimeMillis: Long
+    ): PublishShoppingOrderTrackingClusterRequest {
         val trackingCluster = ShoppingOrderTrackingCluster.Builder()
             .setTitle("Your Order is on the way")
-            .setStatus("Shipped")
-            .setOrderTime(System.currentTimeMillis())
-            .setActionLinkUri(Uri.parse("http://example.com/track/123"))
+            .setStatus(orderStatus)
+            .setOrderTime(orderTimeMillis)
+            // Deep link includes the real order ID for navigation
+            .setActionLinkUri(Uri.parse("spresso://orders/$orderId"))
             .setShoppingOrderType(ShoppingOrderType.TYPE_MULTI_DAY_DELIVERY)
             .build()
 

@@ -22,8 +22,10 @@ import network.models.PaymentCardInfo
 @Composable
 fun PaymentWalletSection(
     savedCards: List<PaymentCardInfo>,
-    onAddPaymentCard: () -> Unit = {},
-    onGoogleWalletAction: () -> Unit = {},
+    web3WalletAddress: String? = null,
+    onAddPaymentCard: (() -> Unit)? = null,
+    onGoogleWalletAction: (() -> Unit)? = null,
+    onConnectCoinbaseWallet: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -45,7 +47,7 @@ fun PaymentWalletSection(
                     Icon(imageVector = Icons.Outlined.Payment, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text("Payment Methods & Wallet", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
-                TextButton(onClick = onAddPaymentCard) {
+                TextButton(onClick = { onAddPaymentCard?.invoke() }) {
                     Icon(Icons.Outlined.AddCard, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Add Card", fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -108,13 +110,21 @@ fun PaymentWalletSection(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 
+            Text("Web3 Wallets", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            CoinbaseWalletCard(
+                web3WalletAddress = web3WalletAddress,
+                onConnectCoinbaseWallet = { onConnectCoinbaseWallet?.invoke() }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Digital Passes & Receipts", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                GoogleWalletButton(onClick = onGoogleWalletAction)
+                GoogleWalletButton(onClick = { onGoogleWalletAction?.invoke() })
             }
         }
     }

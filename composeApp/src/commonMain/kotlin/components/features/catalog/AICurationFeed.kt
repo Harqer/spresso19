@@ -97,64 +97,11 @@ fun AICurationFeed(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(curatedProducts) { product ->
-                    Surface(
-                        modifier = Modifier
-                            .width(220.dp)
-                            .clickable { onTryOnRequested(product) },
-                        color = Color.White.copy(alpha = 0.04f),
-                        shape = RoundedCornerShape(18.dp),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            NetworkImage(
-                                url = product.imageUrl,
-                                client = httpClient,
-                                contentDescription = product.name,
-                                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(10.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(
-                                    text = product.name, 
-                                    color = Color.White, 
-                                    fontSize = 12.sp, 
-                                    fontWeight = FontWeight.Bold, 
-                                    maxLines = 1, 
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = "$${product.price}", 
-                                    color = MaterialTheme.colorScheme.tertiary, 
-                                    fontSize = 11.sp, 
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                                )
-                                if (product.rating != null) {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.secondaryContainer,
-                                        shape = RoundedCornerShape(percent = 50)
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        ) {
-                                            Icon(Icons.Default.Star, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(10.dp))
-                                            Text(
-                                                text = product.rating.toString(),
-                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    AICurationProductCard(
+                        product = product,
+                        httpClient = httpClient,
+                        onTryOnRequested = onTryOnRequested
+                    )
                 }
             }
         }

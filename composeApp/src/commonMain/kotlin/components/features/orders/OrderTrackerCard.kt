@@ -61,9 +61,7 @@ fun OrderTrackerCard(
                     }
                 }
             }
-            AnimatedTicketCard(
-                title = "SPRESSO VIP ORDER PASS", subtitle = "ORDER #${order.id.take(8)}", attendeeName = "VIP CUSTOMER", date = "AUG 13, 2026", ticketCode = "PASS-${order.id.take(12)}"
-            )
+
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = onSetReminder) { Icon(if (order.reminderSet) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationAdd, null, tint = MaterialTheme.colorScheme.primary) }

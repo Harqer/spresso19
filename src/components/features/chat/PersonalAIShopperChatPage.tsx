@@ -9,9 +9,8 @@ import { GoogleLensScreenWidgetModal } from "../../GoogleLensScreenWidgetModal";
 import { functions } from "../../../lib/firebase";
 import { httpsCallable } from "firebase/functions";
 import { GoogleGenAI } from "@google/genai";
-import { ChatBubbleText } from "@/src/components/features/chat/ChatBubbleText";
-import { ChatMessageHeader } from "@/src/components/features/chat/ChatMessageHeader";
-import { ChatProductCard } from "@/src/components/features/chat/ChatProductCard";
+import { QuickPromptsGrid } from "@/src/components/features/chat/QuickPromptsGrid";
+import { MessageStream } from "@/src/components/features/chat/MessageStream";
 import { generateDynamicGreeting } from "../../../lib/greeting";
 
 interface PersonalChatMsg {
@@ -248,77 +247,11 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
           </h1>
 
           {/* 4 Quick Discovery Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl text-left">
-            {quickPrompts.map((card) => (
-              <div
-                key={card.id}
-                onClick={() => handleSend(card.prompt)}
-                className="group p-5 bg-white dark:bg-[#141719] border border-[#e0e4db] dark:border-[#22272a] hover:border-[#386633] dark:hover:border-[#9cd695] rounded-3xl transition-all shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between space-y-4 active:scale-[0.98]"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-full bg-[#f4f7f3] dark:bg-[#1a211a] text-[#386633] dark:text-[#9cd695] flex items-center justify-center">
-                    <MaterialIcon icon={card.icon} size={18} />
-                  </div>
-                  <span className={`px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full border ${card.badgeBg}`}>
-                    {card.badge}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-[var(--md-sys-color-on-surface)] group-hover:text-[#386633] dark:group-hover:text-[#9cd695] transition-colors">
-                    {card.title}
-                  </h3>
-                  <p className="text-[11px] text-[var(--md-sys-color-on-surface-variant)] leading-snug mt-1">
-                    {card.subtitle}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <QuickPromptsGrid quickPrompts={quickPrompts} onSelectPrompt={(prompt: string) => handleSend(prompt)} />
         </div>
 
         {/* Message Stream */}
-        {messages.map(m => (
-          <div key={m.id} className="flex flex-col">
-            <ChatMessageHeader sender={m.sender} timestamp={new Date().toLocaleTimeString()} isStreaming={m.isStreaming} />
-            <ChatBubbleText message={m} />
-            {m.sender === 'ai' && (
-              <div className="mt-2 pl-8 space-y-3">
-                {m.products && m.products.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
-                    {m.products.map(prod => (
-                      <ChatProductCard key={prod.id} product={prod} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} />
-                    ))}
-                  </div>
-                )}
-                {m.locationData && (
-                  <button
-                    onClick={() => {
-                      onSelectTryOn({
-                        id: `loc-intent-${Date.now()}`,
-                        name: m.locationData.title,
-                        brand: m.locationData.subtitle || "",
-                        price: 0,
-                        currency: "USD",
-                        category: "Location",
-                        description: m.locationData.sectionTitle || "",
-                        image: m.locationData.heroImage || "",
-                        stock: 0,
-                        sku: "LOC",
-                        rating: 5.0,
-                        virtualTryOnEligible: true,
-                        mcpServerId: "spresso-retail"
-                      });
-                    }}
-                    className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-stone-950 text-xs font-black uppercase rounded-full transition flex items-center space-x-1.5 shadow-md max-w-max cursor-pointer"
-                  >
-                    <MaterialIcon icon="reviews" size={15} />
-                    <span>View Location Details & Reviews</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+        <MessageStream messages={messages} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} />
       </div>
 
       {/* Input Bar */}

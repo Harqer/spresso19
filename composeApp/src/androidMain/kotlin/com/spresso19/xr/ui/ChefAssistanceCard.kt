@@ -19,16 +19,12 @@ import androidx.xr.glimmer.Text
 import androidx.xr.glimmer.TitleChip
 
 @Composable
-fun ChefAssistanceCard(modifier: Modifier = Modifier) {
+fun ChefAssistanceCard(
+    instructions: List<String>,
+    modifier: Modifier = Modifier
+) {
     var step by remember { mutableStateOf(1) }
-    val maxSteps = 5
-    val instructions = listOf(
-        "Add 2 tbsp of Extra Virgin Olive Oil to the pan on medium heat. Wait until the oil starts to shimmer before adding the minced garlic.",
-        "Add 3 cloves of minced garlic and sauté until fragrant (about 1 minute).",
-        "Add 1 diced onion and cook until translucent (about 5 minutes).",
-        "Pour in 1 cup of arborio rice and toast for 2 minutes, stirring constantly.",
-        "Gradually add 4 cups of warm vegetable broth, 1/2 cup at a time, waiting until liquid is absorbed."
-    )
+    val maxSteps = if (instructions.isNotEmpty()) instructions.size else 1
 
     Column(
         modifier = modifier,
@@ -37,12 +33,22 @@ fun ChefAssistanceCard(modifier: Modifier = Modifier) {
         TitleChip { Text("Bargain Chef") }
         Spacer(Modifier.height(16.dp))
         
-        Card(
-            onClick = { if (step < maxSteps) step++ else step = 1 },
-            title = { Text("Step $step of $maxSteps") },
-            leadingIcon = { Icon(Icons.Default.Info, contentDescription = "Info") }
-        ) {
-            Text(instructions[step - 1])
+        if (instructions.isEmpty()) {
+            Card(
+                onClick = {},
+                title = { Text("No Recipe") },
+                leadingIcon = { Icon(Icons.Default.Info, contentDescription = "Info") }
+            ) {
+                Text("Generate a recipe to see step-by-step instructions.")
+            }
+        } else {
+            Card(
+                onClick = { if (step < maxSteps) step++ else step = 1 },
+                title = { Text("Step $step of $maxSteps") },
+                leadingIcon = { Icon(Icons.Default.Info, contentDescription = "Info") }
+            ) {
+                Text(instructions[step - 1])
+            }
         }
     }
 }

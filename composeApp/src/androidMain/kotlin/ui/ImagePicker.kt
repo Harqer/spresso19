@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import components.features.camera.CameraCaptureView
 
 @Composable
 actual fun rememberImagePicker(

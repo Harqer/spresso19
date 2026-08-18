@@ -14,6 +14,16 @@ package com.spresso.dataconnect
 
 
   @kotlinx.serialization.Serializable
+  public data class CoinbaseWalletKey(
+  
+    val userId: String,
+  
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
   public data class GroceryListItemKey(
   
     val id: @kotlinx.serialization.Serializable(with = com.google.firebase.dataconnect.serializers.UUIDSerializer::class) java.util.UUID,
@@ -34,9 +44,29 @@ package com.spresso.dataconnect
   }
 
   @kotlinx.serialization.Serializable
+  public data class OnboardingStatusKey(
+  
+    val userId: String,
+  
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
   public data class OrderKey(
   
     val id: @kotlinx.serialization.Serializable(with = com.google.firebase.dataconnect.serializers.UUIDSerializer::class) java.util.UUID,
+  
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
+  public data class PasskeyCredentialKey(
+  
+    val userId: String,
   
   ) {
     
@@ -116,7 +146,37 @@ package com.spresso.dataconnect
   }
 
   @kotlinx.serialization.Serializable
+  public data class VisionHistoryKey(
+  
+    val id: @kotlinx.serialization.Serializable(with = com.google.firebase.dataconnect.serializers.UUIDSerializer::class) java.util.UUID,
+  
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
   public data class VoiceNoteKey(
+  
+    val id: @kotlinx.serialization.Serializable(with = com.google.firebase.dataconnect.serializers.UUIDSerializer::class) java.util.UUID,
+  
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
+  public data class WardrobeItemKey(
+  
+    val id: @kotlinx.serialization.Serializable(with = com.google.firebase.dataconnect.serializers.UUIDSerializer::class) java.util.UUID,
+  
+  ) {
+    
+    
+  }
+
+  @kotlinx.serialization.Serializable
+  public data class WardrobeOutfitKey(
   
     val id: @kotlinx.serialization.Serializable(with = com.google.firebase.dataconnect.serializers.UUIDSerializer::class) java.util.UUID,
   

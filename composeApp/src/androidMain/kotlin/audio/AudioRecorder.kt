@@ -6,6 +6,7 @@ import android.media.MediaRecorder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -14,6 +15,8 @@ actual class AudioRecorder {
     private var audioRecord: AudioRecord? = null
     private var isRecording = false
     private var recordingJob: Job? = null
+    private val recorderJob = SupervisorJob()
+    private val recorderScope = CoroutineScope(Dispatchers.IO + recorderJob)
     
     actual fun startRecording() {
         if (isRecording) return
@@ -35,7 +38,7 @@ actual class AudioRecorder {
             audioRecord?.startRecording()
             isRecording = true
             
-            recordingJob = CoroutineScope(Dispatchers.IO).launch {
+            recordingJob = recorderScope.launch {
                 val buffer = ShortArray(bufferSize)
                 while (isActive && isRecording) {
                     val readResult = audioRecord?.read(buffer, 0, buffer.size) ?: 0
@@ -58,6 +61,8 @@ actual class AudioRecorder {
         if (!isRecording) return
         isRecording = false
         recordingJob?.cancel()
+        recordingJob = null
+        recorderJob.children.forEach { it.cancel() }
         audioRecord?.stop()
         audioRecord?.release()
         audioRecord = null

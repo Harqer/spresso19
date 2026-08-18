@@ -1,7 +1,7 @@
 package network
 
-import com.google.firebase.functions.ktx.functions
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.Firebase
+import com.google.firebase.functions.functions
 import kotlinx.coroutines.tasks.await
 import org.json.JSONObject
 import org.json.JSONArray

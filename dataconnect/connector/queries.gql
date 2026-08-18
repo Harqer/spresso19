@@ -175,3 +175,80 @@ query GetGroceryList($userId: String!) @auth(level: USER) {
     }
   }
 }
+
+query GetCreatorAgents @auth(level: USER) {
+  creatorAgents {
+    id
+    title
+    badge
+    subtitle
+    iconName
+    capabilities
+    createdAt
+    quickPrompts: agentQuickPrompts_on_agent {
+      id
+      label
+      prompt
+    }
+  }
+}
+
+query GetCreativeTemplates @auth(level: USER) {
+  creativeTemplates {
+    id
+    name
+    creator
+    category
+    description
+    iconName
+    promptExample
+    createdAt
+  }
+}
+
+query GetWardrobeOutfits @auth(level: USER) {
+  wardrobeOutfits(where: { userId: { eq_expr: "auth.uid" } }) {
+    id
+    title
+    description
+    imageUrl
+    createdAt
+    items: wardrobeItems_on_outfit {
+      id
+      category
+      brand
+      imageUrl
+      color
+    }
+  }
+}
+
+query GetWardrobeItems @auth(level: USER) {
+  wardrobeItems(where: { userId: { eq_expr: "auth.uid" } }) {
+    id
+    category
+    brand
+    imageUrl
+    color
+    createdAt
+  }
+}
+
+query GetVisionHistory @auth(level: USER) {
+  visionHistories(where: { userId: { eq_expr: "auth.uid" } }, orderBy: [{ createdAt: DESC }]) {
+    id
+    detectedObjects
+    context
+    imageUrl
+    createdAt
+  }
+}
+
+query GetOnboardingStatus @auth(level: USER) {
+  onboardingStatuses(where: { userId: { eq_expr: "auth.uid" } }) {
+    userId
+    currentStep
+    isCompleted
+    updatedAt
+  }
+}

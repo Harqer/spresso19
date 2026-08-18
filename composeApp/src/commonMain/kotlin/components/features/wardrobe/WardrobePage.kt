@@ -32,17 +32,23 @@ fun WardrobePage(
     onOpenLens: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var photos by remember {
-        mutableStateOf<List<WardrobePhotoItem>>(emptyList())
+    var photos by remember { mutableStateOf<List<WardrobePhotoItem>>(emptyList()) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        try {
+            network.SpressoBackend.getWardrobeItems()
+        } catch(e: Exception) {
+            snackbarHostState.showSnackbar("Wardrobe Error: ${e.message}")
+        }
     }
 
     val weatherSummary = "Cold 32°F Winter Season — Tailored thermal cashmere layering & shearling outerwear curated for your fashion profile."
 
     val layoutDirection = LocalLayoutDirection.current
     val insetsPadding = WindowInsets.safeDrawing.asPaddingValues()
-
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -84,7 +90,18 @@ fun WardrobePage(
                     weatherSummary = weatherSummary,
                     onAddPhotoClick = {
                         scope.launch {
-                            snackbarHostState.showSnackbar("Unable to add photo right now. Please try again.")
+                            try {
+                                network.SpressoBackend.addWardrobeItem(
+                                    outfitId = null,
+                                    category = "Uncategorized",
+                                    brand = null,
+                                    imageUrl = "https://example.com/placeholder_wardrobe.png",
+                                    color = null
+                                )
+                                snackbarHostState.showSnackbar("Wardrobe item added successfully.")
+                            } catch(e: Exception) {
+                                snackbarHostState.showSnackbar("Unable to add photo: ${e.message}")
+                            }
                         }
                     },
                     onTryOnPhoto = { photo ->

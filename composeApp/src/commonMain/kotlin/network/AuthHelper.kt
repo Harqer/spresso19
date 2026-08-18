@@ -8,3 +8,13 @@ expect suspend fun getCurrentUserIdToken(): String?
 
 /** Signs out the current user. */
 expect fun signOut()
+
+/** Signs in with email and password */
+expect suspend fun signInWithEmailAndPassword(email: String, password: String): Boolean
+
+/** Creates a new user with email and password */
+expect suspend fun createUserWithEmailAndPassword(email: String, password: String): Boolean
+
+/** Signs in with Google */
+expect suspend fun signInWithGoogle(): Boolean
+

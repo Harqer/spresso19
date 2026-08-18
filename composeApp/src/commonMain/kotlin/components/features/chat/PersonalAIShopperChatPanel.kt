@@ -53,8 +53,8 @@ fun PersonalAIShopperChatPanel(
     messages: List<ChatMessage>,
     onSendMessage: (String) -> Unit,
     userName: String? = null,
-    onAddToCart: (ProductItem) -> Unit = {},
-    onSelectTryOn: (ProductItem) -> Unit = {},
+    onAddToCart: (ProductItem) -> Unit = { },
+    onSelectTryOn: (ProductItem) -> Unit = { },
     errorMessage: String? = null,
     userLocation: String? = null,
     isAccessibilityEnabled: Boolean = false,
@@ -71,6 +71,7 @@ fun PersonalAIShopperChatPanel(
     onStopVoice: (() -> Unit)? = null,
     isGenerating: Boolean = false,
     httpClient: io.ktor.client.HttpClient? = null,
+    apiClient: network.ApiClient? = null,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -94,38 +95,15 @@ fun PersonalAIShopperChatPanel(
         ) {
             item { ChatEmptyStateCard(userName = userName, userLocation = userLocation, onSelectSuggestion = onSendMessage, modifier = Modifier.padding(top = 24.dp)) }
             items(messages) { message ->
-                val isUser = message.isUser
-                var visible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) { visible = true }
-                AnimatedVisibility(
-                    visible = visible,
-                    enter = androidx.compose.animation.slideInVertically(initialOffsetY = { 50 }, animationSpec = androidx.compose.animation.core.tween(300)) + androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300))
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = if (isUser) Alignment.End else Alignment.Start, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        ChatMessageHeader(isUser = isUser, timestamp = message.timestamp)
-                    ChatBubbleText(
-                        text = message.text, isUser = isUser, thought = message.thought, sources = message.sources,
-                        mediaUrl = message.mediaUrl, mediaType = message.mediaType, isStreaming = isGenerating && message == messages.lastOrNull() && !isUser, httpClient = httpClient
-                    )
-                    if (message.products.isNotEmpty()) {
-                        Box(modifier = Modifier.padding(start = if (isUser) 0.dp else 32.dp, top = 8.dp).fillMaxWidth()) {
-                            @OptIn(ExperimentalLayoutApi::class)
-                            FlowRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                maxItemsInEachRow = 2
-                            ) {
-                                message.products.forEach { product ->
-                                    Box(modifier = Modifier.widthIn(max = 240.dp).fillMaxWidth(0.48f)) {
-                                        ChatProductCard(product = product, onAddToCart = onAddToCart, onSelectTryOn = onSelectTryOn, httpClient = httpClient)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    }
-                }
+                components.features.chat.widgets.ChatMessageItem(
+                    message = message,
+                    isGenerating = isGenerating,
+                    isLastMessage = message == messages.lastOrNull(),
+                    onAddToCart = onAddToCart,
+                    onSelectTryOn = onSelectTryOn,
+                    httpClient = httpClient,
+                    apiClient = apiClient
+                )
             }
             item { Spacer(modifier = Modifier.height(24.dp)) }
         }

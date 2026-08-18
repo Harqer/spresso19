@@ -45,6 +45,7 @@ import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.FirebaseException
 import java.util.concurrent.TimeUnit
+import androidx.lifecycle.lifecycleScope
 import theme.SpressoAndroidTheme
 import theme.ThemeMode
 import com.spresso19.engage.EngageBroadcastReceiver
@@ -58,7 +59,14 @@ class MainActivity : FragmentActivity() {
     private val accessibilityDisclosureRequestedState = mutableStateOf(false)
     private lateinit var accessibilityConsentStore: AccessibilityConsentStore
 
-
+    private val phoneAuthLauncher = registerForActivityResult(com.firebase.ui.auth.FirebaseAuthUIActivityResultContract()) { res ->
+        val response = res.idpResponse
+        if (res.resultCode == RESULT_OK) {
+            Toast.makeText(this, "Phone authentication successful!", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Phone auth failed: ${response?.error?.errorCode}", Toast.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -93,10 +101,12 @@ class MainActivity : FragmentActivity() {
                     val orderId = intent.getStringExtra("order_id") ?: ""
                     val arrivalStatus = intent.getStringExtra("arrival_status")
                     if (arrivalStatus != null) {
-                        CoroutineScope(Dispatchers.IO).launch {
+                        lifecycleScope.launch(Dispatchers.IO) {
                             try {
                                 network.ApiClient().recordInteraction(orderId, "arrival_status_$arrivalStatus")
-                            } catch (e: Exception) {}
+                            } catch (e: Exception) {
+                                network.Telemetry.recordError("recordInteraction failed", e)
+                            }
                         }
                     }
                     externalNavKey = NavKey.OrdersKey
@@ -193,7 +203,7 @@ class MainActivity : FragmentActivity() {
                             .addCredentialOption(googleIdOption)
                             .build()
 
-                        CoroutineScope(Dispatchers.Main).launch {
+                        lifecycleScope.launch(Dispatchers.Main) {
                             try {
                                 val result = credentialManager.getCredential(
                                     context = this@MainActivity,
@@ -210,23 +220,15 @@ class MainActivity : FragmentActivity() {
                             }
                         }
                     },
-                    onEmailSignInRequested = { email, password ->
-                        FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
-                            .addOnFailureListener { e ->
-                                Toast.makeText(this@MainActivity, "Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
-                            }
-                    },
-                    onEmailSignUpRequested = { name, email, password ->
-                        FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
-                            .addOnSuccessListener {
-                                val profileUpdates = UserProfileChangeRequest.Builder()
-                                    .setDisplayName(name)
-                                    .build()
-                                it.user?.updateProfile(profileUpdates)
-                            }
-                            .addOnFailureListener { e ->
-                                Toast.makeText(this@MainActivity, "Sign-Up failed: ${e.message}", Toast.LENGTH_LONG).show()
-                            }
+                    onPhoneSignInRequested = {
+                        val providers = arrayListOf(
+                            com.firebase.ui.auth.AuthUI.IdpConfig.PhoneBuilder().build()
+                        )
+                        val signInIntent = com.firebase.ui.auth.AuthUI.getInstance()
+                            .createSignInIntentBuilder()
+                            .setAvailableProviders(providers)
+                            .build()
+                        phoneAuthLauncher.launch(signInIntent)
                     },
                     onVerifyEmailRequested = {
                         val credentialManager = CredentialManager.create(this@MainActivity)
@@ -269,7 +271,7 @@ class MainActivity : FragmentActivity() {
                         val request = GetCredentialRequest.Builder()
                             .addCredentialOption(getDigitalCredentialOption)
                             .build()
-                        CoroutineScope(Dispatchers.Main).launch {
+                        lifecycleScope.launch(Dispatchers.Main) {
                             try {
                                 val result = credentialManager.getCredential(
                                     context = this@MainActivity,
@@ -282,7 +284,7 @@ class MainActivity : FragmentActivity() {
                                     val vpToken = jsonObj.optJSONObject("vp_token")
                                     val credentialId = vpToken?.keys()?.let { if (it.hasNext()) it.next() else null }
                                     if (credentialId != null) {
-                                        CoroutineScope(Dispatchers.IO).launch {
+                                        lifecycleScope.launch(Dispatchers.IO) {
                                             val client = network.ApiClient()
                                             val customToken = client.verifyEmailCredential(responseJsonString, nonce)
                                             withContext(Dispatchers.Main) {

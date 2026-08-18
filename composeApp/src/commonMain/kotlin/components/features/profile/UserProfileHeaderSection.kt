@@ -23,7 +23,7 @@ import utils.GreetingManager
 @Composable
 fun UserProfileHeaderSection(
     profile: UserProfileData,
-    onUpdateName: (String) -> Unit = {},
+    onUpdateName: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var isEditingName by remember { mutableStateOf(false) }
@@ -65,7 +65,7 @@ fun UserProfileHeaderSection(
                             modifier = Modifier.widthIn(max = 200.dp)
                         )
                         IconButton(onClick = {
-                            onUpdateName(editedName)
+                            onUpdateName?.invoke(editedName)
                             isEditingName = false
                         }) {
                             Text("Save", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)

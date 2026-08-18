@@ -49,13 +49,19 @@ fun TravelTripsPage(
 
     var activeTripId by remember { mutableStateOf(trips.firstOrNull()?.id ?: "") }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
     LaunchedEffect(Unit) {
-        val fetchedTrips = apiClient.fetchTravelTrips()
-        if (fetchedTrips.isNotEmpty()) {
-            trips = fetchedTrips
-            if (activeTripId.isEmpty() || trips.none { it.id == activeTripId }) {
-                activeTripId = trips.first().id
+        try {
+            val fetchedTrips = apiClient.fetchTravelTrips()
+            if (fetchedTrips.isNotEmpty()) {
+                trips = fetchedTrips
+                if (activeTripId.isEmpty() || trips.none { it.id == activeTripId }) {
+                    activeTripId = trips.first().id
+                }
             }
+        } catch(e: Exception) {
+            snackbarHostState.showSnackbar("Failed to load trips: ${e.message}")
         }
     }
 
@@ -74,8 +80,6 @@ fun TravelTripsPage(
     var isRecording by remember { mutableStateOf(false) }
     var activeQrModalEvent by remember { mutableStateOf<ItineraryEvent?>(null) }
 
-    val snackbarHostState = remember { SnackbarHostState() }
-
     val speechRecognizer = ui.rememberSpeechRecognizer(
         onResult = { text ->
             isRecording = false
@@ -86,11 +90,19 @@ fun TravelTripsPage(
                 createdAt = "Just now"
             )
             scope.launch {
-                snackbarHostState.showSnackbar("Unable to save voice note right now. Please try again.")
+                try {
+                    network.SpressoBackend.createVoiceNote(tripId = activeTripId, transcript = text)
+                    snackbarHostState.showSnackbar("Voice note saved!")
+                } catch(e: Exception) {
+                    snackbarHostState.showSnackbar("Failed to save voice note: ${e.message}")
+                }
             }
         },
         onError = { 
             isRecording = false 
+            scope.launch {
+                snackbarHostState.showSnackbar("Speech recognition error. Please try again.")
+            }
         }
     )
 
@@ -120,23 +132,38 @@ fun TravelTripsPage(
             ) {
             HeaderBanner(trips, activeTripId) { activeTripId = it }
 
-            if (currentTrip != null) {
+            if (trips.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("No Upcoming Trips", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Time to start planning your next adventure!", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else if (currentTrip != null) {
                 ActiveTripHeroBanner(currentTrip, onAskAI)
-            }
 
-            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                BoardingPassList(tripEvents) { activeQrModalEvent = it }
-                VoiceNotesSection(tripVoiceNotes, isRecording) { toggleRecording() }
-                BudgetOverviewCard(currentTrip, tripExpenses)
-                ReceiptScannerSection(
-                    activeTripId = activeTripId,
-                    tripExpenses = tripExpenses,
-                    onAddExpense = {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Unable to add expense right now. Please try again.")
+                Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    BoardingPassList(tripEvents) { activeQrModalEvent = it }
+                    VoiceNotesSection(tripVoiceNotes, isRecording) { toggleRecording() }
+                    BudgetOverviewCard(currentTrip, tripExpenses)
+                    ReceiptScannerSection(
+                        activeTripId = activeTripId,
+                        tripExpenses = tripExpenses,
+                        onAddExpense = {
+                            scope.launch {
+                                try {
+                                    network.SpressoBackend.createTravelExpense(tripId = activeTripId, amount = 0.0, currency = "USD", category = "Misc", merchant = "Unknown", items = null)
+                                    snackbarHostState.showSnackbar("Expense added!")
+                                } catch(e: Exception) {
+                                    snackbarHostState.showSnackbar("Failed to add expense: ${e.message}")
+                                }
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
 

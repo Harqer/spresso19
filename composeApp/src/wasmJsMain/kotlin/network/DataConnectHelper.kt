@@ -1,13 +1,40 @@
 package network
 
+import kotlinx.coroutines.await
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.doubleOrNull
+
 /**
- * Toggles the like status for a product. Data Connect is not supported on JS/WASM platforms.
+ * Toggles the like status for a product via JS Interop.
  */
 actual suspend fun toggleLike(productId: String, userUid: String) {
-    // Firebase Data Connect is not supported on the wasmJs target; this is a no-op stub.
+    try {
+        SpressoDataConnect.toggleLike(
+            parseJsonToJsAny(
+                "{\"productId\":\"$productId\",\"idempotencyKey\":\"wasm-${kotlin.random.Random.nextInt()}\"}"
+            )
+        ).await<JsAny?>()
+    } catch (e: Exception) {
+        throw e
+    }
 }
 
-actual suspend fun getInventoryFromDataConnect(): List<ProductItem> {
-    // Return empty list as DataConnect is not supported on WasmJS
-    return emptyList()
+
+actual suspend fun upsertUserPreference(theme: String?, pushNotifications: Boolean?, emailAlerts: Boolean?) {
+    // Stub for wasm JS interop
+}
+
+actual suspend fun upsertUserProfile(email: String?, displayName: String?, avatarUrl: String?) {
+    // Stub for wasm JS interop
+}
+
+actual suspend fun connectCoinbaseWallet(address: String) {
+    // Stub for wasm JS interop
+}
+
+actual suspend fun registerPasskey(credentialId: String, publicKey: String) {
+    // Stub for wasm JS interop
 }

@@ -76,18 +76,19 @@ fun AdaptiveScaffoldBody(
 
     var isNavBarVisible by remember { mutableStateOf(showBottomBar) }
 
-
     LaunchedEffect(showBottomBar) {
         isNavBarVisible = showBottomBar
     }
-    
+
+    val adaptiveInfo = androidx.compose.material3.adaptive.currentWindowAdaptiveInfo()
     val layoutType = if (isNavBarVisible) {
-        NavigationSuiteType.NavigationBar
+        androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(adaptiveInfo)
     } else {
         NavigationSuiteType.None
     }
 
     NavigationSuiteScaffold(
+        layoutType = layoutType,
         navigationSuiteItems = {
             defaultNavDestinations.forEach { item ->
                 item(
@@ -104,49 +105,15 @@ fun AdaptiveScaffoldBody(
                 )
             }
         },
-        layoutType = layoutType,
         modifier = modifier
     ) {
         Scaffold(
             topBar = {
-
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onToggleDrawer) {
-                            SpressoLogo(size = LogoSize.Small, showText = false)
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Spresso",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        val nextMode = when (themeMode) {
-                            ThemeMode.SYSTEM -> if (isDark) ThemeMode.LIGHT else ThemeMode.DARK
-                            ThemeMode.LIGHT -> ThemeMode.DARK
-                            ThemeMode.DARK -> ThemeMode.SYSTEM
-                        }
-                        onThemeModeChange(nextMode)
-                    }) {
-                        Icon(
-                            imageVector = when (themeMode) {
-                                ThemeMode.LIGHT -> Icons.Default.LightMode
-                                ThemeMode.DARK -> Icons.Default.DarkMode
-                                ThemeMode.SYSTEM -> Icons.Default.AutoAwesome
-                            },
-                            contentDescription = "Switch Theme Mode"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+            AdaptiveTopAppBar(
+                themeMode = themeMode,
+                onThemeModeChange = onThemeModeChange,
+                onToggleDrawer = onToggleDrawer,
+                onProfileClick = { onNavigate(NavKey.ProfileKey) }
             )
         },
         bottomBar = {

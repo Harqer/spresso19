@@ -20,7 +20,6 @@ import network.ApiClient
 @Composable
 fun DiscoveryCard(
     id: String,
-    badge: String,
     isErrorTheme: Boolean,
     icon: ImageVector,
     title: String,
@@ -66,19 +65,6 @@ fun DiscoveryCard(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(icon, contentDescription = null, tint = themeColor, modifier = Modifier.size(18.dp))
                     }
-                }
-                
-                Surface(
-                    shape = CircleShape,
-                    color = themeBgColor.copy(alpha = 0.5f),
-                    border = BorderStroke(1.dp, themeColor.copy(alpha = 0.2f))
-                ) {
-                    Text(
-                        text = badge,
-                        color = themeColor,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.ExtraBold),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp)
-                    )
                 }
             }
             Column {

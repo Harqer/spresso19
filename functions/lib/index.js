@@ -41,6 +41,7 @@ __exportStar(require("./orders"), exports);
 __exportStar(require("./wardrobe"), exports);
 __exportStar(require("./ai"), exports);
 __exportStar(require("./payments"), exports);
+__exportStar(require("./catalog"), exports);
 const webhooks = __importStar(require("./webhooks"));
 exports.webhooks = webhooks;
 //# sourceMappingURL=index.js.map

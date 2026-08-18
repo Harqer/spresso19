@@ -217,6 +217,90 @@ exports.deleteGroceryItem = function deleteGroceryItem(dcOrVars, vars) {
 }
 ;
 
+const createWardrobeOutfitRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateWardrobeOutfit', inputVars);
+}
+createWardrobeOutfitRef.operationName = 'CreateWardrobeOutfit';
+exports.createWardrobeOutfitRef = createWardrobeOutfitRef;
+
+exports.createWardrobeOutfit = function createWardrobeOutfit(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createWardrobeOutfitRef(dcInstance, inputVars));
+}
+;
+
+const addWardrobeItemRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'AddWardrobeItem', inputVars);
+}
+addWardrobeItemRef.operationName = 'AddWardrobeItem';
+exports.addWardrobeItemRef = addWardrobeItemRef;
+
+exports.addWardrobeItem = function addWardrobeItem(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(addWardrobeItemRef(dcInstance, inputVars));
+}
+;
+
+const logVisionEventRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'LogVisionEvent', inputVars);
+}
+logVisionEventRef.operationName = 'LogVisionEvent';
+exports.logVisionEventRef = logVisionEventRef;
+
+exports.logVisionEvent = function logVisionEvent(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(logVisionEventRef(dcInstance, inputVars));
+}
+;
+
+const updateOnboardingStatusRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdateOnboardingStatus', inputVars);
+}
+updateOnboardingStatusRef.operationName = 'UpdateOnboardingStatus';
+exports.updateOnboardingStatusRef = updateOnboardingStatusRef;
+
+exports.updateOnboardingStatus = function updateOnboardingStatus(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updateOnboardingStatusRef(dcInstance, inputVars));
+}
+;
+
+const connectCoinbaseWalletRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ConnectCoinbaseWallet', inputVars);
+}
+connectCoinbaseWalletRef.operationName = 'ConnectCoinbaseWallet';
+exports.connectCoinbaseWalletRef = connectCoinbaseWalletRef;
+
+exports.connectCoinbaseWallet = function connectCoinbaseWallet(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(connectCoinbaseWalletRef(dcInstance, inputVars));
+}
+;
+
+const registerPasskeyRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'RegisterPasskey', inputVars);
+}
+registerPasskeyRef.operationName = 'RegisterPasskey';
+exports.registerPasskeyRef = registerPasskeyRef;
+
+exports.registerPasskey = function registerPasskey(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(registerPasskeyRef(dcInstance, inputVars));
+}
+;
+
 const listProductsRef = (dc) => {
   const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
@@ -439,5 +523,95 @@ exports.getGroceryList = function getGroceryList(dcOrVars, varsOrOptions, option
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getGroceryListRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getCreatorAgentsRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetCreatorAgents');
+}
+getCreatorAgentsRef.operationName = 'GetCreatorAgents';
+exports.getCreatorAgentsRef = getCreatorAgentsRef;
+
+exports.getCreatorAgents = function getCreatorAgents(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getCreatorAgentsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getCreativeTemplatesRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetCreativeTemplates');
+}
+getCreativeTemplatesRef.operationName = 'GetCreativeTemplates';
+exports.getCreativeTemplatesRef = getCreativeTemplatesRef;
+
+exports.getCreativeTemplates = function getCreativeTemplates(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getCreativeTemplatesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getWardrobeOutfitsRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetWardrobeOutfits');
+}
+getWardrobeOutfitsRef.operationName = 'GetWardrobeOutfits';
+exports.getWardrobeOutfitsRef = getWardrobeOutfitsRef;
+
+exports.getWardrobeOutfits = function getWardrobeOutfits(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getWardrobeOutfitsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getWardrobeItemsRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetWardrobeItems');
+}
+getWardrobeItemsRef.operationName = 'GetWardrobeItems';
+exports.getWardrobeItemsRef = getWardrobeItemsRef;
+
+exports.getWardrobeItems = function getWardrobeItems(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getWardrobeItemsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getVisionHistoryRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetVisionHistory');
+}
+getVisionHistoryRef.operationName = 'GetVisionHistory';
+exports.getVisionHistoryRef = getVisionHistoryRef;
+
+exports.getVisionHistory = function getVisionHistory(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getVisionHistoryRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getOnboardingStatusRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetOnboardingStatus');
+}
+getOnboardingStatusRef.operationName = 'GetOnboardingStatus';
+exports.getOnboardingStatusRef = getOnboardingStatusRef;
+
+exports.getOnboardingStatus = function getOnboardingStatus(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getOnboardingStatusRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;

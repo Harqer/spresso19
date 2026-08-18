@@ -39,7 +39,7 @@ fun ProductCatalogPage(
 
     LaunchedEffect(Unit) {
         isLoading = true
-        try { products = apiClient.getInventory() }
+        try { products = apiClient.discoverPersonalizedProducts() }
         catch (e: Exception) { errorMessage = "Failed to load products: ${e.message}" }
         finally { isLoading = false }
     }
@@ -48,7 +48,7 @@ fun ProductCatalogPage(
         scope.launch {
             isLoading = true
             errorMessage = null
-            try { products = apiClient.getInventory() }
+            try { products = apiClient.discoverPersonalizedProducts() }
             catch (e: Exception) { errorMessage = "Failed to load products: ${e.message}" }
             finally { isLoading = false }
         }

@@ -9,8 +9,8 @@ type User @table(key: "id") {
 type Product @table(key: "id") {
   id: String!
   name: String!
-  brand: String
-  category: String
+  brand: String!
+  category: String!
   price: Float!
   image: String
   description: String
@@ -172,4 +172,94 @@ type UserPreference @table(key: "userId") {
   pushNotifications: Boolean @default(value: true)
   emailAlerts: Boolean @default(value: true)
   updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# ----------------------------------------------------
+# CREATORS DOMAIN
+# ----------------------------------------------------
+
+type CreatorAgent @table {
+  id: UUID! @default(expr: "uuidV4()")
+  title: String!
+  badge: String
+  subtitle: String!
+  iconName: String!
+  capabilities: String! 
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type AgentQuickPrompt @table {
+  id: UUID! @default(expr: "uuidV4()")
+  agent: CreatorAgent!
+  label: String!
+  prompt: String!
+}
+
+type CreativeTemplate @table {
+  id: UUID! @default(expr: "uuidV4()")
+  name: String!
+  creator: String!
+  category: String!
+  description: String
+  iconName: String!
+  promptExample: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ----------------------------------------------------
+# WARDROBE DOMAIN
+# ----------------------------------------------------
+
+type WardrobeOutfit @table {
+  id: UUID! @default(expr: "uuidV4()")
+  userId: String!
+  title: String!
+  description: String
+  imageUrl: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type WardrobeItem @table {
+  id: UUID! @default(expr: "uuidV4()")
+  userId: String!
+  outfit: WardrobeOutfit
+  category: String!
+  brand: String
+  imageUrl: String!
+  color: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+# ----------------------------------------------------
+# VISION & ONBOARDING
+# ----------------------------------------------------
+
+type VisionHistory @table {
+  id: UUID! @default(expr: "uuidV4()")
+  userId: String!
+  detectedObjects: String!
+  context: String
+  imageUrl: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type OnboardingStatus @table(key: "userId") {
+  userId: String!
+  currentStep: Int! @default(value: 0)
+  isCompleted: Boolean! @default(value: false)
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type CoinbaseWallet @table(key: "userId") {
+  userId: String!
+  walletAddress: String!
+  chainType: String! @default(value: "base")
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type PasskeyCredential @table(key: "userId") {
+  userId: String!
+  credentialId: String!
+  publicKey: String!
+  createdAt: Timestamp! @default(expr: "request.time")
 }

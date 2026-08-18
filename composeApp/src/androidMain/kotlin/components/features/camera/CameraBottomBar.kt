@@ -1,4 +1,4 @@
-package ui
+package components.features.camera
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

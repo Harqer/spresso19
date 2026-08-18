@@ -19,7 +19,8 @@ import components.features.creators.VideoReviewItem
 @Composable
 fun ProductReviewsSection(
     reviews: List<ReviewVideoModel>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onVideoWatched: (String, Long) -> Unit = { _, _ -> }
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -39,7 +40,10 @@ fun ProductReviewsSection(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(reviews, key = { it.id }) { review ->
-                VideoReviewItem(review = review)
+                VideoReviewItem(
+                    review = review,
+                    onVideoWatched = { duration -> onVideoWatched(review.id, duration) }
+                )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
             }
         }

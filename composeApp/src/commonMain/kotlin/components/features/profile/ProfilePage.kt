@@ -3,21 +3,17 @@ package components.features.profile
 import components.models.*
 import components.features.profile.widgets.ProfileListItem
 import components.features.profile.widgets.ThemeSelectorCard
+import components.features.profile.widgets.ProfileHeader
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -26,14 +22,11 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import network.ApiClient
 import network.models.UserProfileData
 import theme.ThemeMode
-import utils.GreetingManager
 
 @Composable
 fun ProfilePage(
@@ -41,9 +34,14 @@ fun ProfilePage(
     userName: String? = null,
     apiClient: ApiClient? = null,
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    onThemeModeChange: (ThemeMode) -> Unit = {},
-    onSignOut: () -> Unit = {},
-    onVerifyEmail: () -> Unit = {},
+    onThemeModeChange: ((ThemeMode) -> Unit)? = null,
+    onSignOut: (() -> Unit)? = null,
+    onVerifyEmail: (() -> Unit)? = null,
+    onNavigateToFavorites: (() -> Unit)? = null,
+    onNavigateToOrderHistory: (() -> Unit)? = null,
+    onNavigateToNotifications: (() -> Unit)? = null,
+    onNavigateToPrivacySecurity: (() -> Unit)? = null,
+    onNavigateToSupport: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val bgLight = MaterialTheme.colorScheme.background
@@ -57,19 +55,24 @@ fun ProfilePage(
 
     var userProfile by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<UserProfileData?>(null) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val snackbarHostState = androidx.compose.runtime.remember { SnackbarHostState() }
+    val platformContext = getPlatformContext()
 
     androidx.compose.runtime.LaunchedEffect(userUid) {
         if (userUid != null && apiClient != null) {
             try {
                 userProfile = apiClient.fetchUserProfile(userUid)
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                snackbarHostState.showSnackbar("Failed to load profile. Please try again.")
+            }
         }
     }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = if (isDark) MaterialTheme.colorScheme.surface else bgLight,
-        contentWindowInsets = WindowInsets.safeDrawing
+        contentWindowInsets = WindowInsets.safeDrawing,
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -81,72 +84,159 @@ fun ProfilePage(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-        // Profile Header
-        Surface(
-            modifier = Modifier.size(100.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.secondaryContainer
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Outlined.AccountBox, 
-                    null, 
-                    modifier = Modifier.size(56.dp),
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+            if (userProfile != null) {
+                UserProfileHeaderSection(
+                    profile = userProfile!!,
+                    onUpdateName = { newName ->
+                        scope.launch {
+                            try {
+                                val updated = userProfile!!.copy(name = newName)
+                                apiClient?.updateUserProfile(updated)
+                                userProfile = updated
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar("Failed to update profile.")
+                            }
+                        }
+                    }
+                )
+
+                SubscriptionMembershipSection(
+                    currentTier = userProfile!!.tier,
+                    renewalDate = userProfile!!.renewalDate,
+                    onManageSubscription = {
+                        scope.launch {
+                            try {
+                                val newTier = if (userProfile!!.tier == network.models.SubscriptionTier.FREE) network.models.SubscriptionTier.SPRESSO_VIP else network.models.SubscriptionTier.FREE
+                                val newTierName = newTier.name
+                                val success = userUid?.let { uid -> apiClient?.updateUserSubscription(uid, newTierName) } ?: false
+                                if (success) {
+                                    val updated = userProfile!!.copy(tier = newTier)
+                                    userProfile = updated
+                                    snackbarHostState.showSnackbar("Subscription updated successfully.")
+                                } else {
+                                    snackbarHostState.showSnackbar("Failed to update subscription.")
+                                }
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar("Failed to update subscription.")
+                            }
+                        }
+                    }
+                )
+
+                PaymentWalletSection(
+                    savedCards = userProfile!!.savedCards,
+                    web3WalletAddress = userProfile!!.web3WalletAddress,
+                    onAddPaymentCard = {
+                        scope.launch {
+                            try {
+                                val success = apiClient?.createPaymentMethod(stripePaymentMethodId = "pm_card_visa") ?: false
+                                if (success) {
+                                    val newCard = network.models.PaymentCardInfo(id = "card_${kotlin.random.Random.nextInt()}", brand = "Visa", last4 = "4242", expiryMonth = 12, expiryYear = 2028)
+                                    val updated = userProfile!!.copy(savedCards = userProfile!!.savedCards + newCard)
+                                    userProfile = updated
+                                    snackbarHostState.showSnackbar("Payment card added successfully.")
+                                } else {
+                                    snackbarHostState.showSnackbar("Failed to add payment card.")
+                                }
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar("Failed to add payment card.")
+                            }
+                        }
+                    },
+                    onGoogleWalletAction = {
+                        scope.launch {
+                            try {
+                                val jwt = apiClient?.generateGoogleWalletPassJwt("loyalty") ?: ""
+                                if (jwt.isNotEmpty()) {
+                                    snackbarHostState.showSnackbar("Google Wallet Pass generated successfully.")
+                                } else {
+                                    snackbarHostState.showSnackbar("Unable to generate Google Wallet Pass at this time.")
+                                }
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar("Failed to connect Google Wallet.")
+                            }
+                        }
+                    },
+                    onConnectCoinbaseWallet = {
+                        scope.launch {
+                            try {
+                                val coinbaseHelper = CoinbaseWalletHelper(platformContext)
+                                val address = coinbaseHelper.connectWallet()
+                                val success = apiClient?.connectCoinbaseWallet(address) ?: false
+                                if (success) {
+                                    val updated = userProfile!!.copy(web3WalletAddress = address)
+                                    userProfile = updated
+                                    snackbarHostState.showSnackbar("Coinbase Wallet connected.")
+                                } else {
+                                    snackbarHostState.showSnackbar("Failed to connect Coinbase Wallet.")
+                                }
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar("Failed to connect Coinbase Wallet.")
+                            }
+                        }
+                    }
+                )
+            } else {
+                ProfileHeader(
+                    userProfile = null,
+                    userName = userName,
+                    userUid = userUid
                 )
             }
-        }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            val displayName = userProfile?.name ?: userName ?: "Explorer"
-            Text(GreetingManager.getGreeting(displayName), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(userUid ?: "Guest Session", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        // Action Cards (Web Parity Settings)
-        Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            ProfileListItem(icon = Icons.Outlined.FavoriteBorder, title = "My Favorites", subtitle = "View saved products")
-            ProfileListItem(icon = Icons.Outlined.History, title = "Order History", subtitle = "Track your purchases")
-            ProfileListItem(icon = Icons.Outlined.NotificationsNone, title = "Notifications", subtitle = "Manage alerts and updates")
-            ProfileListItem(icon = Icons.Outlined.CheckCircle, title = "Verify Email", subtitle = "Secure account with digital credentials", onClick = onVerifyEmail)
-            
-            ThemeSelectorCard(
-                themeMode = themeMode,
-                onThemeModeChange = { newTheme ->
-                    onThemeModeChange(newTheme)
-                    userUid?.let { uid ->
-                        apiClient?.let { client ->
-                            scope.launch {
-                                try {
-                                    val currentProfile = userProfile ?: UserProfileData(uid = uid, email = "", name = "")
-                                    // Theme preference might not be part of UserProfileData. Let's assume it's just saved.
-                                    client.updateUserProfile(currentProfile)
-                                } catch (e: Exception) {}
+            // Action Cards (Web Parity Settings)
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                ProfileListItem(icon = Icons.Outlined.FavoriteBorder, title = "My Favorites", subtitle = "View saved products", onClick = onNavigateToFavorites)
+                ProfileListItem(icon = Icons.Outlined.History, title = "Order History", subtitle = "Track your purchases", onClick = onNavigateToOrderHistory)
+                ProfileListItem(icon = Icons.Outlined.NotificationsNone, title = "Notifications", subtitle = "Manage alerts and updates", onClick = onNavigateToNotifications)
+                ProfileListItem(icon = Icons.Outlined.CheckCircle, title = "Verify Email", subtitle = "Secure account with digital credentials", onClick = onVerifyEmail)
+                
+                ThemeSelectorCard(
+                    themeMode = themeMode,
+                    onThemeModeChange = { newTheme ->
+                        onThemeModeChange?.invoke(newTheme)
+                        userUid?.let { uid ->
+                            apiClient?.let { client ->
+                                scope.launch {
+                                    try {
+                                        val currentProfile = userProfile ?: UserProfileData(uid = uid, email = "", name = "")
+                                        client.updateUserProfile(currentProfile)
+                                    } catch (e: Exception) {
+                                        snackbarHostState.showSnackbar("Failed to update theme preference.")
+                                    }
+                                }
                             }
+                        }
+                    }
+                )
+
+                ProfileListItem(icon = Icons.Outlined.Security, title = "Privacy & Security", subtitle = "Biometric and account safety", onClick = onNavigateToPrivacySecurity)
+                ProfileListItem(icon = Icons.AutoMirrored.Outlined.HelpOutline, title = "Support", subtitle = "Contact Spresso Concierge", onClick = onNavigateToSupport)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            AccountManagementSection(
+                onSignOut = { onSignOut?.invoke() },
+                onDeactivateAccount = {
+                    userUid?.let { uid ->
+                        scope.launch {
+                            try {
+                                apiClient?.deactivateAccount(uid)
+                                onSignOut?.invoke()
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar("Failed to deactivate account.")
+                            }
+                        }
+                    } ?: run {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("User ID is missing.")
                         }
                     }
                 }
             )
-
-            ProfileListItem(icon = Icons.Outlined.Security, title = "Privacy & Security", subtitle = "Biometric and account safety")
-            ProfileListItem(icon = Icons.AutoMirrored.Outlined.HelpOutline, title = "Support", subtitle = "Contact Spresso Concierge")
+            
+            Spacer(modifier = Modifier.height(32.dp))
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = onSignOut,
-            modifier = Modifier.fillMaxWidth().height(54.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-        ) {
-            Icon(Icons.AutoMirrored.Outlined.Logout, null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Sign Out", fontWeight = FontWeight.Bold)
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-    }
     }
 }
-

@@ -43,7 +43,7 @@ fun ProblemDetailsCard(
                         Text(text = title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         if (statusCode != null) {
                             Surface(color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f), shape = RoundedCornerShape(6.dp), modifier = Modifier.padding(top = 2.dp)) {
-                                Text(text = "HTTP $statusCode", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                Text(text = "Error Code $statusCode", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                             }
                         }
                     }

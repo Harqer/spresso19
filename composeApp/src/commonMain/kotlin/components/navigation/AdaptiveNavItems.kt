@@ -26,8 +26,7 @@ val defaultNavDestinations = listOf(
     NavDestinationItem(NavKey.CatalogKey, "For You", iconResource = Res.drawable.ic_for_you),
     NavDestinationItem(NavKey.WardrobeKey(), "Wardrobe", icon = Icons.Outlined.Checkroom),
     NavDestinationItem(NavKey.OrdersKey, "Orders", icon = Icons.AutoMirrored.Outlined.ReceiptLong),
-    NavDestinationItem(NavKey.GroceryKey, "Grocery", icon = Icons.Outlined.LocalGroceryStore),
-    NavDestinationItem(NavKey.ProfileKey, "Profile", icon = Icons.Outlined.AccountBox)
+    NavDestinationItem(NavKey.GroceryKey, "Grocery", icon = Icons.Outlined.LocalGroceryStore)
 )
 
 fun isSameDestinationGroup(current: NavKey, target: NavKey): Boolean {

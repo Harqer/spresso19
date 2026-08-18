@@ -18,6 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import components.features.onboarding.GamifiedOnboardingSection
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
 
 @Composable
 fun GamifiedOnboardingDialog(
@@ -27,11 +30,13 @@ fun GamifiedOnboardingDialog(
 ) {
     if (!isOpen) return
 
+    val scope = rememberCoroutineScope()
     var currentStep by remember { mutableStateOf(1) }
     var totalXp by remember { mutableStateOf(100) }
     var tryOnTested by remember { mutableStateOf(false) }
     var cardSaved by remember { mutableStateOf(false) }
     var wardrobeSynced by remember { mutableStateOf(false) }
+    var passkeyRegistered by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
@@ -51,6 +56,7 @@ fun GamifiedOnboardingDialog(
                     tryOnTested = tryOnTested,
                     cardSaved = cardSaved,
                     wardrobeSynced = wardrobeSynced,
+                    passkeyRegistered = passkeyRegistered,
                     onTestTryOn = {
                         tryOnTested = true
                         totalXp += 150
@@ -62,6 +68,44 @@ fun GamifiedOnboardingDialog(
                     onSyncWardrobe = {
                         wardrobeSynced = true
                         totalXp += 150
+                    },
+                    onRegisterPasskey = {
+                        passkeyRegistered = true
+                        totalXp += 150
+                    },
+                    onSelectInterests = { interests ->
+                        totalXp += 150
+                        scope.launch {
+                            try {
+                                val apiClient = network.ApiClient()
+                                val behaviorResult = apiClient.analyzeUserBehavior(interests)
+                                
+                                // Fetch current profile to update it, or create a new one. 
+                                val uid = network.getCurrentUserUid()
+                                if (uid != null) {
+                                    val inferredPainPoints = behaviorResult["inferredPainPoints"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
+                                    val summary = behaviorResult["behavioralProfileSummary"]?.jsonPrimitive?.content ?: ""
+                                    
+                                    val currentUser = apiClient.fetchUserProfile(uid)
+                                    val updatedProfile = currentUser.copy(
+                                        explicitInterests = interests,
+                                        inferredPainPoints = inferredPainPoints,
+                                        behavioralProfileSummary = summary
+                                    )
+                                    apiClient.updateUserProfile(updatedProfile)
+                                    
+                                    // Seed the PyTorch ranking engine's Thompson Sampling Bandit with their choices
+                                    apiClient.initializeOnboarding(uid, interests)
+                                    
+                                    println("Analyzed & Persisted behavior for UID $uid: $behaviorResult")
+                                } else {
+                                    println("User is not signed in. Skipping profile update.")
+                                }
+                                apiClient.close()
+                            } catch (e: Exception) {
+                                network.Telemetry.recordError("Behavior analysis failed", e)
+                            }
+                        }
                     }
                 )
 
@@ -80,7 +124,7 @@ fun GamifiedOnboardingDialog(
                         Spacer(modifier = Modifier.width(1.dp))
                     }
 
-                    if (currentStep < 4) {
+                    if (currentStep < 6) {
                         Button(
                             onClick = {
                                 currentStep += 1

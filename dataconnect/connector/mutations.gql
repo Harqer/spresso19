@@ -141,3 +141,55 @@ mutation ToggleGroceryItem($id: UUID!, $isPurchased: Boolean!) @auth(level: USER
 mutation DeleteGroceryItem($id: UUID!) @auth(level: USER) {
   groceryListItem_delete(id: $id)
 }
+
+mutation CreateWardrobeOutfit($title: String!, $description: String, $imageUrl: String) @auth(level: USER) {
+  wardrobeOutfit_insert(data: {
+    userId_expr: "auth.uid"
+    title: $title
+    description: $description
+    imageUrl: $imageUrl
+  })
+}
+
+mutation AddWardrobeItem($outfitId: UUID, $category: String!, $brand: String, $imageUrl: String!, $color: String) @auth(level: USER) {
+  wardrobeItem_insert(data: {
+    userId_expr: "auth.uid"
+    outfitId: $outfitId
+    category: $category
+    brand: $brand
+    imageUrl: $imageUrl
+    color: $color
+  })
+}
+
+mutation LogVisionEvent($detectedObjects: String!, $context: String, $imageUrl: String) @auth(level: USER) {
+  visionHistory_insert(data: {
+    userId_expr: "auth.uid"
+    detectedObjects: $detectedObjects
+    context: $context
+    imageUrl: $imageUrl
+  })
+}
+
+mutation UpdateOnboardingStatus($currentStep: Int!, $isCompleted: Boolean!) @auth(level: USER) {
+  onboardingStatus_upsert(data: {
+    userId_expr: "auth.uid"
+    currentStep: $currentStep
+    isCompleted: $isCompleted
+  })
+}
+
+mutation ConnectCoinbaseWallet($walletAddress: String!) @auth(level: USER) {
+  coinbaseWallet_upsert(data: {
+    userId_expr: "auth.uid"
+    walletAddress: $walletAddress
+  })
+}
+
+mutation RegisterPasskey($credentialId: String!, $publicKey: String!) @auth(level: USER) {
+  passkeyCredential_upsert(data: {
+    userId_expr: "auth.uid"
+    credentialId: $credentialId
+    publicKey: $publicKey
+  })
+}

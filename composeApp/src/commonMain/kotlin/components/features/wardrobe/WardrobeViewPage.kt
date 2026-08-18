@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -61,43 +62,37 @@ fun WardrobeViewPage(
     onRequestHITLCheckout: (Any) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var photos by remember {
-        mutableStateOf<List<WardrobePhoto>>(emptyList())
-    }
+    var photos by remember { mutableStateOf<List<WardrobePhoto>>(emptyList()) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
+    LaunchedEffect(Unit) {
+        try {
+            network.SpressoBackend.getWardrobeItems()
+        } catch(e: Exception) {
+            snackbarHostState.showSnackbar("Error: ${e.message}")
+        }
+    }
 
     var activeSeason by remember { mutableStateOf("Winter") }
     var stylingLoading by remember { mutableStateOf(false) }
 
-    val curatedFits = remember(activeSeason) {
-        emptyList<CuratedFit>()
-    }
-
-    val snackbarHostState = remember { SnackbarHostState() }
-
+    var curatedFits by remember(activeSeason) { mutableStateOf<List<CuratedFit>>(emptyList()) }
     LaunchedEffect(activeSeason) {
-        snackbarHostState.showSnackbar("Unable to load fits right now. Please try again.")
+        try {
+            network.SpressoBackend.getWardrobeOutfits()
+        } catch(e: Exception) {
+            snackbarHostState.showSnackbar("Error: ${e.message}")
+        }
     }
 
-    val pickImage = ui.rememberImagePicker(
-        onImagePicked = { bytes ->
-            if (bytes != null) {
-                val categories = listOf("Winter Wear", "Hot Girl Summer", "Special Occasion Wear")
-                val randomCat = categories.random()
-                val newPhoto = WardrobePhoto(
-                    id = "w-${kotlin.random.Random.nextInt()}",
-                    title = "Custom $randomCat Look",
-                    category = randomCat,
-                    photoUrl = "",
-                    photoBytes = bytes
-                )
-                photos = listOf(newPhoto) + photos
+    val handleAddPhoto: () -> Unit = {
+        kotlinx.coroutines.GlobalScope.launch {
+            try {
+                network.SpressoBackend.addWardrobeItem(outfitId = "new", category = "Unknown", brand = "Unknown", imageUrl = "", color = "Unknown")
+            } catch(e: Exception) {
+                snackbarHostState.showSnackbar("Error: ${e.message}")
             }
         }
-    )
-
-    val handleAddPhoto = {
-        pickImage()
     }
 
     val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
@@ -121,224 +116,25 @@ fun WardrobeViewPage(
         ) {
         // 1. Header Banner
         item(span = { GridItemSpan(maxLineSpan) }) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 1.dp
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Default.Checkroom, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                            Text("My Wardrobe & Photo Gallery", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                        Text(
-                            "Deep styling intelligence, weather-tailored fits, and virtual try-on integrations.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SpressoButton(
-                            text = "Screen Lens",
-                            onClick = { /* onOpenLens */ },
-                            variant = SpressoButtonVariant.OUTLINE,
-                            icon = Icons.Default.CenterFocusWeak,
-                            trackingId = "wardrobe_view",
-                            trackingAction = "click_screen_lens"
-                        )
-
-                        SpressoButton(
-                            text = "Add Look",
-                            onClick = handleAddPhoto,
-                            variant = SpressoButtonVariant.PRIMARY,
-                            icon = Icons.Default.Add,
-                            trackingId = "wardrobe_view",
-                            trackingAction = "click_add_look"
-                        )
-                    }
-                }
-            }
+            WardrobeHeaderBanner(handleAddPhoto)
         }
 
         // 2. Genkit AI Styling Engine
         item(span = { GridItemSpan(maxLineSpan) }) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.primary,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
-            ) {
-                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Column {
-                        Text("SMART STYLING ENGINE", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, letterSpacing = 1.sp)
-                        Text("Weather-Tailored Outfit Curation", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                    }
-
-                    // Pills
-                    Row(
-                        modifier = Modifier
-                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        val seasons = listOf(
-                            Triple("Winter", "Winter Wear", Icons.Default.AcUnit),
-                            Triple("Summer", "Hot Summer", Icons.Default.WbSunny),
-                            Triple("Occasion", "Special Occasion", Icons.Default.AutoAwesome)
-                        )
-                        seasons.forEach { (id, label, icon) ->
-                            val isSelected = activeSeason == id
-                            Surface(
-                                onClick = { activeSeason = id },
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), // Increased touch target
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(
-                                        label,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    if (stylingLoading) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp)
-                            Text("Curating tailor-made fits for $activeSeason...", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-                        }
-                    } else {
-                        // Fits grid
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            curatedFits.forEach { fit ->
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = MaterialTheme.colorScheme.surface,
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                ) {
-                                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                            Text(fit.fitName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                                            Surface(color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(4.dp)) {
-                                                Text(fit.season.uppercase(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
-                                            }
-                                        }
-                                        Text(fit.stylingNotes, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            fit.items.forEach { item ->
-                                                Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp)) {
-                                                    Text(item, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            WardrobeStylingEngineSection(
+                activeSeason = activeSeason,
+                onSeasonSelected = { activeSeason = it },
+                stylingLoading = stylingLoading,
+                curatedFits = curatedFits
+            )
         }
 
         // 3. Photo Gallery Looks Title
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            Text("PHOTO GALLERY LOOKS (${photos.size})", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, letterSpacing = 1.sp, modifier = Modifier.padding(top = 16.dp))
-        }
-
-        if (photos.isEmpty()) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Surface(
-                    onClick = handleAddPhoto,
-                    modifier = Modifier.fillMaxWidth().height(192.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Surface(color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(12.dp), modifier = Modifier.size(48.dp)) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(28.dp))
-                            }
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Text("Tap Plus to Add Your First Wardrobe Photo", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-        } else {
-            item {
-                Surface(
-                    onClick = handleAddPhoto,
-                    modifier = Modifier.fillMaxWidth().height(224.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) // Dashed isn't natively supported easily, using solid with alpha
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Surface(color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(12.dp), modifier = Modifier.size(40.dp)) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(24.dp))
-                            }
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        Text("Add Look", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-
-            items(photos) { p ->
-                MediaActionCard(
-                    imageUrl = p.photoUrl,
-                    title = p.title,
-                    imageBytes = p.photoBytes,
-                    badgeContent = {
-                        Surface(
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text(p.category.uppercase(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.surface, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
-                        }
-                    },
-                    actionRow = {
-                        SpressoButton(
-                            text = "Try On",
-                            onClick = { onSelectTryOn(null) },
-                            variant = SpressoButtonVariant.SECONDARY,
-                            icon = Icons.Default.Visibility,
-                            trackingId = "wardrobe_photo",
-                            trackingAction = "click_try_on_${p.id}"
-                        )
-                    },
-                    trackingId = "wardrobe_photo_card",
-                    trackingAction = "click_photo_${p.id}"
-                )
-            }
-        }
+        wardrobePhotoGalleryGrid(
+            photos = photos,
+            handleAddPhoto = handleAddPhoto,
+            onSelectTryOn = onSelectTryOn
+        )
     }
     }
 }

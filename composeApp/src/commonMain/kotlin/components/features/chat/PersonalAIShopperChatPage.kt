@@ -36,8 +36,8 @@ fun PersonalAIShopperChatPage(
     onTriggerGlobalLens: (() -> Unit)? = null,
     onLaunchCamera: (() -> Unit)? = null,
     onToggleVoiceRecording: (() -> Unit)? = null,
-    onAddToCart: (ProductItem) -> Unit = {},
-    onSelectTryOn: (ProductItem) -> Unit = {},
+    onAddToCart: (ProductItem) -> Unit = { },
+    onSelectTryOn: (ProductItem) -> Unit = { },
     initialPrompt: String? = null,
     initialImage: String? = null,
     apiClient: network.ApiClient = remember { network.ApiClient() },
@@ -113,6 +113,7 @@ fun PersonalAIShopperChatPage(
             onStopVoice = { chatViewModel.stopVoiceStream() },
             isGenerating = isGenerating,
             httpClient = apiClient.client,
+            apiClient = apiClient,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)

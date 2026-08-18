@@ -27,8 +27,8 @@ import network.ProductItem
 @Composable
 fun ChatProductCard(
     product: ProductItem,
-    onAddToCart: (ProductItem) -> Unit = {},
-    onSelectTryOn: (ProductItem) -> Unit = {},
+    onAddToCart: (ProductItem) -> Unit = { },
+    onSelectTryOn: (ProductItem) -> Unit = { },
     httpClient: HttpClient? = null,
     modifier: Modifier = Modifier
 ) {
