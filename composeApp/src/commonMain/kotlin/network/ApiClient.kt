@@ -392,6 +392,22 @@ open class ApiClient {
         }
     }
 
+    suspend fun connectCoinbaseWallet(address: String): Boolean {
+        val authToken = getCurrentUserIdToken()
+        return try {
+            val response = client.post("${SpressoConfig.backendBaseUrl}/api/user/wallet/coinbase") {
+                contentType(ContentType.Application.Json)
+                if (authToken != null) {
+                    header(HttpHeaders.Authorization, "Bearer $authToken")
+                }
+                setBody(mapOf("address" to address, "network" to "base"))
+            }
+            response.status.value in 200..299
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     fun close() {
         client.close()
     }

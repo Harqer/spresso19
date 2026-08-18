@@ -1,5 +1,7 @@
 package com.spresso19
 
+import components.features.profile.CoinbaseWalletHelper
+
 import components.core.LogoSize
 import components.core.SpressoLogo
 import App
@@ -74,6 +76,9 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         currentActivity = this
         accessibilityConsentStore = AccessibilityConsentStore(this)
+        if (intent?.data != null) {
+            CoinbaseWalletHelper.handleResponse(intent.data)
+        }
         if (savedInstanceState == null && isAccessibilityDisclosureIntent(intent)) {
             accessibilityDisclosureRequestedState.value = true
         }
@@ -337,6 +342,7 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        CoinbaseWalletHelper.handleResponse(intent.data)
         if (isAccessibilityDisclosureIntent(intent)) {
             accessibilityDisclosureRequestedState.value = true
         }
