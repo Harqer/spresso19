@@ -1,7 +1,5 @@
 package components.navigation
 
-import components.models.*
-
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -35,17 +33,21 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 
+import navigation.NavigationState
+import navigation.Navigator
+import androidx.navigation3.runtime.NavEntry
+
 @Composable
 fun AdaptiveNavigationScaffold(
-    currentKey: NavKey,
-    onNavigate: (NavKey) -> Unit,
+    navigationState: NavigationState,
+    navigator: Navigator,
     isVoiceRecording: Boolean,
     onToggleVoiceRecording: () -> Unit,
-    themeMode: ThemeMode,
-    onThemeModeChange: (ThemeMode) -> Unit,
-    onAskAI: (String) -> Unit = {},
     modifier: Modifier = Modifier,
-    content: @Composable (NavKey) -> Unit
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    onThemeModeChange: (ThemeMode) -> Unit = {},
+    onAskAI: (String) -> Unit = {},
+    entryProvider: (NavKey) -> NavEntry<NavKey>
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -57,36 +59,39 @@ fun AdaptiveNavigationScaffold(
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val isCamera = currentKey is NavKey.SmartVisionKey
+        val isCamera = navigationState.topLevelRoute is NavKey.SmartVisionKey
 
         if (isCamera) {
             Box(modifier = Modifier.fillMaxSize()) {
-                content(currentKey)
+                androidx.navigation3.ui.NavDisplay(
+                    entries = navigationState.toDecoratedEntries(entryProvider),
+                    onBack = { navigator.goBack() }
+                )
             }
         } else {
             ModalNavigationDrawer(
                 drawerState = drawerState,
                 drawerContent = {
                     AdaptiveNavDrawerContent(
-                        currentKey = currentKey,
+                        currentKey = navigationState.topLevelRoute,
                         onNavigate = { key ->
-                            onNavigate(key)
+                            navigator.navigate(key)
                             scope.launch { drawerState.close() }
                         }
                     )
                 }
             ) {
                 AdaptiveScaffoldBody(
-                    currentKey = currentKey,
+                    navigationState = navigationState,
+                    navigator = navigator,
                     showBottomBar = true,
-                    onNavigate = onNavigate,
                     isVoiceRecording = isVoiceRecording,
                     onToggleVoiceRecording = onToggleVoiceRecording,
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
                     onToggleDrawer = toggleDrawer,
                     onAskAI = onAskAI,
-                    content = content
+                    entryProvider = entryProvider
                 )
             }
         }

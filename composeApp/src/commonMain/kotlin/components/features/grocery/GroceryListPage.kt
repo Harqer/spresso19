@@ -45,6 +45,7 @@ fun GroceryListPage(
     modifier: Modifier = Modifier
 ) {
     var items by remember { mutableStateOf(initialItems) }
+    var isLoading by remember { mutableStateOf(true) }
     var newItemName by remember { mutableStateOf("") }
     var recipePrompt by remember { mutableStateOf("") }
     var isGeneratingRecipe by remember { mutableStateOf(false) }
@@ -55,6 +56,17 @@ fun GroceryListPage(
     val totalEstimated = items.filter { !it.checked }.sumOf { it.estimatedPrice * it.quantity }
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        try {
+            // Using a generic "default" list for now
+            items = apiClient.fetchGroceryList("default")
+        } catch(e: Exception) {
+            // Handle error gracefully
+        } finally {
+            isLoading = false
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -71,7 +83,7 @@ fun GroceryListPage(
             StoreLocationHeader(storeName = "Local Market Deals", totalEstimated = totalEstimated, itemCount = items.size)
 
 
-        Surface(modifier = Modifier.fillMaxWidth(), color = Color.White, border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface, border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)) {
             Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(value = newItemName, onValueChange = { newItemName = it }, placeholder = { Text("Add an item...", fontSize = 13.sp) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
                 SpressoButton(

@@ -92,23 +92,16 @@ export const identifyVisionObject = onCall({ secrets: [geminiApiKey] }, async (r
     const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
     
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
-            contents: [
-                {
-                    role: "user",
-                    parts: [
-                        { text: "Identify the primary product in this image. Respond with a JSON object containing the fields: 'productName' (string, short and clean name) and 'estimatedPrice' (number, reasonable estimate)." },
-                        { inlineData: { data: imageBase64, mimeType: "image/jpeg" } }
-                    ]
-                }
+        const response = await ai.interactions.create({
+            model: "gemini-3.5-flash",
+            input: [
+                { type: "text", text: "Identify the primary product in this image. Respond with a JSON object containing the fields: 'productName' (string, short and clean name) and 'estimatedPrice' (number, reasonable estimate)." },
+                { type: "image", mime_type: "image/jpeg", data: imageBase64 }
             ],
-            config: {
-                responseMimeType: "application/json",
-            }
+            response_mime_type: "application/json"
         });
 
-        const text = response.text;
+        const text = response.output_text;
         if (!text) throw new Error("Empty response from Gemini");
         const json = JSON.parse(text);
 
@@ -137,14 +130,51 @@ export const creatorAgentTemplates = onCall(async (request) => {
     }
 });
 
-export const generateCreatorCampaign = onCall(async (request) => {
+export const generateCreatorCampaign = onCall({ secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
-    throw new HttpsError("unimplemented", "Creator campaign generation is not yet fully implemented.");
+    const { productName, campaignGoal, targetAudience } = request.data || {};
+    if (!productName || !campaignGoal) throw new HttpsError("invalid-argument", "Missing required campaign parameters.");
+
+    const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+    try {
+        const response = await ai.interactions.create({
+            model: "gemini-3.5-flash",
+            input: `You are an expert marketing AI. Generate a creator campaign for the product "${productName}". The goal is "${campaignGoal}" and the target audience is "${targetAudience || 'General'}". Return ONLY a JSON object with this exact structure: {"campaignTitle": "...", "socialMediaCopy": "...", "suggestedTags": ["...", "..."]}`,
+            response_mime_type: "application/json"
+        });
+
+        const responseText = response.output_text;
+        if (!responseText) throw new Error("Empty response from Gemini");
+        const parsed = JSON.parse(responseText);
+        return { success: true, campaign: parsed };
+    } catch (e: any) {
+        throw new HttpsError("internal", `Failed to generate campaign: ${e.message}`);
+    }
 });
 
-export const vitposeOrchestrateFit = onCall(async (request) => {
+export const vitposeOrchestrateFit = onCall({ secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
-    throw new HttpsError("unimplemented", "Vitpose fit orchestration is not fully implemented.");
+    const { imageBase64 } = request.data || {};
+    if (!imageBase64) throw new HttpsError("invalid-argument", "Missing imageBase64");
+
+    const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+    try {
+        const response = await ai.interactions.create({
+            model: "gemini-3.5-flash",
+            input: [
+                { type: "image", mime_type: "image/jpeg", data: imageBase64 },
+                { type: "text", text: "Analyze this image for virtual try-on fit orchestration. Identify the key body regions and garment fit profile. Return ONLY a JSON object with this exact structure: {\"fitScore\": 0.0-100.0, \"garmentType\": \"...\", \"postureDetected\": \"...\", \"confidence\": 0.0-100.0}" }
+            ],
+            response_mime_type: "application/json"
+        });
+
+        const responseText = response.output_text;
+        if (!responseText) throw new Error("Empty response from Gemini");
+        const parsed = JSON.parse(responseText);
+        return { success: true, fitAnalysis: parsed };
+    } catch (e: any) {
+        throw new HttpsError("internal", `Failed to orchestrate fit: ${e.message}`);
+    }
 });
 
 export const getQuickPrompts = onCall(async (request) => {
@@ -194,17 +224,17 @@ export const chatStream = onRequest({ secrets: [geminiApiKey], cors: true }, asy
     res.setHeader('Connection', 'keep-alive');
 
     try {
-        const responseStream = await ai.models.generateContentStream({
+        const responseStream = await ai.interactions.create({
             model: "gemini-3.5-flash",
-            contents: prompt,
-            config: {
-                systemInstruction: "You are Spresso Personal Shopper. Keep it brief.",
-                temperature: 0.7,
-            }
+            input: prompt,
+            system_instruction: "You are Spresso Personal Shopper. Keep it brief.",
+            stream: true
         });
 
-        for await (const chunk of responseStream) {
-            res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
+        for await (const event of responseStream) {
+            if (event.event_type === "step.delta" && event.delta?.type === "text") {
+                res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+            }
         }
         res.write(`data: [DONE]\n\n`);
         res.end();
@@ -213,5 +243,48 @@ export const chatStream = onRequest({ secrets: [geminiApiKey], cors: true }, asy
         res.write(`data: ${JSON.stringify({ text: "Error connecting to AI." })}\n\n`);
         res.write(`data: [DONE]\n\n`);
         res.end();
+    }
+});
+
+export const generateOutfit = onCall({ secrets: [geminiApiKey] }, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+    
+    const { items, weatherCondition, temperatureText, userLocation } = request.data || {};
+    if (!items || items.length === 0) {
+        throw new HttpsError("invalid-argument", "No wardrobe items provided");
+    }
+
+    const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+    try {
+        const prompt = `
+You are a personal fashion stylist AI.
+User Location: ${userLocation || "Unknown"}
+Weather: ${weatherCondition} - ${temperatureText}
+Available Items:
+${JSON.stringify(items.map((item: any) => ({ id: item.id, name: item.name, category: item.category, color: item.color, weather: item.weatherSuitability })), null, 2)}
+
+Create a stylish outfit using 2-4 items from the available list that perfectly matches the weather condition and temperature.
+Return a JSON object with the following schema:
+{
+  "title": "string (Catchy name for the outfit)",
+  "stylingAdvice": "string (Why these items work well together for the weather)",
+  "selectedItemIds": ["string (id of item 1)", "string (id of item 2)"],
+  "weatherMatchScore": 95
+}
+`;
+        
+        const response = await ai.interactions.create({
+            model: "gemini-3.5-flash",
+            input: prompt,
+            response_mime_type: "application/json"
+        });
+
+        const responseText = response.output_text;
+        if (!responseText) throw new Error("Empty response from Gemini");
+        const parsed = JSON.parse(responseText);
+        return { success: true, result: parsed };
+    } catch (e: any) {
+        console.error("AI Outfit error:", e);
+        throw new HttpsError("internal", `Failed to generate outfit: ${e.message}`);
     }
 });

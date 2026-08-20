@@ -45,16 +45,14 @@ async function startWorker() {
             }, {});
             const productEntries = Object.entries(productCounts);
             if (productEntries.length > 0) {
-                // Batch Update Using VALUES
-                const updateValues = productEntries
-                    .map(([id, count]) => `('${id}', ${count}::int)`)
-                    .join(', ');
+                const ids = productEntries.map(e => e[0]);
+                const counts = productEntries.map(e => e[1]);
                 await client.query(`
                     UPDATE Products AS p
                     SET likesCount = p.likesCount + v.count
-                    FROM (VALUES ${updateValues}) AS v(id, count)
+                    FROM UNNEST($1::text[], $2::int[]) AS v(id, count)
                     WHERE p.id = v.id;
-                `);
+                `, [ids, counts]);
             }
             await client.query('COMMIT');
             batch.forEach(b => b.ack());

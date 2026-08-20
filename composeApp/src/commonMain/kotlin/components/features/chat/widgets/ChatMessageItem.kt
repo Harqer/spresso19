@@ -15,6 +15,7 @@ import network.ChatMessage
 import network.ProductItem
 import io.ktor.client.HttpClient
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChatMessageItem(
     message: ChatMessage,
@@ -55,12 +56,14 @@ fun ChatMessageItem(
             )
             if (message.products.isNotEmpty()) {
                 Box(modifier = Modifier.padding(start = if (isUser) 0.dp else 32.dp, top = 8.dp).fillMaxWidth()) {
-                    @OptIn(ExperimentalLayoutApi::class)
+
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        maxItemsInEachRow = 2
+                        maxItemsInEachRow = 2,
+                        itemVerticalAlignment = Alignment.Top,
+                        overflow = androidx.compose.foundation.layout.FlowRowOverflow.Visible
                     ) {
                         message.products.forEach { product ->
                             Box(modifier = Modifier.widthIn(max = 240.dp).fillMaxWidth(0.48f)) {

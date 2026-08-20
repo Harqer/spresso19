@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { loginWithEmail, registerWithEmail, logToCrashlytics } from "../../../../lib/firebase";
-import { MaterialIcon } from "../../../MaterialIcon";
+import { loginWithEmail, registerWithEmail, logToCrashlytics } from "../../../lib/firebase";
+import { MaterialIcon } from "../../MaterialIcon";
 
 interface EmailAuthFormProps {
   onSuccess?: () => void;

@@ -8,14 +8,18 @@ import network.ApiClient
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-@OptIn(DelicateCoroutinesApi::class, ExperimentalEncodingApi::class)
+import androidx.compose.runtime.rememberCoroutineScope
+
+@OptIn(ExperimentalEncodingApi::class)
 @Composable
 actual fun rememberReceiptScanner(
     onResult: (merchant: String, amount: String) -> Unit,
     onError: (String) -> Unit
 ): (ByteArray) -> Unit {
+    val scope = rememberCoroutineScope()
+    
     return { bytes ->
-        GlobalScope.launch {
+        scope.launch {
             try {
                 val client = ApiClient()
                 val base64Data = Base64.encode(bytes)
@@ -25,8 +29,9 @@ actual fun rememberReceiptScanner(
                 val amount = firstItem?.priceEstimate?.toString() ?: response.apifyResults.firstOrNull()?.price?.toString() ?: "0.00"
                 onResult(merchant, amount)
             } catch (e: Exception) {
-                onError("Error scanning")
+                onError("Error scanning: \${e.message ?: "Unknown error"}")
             }
         }
     }
 }
+

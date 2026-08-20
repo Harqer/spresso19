@@ -134,7 +134,8 @@ export interface MCPToolInfo {
   inputSchema: any;
 }
 
-export type WardrobeCategory = "TOP" | "BOTTOM" | "SWEATER_OUTERWEAR" | "SHOES" | "ACCESSORY" | "DRESS";
+export const WARDROBE_CATEGORIES_DEFAULT = ["TOP", "BOTTOM", "SWEATER_OUTERWEAR", "SHOES", "ACCESSORY", "DRESS"] as const;
+export type WardrobeCategory = string;
 export type WeatherSuitability = "SUMMER_HEAT" | "MILD_SPRING_AUTUMN" | "WINTER_COLD" | "ALL_WEATHER" | "HOT_SUMMER" | "COLD_WINTER";
 
 export interface CustomWardrobeItem {

@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { CustomWardrobeItem, GeneratedOutfit } from "../../../types";
+import { CustomWardrobeItem, GeneratedOutfit } from "../types";
 
 export function useWardrobeGalleryInteractions(
   state: any,
@@ -85,16 +85,13 @@ export function useWardrobeGalleryInteractions(
       return [...filteredNew, ...prev];
     });
 
-    // Populate mix & match slots based on categories
-    const top = selectedItems.find(i => i.category === "TOP");
-    const bottom = selectedItems.find(i => i.category === "BOTTOM");
-    const outer = selectedItems.find(i => i.category === "SWEATER_OUTERWEAR");
-    const shoes = selectedItems.find(i => i.category === "SHOES");
-
-    if (top) interactions.setMixMatchTop(top);
-    if (bottom) interactions.setMixMatchBottom(bottom);
-    if (outer) interactions.setMixMatchOuter(outer);
-    if (shoes) interactions.setMixMatchShoes(shoes);
+    interactions.setMixMatchSlots((prev: any) => {
+      const newSlots = { ...prev };
+      selectedItems.forEach(item => {
+        newSlots[item.category] = item;
+      });
+      return newSlots;
+    });
 
     showToast(`Assembled outfit with ${selectedItems.length} items. Opening Mix & Match Studio!`);
     state.setActiveTab("MIX_MATCH");
@@ -116,8 +113,22 @@ export function useWardrobeGalleryInteractions(
     }
   };
 
-  const handleSaveFavoriteOutfit = (outfit: GeneratedOutfit) => {
-    if (!state.savedFavoriteOutfits.some((o: any) => o.id === outfit.id)) state.setSavedFavoriteOutfits((prev: any) => [outfit, ...prev]);
+  const handleSaveFavoriteOutfit = async (outfit: GeneratedOutfit) => {
+    if (!state.savedFavoriteOutfits.some((o: any) => o.id === outfit.id)) {
+      state.setSavedFavoriteOutfits((prev: any) => [outfit, ...prev]);
+      try {
+        const { createWardrobeOutfit } = await import("@firebasegen/spresso-connector");
+        await createWardrobeOutfit({
+          title: outfit.title,
+          description: outfit.stylingAdvice || outfit.temperatureText || "Custom Outfit",
+          imageUrl: outfit.items.find((i: any) => i.image)?.image || ""
+        });
+        showToast("Outfit saved to your closet!");
+      } catch (err: any) {
+        // Fallback to local state if DataConnect fails or throws
+        console.error("Failed to sync outfit to database:", err);
+      }
+    }
   };
 
   return {

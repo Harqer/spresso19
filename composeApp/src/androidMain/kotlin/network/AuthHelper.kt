@@ -93,6 +93,9 @@ actual suspend fun signInWithGoogle(): Boolean = suspendCancellableCoroutine { c
             } else {
                 if (continuation.isActive) continuation.resume(false)
             }
+        } catch (e: androidx.credentials.exceptions.GetCredentialException) {
+            // Handle expected credential exceptions
+            if (continuation.isActive) continuation.resume(false)
         } catch (e: Exception) {
             if (continuation.isActive) continuation.resume(false)
         }

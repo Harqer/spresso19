@@ -93,7 +93,18 @@ fun LazyGridScope.wardrobePhotoGalleryGrid(
                 actionRow = {
                     SpressoButton(
                         text = "Try On",
-                        onClick = { onSelectTryOn(null) },
+                        onClick = { 
+                            onSelectTryOn(
+                                ProductItem(
+                                    id = p.id,
+                                    name = p.title,
+                                    price = 0.0,
+                                    imageUrl = p.photoUrl,
+                                    category = p.category,
+                                    brand = "Personal Closet"
+                                )
+                            )
+                        },
                         variant = SpressoButtonVariant.SECONDARY,
                         icon = Icons.Default.Visibility,
                         trackingId = "wardrobe_photo",

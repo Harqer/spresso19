@@ -39,7 +39,6 @@ const params_1 = require("firebase-functions/params");
 const CLOUDFLARE_ACCOUNT_ID = (0, params_1.defineSecret)("CLOUDFLARE_ACCOUNT_ID");
 const CLOUDFLARE_API_TOKEN = (0, params_1.defineSecret)("CLOUDFLARE_API_TOKEN");
 const BROWSER_RUN_BASE = "https://api.cloudflare.com/client/v4/accounts";
-const CDP_WS_BASE = "wss://api.cloudflare.com/client/v4/accounts";
 async function loadCloudflareCredentials() {
     return {
         accountId: CLOUDFLARE_ACCOUNT_ID.value(),
@@ -112,7 +111,6 @@ async function searchProductOnMerchant(merchantUrl, productName, accountId, apiT
  * Eliminates redundant Google Search + Kitesurf double passes.
  */
 async function searchKitesurfRetailerProducts(query, retailerHint) {
-    var _a;
     try {
         const { accountId, apiToken } = await loadCloudflareCredentials();
         const searchTargetUrl = (retailerHint === null || retailerHint === void 0 ? void 0 : retailerHint.toLowerCase().includes("banana"))
@@ -144,19 +142,19 @@ async function searchKitesurfRetailerProducts(query, retailerHint) {
                 }
             }
         });
-        const items = ((_a = result === null || result === void 0 ? void 0 : result.result) === null || _a === void 0 ? void 0 : _a.products) || [];
-        if (items.length > 0) {
-            return items.map((item, idx) => ({
-                id: `kitesurf-${Date.now()}-${idx}`,
-                name: item.title,
-                brand: retailerHint || "Retail Merchant",
-                category: "Web Sourced",
-                price: item.price || 49.99,
-                image: item.imageUrl || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600",
-                merchantUrl: item.productUrl || searchTargetUrl,
-                inStock: true
-            }));
-        }
+        const items = (result === null || result === void 0 ? void 0 : result.products) || [];
+        return items
+            .filter((item) => item.title && item.productUrl && typeof item.price === "number")
+            .map((item, idx) => ({
+            id: `kitesurf-product-\${Date.now()}-\${idx}`,
+            name: item.title,
+            brand: retailerHint || "Retail Merchant",
+            category: "Web Sourced",
+            price: item.price,
+            image: item.imageUrl || "",
+            merchantUrl: item.productUrl,
+            inStock: true
+        }));
     }
     catch (err) {
         console.warn("[Kitesurf Search] Direct web extraction note:", err.message);
@@ -178,78 +176,83 @@ async function captureReceiptScreenshot(url, accountId, apiToken) {
         return undefined;
     }
 }
-async function runHeadlessCheckout(targetUrl, shippingAddress, accountId, apiToken, biometricAuthorized, virtualCardJson) {
+async function runHeadlessCheckout(targetUrl, shippingAddress, userEmail, accountId, apiToken, biometricAuthorized, virtualCardJson) {
     const steps = [];
     let vendorOrderRef;
     try {
         const { default: puppeteer } = await Promise.resolve().then(() => __importStar(require("puppeteer-core")));
-        const browserWSEndpoint = `${CDP_WS_BASE}/${accountId}/browser-run/devtools/browser?browser=kitesurf`;
+        const browserWSEndpoint = `\${CDP_WS_BASE}/\${accountId}/browser-run/devtools/browser?browser=kitesurf`;
         const browser = await puppeteer.connect({
             browserWSEndpoint,
-            headers: { Authorization: `Bearer ${apiToken}` },
+            headers: { Authorization: `Bearer \${apiToken}` },
         });
         try {
             const page = await browser.newPage();
             await page.goto(targetUrl, { waitUntil: "networkidle2", timeout: 45000 });
-            steps.push(`Loaded merchant storefront page: ${targetUrl}`);
+            steps.push(`Loaded merchant storefront: \${targetUrl}`);
             // 1. Form Management: Select Size/Variant
             const sizeSelect = await page.$("select[name*='size' i], input[value*='M' i], [data-testid*='size-select']");
             if (sizeSelect) {
                 await sizeSelect.click();
-                steps.push("Managed product variant form: Selected Size Medium.");
+                steps.push("Selected Medium size variant.");
             }
             // 2. Form Management: Submit Add to Cart
-            const addToCart = await page.$("button[aria-label*='Add to cart' i], button::-p-text(Add to cart), [data-testid*='add-to-cart'], #add-to-cart");
+            const addToCartSelector = "button[aria-label*='Add to cart' i], button::-p-text(Add to cart), [data-testid*='add-to-cart'], #add-to-cart";
+            const addToCart = await page.$(addToCartSelector);
             if (addToCart) {
                 await addToCart.click();
-                await new Promise((resolve) => setTimeout(resolve, 2000));
-                steps.push("Submitted Add-to-Cart form action on merchant storefront.");
+                await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 10000 }).catch(() => { });
+                steps.push("Submitted Add-to-Cart.");
             }
             // 3. Form Management: Navigate to Checkout Form Page
-            const cartCheckout = await page.$("button[aria-label*='checkout' i], a::-p-text(Checkout), [data-testid*='checkout'], #checkout-btn");
+            const cartCheckoutSelector = "button[aria-label*='checkout' i], a::-p-text(Checkout), [data-testid*='checkout'], #checkout-btn";
+            const cartCheckout = await page.$(cartCheckoutSelector);
             if (cartCheckout) {
                 await cartCheckout.click();
-                await new Promise((resolve) => setTimeout(resolve, 2500));
-                steps.push("Navigated to merchant checkout form page.");
+                await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 15000 }).catch(() => { });
+                steps.push("Navigated to checkout page.");
             }
             // 4. Form Management: Fill Contact & Shipping Address Form Inputs
             const emailInput = await page.$("input[type='email' i], input[name*='email' i]");
-            if (emailInput) {
-                await emailInput.type("shopper@spresso.ai", { delay: 15 });
-                steps.push("Filled contact information form inputs (Email: shopper@spresso.ai).");
+            if (emailInput && userEmail) {
+                await emailInput.type(userEmail, { delay: 15 });
+                steps.push(`Filled contact email: \${userEmail}`);
             }
             const addressInputs = await page.$$("input[name*='address' i], input[name*='street' i], input[autocomplete*='address' i], textarea[name*='address' i]");
             if (addressInputs.length > 0) {
-                await addressInputs[0].type(shippingAddress, { delay: 25 });
-                steps.push("Filled shipping address form inputs: " + shippingAddress);
+                await addressInputs[0].type(shippingAddress, { delay: 20 });
+                steps.push(`Filled shipping address: \${shippingAddress}`);
             }
             // 5. Payment Information: Virtual Corporate Card logic
             if (virtualCardJson) {
                 try {
                     const virtualCard = JSON.parse(virtualCardJson);
-                    steps.push(`Filled payment form using secure Virtual Corporate Card (ending in ${virtualCard.cardNumber.slice(-4)}).`);
+                    const cardInput = await page.$("input[name*='card' i], input[autocomplete*='cc-number' i]");
+                    if (cardInput) {
+                        await cardInput.type(virtualCard.cardNumber, { delay: 10 });
+                        steps.push(`Entered payment card ending in \${virtualCard.cardNumber.slice(-4)}.`);
+                    }
                 }
                 catch (e) {
-                    steps.push("Filled payment form using provided payment token.");
+                    steps.push("Applied payment token.");
                 }
             }
-            // 6. Biometric Authorization Check Gate before submitting final purchase form
+            // 6. Biometric Authorization Check Gate
             if (biometricAuthorized) {
-                steps.push("User biometric authorization token verified (0xBIO_AUTH_CONFIRMED).");
+                steps.push("Biometric authorization verified.");
                 const submitOrderBtn = await page.$("button[type='submit' i], button::-p-text(Place Order), #place-order");
                 if (submitOrderBtn) {
                     await submitOrderBtn.click();
-                    await new Promise((resolve) => setTimeout(resolve, 3000));
-                    steps.push("Submitted final merchant order checkout form.");
-                    vendorOrderRef = `VND-${Math.floor(100000 + Math.random() * 900000)}`;
+                    await page.waitForNavigation({ waitUntil: "networkidle2", timeout: 20000 }).catch(() => { });
+                    steps.push("Submitted order.");
                 }
-                else {
-                    steps.push("Submitted checkout form via automated Kitesurf form dispatch.");
-                    vendorOrderRef = `VND-${Math.floor(100000 + Math.random() * 900000)}`;
+                const orderRefElement = await page.$(".order-number, [data-order-id], .confirmation-number");
+                if (orderRefElement) {
+                    vendorOrderRef = await page.evaluate(el => { var _a; return (_a = el.textContent) === null || _a === void 0 ? void 0 : _a.trim(); }, orderRefElement) || undefined;
                 }
             }
             else {
-                steps.push("Halted checkout before final form submit awaiting user biometric confirmation.");
+                steps.push("Checkout halted awaiting biometric confirmation.");
             }
             return { steps, vendorOrderRef };
         }
@@ -259,63 +262,55 @@ async function runHeadlessCheckout(targetUrl, shippingAddress, accountId, apiTok
     }
     catch (err) {
         console.warn("Headless checkout automation failed:", err.message);
-        throw new Error(`Headless checkout failed: ${err.message}`);
+        throw new Error(`Headless checkout failed: \${err.message}`);
     }
 }
-async function executeKitesurfPurchase(productId, shippingAddress = "123 Main St, New York, NY 10001", paymentToken = "", merchantUrl, userApprovedPaywall, biometricAuthorized) {
-    var _a;
+async function executeKitesurfPurchase(productId, shippingAddress, paymentToken = "", merchantUrl, userApprovedPaywall, biometricAuthorized) {
+    if (!shippingAddress || shippingAddress.trim().length < 5) {
+        throw new Error("Valid shipping address is required for automated checkout.");
+    }
     const steps = [];
-    let product = null;
-    try {
-        const { db } = await Promise.resolve().then(() => __importStar(require("./shared/db")));
-        const doc = await db.collection("products").doc(productId).get();
-        if (doc.exists) {
-            product = doc.data();
-        }
+    const { db } = await Promise.resolve().then(() => __importStar(require("./shared/db")));
+    const doc = await db.collection("products").doc(productId).get();
+    if (!doc.exists) {
+        throw new Error(`Product \${productId} not found.`);
     }
-    catch (e) {
-        console.warn("Failed to fetch product for kitesurf purchase");
-    }
-    if (!product) {
-        throw new Error("Product not found. Cannot automate a purchase without a valid product.");
-    }
-    const targetUrl = merchantUrl;
+    const product = doc.data();
+    const targetUrl = merchantUrl || product.merchantUrl;
     if (!targetUrl) {
-        throw new Error("No merchant storefront URL available for this product. Provide a real merchantUrl to automate the purchase.");
+        throw new Error("Missing merchant storefront URL for this item.");
     }
-    // Paywall & Subscription Gate Check
-    const isPaywalledSite = targetUrl.toLowerCase().includes("subscriber") || targetUrl.toLowerCase().includes("paywall") || targetUrl.toLowerCase().includes("vip-club");
+    const isPaywalledSite = targetUrl.toLowerCase().includes("subscriber") || targetUrl.toLowerCase().includes("paywall");
     if (isPaywalledSite && !userApprovedPaywall) {
         return {
             success: false,
-            orderId: `ks-paywall-${Date.now()}`,
-            steps: ["Encountered subscription paywall gate on merchant site.", "Halted automated navigation awaiting user approval."],
+            orderId: `ks-paywall-\${Date.now()}`,
+            steps: ["Encountered merchant paywall gate."],
             receiptUrl: "",
             totalAmount: product.price,
             requiresUserApproval: true,
-            paywallNotice: `Target site "${targetUrl}" requires a paid subscription or paywall pass. Do you approve proceeding? Type 'y' or click Yes to confirm (y/N)?`
+            paywallNotice: `Target site "\${targetUrl}" requires a paid subscription. Confirm approval to proceed.`
         };
     }
     const { accountId, apiToken } = await loadCloudflareCredentials();
-    steps.push("Loaded Cloudflare Browser Run credentials from Secret Manager.");
+    steps.push("Loaded Cloudflare Browser Run credentials.");
     const search = await searchProductOnMerchant(targetUrl, product.name, accountId, apiToken);
     if (!search.found) {
-        throw new Error(`Kitesurf could not find "${product.name}" on the provided merchant storefront.`);
+        throw new Error(`Item "\${product.name}" not found on storefront.`);
     }
-    steps.push(`Verified product availability on the merchant storefront (price: ${(_a = search.price) !== null && _a !== void 0 ? _a : "n/a"}).`);
+    steps.push(`Verified product availability.`);
     const productUrl = search.productUrl || targetUrl;
-    const cdpResult = await runHeadlessCheckout(productUrl, shippingAddress, accountId, apiToken, biometricAuthorized, paymentToken);
+    const userEmail = product.userEmail || "purchases@spresso.com";
+    const cdpResult = await runHeadlessCheckout(productUrl, shippingAddress, userEmail, accountId, apiToken, biometricAuthorized, paymentToken);
     steps.push(...cdpResult.steps);
     const screenshotUrl = await captureReceiptScreenshot(productUrl, accountId, apiToken);
-    steps.push("Captured post-checkout screenshot as receipt evidence.");
-    const totalAmount = search.price && search.price > 0 ? search.price : product.price;
     return {
         success: true,
-        orderId: `ks-ord-${Date.now()}`,
+        orderId: `ks-ord-\${Date.now()}`,
         steps,
         receiptUrl: screenshotUrl || "",
         screenshotUrl,
-        totalAmount,
+        totalAmount: search.price && search.price > 0 ? search.price : product.price,
         vendorOrderRef: cdpResult.vendorOrderRef
     };
 }

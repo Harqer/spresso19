@@ -29,10 +29,12 @@ import components.features.chat.cards.DiscoveryCard
 import components.features.creators.CreatorAgentsPage
 import components.features.creators.CreatorAgentsSection
 import components.features.creators.CreatorTemplatesSection
+import androidx.compose.material3.CircularProgressIndicator
 import components.features.grocery.GroceryListPage
 import components.features.grocery.IngredientChecklistCard
 import components.features.onboarding.GamifiedOnboardingDialog
 import components.features.onboarding.SplashScreenPage
+import components.shared.HITLCheckoutModal
 import components.features.orders.OrderReturnDialog
 import components.features.orders.OrderReturnResultCard
 import components.features.orders.OrdersTrackerPage
@@ -44,7 +46,7 @@ import components.features.profile.ProfilePage
 import components.features.profile.SubscriptionMembershipSection
 import components.features.spatial.LiquidGlassCard
 import components.features.travel.BoardingPassList
-import components.features.travel.ItineraryEvent
+import components.models.ItineraryEvent
 import components.features.travel.QrModal
 import components.features.travel.ReceiptScannerSection
 import components.features.travel.TravelTripsPage
@@ -63,13 +65,18 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.coroutines.launch
 import navigation.NavKey
-import navigation.rememberSaveableNavBackStack
+import androidx.navigation3.runtime.entryProvider
+import navigation.rememberNavigationState
+import navigation.Navigator
+import components.navigation.defaultNavDestinations
 import network.ApiClient
 import network.DetectedItem
 import network.LiveApiClient
 import network.ProductItem
 import network.models.GroceryItem
 import network.models.SubscriptionTier
+import network.SpressoBackend
+import viewmodels.ChatViewModel
 import theme.AppTheme
 import theme.ThemeMode
 import ui.rememberImagePicker
@@ -80,6 +87,7 @@ import ui.rememberImagePicker
  */
 @Composable
 fun App(
+    modifier: Modifier = Modifier,
     currentUserUid: String? = null,
     currentUserName: String? = null,
     onShare: (String) -> Unit = {},
@@ -95,8 +103,7 @@ fun App(
     onTriggerGlobalLens: () -> Unit = {},
     onLensResult: (String) -> Unit = {},
     onGoogleSignInRequested: () -> Unit = {},
-    onEmailSignInRequested: (String, String) -> Unit = { _, _ -> },
-    onEmailSignUpRequested: (String, String, String) -> Unit = { _, _, _ -> },
+    onPhoneSignInRequested: (() -> Unit)? = null,
     onVerifyEmailRequested: () -> Unit = {},
     externalNavKey: NavKey? = null
 ) {
@@ -104,25 +111,20 @@ fun App(
 
     AppTheme(themeMode = themeMode) {
         val initialKey = if (currentUserUid == null) NavKey.AuthKey else NavKey.ChatKey()
-        val backStack = rememberSaveableNavBackStack(initialKey = initialKey)
+        val navigationState = rememberNavigationState(
+            startRoute = initialKey,
+            topLevelRoutes = defaultNavDestinations.map { it.key }.toSet()
+        )
+        val navigator = remember { Navigator(navigationState) }
 
         LaunchedEffect(externalNavKey) {
-            externalNavKey?.let { backStack.push(it) }
-        }
-
-        if (currentUserUid == null) {
-            AuthPage(
-                onGoogleSignInRequested = onGoogleSignInRequested,
-                onEmailSignInRequested = onEmailSignInRequested,
-                onEmailSignUpRequested = onEmailSignUpRequested
-            )
-            return@AppTheme
+            externalNavKey?.let { navigator.navigate(it) }
         }
 
         val scope = rememberCoroutineScope()
         val apiClient = remember { ApiClient() }
         val liveApiClient = remember { LiveApiClient() }
-        val chatViewModel = remember { viewmodels.ChatViewModel(apiClient, scope, liveApiClient) }
+        val chatViewModel = remember { ChatViewModel(apiClient, scope, liveApiClient) }
         val audioRecorder = remember { AudioRecorder() }
         val audioPlayer = remember { AudioPlayer() }
 
@@ -138,7 +140,6 @@ fun App(
         var displayMediaUrl by remember { mutableStateOf<String?>(null) }
         var isVoiceRecording by remember { mutableStateOf(false) }
         var activeProductId by remember { mutableStateOf<String?>(null) }
-        var liveTranscript by remember { mutableStateOf("") }
         var errorMessage by remember { mutableStateOf<String?>(null) }
         var selectedTemplateId by remember { mutableStateOf("economic") }
 
@@ -157,7 +158,7 @@ fun App(
                         try {
                             displayMediaUrl = apiClient.requestVirtualTryOn(base64Image)
                             isVideoPlaying = false
-                            backStack.push(NavKey.WardrobeKey(displayMediaUrl = displayMediaUrl, isVideoPlaying = false))
+                            navigator.navigate(NavKey.WardrobeKey(displayMediaUrl = displayMediaUrl, isVideoPlaying = false))
                         } catch (e: Exception) {
                             errorMessage = "Error: Failed to fetch Virtual Try-On."
                             isVideoPlaying = false
@@ -168,8 +169,9 @@ fun App(
         )
 
         MainAppTemplate(
-            currentKey = backStack.currentKey,
-            onNavigate = { targetKey -> backStack.switchTab(targetKey) },
+            modifier = modifier,
+            navigationState = navigationState,
+            navigator = navigator,
             isVoiceRecording = isVoiceRecording,
             onToggleVoiceRecording = {
                 if (isVoiceRecording) {
@@ -185,67 +187,65 @@ fun App(
                     }
                     audioRecorder.startRecording()
                     if (audioRecorder.isRecording()) {
-                        scope.launch {
-                            liveApiClient.connect(
-                                onReceiveAudio = { chunk -> audioPlayer.playChunk(chunk) },
-                                onReceiveText = { text -> liveTranscript = text }
-                            )
-                        }
+                        chatViewModel.startVoiceStream(
+                            agentType = "SHOPPING_CONCIERGE",
+                            onReceiveAudio = { chunk -> audioPlayer.playChunk(chunk) }
+                        )
                         isVoiceRecording = true
                     } else {
                         errorMessage = "Microphone access required for voice AI recording."
                     }
                 }
             },
+
+
             themeMode = themeMode,
             onThemeModeChange = { themeMode = it },
             onAskAI = { prompt ->
                 chatViewModel.sendMessage(prompt = prompt, location = null, agentType = "SHOPPING_CONCIERGE")
-                backStack.push(NavKey.ChatKey())
-            }
-        ) { currentDestinationKey ->
-            when (currentDestinationKey) {
+                navigator.navigate(NavKey.ChatKey())
+            },
+            entryProvider = entryProvider {
                 // 1. Auth & Onboarding Flow
-                is NavKey.AuthKey -> {
+                entry<NavKey.AuthKey> { currentDestinationKey ->
                     AuthPage(
                         onGoogleSignInRequested = onGoogleSignInRequested,
-                        onEmailSignInRequested = onEmailSignInRequested,
-                        onEmailSignUpRequested = onEmailSignUpRequested
+                        onSuccess = { navigator.replace(NavKey.ChatKey()) }
                     )
                 }
-                is NavKey.SplashScreenKey -> {
+                entry<NavKey.SplashScreenKey> { currentDestinationKey ->
                     SplashScreenPage(
                         onSplashComplete = {
-                            backStack.replace(if (currentUserUid == null) NavKey.AuthKey else NavKey.ChatKey())
+                            navigator.replace(if (currentUserUid == null) NavKey.AuthKey else NavKey.ChatKey())
                         }
                     )
                 }
-                is NavKey.GamifiedOnboardingKey -> {
+                entry<NavKey.GamifiedOnboardingKey> { currentDestinationKey ->
                     GamifiedOnboardingDialog(
                         isOpen = true,
-                        onDismiss = { backStack.pop() },
-                        onComplete = { backStack.replace(NavKey.CatalogKey) }
+                        onDismiss = { navigator.goBack() },
+                        onComplete = { navigator.replace(NavKey.CatalogKey) }
                     )
                 }
-                is NavKey.EmailVerificationKey -> {
+                entry<NavKey.EmailVerificationKey> { currentDestinationKey ->
                     ProfilePage(
                         userUid = currentUserUid,
                         userName = currentUserName,
                         apiClient = apiClient,
                         themeMode = themeMode,
                         onThemeModeChange = { themeMode = it },
-                        onSignOut = { backStack.replace(NavKey.AuthKey) },
+                        onSignOut = { navigator.replace(NavKey.AuthKey) },
                         onVerifyEmail = onVerifyEmailRequested
                     )
                 }
 
                 // 2. Personal AI Shopper / Chat Flow
-                is NavKey.ChatKey -> {
+                entry<NavKey.ChatKey> { currentDestinationKey ->
                     PersonalAIShopperChatPage(
                         chatViewModel = chatViewModel,
                         isVideoPlaying = isVideoPlaying,
                         isVoiceRecording = isVoiceRecording,
-                        liveTranscript = liveTranscript,
+                        liveTranscript = chatViewModel.liveTranscript,
                         userName = currentUserName,
                         errorMessage = errorMessage,
                         isAccessibilityEnabled = isAccessibilityEnabled,
@@ -258,7 +258,23 @@ fun App(
                         onRequestAccessibilityScan = onRequestAccessibilityScan,
                         onTriggerGlobalLens = onTriggerGlobalLens,
                         onLaunchCamera = { pickImage() },
-                        onAddToCart = { _ -> },
+                        onAddToCart = { product ->
+                            scope.launch {
+                                try {
+                                    apiClient.recordInteraction(product.id, "add_to_cart")
+                                    // Using the production default grocery list ID
+                                    SpressoBackend.addGroceryItem(
+                                        listId = "b90c13bc-33b2-4d1a-8c2f-87000d11f67f",
+                                        productName = product.name,
+                                        productId = product.id,
+                                        addedVia = "CHAT_AI"
+                                    )
+                                    errorMessage = "Added \${product.name} to cart."
+                                } catch (e: Exception) {
+                                    errorMessage = "Failed to add to cart: \${e.message}"
+                                }
+                            }
+                        },
                         onSelectTryOn = { product ->
                             activeProductId = product.id
                             pickImage()
@@ -268,13 +284,13 @@ fun App(
                         apiClient = apiClient
                     )
                 }
-                is NavKey.GlobalChatOverlayKey -> {
+                entry<NavKey.GlobalChatOverlayKey> { currentDestinationKey ->
                     GlobalChatOverlay(
                         isVisible = true,
-                        onDismissRequest = { backStack.pop() },
+                        onDismissRequest = { navigator.goBack() },
                         onSendMessage = { prompt ->
                             chatViewModel.sendMessage(prompt = prompt, location = null, agentType = "SHOPPING_CONCIERGE")
-                            backStack.push(NavKey.ChatKey())
+                            navigator.navigate(NavKey.ChatKey())
                         },
                         onToggleVoice = {
                             if (isVoiceRecording) {
@@ -293,7 +309,7 @@ fun App(
                                     scope.launch {
                                         liveApiClient.connect(
                                             onReceiveAudio = { chunk -> audioPlayer.playChunk(chunk) },
-                                            onReceiveText = { text -> liveTranscript = text }
+                                            onReceiveText = { text -> chatViewModel.liveTranscript = text }
                                         )
                                     }
                                     isVoiceRecording = true
@@ -302,21 +318,20 @@ fun App(
                         }
                     )
                 }
-                is NavKey.ChatbotCanvasKey -> {
+                entry<NavKey.ChatbotCanvasKey> { currentDestinationKey ->
                     PersonalAIShopperChatPage(
                         chatViewModel = chatViewModel,
                         isVideoPlaying = isVideoPlaying,
                         isVoiceRecording = isVoiceRecording,
-                        liveTranscript = liveTranscript,
+                        liveTranscript = chatViewModel.liveTranscript,
                         userName = currentUserName,
                         errorMessage = errorMessage,
                         apiClient = apiClient
                     )
                 }
-                is NavKey.ChatDiscoveryCardKey -> {
+                entry<NavKey.ChatDiscoveryCardKey> { currentDestinationKey ->
                     DiscoveryCard(
                         id = "discovery_1",
-                        badge = "Trending",
                         isErrorTheme = false,
                         icon = Icons.Default.AutoAwesome,
                         title = "Explore New Arrivals",
@@ -324,27 +339,19 @@ fun App(
                         prompt = "Show me trending fashion items",
                         onClick = { prompt ->
                             chatViewModel.sendMessage(prompt = prompt, location = null, agentType = "SHOPPING_CONCIERGE")
-                            backStack.push(NavKey.ChatKey())
+                            navigator.navigate(NavKey.ChatKey())
                         }
                     )
                 }
 
                 // 3. Product Catalog & Curation Flow
-                is NavKey.CatalogKey -> {
+                entry<NavKey.CatalogKey> { currentDestinationKey ->
                     ProductCatalogPage(
                         apiClient = apiClient,
                         httpClient = apiClient.client,
                         onProductSelected = { id ->
                             activeProductId = id
-                            scope.launch {
-                                try {
-                                    displayMediaUrl = apiClient.requestSpin360(id)
-                                    isVideoPlaying = true
-                                    backStack.push(NavKey.WardrobeKey(displayMediaUrl = displayMediaUrl, isVideoPlaying = true))
-                                } catch (e: Exception) {
-                                    errorMessage = "Failed to fetch Spin 360: ${e.message}"
-                                }
-                            }
+                            navigator.navigate(NavKey.ProductDetailKey(id))
                         },
                         onTryOnRequested = { product ->
                             activeProductId = product.id
@@ -352,15 +359,17 @@ fun App(
                         },
                         onShareRequested = onShare,
                         onAskAI = { prompt ->
-                            backStack.push(NavKey.ChatKey(initialPrompt = prompt))
+                            navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
                         }
                     )
                 }
-                is NavKey.ProductCatalogScreenKey -> {
-                    ProductCatalogScreen(
+                entry<NavKey.ProductCatalogScreenKey> { currentDestinationKey ->
+                    ProductCatalogPage(
+                        apiClient = apiClient,
+                        httpClient = apiClient.client,
                         onProductSelected = { id ->
                             activeProductId = id
-                            backStack.push(NavKey.ProductDetailKey(id))
+                            navigator.navigate(NavKey.ProductDetailKey(id))
                         },
                         onTryOnRequested = { product ->
                             activeProductId = product.id
@@ -368,24 +377,28 @@ fun App(
                         },
                         onShareRequested = onShare,
                         onAskAI = { prompt ->
-                            backStack.push(NavKey.ChatKey(initialPrompt = prompt))
+                            navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
                         }
                     )
                 }
-                is NavKey.ProductDetailKey -> {
-                    val detailProduct = ProductItem(
-                        id = currentDestinationKey.productId,
-                        name = "Product ${currentDestinationKey.productId}",
-                        brand = "Spresso Select",
-                        price = 129.99,
-                        rating = 4.8,
-                        category = "Fashion",
-                        imageUrl = ""
-                    )
-                    ProductCatalogDetailDialog(
-                        product = detailProduct,
+                entry<NavKey.ProductDetailKey> { currentDestinationKey ->
+                    var detailProduct by remember { mutableStateOf<ProductItem?>(null) }
+                    var loadError by remember { mutableStateOf<String?>(null) }
+                    
+                    LaunchedEffect(currentDestinationKey.productId) {
+                        try {
+                            detailProduct = apiClient.fetchProduct(currentDestinationKey.productId)
+                        } catch (e: Exception) {
+                            loadError = "Failed to fetch product details"
+                        }
+                    }
+                    
+                    val currentProduct = detailProduct
+                    if (currentProduct != null) {
+                        ProductCatalogDetailDialog(
+                            product = currentProduct,
                         checkoutStatus = null,
-                        onDismiss = { backStack.pop() },
+                        onDismiss = { navigator.goBack() },
                         onTryOn = { product ->
                             activeProductId = product.id
                             pickImage()
@@ -395,25 +408,40 @@ fun App(
                                 try {
                                     displayMediaUrl = apiClient.requestSpin360(id)
                                     isVideoPlaying = true
-                                    backStack.push(NavKey.WardrobeKey(displayMediaUrl = displayMediaUrl, isVideoPlaying = true))
+                                    navigator.navigate(NavKey.WardrobeKey(displayMediaUrl = displayMediaUrl, isVideoPlaying = true))
                                 } catch (e: Exception) {
                                     errorMessage = "Failed to fetch Spin 360: ${e.message}"
                                 }
                             }
                         },
-                        onLike = {},
-                        onShare = onShare,
-                        onBuyNow = { backStack.push(NavKey.HITLCheckoutKey) }
-                    )
-                }
-                is NavKey.AICurationFeedKey -> {
-                    AICurationFeed(
-                        products = emptyList(),
-                        onSelectProduct = { id ->
-                            activeProductId = id
-                            backStack.push(NavKey.CatalogKey)
+                        onLike = {
+                            scope.launch {
+                                try {
+                                    apiClient.recordInteraction(currentProduct.id, "like")
+                                    errorMessage = "Saved to your favorites."
+                                } catch (e: Exception) {
+                                    errorMessage = "Failed to save to favorites."
+                                }
+                            }
                         },
-                        onTryOn = { product ->
+                        onShare = { id -> onShare(id) },
+                        onBuyNow = { navigator.navigate(NavKey.HITLCheckoutKey) }
+                        )
+                    } else if (loadError != null) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(loadError!!, color = MaterialTheme.colorScheme.error)
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+                entry<NavKey.AICurationFeedKey> { currentDestinationKey ->
+                    AICurationFeed(
+                        curatedProducts = emptyList(),
+                        httpClient = apiClient.client,
+                        onTryOnRequested = { product ->
                             activeProductId = product.id
                             pickImage()
                         }
@@ -421,7 +449,7 @@ fun App(
                 }
 
                 // 4. Wardrobe & Virtual Try-On Flow
-                is NavKey.WardrobeKey -> {
+                entry<NavKey.WardrobeKey> { currentDestinationKey ->
                     WardrobeViewPage(
                         displayMediaUrl = currentDestinationKey.displayMediaUrl ?: displayMediaUrl,
                         httpClient = apiClient.client,
@@ -429,16 +457,16 @@ fun App(
                         onShareRequested = onShare
                     )
                 }
-                is NavKey.WardrobeMainKey -> {
+                entry<NavKey.WardrobeMainKey> { currentDestinationKey ->
                     WardrobePage(
                         onNavigateToTryOn = { id ->
                             activeProductId = id
                             pickImage()
                         },
-                        onOpenLens = { backStack.push(NavKey.SmartVisionKey()) }
+                        onOpenLens = { navigator.navigate(NavKey.SmartVisionKey()) }
                     )
                 }
-                is NavKey.StackedWardrobeDecksKey -> {
+                entry<NavKey.StackedWardrobeDecksKey> { currentDestinationKey ->
                     StackedWardrobeDecks(
                         products = emptyList(),
                         onSelectTryOn = { product ->
@@ -448,161 +476,191 @@ fun App(
                         onOpenUploadModal = { pickImage() }
                     )
                 }
-                is NavKey.GallerySyncDisabledKey -> {
+                entry<NavKey.GallerySyncDisabledKey> { currentDestinationKey ->
                     GallerySyncDisabledView(
                         onGrant = { pickImage() }
                     )
                 }
 
                 // 5. Smart Vision & Lens Flow
-                is NavKey.SmartVisionKey -> {
+                entry<NavKey.SmartVisionKey> { currentDestinationKey ->
                     SmartVisionPage(
                         apiClient = apiClient,
                         onSelectProduct = { productId ->
                             activeProductId = productId
-                            backStack.push(NavKey.CatalogKey)
+                            navigator.navigate(NavKey.CatalogKey)
                         }
                     )
                 }
-                is NavKey.SmartVisionDetectionKey -> {
-                    val detectedItem = DetectedItem(
-                        detectedName = "Designer Jacket",
-                        brandGuess = "Acne Studios",
-                        category = "Outerwear",
-                        priceEstimate = 450.0
-                    )
-                    SmartVisionDetectionOverlay(
-                        item = detectedItem,
-                        matchedProduct = null,
-                        width = 300.dp,
-                        height = 400.dp,
-                        apiClient = apiClient,
-                        onSelectProduct = { id ->
-                            activeProductId = id
-                            backStack.push(NavKey.CatalogKey)
-                        },
-                        onHitlCheckout = {
-                            backStack.push(NavKey.HITLCheckoutKey)
+                entry<NavKey.SmartVisionDetectionKey> { currentDestinationKey ->
+                    var detectedItem by remember { mutableStateOf<DetectedItem?>(null) }
+                    var loadError by remember { mutableStateOf<String?>(null) }
+                    
+                    LaunchedEffect(Unit) {
+                        try {
+                            detectedItem = apiClient.fetchDetection("latest")
+                        } catch (e: Exception) {
+                            loadError = "Failed to load detection details"
                         }
-                    )
+                    }
+
+                    val currentDetection = detectedItem
+                    if (currentDetection != null) {
+                        SmartVisionDetectionOverlay(
+                            item = currentDetection,
+                            matchedProduct = null,
+                            width = 300.dp,
+                            height = 400.dp,
+                            apiClient = apiClient,
+                            onSelectProduct = { id ->
+                                activeProductId = id
+                                navigator.navigate(NavKey.CatalogKey)
+                            },
+                            onHitlCheckout = {
+                                navigator.navigate(NavKey.HITLCheckoutKey)
+                            }
+                        )
+                    } else if (loadError != null) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(loadError!!, color = MaterialTheme.colorScheme.error)
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
                 }
 
                 // 6. Grocery & Ingredients Flow
-                is NavKey.GroceryKey -> {
+                entry<NavKey.GroceryKey> { currentDestinationKey ->
                     GroceryListPage(
                         apiClient = apiClient,
                         onAskAI = { prompt ->
-                            backStack.push(NavKey.ChatKey(initialPrompt = prompt))
+                            navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
                         }
                     )
                 }
-                is NavKey.IngredientChecklistKey -> {
-                    val sampleGrocery = GroceryItem(
-                        id = "item-1",
-                        name = currentDestinationKey.recipeName,
-                        category = "Pantry",
-                        quantity = 1,
-                        estimatedPrice = 4.99,
-                        checked = false
-                    )
-                    IngredientChecklistCard(
-                        item = sampleGrocery,
-                        onToggle = {},
-                        onDelete = {},
-                        onAskAI = { backStack.push(NavKey.ChatKey(initialPrompt = "Suggest recipes for ${sampleGrocery.name}")) }
-                    )
+                entry<NavKey.IngredientChecklistKey> { currentDestinationKey ->
+                    var sampleGrocery by remember { mutableStateOf<GroceryItem?>(null) }
+                    var loadError by remember { mutableStateOf<String?>(null) }
+                    
+                    LaunchedEffect(currentDestinationKey.recipeName) {
+                        try {
+                            sampleGrocery = apiClient.fetchRecipe(currentDestinationKey.recipeName)
+                        } catch (e: Exception) {
+                            loadError = "Failed to load recipe ingredients"
+                        }
+                    }
+
+                    val currentGrocery = sampleGrocery
+                    if (currentGrocery != null) {
+                        IngredientChecklistCard(
+                            item = currentGrocery,
+                            onToggle = {},
+                            onDelete = {},
+                            onAskAI = { navigator.navigate(NavKey.ChatKey(initialPrompt = "Suggest recipes for ${currentGrocery.name}")) }
+                        )
+                    } else if (loadError != null) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(loadError!!, color = MaterialTheme.colorScheme.error)
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
                 }
 
                 // 7. Orders & Checkout Flow
-                is NavKey.OrdersKey -> {
+                entry<NavKey.OrdersKey> { currentDestinationKey ->
                     OrdersTrackerPage(
                         apiClient = apiClient,
                         onAskAI = { prompt ->
-                            backStack.push(NavKey.ChatKey(initialPrompt = prompt))
+                            navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
                         }
                     )
                 }
-                is NavKey.OrderReturnKey -> {
+                entry<NavKey.OrderReturnKey> { currentDestinationKey ->
                     OrderReturnDialog(
                         orderId = currentDestinationKey.orderId,
                         returnReason = "",
                         onReturnReasonChange = {},
                         isSubmittingReturn = false,
-                        onDismissRequest = { backStack.pop() },
+                        onDismissRequest = { navigator.goBack() },
                         onConfirmReturn = {
-                            backStack.replace(NavKey.OrderReturnResultKey(currentDestinationKey.orderId))
+                            navigator.replace(NavKey.OrderReturnResultKey(currentDestinationKey.orderId))
                         }
                     )
                 }
-                is NavKey.OrderReturnResultKey -> {
+                entry<NavKey.OrderReturnResultKey> { currentDestinationKey ->
                     OrderReturnResultCard(
                         msg = "Return label created for Order ${currentDestinationKey.returnId}. Check email for prepaid label.",
-                        onDismiss = { backStack.pop() }
+                        onDismiss = { navigator.goBack() }
                     )
                 }
-                is NavKey.HITLCheckoutKey -> {
+                entry<NavKey.HITLCheckoutKey> { currentDestinationKey ->
                     HITLCheckoutModal(
                         payload = null,
-                        onDismiss = { backStack.pop() },
+                        onDismiss = { navigator.goBack() },
                         onConfirmPurchase = {
-                            backStack.replace(NavKey.OrdersKey)
+                            navigator.replace(NavKey.OrdersKey)
                         }
                     )
                 }
 
                 // 8. Creator Agents & Studio Flow
-                is NavKey.CreatorKey -> {
+                entry<NavKey.CreatorKey> { currentDestinationKey ->
                     CreatorAgentsPage(
                         apiClient = apiClient,
                         selectedTemplateId = currentDestinationKey.selectedTemplateId.ifEmpty { selectedTemplateId },
                         onTemplateSelected = { id -> selectedTemplateId = id }
                     )
                 }
-                is NavKey.CreatorTemplatesKey -> {
+                entry<NavKey.CreatorTemplatesKey> { currentDestinationKey ->
                     CreatorTemplatesSection(
-                        selectedTemplate = selectedTemplateId,
-                        onSelectTemplate = { selectedTemplateId = it }
+                        apiClient = apiClient,
+                        scope = scope
                     )
                 }
-                is NavKey.CreatorAgentsSectionKey -> {
+                entry<NavKey.CreatorAgentsSectionKey> { currentDestinationKey ->
                     CreatorAgentsSection(
-                        activeAgentId = "concierge",
-                        onSelectAgent = {},
-                        isDeployingAgent = false,
-                        onDeployAgent = {}
+                        apiClient = apiClient,
+                        scope = scope
                     )
                 }
 
                 // 9. Travel & Expenses Flow
-                is NavKey.TravelKey -> {
+                entry<NavKey.TravelKey> { currentDestinationKey ->
                     TravelTripsPage(
                         onAskAI = { prompt ->
-                            backStack.push(NavKey.ChatKey(initialPrompt = prompt))
+                            navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
                         }
                     )
                 }
-                is NavKey.TravelQrModalKey -> {
+                entry<NavKey.TravelQrModalKey> { currentDestinationKey ->
                     val event = ItineraryEvent(
-                        title = currentDestinationKey.eventTitle,
-                        time = "14:30",
+                        id = "evt-qr",
+                        tripId = "trip-current",
                         type = "flight",
+                        title = currentDestinationKey.eventTitle,
+                        description = "Confirmed boarding pass ticket",
+                        eventTime = "14:30",
                         location = currentDestinationKey.eventLocation,
-                        status = "Confirmed",
                         qrData = currentDestinationKey.qrData
                     )
                     QrModal(
                         activeQrModalEvent = event,
-                        onClose = { backStack.pop() }
+                        onClose = { navigator.goBack() }
                     )
                 }
-                is NavKey.TravelReceiptScannerKey -> {
+                entry<NavKey.TravelReceiptScannerKey> { currentDestinationKey ->
                     ReceiptScannerSection(
                         activeTripId = currentDestinationKey.activeTripId,
                         tripExpenses = emptyList(),
                         onAddExpense = {}
                     )
                 }
-                is NavKey.TravelVoiceNotesKey -> {
+                entry<NavKey.TravelVoiceNotesKey> { currentDestinationKey ->
                     VoiceNotesSection(
                         tripVoiceNotes = emptyList(),
                         isRecording = isVoiceRecording,
@@ -618,17 +676,17 @@ fun App(
                         }
                     )
                 }
-                is NavKey.TravelBoardingPassKey -> {
+                entry<NavKey.TravelBoardingPassKey> { currentDestinationKey ->
                     BoardingPassList(
                         tripEvents = emptyList(),
                         onShowQr = { evt ->
-                            backStack.push(NavKey.TravelQrModalKey(eventTitle = evt.title, eventLocation = evt.location, qrData = evt.qrData ?: "SPRESSO-PASS"))
+                            navigator.navigate(NavKey.TravelQrModalKey(eventTitle = evt.title, eventLocation = evt.location, qrData = evt.qrData ?: "SPRESSO-PASS"))
                         }
                     )
                 }
 
                 // 10. Profile & Account Settings Flow
-                is NavKey.ProfileKey -> {
+                entry<NavKey.ProfileKey> { currentDestinationKey ->
                     ProfilePage(
                         userUid = currentUserUid,
                         userName = currentUserName,
@@ -636,39 +694,39 @@ fun App(
                         themeMode = themeMode,
                         onThemeModeChange = { themeMode = it },
                         onSignOut = {
-                            backStack.replace(NavKey.AuthKey)
+                            navigator.replace(NavKey.AuthKey)
                         },
                         onVerifyEmail = onVerifyEmailRequested
                     )
                 }
-                is NavKey.AccountManagementKey -> {
+                entry<NavKey.AccountManagementKey> { currentDestinationKey ->
                     AccountManagementSection(
-                        onSignOut = { backStack.replace(NavKey.AuthKey) },
-                        onDeactivateAccount = { backStack.replace(NavKey.AuthKey) }
+                        onSignOut = { navigator.replace(NavKey.AuthKey) },
+                        onDeactivateAccount = { navigator.replace(NavKey.AuthKey) }
                     )
                 }
-                is NavKey.PaymentWalletKey -> {
+                entry<NavKey.PaymentWalletKey> { currentDestinationKey ->
                     PaymentWalletSection(
                         savedCards = emptyList(),
                         onAddPaymentCard = {},
                         onGoogleWalletAction = {}
                     )
                 }
-                is NavKey.SubscriptionMembershipKey -> {
+                entry<NavKey.SubscriptionMembershipKey> { currentDestinationKey ->
                     SubscriptionMembershipSection(
                         currentTier = SubscriptionTier.SPRESSO_VIP,
                         renewalDate = "September 1, 2026",
                         onManageSubscription = {}
                     )
                 }
-                is NavKey.LegalSecurityKey -> {
+                entry<NavKey.LegalSecurityKey> { currentDestinationKey ->
                     LegalSecuritySection(
                         onShowRefundPolicy = {},
                         onShowPlayPolicy = {},
                         onShowPrivacyTerms = {}
                     )
                 }
-                is NavKey.PreferencesKey -> {
+                entry<NavKey.PreferencesKey> { currentDestinationKey ->
                     PreferencesSection(
                         isDarkTheme = when (themeMode) {
                             ThemeMode.DARK -> true
@@ -686,12 +744,12 @@ fun App(
                 }
 
                 // 11. Wearables & Spatial Flow
-                is NavKey.MetaWearablesKey -> {
+                entry<NavKey.MetaWearablesKey> { currentDestinationKey ->
                     MetaWearablesPage(
-                        onDismiss = { backStack.pop() }
+                        onDismiss = { navigator.goBack() }
                     )
                 }
-                is NavKey.SpatialLiquidGlassKey -> {
+                entry<NavKey.SpatialLiquidGlassKey> { currentDestinationKey ->
                     LiquidGlassCard {
                         Text(
                             text = "Spatial Glass Surface Active",
@@ -701,6 +759,6 @@ fun App(
                     }
                 }
             }
-        }
+        )
     }
 }

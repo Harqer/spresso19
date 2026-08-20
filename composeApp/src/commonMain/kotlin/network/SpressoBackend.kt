@@ -58,6 +58,8 @@ expect object SpressoBackend {
 
     suspend fun getWardrobeItems(): List<WardrobeItemData>
 
+    suspend fun uploadImage(bytes: ByteArray, path: String): String
+
     suspend fun addWardrobeItem(
         outfitId: String?,
         category: String,

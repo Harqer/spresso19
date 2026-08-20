@@ -1,7 +1,5 @@
 package components.shared
 
-import components.models.*
-
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -10,8 +8,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import theme.AppTheme
@@ -20,8 +20,8 @@ import theme.AppTheme
 fun ParallaxCard(
     scrollOffset: Float,
     modifier: Modifier = Modifier,
-    backgroundColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surfaceVariant,
-    contentColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     content: @Composable () -> Unit
 ) {
     // We add more detailed modifier chains to ensure the molecule is sufficiently styled
@@ -74,9 +74,9 @@ fun ParallaxCard(
 @Composable
 fun ParallaxCardPreview() {
     AppTheme {
-        androidx.compose.foundation.layout.Box(modifier = Modifier.padding(16.dp)) {
+        Box(modifier = Modifier.padding(16.dp)) {
             ParallaxCard(scrollOffset = 100f) {
-                androidx.compose.material3.Text("Parallax Content")
+                Text("Parallax Content")
             }
         }
     }

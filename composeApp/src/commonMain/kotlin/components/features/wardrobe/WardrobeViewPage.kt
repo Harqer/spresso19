@@ -67,7 +67,15 @@ fun WardrobeViewPage(
 
     LaunchedEffect(Unit) {
         try {
-            network.SpressoBackend.getWardrobeItems()
+            val items = network.SpressoBackend.getWardrobeItems()
+            photos = items.map { item ->
+                WardrobePhoto(
+                    id = item.id,
+                    title = item.brand ?: "Unknown",
+                    category = item.category ?: "Unknown",
+                    photoUrl = item.imageUrl ?: ""
+                )
+            }
         } catch(e: Exception) {
             snackbarHostState.showSnackbar("Error: ${e.message}")
         }
@@ -75,20 +83,57 @@ fun WardrobeViewPage(
 
     var activeSeason by remember { mutableStateOf("Winter") }
     var stylingLoading by remember { mutableStateOf(false) }
+    val apiClient = remember { network.ApiClient() }
+    
+    val dynamicSeasons = remember {
+        listOf(
+            Triple("Winter", "Winter Wear", androidx.compose.material.icons.Icons.Default.AcUnit),
+            Triple("Summer", "Hot Summer", androidx.compose.material.icons.Icons.Default.WbSunny),
+            Triple("Occasion", "Special Occasion", androidx.compose.material.icons.Icons.Default.AutoAwesome)
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        try {
+            val climate = apiClient.getWeatherContext()
+            activeSeason = climate
+        } catch(e: Exception) {
+            // keep default
+        }
+    }
 
     var curatedFits by remember(activeSeason) { mutableStateOf<List<CuratedFit>>(emptyList()) }
     LaunchedEffect(activeSeason) {
         try {
-            network.SpressoBackend.getWardrobeOutfits()
+            stylingLoading = true
+            curatedFits = network.SpressoBackend.getWardrobeOutfits().map { outfit ->
+                CuratedFit(
+                    fitName = outfit.title,
+                    season = activeSeason, // fallback since it's missing in backend data
+                    stylingNotes = outfit.description ?: "",
+                    items = outfit.items.map { it.id }
+                )
+            }
         } catch(e: Exception) {
             snackbarHostState.showSnackbar("Error: ${e.message}")
+        } finally {
+            stylingLoading = false
         }
     }
 
     val handleAddPhoto: () -> Unit = {
         kotlinx.coroutines.GlobalScope.launch {
             try {
-                network.SpressoBackend.addWardrobeItem(outfitId = "new", category = "Unknown", brand = "Unknown", imageUrl = "", color = "Unknown")
+                network.SpressoBackend.addWardrobeItem(outfitId = "new_outfit_${kotlin.random.Random.nextInt()}", category = "Uncategorized", brand = "Personal", imageUrl = "file://placeholder", color = "Unknown")
+                val items = network.SpressoBackend.getWardrobeItems()
+                photos = items.map { item ->
+                    WardrobePhoto(
+                        id = item.id,
+                        title = item.brand ?: "Unknown",
+                        category = item.category ?: "Unknown",
+                        photoUrl = item.imageUrl ?: ""
+                    )
+                }
             } catch(e: Exception) {
                 snackbarHostState.showSnackbar("Error: ${e.message}")
             }
@@ -123,6 +168,7 @@ fun WardrobeViewPage(
         item(span = { GridItemSpan(maxLineSpan) }) {
             WardrobeStylingEngineSection(
                 activeSeason = activeSeason,
+                seasons = dynamicSeasons,
                 onSeasonSelected = { activeSeason = it },
                 stylingLoading = stylingLoading,
                 curatedFits = curatedFits

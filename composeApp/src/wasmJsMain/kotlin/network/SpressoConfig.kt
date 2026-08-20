@@ -7,4 +7,6 @@ actual object SpressoConfig {
         get() = "https://us-central1-spresso-5561f.cloudfunctions.net"
     actual val googlePayMerchantId: String
         get() = "BCR2DN6DTK6ZNGLF"
+    actual val stripePublishableKey: String
+        get() = "pk_live_51xyz"
 }

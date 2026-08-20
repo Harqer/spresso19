@@ -15,7 +15,7 @@ interface WardrobeAiOutfitTabProps {
   onSaveFavoriteOutfit: (outfit: GeneratedOutfit) => void;
 }
 
-const AVATARS: any[] = []; // In original, AVATARS was empty array
+
 
 export const WardrobeAiOutfitTab: React.FC<WardrobeAiOutfitTabProps> = ({
   userUploadedItemsCount, selectedWeatherMode, temperaturePrompt, isGeneratingOutfit,
@@ -105,7 +105,7 @@ export const WardrobeAiOutfitTab: React.FC<WardrobeAiOutfitTabProps> = ({
                 {currentOutfit.items.map(item => (
                   <div key={item.id} className="bg-[#f9fbf9] p-3 rounded-2xl border border-[#d8ebd7] flex flex-col justify-between space-y-2 group hover:border-[#386633] transition">
                     <div className="relative aspect-square rounded-xl overflow-hidden bg-white">
-                      <img src={item.image} alt={item.name} onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/400x400/f9fbf9/386633?text=Image+Unavailable"; }} className="w-full h-full object-cover group-hover:scale-105 transition" />
+                      <img src={item.image} alt={item.name} onError={(e) => { (e.target as HTMLImageElement).src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect width='400' height='400' fill='%23f9fbf9'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' fill='%23386633'>Image Unavailable</text></svg>"; }} className="w-full h-full object-cover group-hover:scale-105 transition" />
                       <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-md text-[9px] font-mono font-bold shadow-xs ${item.type === "user_upload" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
                         {item.type === "user_upload" ? "Gallery Photo" : "Bookmarked Shop"}
                       </span>

@@ -25,6 +25,7 @@ ui-test-junit4 = "1.6.8"
 mwdat = "0.8.0"
 firebase-bom = "33.1.2"
 firebase-dataconnect = "17.3.3"
+firebase-vertexai = "16.0.0"
 pay-button = "1.1.0"
 play-services-wallet = "19.4.0"
 camera-mlkit-vision = "1.4.0-beta02"
@@ -37,6 +38,7 @@ work-runtime-ktx = "2.11.2"
 glance = "1.1.0"
 xr = "1.0.0-alpha01"
 coinbase-wallet = "1.2.0"
+zxing = "3.5.3"
 
 [libraries]
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }
@@ -82,6 +84,9 @@ firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-dataconnect = { module = "com.google.firebase:firebase-dataconnect", version.ref = "firebase-dataconnect" }
 firebase-functions = { module = "com.google.firebase:firebase-functions" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
+firebase-storage = { module = "com.google.firebase:firebase-storage" }
+firebase-vertexai = { module = "com.google.firebase:firebase-vertexai", version.ref = "firebase-vertexai" }
+firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
 firebase-ui-auth = { module = "com.firebaseui:firebase-ui-auth", version = "8.0.2" }
 compose-pay-button = { module = "com.google.pay.button:compose-pay-button", version.ref = "pay-button" }
 play-services-wallet = { module = "com.google.android.gms:play-services-wallet", version.ref = "play-services-wallet" }
@@ -105,6 +110,7 @@ androidx-xr-scenecore = { module = "androidx.xr.scenecore:scenecore", version.re
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 coinbase-wallet-mobile-sdk = { module = "com.coinbase:coinbase-wallet-sdk", version.ref = "coinbase-wallet" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

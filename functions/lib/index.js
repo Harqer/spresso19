@@ -36,12 +36,55 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.webhooks = void 0;
+exports.verifyPasskeyRegistration = exports.generatePasskeyChallenge = exports.webhooks = void 0;
 __exportStar(require("./orders"), exports);
 __exportStar(require("./wardrobe"), exports);
 __exportStar(require("./ai"), exports);
 __exportStar(require("./payments"), exports);
 __exportStar(require("./catalog"), exports);
+__exportStar(require("./interactions"), exports);
+__exportStar(require("./users"), exports);
 const webhooks = __importStar(require("./webhooks"));
 exports.webhooks = webhooks;
+const https_1 = require("firebase-functions/v2/https");
+const crypto = __importStar(require("crypto"));
+const server_1 = require("@simplewebauthn/server");
+exports.generatePasskeyChallenge = (0, https_1.onCall)((request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError("unauthenticated", "Must be logged in to generate a challenge.");
+    }
+    const challenge = crypto.randomBytes(32).toString("base64url");
+    return { challenge };
+});
+exports.verifyPasskeyRegistration = (0, https_1.onCall)(async (request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError("unauthenticated", "Must be logged in.");
+    }
+    const { responseJson, challenge } = request.data;
+    try {
+        const response = typeof responseJson === 'string' ? JSON.parse(responseJson) : responseJson;
+        const verification = await (0, server_1.verifyRegistrationResponse)({
+            response,
+            expectedChallenge: challenge,
+            expectedOrigin: ["https://spresso.com", "android:apk-key-hash"],
+            expectedRPID: "spresso.com",
+        });
+        if (verification.verified && verification.registrationInfo) {
+            const { credential } = verification.registrationInfo;
+            const { db } = await Promise.resolve().then(() => __importStar(require("./shared/db")));
+            // Persist the passkey to user profile
+            await db.collection("users").doc(request.auth.uid).collection("passkeys").doc(credential.id).set({
+                credentialId: credential.id,
+                publicKey: Buffer.from(credential.publicKey).toString("base64"),
+                counter: credential.counter,
+                createdAt: new Date().toISOString()
+            });
+        }
+        return { success: verification.verified };
+    }
+    catch (error) {
+        console.error(error);
+        return { success: false, error: error.message };
+    }
+});
 //# sourceMappingURL=index.js.map

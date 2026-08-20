@@ -32,18 +32,18 @@ export const stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhoo
 
   if (event.type === 'payment_intent.succeeded') {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    const { productId, shippingAddress, merchantUrl } = paymentIntent.metadata || {};
+    const { productId, shippingAddress, merchantUrl, userApprovedPaywall, biometricAuthorized } = paymentIntent.metadata || {};
     
     // Autonomous Kitesurf Trigger
     if (productId) {
       try {
         const kResult = await executeKitesurfPurchase(
           productId, 
-          shippingAddress || "123 Innovation Way, Tech District, SF", 
-          "", 
-          merchantUrl || "https://example.com", 
-          true, 
-          true
+          shippingAddress || "",
+          paymentIntent.id,
+          merchantUrl || undefined,
+          userApprovedPaywall === 'true',
+          biometricAuthorized === 'true'
         );
         console.log("Kitesurf purchase triggered via webhook", kResult);
       } catch(err) {
@@ -62,13 +62,19 @@ export const createStripeIntent = onCall({ secrets: [stripeSecretKey] }, async (
     throw new HttpsError("unauthenticated", "You must be signed in to checkout.");
   }
 
+  const { productId, quantity = 1, shippingAddress, merchantUrl, userApprovedPaywall = false, biometricAuthorized = false } = request.data || {};
+  if (!productId) {
+    throw new HttpsError("invalid-argument", "Missing productId");
+  }
+
   try {
-    const { productId, quantity, shippingAddress, merchantUrl } = request.data || {};
-    if (!productId) {
-      throw new HttpsError("invalid-argument", "Missing productId");
+    const { db } = await import('./shared/db');
+    const productDoc = await db.collection('products').doc(productId).get();
+    if (!productDoc.exists) {
+        throw new HttpsError('not-found', 'Product not found');
     }
-    // Hardcoded amount for demo if not querying product DB
-    const amount = 5000; 
+    const product = productDoc.data();
+    const amount = Math.round((product?.price || 0) * 100 * quantity);
 
     const stripe = new Stripe(stripeSecretKey.value(), {
       apiVersion: '2025-01-27.acacia' as any
@@ -79,9 +85,11 @@ export const createStripeIntent = onCall({ secrets: [stripeSecretKey] }, async (
       currency: 'usd',
       metadata: {
         productId,
-        quantity: quantity?.toString() || '1',
+        quantity: quantity.toString(),
         shippingAddress,
-        merchantUrl
+        merchantUrl,
+        userApprovedPaywall: userApprovedPaywall.toString(),
+        biometricAuthorized: biometricAuthorized.toString()
       }
     });
 

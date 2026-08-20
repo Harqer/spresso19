@@ -1,13 +1,11 @@
 package components.navigation
 
-import components.models.*
+import androidx.compose.foundation.isSystemInDarkTheme
 
-
-
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import navigation.NavigationState
+import navigation.Navigator
+import androidx.navigation3.runtime.NavEntry
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -56,22 +54,22 @@ import androidx.compose.runtime.setValue
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdaptiveScaffoldBody(
-    currentKey: NavKey,
+    navigationState: NavigationState,
+    navigator: Navigator,
     showBottomBar: Boolean,
-    onNavigate: (NavKey) -> Unit,
     isVoiceRecording: Boolean,
     onToggleVoiceRecording: () -> Unit,
-    themeMode: ThemeMode,
-    onThemeModeChange: (ThemeMode) -> Unit,
+    modifier: Modifier = Modifier,
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    onThemeModeChange: (ThemeMode) -> Unit = {},
     onToggleDrawer: () -> Unit = {},
     onAskAI: (String) -> Unit = {},
-    modifier: Modifier = Modifier,
-    content: @Composable (NavKey) -> Unit
+    entryProvider: (NavKey) -> NavEntry<NavKey>
 ) {
     val isDark = when (themeMode) {
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
-        ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
 
     var isNavBarVisible by remember { mutableStateOf(showBottomBar) }
@@ -80,63 +78,63 @@ fun AdaptiveScaffoldBody(
         isNavBarVisible = showBottomBar
     }
 
-    val adaptiveInfo = androidx.compose.material3.adaptive.currentWindowAdaptiveInfo()
-    val layoutType = if (isNavBarVisible) {
-        androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(adaptiveInfo)
-    } else {
-        NavigationSuiteType.None
-    }
-
-    NavigationSuiteScaffold(
-        layoutType = layoutType,
-        navigationSuiteItems = {
-            defaultNavDestinations.forEach { item ->
-                item(
-                    selected = isSameDestinationGroup(currentKey, item.key),
-                    onClick = { onNavigate(item.key) },
-                    icon = {
-                        if (item.icon != null) {
-                            Icon(imageVector = item.icon, contentDescription = item.label)
-                        } else if (item.iconResource != null) {
-                            Icon(imageVector = org.jetbrains.compose.resources.vectorResource(item.iconResource), contentDescription = item.label)
-                        }
-                    },
-                    label = { Text(item.label) }
-                )
-            }
-        },
-        modifier = modifier
-    ) {
+    @Composable
+    fun InnerContent() {
         Scaffold(
             topBar = {
-            AdaptiveTopAppBar(
-                themeMode = themeMode,
-                onThemeModeChange = onThemeModeChange,
-                onToggleDrawer = onToggleDrawer,
-                onProfileClick = { onNavigate(NavKey.ProfileKey) }
-            )
-        },
-        bottomBar = {
-            if (showBottomBar) {
-                AIShopperInputBar(
-                    onSend = onAskAI,
-                    isVoiceActive = isVoiceRecording,
-                    onToggleVoice = onToggleVoiceRecording,
-                    placeholder = "Ask Spresso...",
-                    modifier = Modifier
+                AdaptiveTopAppBar(
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange,
+                    onToggleDrawer = onToggleDrawer,
+                    onProfileClick = { navigator.navigate(NavKey.ProfileKey) }
                 )
-            }
-        },
-    ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-            AnimatedContent(
-                targetState = currentKey,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "ScreenTransition"
-            ) { targetKey ->
-                content(targetKey)
+            },
+            bottomBar = {
+                if (showBottomBar) {
+                    AIShopperInputBar(
+                        onSend = onAskAI,
+                        isVoiceActive = isVoiceRecording,
+                        onToggleVoice = onToggleVoiceRecording,
+                        placeholder = "Ask Spresso...",
+                        modifier = Modifier
+                    )
+                }
+            },
+        ) { innerPadding ->
+            Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+                androidx.navigation3.ui.NavDisplay(
+                    entries = navigationState.toDecoratedEntries(entryProvider),
+                    onBack = { navigator.goBack() }
+                )
             }
         }
     }
+
+    if (isNavBarVisible) {
+        NavigationSuiteScaffold(
+            navigationSuiteItems = {
+                defaultNavDestinations.forEach { item ->
+                    item(
+                        selected = isSameDestinationGroup(navigationState.topLevelRoute, item.key),
+                        onClick = { navigator.navigate(item.key) },
+                        icon = {
+                            if (item.icon != null) {
+                                Icon(imageVector = item.icon, contentDescription = item.label)
+                            } else if (item.iconResource != null) {
+                                Icon(imageVector = vectorResource(item.iconResource), contentDescription = item.label)
+                            }
+                        },
+                        label = { Text(item.label) }
+                    )
+                }
+            },
+            modifier = modifier
+        ) {
+            InnerContent()
+        }
+    } else {
+        Box(modifier = modifier) {
+            InnerContent()
+        }
     }
 }

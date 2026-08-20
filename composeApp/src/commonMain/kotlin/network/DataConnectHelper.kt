@@ -6,7 +6,7 @@ package network
  * @param productId The product's UUID string.
  * @param userUid The authenticated Firebase user UID. Must be a real UID — anonymous fallbacks are not permitted.
  */
-expect suspend fun toggleLike(productId: String, userUid: String)
+
 
 
 

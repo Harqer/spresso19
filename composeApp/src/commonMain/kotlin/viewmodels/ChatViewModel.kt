@@ -4,6 +4,10 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onCompletion
@@ -18,7 +22,8 @@ import network.models.GroundingSource
 class ChatViewModel(
     private val apiClient: ApiClient,
     private val scope: CoroutineScope,
-    private val liveApiClient: LiveApiClient = LiveApiClient()
+    private val liveApiClient: LiveApiClient = LiveApiClient(),
+    private val generativeAiService: network.GenerativeAiService? = null
 ) {
     val messages = mutableStateListOf<ChatMessage>()
     var isGenerating by mutableStateOf(false)
@@ -27,8 +32,10 @@ class ChatViewModel(
     var isVoiceActive by mutableStateOf(false)
     var isVoiceSpeaking by mutableStateOf(false)
     var isVoiceListening by mutableStateOf(false)
+    var liveTranscript by mutableStateOf("")
 
     fun sendMessage(
+
         prompt: String,
         imageBase64: String? = null,
         location: String? = null,
@@ -108,7 +115,7 @@ class ChatViewModel(
                 val errorText = e.message ?: "An unexpected error occurred."
                 updateOrAddAiMessage(
                     id = aiMsgId,
-                    text = if (aiText.isNotBlank()) aiText else "Unable to fetch live recommendations: $errorText",
+                    text = if (aiText.isNotBlank()) aiText else "Unable to fetch live recommendations: \$errorText",
                     thought = null,
                     sources = currentSources,
                     products = currentProducts
@@ -116,6 +123,7 @@ class ChatViewModel(
             }
         }
     }
+
 
     fun sendCameraSnapshot(
         imageBase64: String,
@@ -192,7 +200,10 @@ class ChatViewModel(
         }
     }
 
-    fun startVoiceStream() {
+    fun startVoiceStream(
+        agentType: String = "SHOPPING_CONCIERGE",
+        onReceiveAudio: ((ByteArray) -> Unit)? = null
+    ) {
         isVoiceActive = true
         isVoiceListening = true
         isVoiceSpeaking = false
@@ -201,15 +212,23 @@ class ChatViewModel(
         val voiceMsgId = "voice-live-" + messages.size
         var accumulatedText = ""
 
+        val systemInstructions = when (agentType) {
+            "BARGAIN_CHEF" -> "You are Chef AI, a real-time voice and video cooking assistant. You observe the user's kitchen counter or cooking ingredients via camera video stream, listen to their questions via live mic audio, and speak back with friendly, real-time step-by-step culinary guidance, ingredient substitutions, and local bargain grocery tips. Use a premium, conversational tone (Sulafat standard). STRICTLY FORBIDDEN: Do not use technical jargon like 'modality', 'input', 'processing', 'data', or 'visual stream' in your spoken responses. Keep the immersion unbroken."
+            else -> "You are the Spresso AI Personal Shopper. Your job is to help the user find products, manage their cart, and answer questions. Keep your responses concise, helpful, and friendly. Use a premium, conversational tone (Sulafat standard). STRICTLY FORBIDDEN: Do not use technical jargon like 'modality', 'input', 'processing', 'data', or 'latency' in your spoken or written responses. Use a jargon-free conversational flow."
+        }
+
+
         scope.launch {
             try {
                 liveApiClient.connect(
                     onReceiveAudio = { pcmBytes ->
                         isVoiceSpeaking = true
                         isVoiceListening = false
+                        onReceiveAudio?.invoke(pcmBytes)
                     },
                     onReceiveText = { textChunk ->
                         accumulatedText += textChunk
+                        liveTranscript = accumulatedText
                         updateOrAddAiMessage(voiceMsgId, accumulatedText)
                     },
                     onInterrupted = {
@@ -225,6 +244,8 @@ class ChatViewModel(
             }
         }
     }
+
+
 
     fun stopVoiceStream() {
         liveApiClient.close()
@@ -257,7 +278,32 @@ class ChatViewModel(
         }
     }
 
+    fun sendStandardAudio(audioBytes: ByteArray, prompt: String = "Please analyze this audio.") {
+        if (generativeAiService != null) {
+            val userMsgId = "u-audio-" + messages.size
+            messages.add(ChatMessage(id = userMsgId, text = "🔊 [Audio Message Sent]", isUser = true))
+            val aiMsgId = "ai-audio-" + messages.size
+            isGenerating = true
+            errorMessage = null
+
+            scope.launch {
+                try {
+                    val aiResponse = generativeAiService.generateResponseFromAudio(prompt, audioBytes)
+                    updateOrAddAiMessage(aiMsgId, aiResponse)
+                } catch (e: Exception) {
+                    errorMessage = e.message
+                    updateOrAddAiMessage(aiMsgId, "Failed to process audio: ${e.message}")
+                } finally {
+                    isGenerating = false
+                }
+            }
+        } else {
+            errorMessage = "Generative AI Service is not available."
+        }
+    }
+
     private fun updateOrAddAiMessage(
+
         id: String, 
         text: String, 
         thought: String? = null,

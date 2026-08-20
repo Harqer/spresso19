@@ -41,7 +41,12 @@ class SpressoWearablesService : Service() {
     private var stream: Stream? = null
     private var webSocket: WebSocket? = null
     private var audioManager: AudioManager? = null
+    private var audioRecorder: audio.AudioRecorder? = null
+    private var audioPlayer: audio.AudioPlayer? = null
+
+    
     override fun onBind(intent: Intent?): IBinder? = null
+
 
     companion object {
         // Singleton OkHttpClient shared across all service instances — prevents socket exhaustion
@@ -67,7 +72,29 @@ class SpressoWearablesService : Service() {
         setupAudioManager()
         setupWebSocket()
         setupWearables()
+        setupAudioRecorder()
+        audioPlayer = audio.AudioPlayer()
     }
+
+    private fun setupAudioRecorder() {
+        audioRecorder = audio.AudioRecorder().apply {
+            onAudioChunk = { chunk ->
+                val base64Data = android.util.Base64.encodeToString(chunk, android.util.Base64.NO_WRAP)
+                val message = JSONObject().apply {
+                    put("realtimeInput", JSONObject().apply {
+                        put("mediaChunks", JSONArray().apply {
+                            put(JSONObject().apply {
+                                put("mimeType", "audio/pcm;rate=16000")
+                                put("data", base64Data)
+                            })
+                        })
+                    })
+                }
+                webSocket?.send(message.toString())
+            }
+        }
+    }
+
 
     private fun setupAudioManager() {
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -103,7 +130,10 @@ class SpressoWearablesService : Service() {
                 webSocket = client.newWebSocket(request, object : WebSocketListener() {
                     override fun onOpen(webSocket: WebSocket, response: Response) {
                         Log.i("SpressoWearables", "Gemini WebSocket Opened directly to Gemini")
+                        sendSetupMessage(webSocket)
+                        audioRecorder?.startRecording()
                     }
+
 
                     override fun onMessage(webSocket: WebSocket, text: String) {
                         Log.d("SpressoWearables", "Gemini text msg: $text")
@@ -116,10 +146,43 @@ class SpressoWearablesService : Service() {
                                 for (i in 0 until functionCalls.length()) {
                                     val functionCall = functionCalls.getJSONObject(i)
                                     val functionName = functionCall.getString("name")
-                                    handleIntentRouting(functionName)
+                                    val args = if (functionCall.has("args")) functionCall.getJSONObject("args") else null
+                                    handleIntentRouting(functionName, args)
+                                }
+                            }
+                            
+                            if (json.has("toolCall")) {
+                                val toolCall = json.getJSONObject("toolCall")
+                                val functionCalls = toolCall.getJSONArray("functionCalls")
+                                for (i in 0 until functionCalls.length()) {
+                                    val functionCall = functionCalls.getJSONObject(i)
+                                    val functionName = functionCall.getString("name")
+                                    val args = if (functionCall.has("args")) functionCall.getJSONObject("args") else null
+                                    handleIntentRouting(functionName, args)
+                                }
+                            }
+
+                            
+                            if (json.has("serverContent")) {
+                                val serverContent = json.getJSONObject("serverContent")
+                                if (serverContent.has("modelTurn")) {
+                                    val modelTurn = serverContent.getJSONObject("modelTurn")
+                                    val parts = modelTurn.getJSONArray("parts")
+                                    for (i in 0 until parts.length()) {
+                                        val part = parts.getJSONObject(i)
+                                        if (part.has("inlineData")) {
+                                            val inlineData = part.getJSONObject("inlineData")
+                                            if (inlineData.getString("mimeType").startsWith("audio")) {
+                                                val base64Audio = inlineData.getString("data")
+                                                val audioData = android.util.Base64.decode(base64Audio, android.util.Base64.DEFAULT)
+                                                audioPlayer?.playChunk(audioData)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         } catch (e: Exception) {
+
                             Log.e("SpressoWearables", "Error parsing JSON: ", e)
                         }
                     }
@@ -141,7 +204,34 @@ class SpressoWearablesService : Service() {
         }
     }
 
+    private fun sendSetupMessage(ws: WebSocket) {
+        val setup = JSONObject().apply {
+            put("setup", JSONObject().apply {
+                put("model", "models/gemini-2.0-flash-exp")
+                put("generationConfig", JSONObject().apply {
+                    put("responseModalities", JSONArray().apply { put("AUDIO") })
+                    put("speechConfig", JSONObject().apply {
+                        put("voiceConfig", JSONObject().apply {
+                            put("prebuiltVoiceConfig", JSONObject().apply {
+                                put("voiceName", "Puck")
+                            })
+                        })
+                    })
+                })
+                put("systemInstruction", JSONObject().apply {
+                    put("parts", JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("text", "You are the Spresso AI Personal Shopper & Chef AI. Use the camera to see products or ingredients. Help the user find products, manage their cart, or cook recipes. Keep responses concise, friendly, and jargon-free.")
+                        })
+                    })
+                })
+            })
+        }
+        ws.send(setup.toString())
+    }
+
     private var reconnectAttempts = 0
+
     private fun reconnectWebSocket() {
         if (reconnectAttempts > 5) {
             Log.e("SpressoWearables", "Max reconnect attempts reached.")
@@ -157,26 +247,67 @@ class SpressoWearablesService : Service() {
         }
     }
 
-    private fun handleIntentRouting(functionName: String) {
-        Log.i("SpressoWearables", "Routing Intent: $functionName")
+    private fun handleIntentRouting(functionName: String, args: JSONObject? = null) {
+        Log.i("SpressoWearables", "Routing Intent: \$functionName")
         when (functionName) {
             "startCookingAssistance" -> {
                 Log.i("SpressoWearables", "Executing Cooking Agent with Safeguard...")
-                val intent = Intent("com.spresso19.intent.action.CONFIRM_START_COOKING")
+                val intent = Intent("com.spresso19.intent.action.COOKING_MODE")
                 sendBroadcast(intent)
+                sendToolResponse(functionName, JSONObject().put("success", true))
             }
             "startGroceryScanner" -> {
                 Log.i("SpressoWearables", "Executing Grocery Scanner with Safeguard...")
-                val intent = Intent("com.spresso19.intent.action.CONFIRM_START_GROCERY")
+                val intent = Intent("com.spresso19.intent.action.GROCERY_MODE")
                 sendBroadcast(intent)
+                sendToolResponse(functionName, JSONObject().put("success", true))
+            }
+            "addToCart" -> {
+                val productId = args?.optString("productId")
+                if (productId != null) {
+                    // Forward to ViewModel via broadcast or service bound action
+                    val intent = Intent("com.spresso19.intent.action.ADD_TO_CART").apply {
+                        putExtra("productId", productId)
+                    }
+                    sendBroadcast(intent)
+                    sendToolResponse(functionName, JSONObject().put("success", true))
+                }
             }
             else -> {
-                Log.w("SpressoWearables", "Rejected unauthorized function call: $functionName")
+                Log.w("SpressoWearables", "Rejected unauthorized function call: \$functionName")
+                sendToolResponse(functionName, JSONObject().put("error", "Unauthorized or unknown"))
             }
         }
     }
 
+    private fun sendToolResponse(name: String, response: JSONObject) {
+        val msg = JSONObject().apply {
+            put("clientContent", JSONObject().apply {
+                put("turns", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("role", "user")
+                        put("parts", JSONArray().apply {
+                            put(JSONObject().apply {
+                                put("toolResponse", JSONObject().apply {
+                                    put("functionResponses", JSONArray().apply {
+                                        put(JSONObject().apply {
+                                            put("name", name)
+                                            put("response", response)
+                                        })
+                                    })
+                                })
+                            })
+                        })
+                    })
+                })
+                put("turnComplete", true)
+            })
+        }
+        webSocket?.send(msg.toString())
+    }
+
     private fun setupWearables() {
+
         Wearables.initialize(this).onFailure { error, _ ->
             Log.e("SpressoWearables", "Failed to initialize Wearables: ${error.description}")
             return
@@ -225,6 +356,8 @@ class SpressoWearablesService : Service() {
 
     private val frameOutStream = java.io.ByteArrayOutputStream(65536)
 
+    private var frameCounter = 0
+
     private fun attachCapabilities(currentSession: DeviceSession) {
         // Add Camera Stream Capability
         currentSession.addStream(
@@ -232,13 +365,17 @@ class SpressoWearablesService : Service() {
         ).onSuccess { currentStream ->
             stream = currentStream
             currentStream.start().onFailure { error, _ ->
-                Log.e("SpressoWearables", "Failed to start stream: ${error.description}")
+                Log.e("SpressoWearables", "Failed to start stream: \${error.description}")
             }
 
             serviceScope.launch {
                 currentStream.videoStream.collect { frame ->
+                    frameCounter++
+                    if (frameCounter % 3 != 0) return@collect // Drop 2 out of 3 frames to save CPU (8fps effective)
+
                     // Dispatch heavy image processing off the Main thread
                     withContext(Dispatchers.Default) {
+
                         try {
                             val bitmap = com.spresso19.wearable.YuvToBitmapConverter.convert(
                                 frame.buffer,
@@ -303,6 +440,7 @@ class SpressoWearablesService : Service() {
         }
         
         webSocket?.close(1000, "Service destroyed")
+        audioRecorder?.stopRecording()
         
         stream?.stop()
         session?.removeStream()?.onFailure { error, _ ->

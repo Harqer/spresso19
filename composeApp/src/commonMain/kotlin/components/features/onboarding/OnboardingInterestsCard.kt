@@ -60,7 +60,9 @@ fun OnboardingInterestsCard(
             FlowRow(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                itemVerticalAlignment = Alignment.Top,
+                overflow = androidx.compose.foundation.layout.FlowRowOverflow.Visible
             ) {
                 availableInterests.forEach { interest ->
                     val isSelected = selectedInterests.contains(interest)

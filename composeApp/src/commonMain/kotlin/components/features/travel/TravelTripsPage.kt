@@ -59,6 +59,25 @@ fun TravelTripsPage(
                 if (activeTripId.isEmpty() || trips.none { it.id == activeTripId }) {
                     activeTripId = trips.first().id
                 }
+                
+                // Fetch associated data for all trips
+                val fetchedEvents = mutableListOf<ItineraryEvent>()
+                val fetchedExpenses = mutableListOf<TravelExpense>()
+                val fetchedVoiceNotes = mutableListOf<VoiceNote>()
+                
+                for (trip in fetchedTrips) {
+                    try {
+                        fetchedEvents.addAll(apiClient.fetchTravelEvents(trip.id))
+                        fetchedExpenses.addAll(apiClient.fetchTravelExpenses(trip.id))
+                        fetchedVoiceNotes.addAll(apiClient.fetchVoiceNotes(trip.id))
+                    } catch (e: Exception) {
+                        // Ignore individual trip fetch errors
+                    }
+                }
+                
+                events = fetchedEvents
+                expenses = fetchedExpenses
+                voiceNotes = fetchedVoiceNotes
             }
         } catch(e: Exception) {
             snackbarHostState.showSnackbar("Failed to load trips: ${e.message}")

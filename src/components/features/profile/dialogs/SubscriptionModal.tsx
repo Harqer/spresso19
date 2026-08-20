@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import Logger from "../../../../lib/Logger";
 import { MaterialIcon } from "../../../MaterialIcon";
+import { auth } from "../../../../lib/firebase";
+import { updateUserSubscription } from "@firebasegen/spresso-connector";
 
 interface SubscriptionModalProps {
   onClose: () => void;
@@ -14,7 +16,10 @@ export function SubscriptionModal({ onClose, subscriptionTier, vipPrice, execPri
 
   const handleUpgradeSubscription = async (tier: string) => {
     try {
-      throw new Error("Missing Backend API - Needs Implementation");
+      const uid = auth.currentUser?.uid;
+      if (!uid) throw new Error("User not authenticated.");
+      await updateUserSubscription({ id: uid, tier });
+      onClose(); // Optional: close on success or handle state update
     } catch (err: any) {
       Logger.error("Failed to update subscription:", err);
       setErrorMsg(err.message || "Failed to update subscription");

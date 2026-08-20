@@ -11,8 +11,8 @@ actual fun rememberBiometricAuthenticator(
     return remember(onSuccess) {
         object : BiometricAuthenticator {
             override fun authenticate() {
-                // Biometrics are not yet supported on Web, auto-success for dev/test
-                onSuccess()
+                // Biometrics are not supported on Web.
+                onError("Biometric authentication is not supported on Web.")
             }
         }
     }

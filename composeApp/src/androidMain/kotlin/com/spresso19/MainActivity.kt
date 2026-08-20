@@ -1,6 +1,7 @@
 package com.spresso19
 
 import components.features.profile.CoinbaseWalletHelper
+import components.features.profile.CoinbaseWalletManager
 
 import components.core.LogoSize
 import components.core.SpressoLogo
@@ -35,6 +36,9 @@ import androidx.credentials.GetCredentialRequest
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
+import com.google.firebase.appcheck.appCheck
+import com.google.firebase.Firebase
 import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,12 +76,15 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
+        Firebase.appCheck.installAppCheckProviderFactory(
+            PlayIntegrityAppCheckProviderFactory.getInstance()
+        )
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         currentActivity = this
         accessibilityConsentStore = AccessibilityConsentStore(this)
         if (intent?.data != null) {
-            CoinbaseWalletHelper.handleResponse(intent.data)
+            CoinbaseWalletManager.handleResponse(intent.data)
         }
         if (savedInstanceState == null && isAccessibilityDisclosureIntent(intent)) {
             accessibilityDisclosureRequestedState.value = true
@@ -220,6 +227,8 @@ class MainActivity : FragmentActivity() {
                                     val firebaseCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
                                     FirebaseAuth.getInstance().signInWithCredential(firebaseCredential)
                                 }
+                            } catch (e: androidx.credentials.exceptions.GetCredentialException) {
+                                // Handle expected credential exceptions
                             } catch (e: Exception) {
                                 Toast.makeText(this@MainActivity, "Google Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
                             }
@@ -308,6 +317,8 @@ class MainActivity : FragmentActivity() {
                                         }
                                     }
                                 }
+                            } catch (e: androidx.credentials.exceptions.GetCredentialException) {
+                                Toast.makeText(this@MainActivity, "Digital credential error: ${e.message}", Toast.LENGTH_LONG).show()
                             } catch (e: Exception) {
                                 Toast.makeText(this@MainActivity, "Digital credential error: ${e.message}", Toast.LENGTH_LONG).show()
                             }
@@ -342,7 +353,7 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        CoinbaseWalletHelper.handleResponse(intent.data)
+        CoinbaseWalletManager.handleResponse(intent.data)
         if (isAccessibilityDisclosureIntent(intent)) {
             accessibilityDisclosureRequestedState.value = true
         }

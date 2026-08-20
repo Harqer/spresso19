@@ -1,9 +1,9 @@
 package components.core
 
-import components.models.*
-
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import spresso.composeapp.generated.resources.Res
 import spresso.composeapp.generated.resources.logo
-import spresso.composeapp.generated.resources.spresso_logo_symbol_transparent
+import spresso.composeapp.generated.resources.logo_icon_transparent
 
 enum class LogoSize { Small, Medium, Large, ExtraLarge }
 
@@ -32,7 +32,7 @@ fun SpressoLogo(
         val painter = if (showText) {
             painterResource(Res.drawable.logo)
         } else {
-            painterResource(Res.drawable.spresso_logo_symbol_transparent)
+            painterResource(Res.drawable.logo_icon_transparent)
         }
         
         Image(

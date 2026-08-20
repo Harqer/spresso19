@@ -26,6 +26,29 @@ enum class ConnectionState {
 }
 
 @Serializable
+data class AgentEngineBidiStreamOutput(
+    val output: AgentEngineOutput? = null
+)
+
+@Serializable
+data class AgentEngineOutput(
+    val inline_data: AgentEngineInlineData? = null,
+    val part: AgentEnginePart? = null,
+    val end_of_turn: Boolean? = null
+)
+
+@Serializable
+data class AgentEngineInlineData(
+    val mime_type: String? = null,
+    val data: String? = null
+)
+
+@Serializable
+data class AgentEnginePart(
+    val text: String? = null
+)
+
+@Serializable
 data class AudioControlPayload(
     val action: String,
     val isMuted: Boolean? = null,
@@ -77,7 +100,8 @@ data class ServerMessage(
     val interrupted: Boolean? = null,
     val error: String? = null,
     val message: String? = null,
-    val serverContent: ServerContent? = null
+    val serverContent: ServerContent? = null,
+    val bidiStreamOutput: AgentEngineBidiStreamOutput? = null
 )
 
 @Serializable
@@ -158,15 +182,18 @@ open class LiveApiClient {
                 }.bodyAsText()
                 val tokenJson = json.parseToJsonElement(tokenResponse)
                 val ephemeralToken = tokenJson.jsonObject["token"]?.jsonPrimitive?.content ?: throw Exception("Failed to retrieve ephemeral token")
+                // Gemini Interactions Live API Endpoint
                 val wsUrl = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=$ephemeralToken"
 
                 client.webSocket(
                     urlString = wsUrl
                 ) {
                     session = this
+                    
                     connectionState = ConnectionState.CONNECTED
                     onStateChanged(ConnectionState.CONNECTED)
                     attempt = 0 // Reset reconnect attempts on successful handshake
+
 
                     for (incomingFrame in incoming) {
                         if (!isActive || isManuallyClosed) break
@@ -210,6 +237,23 @@ open class LiveApiClient {
                                         part.inlineData?.let { inline ->
                                             if (inline.mimeType.startsWith("audio") && !isMuted && !isPaused) {
                                                 val bytes = Base64.Default.decode(inline.data)
+                                                onReceiveAudio(bytes)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Handle Agent Engine ADK Protocol (bidiStreamOutput)
+                                serverMsg.bidiStreamOutput?.let { bidi ->
+                                    val output = bidi.output
+                                    if (output?.end_of_turn == true) {
+                                        onInterrupted()
+                                    }
+                                    output?.part?.text?.let { t -> onReceiveText(t) }
+                                    output?.inline_data?.let { inline ->
+                                        if (inline.mime_type?.startsWith("audio") == true && !isMuted && !isPaused) {
+                                            inline.data?.let { data ->
+                                                val bytes = Base64.Default.decode(data)
                                                 onReceiveAudio(bytes)
                                             }
                                         }

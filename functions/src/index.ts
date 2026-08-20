@@ -3,6 +3,8 @@ export * from "./wardrobe";
 export * from "./ai";
 export * from "./payments";
 export * from "./catalog";
+export * from "./interactions";
+export * from "./users";
 import * as webhooks from "./webhooks";
 export { webhooks };
 
@@ -31,6 +33,19 @@ export const verifyPasskeyRegistration = onCall(async (request) => {
             expectedOrigin: ["https://spresso.com", "android:apk-key-hash"],
             expectedRPID: "spresso.com",
         });
+
+        if (verification.verified && verification.registrationInfo) {
+            const { credential } = verification.registrationInfo;
+            const { db } = await import("./shared/db");
+            // Persist the passkey to user profile
+            await db.collection("users").doc(request.auth.uid).collection("passkeys").doc(credential.id).set({
+                credentialId: credential.id,
+                publicKey: Buffer.from(credential.publicKey).toString("base64"),
+                counter: credential.counter,
+                createdAt: new Date().toISOString()
+            });
+        }
+
         return { success: verification.verified };
     } catch (error: any) {
         console.error(error);

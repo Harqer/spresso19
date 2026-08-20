@@ -9,6 +9,9 @@ external fun signOutFirebase()
 external fun signInWithEmailAndPasswordFirebase(email: String, password: String): Promise<JsAny>
 external fun createUserWithEmailAndPasswordFirebase(email: String, password: String): Promise<JsAny>
 
+@JsName("signInWithGoogle")
+external fun triggerGoogleSignIn()
+
 actual fun getCurrentUserUid(): String? {
     return getFirebaseUserUid()
 }
@@ -40,6 +43,11 @@ actual suspend fun createUserWithEmailAndPassword(email: String, password: Strin
 }
 
 actual suspend fun signInWithGoogle(): Boolean {
-    // Stub for Web
-    return false
+    return try {
+        triggerGoogleSignIn()
+        true
+    } catch (e: Throwable) {
+        false
+    }
 }
+

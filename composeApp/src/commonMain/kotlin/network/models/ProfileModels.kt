@@ -26,7 +26,7 @@ data class UserProfileData(
     val email: String,
     val avatarUrl: String? = null,
     val tier: SubscriptionTier = SubscriptionTier.FREE,
-    val renewalDate: String? = "2026-12-31",
+    val renewalDate: String? = null,
     val savedCards: List<PaymentCardInfo> = emptyList(),
     val notificationsEnabled: Boolean = true,
     val emailAlertsEnabled: Boolean = true,

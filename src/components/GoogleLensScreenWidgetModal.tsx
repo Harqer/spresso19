@@ -7,6 +7,8 @@ import { ElevatedQuickActionFab } from "./ElevatedQuickActionFab";
 import { LocationDetailsView } from "./LocationDetailsView";
 import { AIShopperInputBar } from "./AIShopperInputBar";
 import { ErrorStateFallback } from "./shared/Fallbacks";
+import { GoogleLensBoundingBox } from "./features/vision/GoogleLensBoundingBox";
+import { GoogleLensCategoryTabs } from "./features/vision/GoogleLensCategoryTabs";
 
 import html2canvas from "html2canvas";
 
@@ -19,6 +21,26 @@ interface GoogleLensScreenWidgetModalProps {
   initialProduct?: any;
 }
 
+const parsePrice = (priceStr?: string) => {
+  if (!priceStr) return 0;
+  const cleanStr = priceStr.replace(/[^\d.,]/g, '');
+  if (!cleanStr) return 0;
+  if (cleanStr.includes(',') && cleanStr.includes('.')) {
+    if (cleanStr.lastIndexOf(',') > cleanStr.lastIndexOf('.')) {
+      return parseFloat(cleanStr.replace(/\./g, '').replace(',', '.'));
+    }
+    return parseFloat(cleanStr.replace(/,/g, ''));
+  }
+  if (cleanStr.includes(',')) {
+    const parts = cleanStr.split(',');
+    if (parts[parts.length - 1].length === 2 || parts[parts.length - 1].length === 1) {
+      return parseFloat(cleanStr.replace(',', '.'));
+    }
+    return parseFloat(cleanStr.replace(/,/g, ''));
+  }
+  return parseFloat(cleanStr) || 0;
+};
+
 export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalProps> = ({
   isOpen,
   onClose,
@@ -30,7 +52,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
   const [screenSnapshot, setScreenSnapshot] = useState<string | null>(null);
   const [isCapturingScreen, setIsCapturingScreen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
-  const [activeCategoryTab, setActiveCategoryTab] = useState<"all" | "gourmet" | "shopping" | "web">("all");
+  const [activeCategoryTab, setActiveCategoryTab] = useState<string>("all");
   const [detectedRegions, setDetectedRegions] = useState<Array<{ id: number; label: string; price?: string; source?: string; thumbnail?: string; category?: string; description?: string; isLocation?: boolean }>>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<number>(0);
   const [showLocationDetails, setShowLocationDetails] = useState<boolean>(false);
@@ -284,70 +306,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
   const currentItem = detectedRegions[selectedRegionId];
 
   return createPortal(
-    <div
-      id="google-lens-modal-container"
-      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in select-none"
-    >
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept="image/*"
-        className="hidden"
-        onChange={handleScreenshotUpload}
-      />
 
-      {/* Background Ambient Blur Image */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
-        {(screenSnapshot || currentItem?.thumbnail) && (
-          <img
-            src={screenSnapshot || currentItem?.thumbnail}
-            alt="Ambient Background"
-            className="w-full h-full object-cover filter blur-3xl scale-125"
-          />
-        )}
-      </div>
-
-      {/* Main Glassmorphic Card Container */}
-      <div className="relative w-full max-w-5xl bg-[#1d2924]/65 backdrop-blur-3xl border border-white/20 rounded-[36px] p-6 sm:p-10 text-white shadow-[0_35px_90px_-15px_rgba(0,0,0,0.85)] flex flex-col justify-between overflow-hidden min-h-[620px] z-10 my-auto">
-
-        {/* Top Navigation & Brand Header Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/10 z-20">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-              <MaterialIcon icon="restaurant" size={20} className="text-stone-950" />
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-lg font-black tracking-tight font-headline text-white">Spresso</span>
-              <span className="text-[10px] font-mono bg-orange-500/20 text-orange-300 px-2.5 py-0.5 rounded-full border border-orange-500/30 uppercase tracking-wider font-bold">
-                Google Lens Active
-              </span>
-            </div>
-          </div>
-
-          <div className="hidden md:flex items-center space-x-8 text-xs font-semibold text-stone-200">
-            <button
-              onClick={() => setActiveCategoryTab("all")}
-              className={`hover:text-amber-400 transition cursor-pointer ${activeCategoryTab === "all" ? "text-amber-400 font-bold border-b-2 border-amber-400 pb-0.5" : ""}`}
-            >
-              Home
-            </button>
-            <button
-              onClick={() => setActiveCategoryTab("gourmet")}
-              className={`hover:text-amber-400 transition cursor-pointer ${activeCategoryTab === "gourmet" ? "text-amber-400 font-bold border-b-2 border-amber-400 pb-0.5" : ""}`}
-            >
-              Tables
-            </button>
-            <button
-              onClick={() => setActiveCategoryTab("shopping")}
-              className={`hover:text-amber-400 transition cursor-pointer ${activeCategoryTab === "shopping" ? "text-amber-400 font-bold border-b-2 border-amber-400 pb-0.5" : ""}`}
-            >
-              Hi-Tea
-            </button>
-            <button
-              onClick={() => setActiveCategoryTab("web")}
-              className={`hover:text-amber-400 transition cursor-pointer ${activeCategoryTab === "web" ? "text-amber-400 font-bold border-b-2 border-amber-400 pb-0.5" : ""}`}
-            >
-              Reservations
     <div id="google-lens-modal-container" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-3xl animate-in fade-in duration-200">
       <div className="relative w-full h-full max-w-7xl bg-[#0d1311] sm:rounded-[40px] overflow-hidden flex flex-col shadow-2xl ring-1 ring-white/10">
         
@@ -402,26 +361,18 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
           ) : (
             <>
               {/* Visual Category Filters */}
-              <div className="flex items-center space-x-2 overflow-x-auto pb-2 custom-scrollbar z-10 relative">
-                <button
-                  onClick={() => setActiveCategoryTab("all")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition ${activeCategoryTab === "all" ? "bg-orange-500 text-white" : "bg-white/5 text-white/60 hover:bg-white/10"}`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setActiveCategoryTab("gourmet")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition ${activeCategoryTab === "gourmet" ? "bg-orange-500 text-white" : "bg-white/5 text-white/60 hover:bg-white/10"}`}
-                >
-                  Gourmet
-                </button>
-                <button
-                  onClick={() => setActiveCategoryTab("shopping")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition ${activeCategoryTab === "shopping" ? "bg-orange-500 text-white" : "bg-white/5 text-white/60 hover:bg-white/10"}`}
-                >
-                  Shopping
-                </button>
-              </div>
+              <GoogleLensCategoryTabs
+                activeTab={activeCategoryTab}
+                onTabChange={(tab: string) => setActiveCategoryTab(tab as any)}
+                categories={[
+                  { id: "all", label: "All Visual Results", icon: "grid_view" },
+                  ...Array.from(new Set(detectedRegions.filter(r => r.category).map(r => r.category))).map(cat => ({
+                    id: cat!,
+                    label: cat!,
+                    icon: cat?.toLowerCase().includes("gourmet") || cat?.toLowerCase().includes("food") ? "restaurant" : "shopping_bag"
+                  }))
+                ]}
+              />
 
               {/* Middle Hero Section */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-8 my-6 items-center z-20">
@@ -444,10 +395,10 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                             onAddToCart({
                               id: `lens-item-${currentItem.id}-${Date.now()}`,
                               name: currentItem.label,
-                              brand: currentItem.source || "Google Lens Match",
-                              price: currentItem.price ? (parseFloat(currentItem.price.replace(/[^0-9.]/g, "")) || 0) : 0,
+                              brand: currentItem.source || "Unknown Brand",
+                              price: parsePrice(currentItem.price),
                               currency: "USD",
-                              category: currentItem.category || "Shopping",
+                              category: currentItem.category || "General",
                               description: currentItem.description || `Identified via Google Lens: ${currentItem.label}`,
                               image: currentItem.thumbnail || "",
                               stock: 10,
@@ -515,6 +466,23 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                         style={getBoxStyle()}
                       />
                     )}
+
+                    <GoogleLensBoundingBox
+                      cropBox={cropBox}
+                      startPoint={startPoint}
+                      currentPoint={currentPoint}
+                      containerRect={imageContainerRef.current?.getBoundingClientRect()}
+                      onChange={(newBox) => setCropBox(newBox)}
+                      onResizeEnd={async (newBox) => {
+                        setIsScanning(true);
+                        try {
+                          const cropped = await cropImageSnippet(screenSnapshot!, [newBox.ymin, newBox.xmin, newBox.ymax, newBox.xmax]);
+                          await runGoogleLensScreenAnalysis(cropped);
+                        } catch (err) {
+                          setIsScanning(false);
+                        }
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -562,10 +530,10 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                                   onAddToCart({
                                     id: `lens-item-${region.id}-${Date.now()}`,
                                     name: region.label,
-                                    brand: region.source || "Google Lens Match",
-                                    price: region.price ? (parseFloat(region.price.replace(/[^0-9.]/g, "")) || 0) : 0,
+                                    brand: region.source || "Unknown Brand",
+                                    price: parsePrice(region.price),
                                     currency: "USD",
-                                    category: region.category || "Shopping",
+                                    category: region.category || "General",
                                     description: region.description || `Identified via Google Lens: ${region.label}`,
                                     image: region.thumbnail || "",
                                     stock: 10,
@@ -587,10 +555,10 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                                   onSelectTryOn({
                                     id: `lens-item-${region.id}-${Date.now()}`,
                                     name: region.label,
-                                    brand: region.source || "Google Lens Match",
-                                    price: region.price ? (parseFloat(region.price.replace(/[^0-9.]/g, "")) || 0) : 0,
+                                    brand: region.source || "Unknown Brand",
+                                    price: parsePrice(region.price),
                                     currency: "USD",
-                                    category: region.category || "Shopping",
+                                    category: region.category || "General",
                                     description: region.description || `Identified via Google Lens: ${region.label}`,
                                     image: region.thumbnail || "",
                                     stock: 10,
@@ -666,7 +634,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                         id: item.id || `loc-item-${Date.now()}`,
                         name: item.title,
                         brand: currentItem.label,
-                        price: parseFloat(item.priceLevel?.replace(/[^0-9.]/g, "") || "0"),
+                        price: parsePrice(item.priceLevel),
                         currency: "USD",
                         category: item.category,
                         description: item.snippet,

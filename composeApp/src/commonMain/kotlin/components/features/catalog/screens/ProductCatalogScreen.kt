@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import network.ApiClient
 import network.ProductItem
 import network.VideoInteractionEvent
+import network.getCurrentUserUid
 import network.models.*
 import kotlinx.datetime.Clock
 
@@ -34,20 +35,24 @@ fun ProductCatalogScreen(
     products: List<ProductItem>, isLoading: Boolean, errorMessage: String?, httpClient: HttpClient,
     onProductSelected: (String) -> Unit, onTryOnRequested: (ProductItem) -> Unit, apiClient: ApiClient,
     userLocation: String? = null, searchRadius: Int = 25, onRequestLocationPermission: () -> Unit = {},
-    onShareRequested: (String) -> Unit = {}, onAskAI: (String) -> Unit = {}, onRetry: () -> Unit = {}, modifier: Modifier = Modifier
+    onShareRequested: (String) -> Unit = {}, onAskAI: (String) -> Unit = {}, onRetry: () -> Unit = {}, 
+    catalogViewModel: viewmodels.CatalogViewModel, modifier: Modifier = Modifier
 ) {
     var selectedCategoryId by remember { mutableStateOf("ALL") }
-    var activeDetailProduct by remember { mutableStateOf<ProductItem?>(null) }
-    var checkoutStatus by remember { mutableStateOf<String?>(null) }
-    var hitlCheckoutPayload by remember { mutableStateOf<HITLPayload?>(null) }
+    
+    val activeDetailProduct by catalogViewModel.activeDetailProduct.collectAsState()
+    val checkoutStatus by catalogViewModel.checkoutStatus.collectAsState()
+    val hitlCheckoutPayload by catalogViewModel.hitlCheckoutPayload.collectAsState()
+
     var viewStartTime by remember { mutableStateOf(0L) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val activeUid = getCurrentUserUid() ?: "anonymous_user"
 
     LaunchedEffect(checkoutStatus) {
         checkoutStatus?.let {
             snackbarHostState.showSnackbar(it)
-            checkoutStatus = null
+            catalogViewModel.clearCheckoutStatus()
         }
     }
 
@@ -112,7 +117,7 @@ fun ProductCatalogScreen(
                             title = product.name,
                             subtitle = "${product.brand} • $${product.price}",
                             onClick = {
-                                activeDetailProduct = product
+                                catalogViewModel.setActiveDetailProduct(product)
                                 viewStartTime = Clock.System.now().toEpochMilliseconds()
                                 onProductSelected(product.id)
                             },
@@ -129,7 +134,9 @@ fun ProductCatalogScreen(
                                 )
                                 SpressoButton(
                                     text = "Buy",
-                                    onClick = { hitlCheckoutPayload = product.toHITLPayload() },
+                                    onClick = { 
+                                        catalogViewModel.initiateCheckout(product)
+                                    },
                                     variant = SpressoButtonVariant.PRIMARY,
                                     trackingId = "catalog_buy_${product.id}",
                                     trackingAction = "click_buy_now",
@@ -150,7 +157,7 @@ fun ProductCatalogScreen(
                         scope.launch {
                             apiClient.streamTelemetry(
                                 VideoInteractionEvent(
-                                    uid = "current_user", // In production, use actual UID
+                                    uid = activeUid,
                                     itemId = prod.id,
                                     watchRatio = minOf(1.0, duration / 5000.0), // Simulate watch ratio (5s = 1.0)
                                     scrollVelocityMs = duration.toInt(),
@@ -160,40 +167,43 @@ fun ProductCatalogScreen(
                                 )
                             )
                         }
-                        activeDetailProduct = null 
+                        catalogViewModel.setActiveDetailProduct(null) 
                     }, 
-                    onTryOn = { activeDetailProduct = null; onTryOnRequested(it) },
-                    onSpin360 = { id -> scope.launch { try { apiClient.requestSpin360(id); checkoutStatus = "Spin 360 generated!" } catch (e: Exception) { checkoutStatus = "Spin 360 note: ${e.message}" } } },
+                    onTryOn = { catalogViewModel.setActiveDetailProduct(null); onTryOnRequested(it) },
+                    onSpin360 = { id -> scope.launch { try { apiClient.requestSpin360(id); catalogViewModel.setCheckoutStatus("Spin 360 generated!") } catch (e: Exception) { catalogViewModel.setCheckoutStatus("Spin 360 note: ${e.message}") } } },
                     onLike = { 
                         scope.launch {
                             apiClient.streamTelemetry(
                                 VideoInteractionEvent(
-                                    uid = "current_user", itemId = prod.id,
+                                    uid = activeUid, itemId = prod.id,
                                     watchRatio = 1.0, scrollVelocityMs = 5000, pauseCount = 0, likePressed = true, sharedExternal = false
                                 )
                             )
                         }
-                        checkoutStatus = "Saved to favorites!" 
+                        catalogViewModel.setCheckoutStatus("Saved to favorites!") 
                     }, 
                     onShare = { 
                         scope.launch {
                             apiClient.streamTelemetry(
                                 VideoInteractionEvent(
-                                    uid = "current_user", itemId = prod.id,
+                                    uid = activeUid, itemId = prod.id,
                                     watchRatio = 1.0, scrollVelocityMs = 5000, pauseCount = 0, likePressed = false, sharedExternal = true
                                 )
                             )
                         }
                         onShareRequested(it) 
                     }, 
-                    onBuyNow = { activeDetailProduct = null; hitlCheckoutPayload = prod.toHITLPayload() }
+                    onBuyNow = { 
+                        catalogViewModel.setActiveDetailProduct(null)
+                        catalogViewModel.initiateCheckout(prod)
+                    }
                 )
             }
 
             hitlCheckoutPayload?.let { payload ->
                 HITLCheckoutModal(
-                    payload = payload, onDismiss = { hitlCheckoutPayload = null },
-                    onConfirmPurchase = { _ -> scope.launch { try { checkoutStatus = apiClient.confirmCheckoutWithToken(payload.product.id, payload.quantity, payload.authorizationId, "123 Main St").message ?: "Order confirmed!" } catch (e: Exception) { checkoutStatus = "Checkout note: ${e.message}" } finally { hitlCheckoutPayload = null } } }
+                    payload = payload, onDismiss = { catalogViewModel.dismissCheckout() },
+                    onConfirmPurchase = { address -> catalogViewModel.confirmCheckout(address) }
                 )
             }
         }

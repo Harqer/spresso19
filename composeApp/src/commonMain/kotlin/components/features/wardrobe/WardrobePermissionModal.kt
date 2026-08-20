@@ -4,6 +4,8 @@ import components.models.*
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoLibrary
@@ -19,6 +21,8 @@ import androidx.compose.ui.window.Dialog
 
 @Composable
 fun WardrobePermissionModal(onGrant: () -> Unit, onDeny: () -> Unit) {
+    val permissionsManager = rememberPermissionsManager()
+
     Dialog(onDismissRequest = onDeny) {
         Column(
             modifier = Modifier.clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surface).padding(24.dp),
@@ -34,7 +38,15 @@ fun WardrobePermissionModal(onGrant: () -> Unit, onDeny: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center
             )
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onGrant, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
+                Button(
+                    onClick = {
+                        permissionsManager.requestGalleryPermission { isGranted ->
+                            if (isGranted) onGrant() else onDeny()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(), 
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
                     Text("Allow & Sync Gallery", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                 }
                 TextButton(onClick = onDeny, modifier = Modifier.fillMaxWidth()) {

@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
+import network.SpressoConfig
 
 @Composable
 actual fun GooglePayButton(
@@ -46,7 +47,7 @@ actual fun GooglePayButton(
         )
     }
 
-    val stripePublishableKey = "pk_live_51xyz" // In production, retrieved from Secret Manager / BuildConfig
+    val stripePublishableKey = SpressoConfig.stripePublishableKey
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()

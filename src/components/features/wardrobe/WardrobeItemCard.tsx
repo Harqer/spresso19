@@ -45,8 +45,8 @@ export const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({ item, produc
         </div>
 
         <div className="pt-2 border-t border-[#f2f8f2] flex items-center justify-between">
-          {item.price ? (
-            <span className="text-sm font-mono font-bold text-[#386633]">${item.price.toFixed(2)}</span>
+          {!isNaN(Number(item.price)) && Number(item.price) > 0 ? (
+            <span className="text-sm font-mono font-bold text-[#386633]">${Number(item.price).toFixed(2)}</span>
           ) : (
             <span className="text-[10px] text-[#5e635f] font-mono">Personal Wardrobe</span>
           )}

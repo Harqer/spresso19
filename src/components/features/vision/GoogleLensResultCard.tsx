@@ -27,7 +27,27 @@ export const GoogleLensResultCard: React.FC<GoogleLensResultCardProps> = ({
   onAddToCart,
   onShowLocationDetails,
 }) => {
-  const numericPrice = region.price ? parseFloat(region.price.replace(/[^0-9.]/g, "")) || 0 : 0;
+  const parsePrice = (priceStr?: string) => {
+    if (!priceStr) return 0;
+    const cleanStr = priceStr.replace(/[^\d.,]/g, '');
+    if (!cleanStr) return 0;
+    if (cleanStr.includes(',') && cleanStr.includes('.')) {
+      if (cleanStr.lastIndexOf(',') > cleanStr.lastIndexOf('.')) {
+        return parseFloat(cleanStr.replace(/\./g, '').replace(',', '.'));
+      }
+      return parseFloat(cleanStr.replace(/,/g, ''));
+    }
+    if (cleanStr.includes(',')) {
+      const parts = cleanStr.split(',');
+      if (parts[parts.length - 1].length === 2 || parts[parts.length - 1].length === 1) {
+        return parseFloat(cleanStr.replace(',', '.'));
+      }
+      return parseFloat(cleanStr.replace(/,/g, ''));
+    }
+    return parseFloat(cleanStr) || 0;
+  };
+  
+  const numericPrice = parsePrice(region.price);
 
   return (
     <div
@@ -47,7 +67,7 @@ export const GoogleLensResultCard: React.FC<GoogleLensResultCardProps> = ({
           />
         ) : (
           <div className="w-16 h-16 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center flex-shrink-0 text-slate-400">
-            <MaterialIcon name="image" className="text-xl" />
+            <MaterialIcon icon="image" size={20} />
           </div>
         )}
 
@@ -73,7 +93,7 @@ export const GoogleLensResultCard: React.FC<GoogleLensResultCardProps> = ({
                   }}
                   className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold hover:bg-emerald-500/30 transition-colors flex items-center space-x-1"
                 >
-                  <MaterialIcon name="place" className="text-xs" />
+                  <MaterialIcon icon="place" size={12} />
                   <span>Inspect Store Location</span>
                 </button>
               ) : (
@@ -87,14 +107,14 @@ export const GoogleLensResultCard: React.FC<GoogleLensResultCardProps> = ({
                           name: region.label,
                           price: numericPrice,
                           image: region.thumbnail || "",
-                          brand: region.source || "Spresso",
-                          category: region.category || "Apparel",
+                          brand: region.source || "Unknown Brand",
+                          category: region.category || "General",
                           description: region.description || "",
                         });
                       }}
                       className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold hover:bg-emerald-500/30 transition-colors flex items-center space-x-1"
                     >
-                      <MaterialIcon name="checkroom" className="text-xs" />
+                      <MaterialIcon icon="checkroom" size={12} />
                       <span>Virtual Try-On</span>
                     </button>
                   )}
@@ -108,15 +128,15 @@ export const GoogleLensResultCard: React.FC<GoogleLensResultCardProps> = ({
                           name: region.label,
                           price: numericPrice,
                           image: region.thumbnail || "",
-                          brand: region.source || "Spresso",
-                          category: region.category || "Apparel",
+                          brand: region.source || "Unknown Brand",
+                          category: region.category || "General",
                           description: region.description || "",
                         });
                       }}
                       className="p-1.5 rounded-lg bg-slate-700 text-white hover:bg-emerald-600 transition-colors"
                       title="Add to Cart"
                     >
-                      <MaterialIcon name="add_shopping_cart" className="text-xs" />
+                      <MaterialIcon icon="add_shopping_cart" size={12} />
                     </button>
                   )}
                 </>

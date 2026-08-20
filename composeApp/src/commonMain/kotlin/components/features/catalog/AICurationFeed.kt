@@ -29,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import components.core.NetworkImage
 import io.ktor.client.HttpClient
 import network.ProductItem
 
@@ -72,10 +71,9 @@ fun AICurationFeed(
                 ) {
                     Text(
                         "AI CURATION FEED",
-                        color = Color.White,
-                        fontSize = 9.sp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 1.sp,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }

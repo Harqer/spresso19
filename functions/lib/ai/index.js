@@ -40,12 +40,14 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.chatStream = exports.logSearchHistory = exports.getQuickPrompts = exports.vitposeOrchestrateFit = exports.generateCreatorCampaign = exports.creatorAgentTemplates = exports.identifyVisionObject = exports.generateLiveApiToken = exports.generateSpin360 = exports.generateVirtualTryOn = void 0;
+exports.generateOutfit = exports.chatStream = exports.logSearchHistory = exports.getQuickPrompts = exports.vitposeOrchestrateFit = exports.generateCreatorCampaign = exports.creatorAgentTemplates = exports.identifyVisionObject = exports.generateLiveApiToken = exports.discoverPersonalizedProducts = exports.analyzeUserBehavior = exports.generateSpin360 = exports.generateVirtualTryOn = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
 const genai_1 = require("@google/genai");
 const virtualTryOnFlow_1 = require("./flows/virtualTryOnFlow");
 const spin360Flow_1 = require("./flows/spin360Flow");
+const behavioralAnalysisFlow_1 = require("./flows/behavioralAnalysisFlow");
+const discoverPersonalizedProductsFlow_1 = require("./flows/discoverPersonalizedProductsFlow");
 const geminiApiKey = (0, params_1.defineSecret)("GEMINI_API_KEY");
 exports.generateVirtualTryOn = (0, https_1.onCall)({ enforceAppCheck: true }, async (request) => {
     if (!request.auth)
@@ -71,6 +73,30 @@ exports.generateSpin360 = (0, https_1.onCall)({ enforceAppCheck: true }, async (
     }
     catch (e) {
         throw new https_1.HttpsError("internal", "Failed to run spin 360 flow");
+    }
+});
+exports.analyzeUserBehavior = (0, https_1.onCall)({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
+    if (!request.auth)
+        throw new https_1.HttpsError("unauthenticated", "You must be signed in.");
+    try {
+        const result = await (0, behavioralAnalysisFlow_1.behavioralAnalysisFlow)(request.data);
+        // We could also update the user's profile in Firestore here.
+        // For now, we return the data to the client.
+        return result;
+    }
+    catch (e) {
+        throw new https_1.HttpsError("internal", "Failed to run behavioral analysis flow");
+    }
+});
+exports.discoverPersonalizedProducts = (0, https_1.onCall)({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
+    if (!request.auth)
+        throw new https_1.HttpsError("unauthenticated", "You must be signed in.");
+    try {
+        const result = await (0, discoverPersonalizedProductsFlow_1.discoverPersonalizedProductsFlow)(request.data);
+        return result;
+    }
+    catch (e) {
+        throw new https_1.HttpsError("internal", "Failed to run discover personalized products flow");
     }
 });
 exports.generateLiveApiToken = (0, https_1.onCall)({ secrets: [geminiApiKey], enforceAppCheck: true }, async (request) => {
@@ -110,22 +136,15 @@ exports.identifyVisionObject = (0, https_1.onCall)({ secrets: [geminiApiKey] }, 
         throw new https_1.HttpsError("invalid-argument", "Missing imageBase64");
     const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
-            contents: [
-                {
-                    role: "user",
-                    parts: [
-                        { text: "Identify the primary product in this image. Respond with a JSON object containing the fields: 'productName' (string, short and clean name) and 'estimatedPrice' (number, reasonable estimate)." },
-                        { inlineData: { data: imageBase64, mimeType: "image/jpeg" } }
-                    ]
-                }
+        const response = await ai.interactions.create({
+            model: "gemini-3.5-flash",
+            input: [
+                { type: "text", text: "Identify the primary product in this image. Respond with a JSON object containing the fields: 'productName' (string, short and clean name) and 'estimatedPrice' (number, reasonable estimate)." },
+                { type: "image", mime_type: "image/jpeg", data: imageBase64 }
             ],
-            config: {
-                responseMimeType: "application/json",
-            }
+            response_mime_type: "application/json"
         });
-        const text = response.text;
+        const text = response.output_text;
         if (!text)
             throw new Error("Empty response from Gemini");
         const json = JSON.parse(text);
@@ -155,15 +174,54 @@ exports.creatorAgentTemplates = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("internal", "Failed to fetch creator agent templates");
     }
 });
-exports.generateCreatorCampaign = (0, https_1.onCall)(async (request) => {
+exports.generateCreatorCampaign = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
-    throw new https_1.HttpsError("unimplemented", "Creator campaign generation is not yet fully implemented.");
+    const { productName, campaignGoal, targetAudience } = request.data || {};
+    if (!productName || !campaignGoal)
+        throw new https_1.HttpsError("invalid-argument", "Missing required campaign parameters.");
+    const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
+    try {
+        const response = await ai.interactions.create({
+            model: "gemini-3.5-flash",
+            input: `You are an expert marketing AI. Generate a creator campaign for the product "${productName}". The goal is "${campaignGoal}" and the target audience is "${targetAudience || 'General'}". Return ONLY a JSON object with this exact structure: {"campaignTitle": "...", "socialMediaCopy": "...", "suggestedTags": ["...", "..."]}`,
+            response_mime_type: "application/json"
+        });
+        const responseText = response.output_text;
+        if (!responseText)
+            throw new Error("Empty response from Gemini");
+        const parsed = JSON.parse(responseText);
+        return { success: true, campaign: parsed };
+    }
+    catch (e) {
+        throw new https_1.HttpsError("internal", `Failed to generate campaign: ${e.message}`);
+    }
 });
-exports.vitposeOrchestrateFit = (0, https_1.onCall)(async (request) => {
+exports.vitposeOrchestrateFit = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
-    throw new https_1.HttpsError("unimplemented", "Vitpose fit orchestration is not fully implemented.");
+    const { imageBase64 } = request.data || {};
+    if (!imageBase64)
+        throw new https_1.HttpsError("invalid-argument", "Missing imageBase64");
+    const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
+    try {
+        const response = await ai.interactions.create({
+            model: "gemini-3.5-flash",
+            input: [
+                { type: "image", mime_type: "image/jpeg", data: imageBase64 },
+                { type: "text", text: "Analyze this image for virtual try-on fit orchestration. Identify the key body regions and garment fit profile. Return ONLY a JSON object with this exact structure: {\"fitScore\": 0.0-100.0, \"garmentType\": \"...\", \"postureDetected\": \"...\", \"confidence\": 0.0-100.0}" }
+            ],
+            response_mime_type: "application/json"
+        });
+        const responseText = response.output_text;
+        if (!responseText)
+            throw new Error("Empty response from Gemini");
+        const parsed = JSON.parse(responseText);
+        return { success: true, fitAnalysis: parsed };
+    }
+    catch (e) {
+        throw new https_1.HttpsError("internal", `Failed to orchestrate fit: ${e.message}`);
+    }
 });
 exports.getQuickPrompts = (0, https_1.onCall)(async (request) => {
     if (!request.auth)
@@ -186,6 +244,7 @@ exports.logSearchHistory = (0, https_1.onCall)(async (request) => {
 const admin = __importStar(require("firebase-admin"));
 exports.chatStream = (0, https_1.onRequest)({ secrets: [geminiApiKey], cors: true }, async (req, res) => {
     var _a, e_1, _b, _c;
+    var _d;
     // Only allow POST
     if (req.method !== "POST") {
         res.status(405).send("Method Not Allowed");
@@ -209,26 +268,26 @@ exports.chatStream = (0, https_1.onRequest)({ secrets: [geminiApiKey], cors: tru
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     try {
-        const responseStream = await ai.models.generateContentStream({
+        const responseStream = await ai.interactions.create({
             model: "gemini-3.5-flash",
-            contents: prompt,
-            config: {
-                systemInstruction: "You are Spresso Personal Shopper. Keep it brief.",
-                temperature: 0.7,
-            }
+            input: prompt,
+            system_instruction: "You are Spresso Personal Shopper. Keep it brief.",
+            stream: true
         });
         try {
-            for (var _d = true, responseStream_1 = __asyncValues(responseStream), responseStream_1_1; responseStream_1_1 = await responseStream_1.next(), _a = responseStream_1_1.done, !_a; _d = true) {
+            for (var _e = true, responseStream_1 = __asyncValues(responseStream), responseStream_1_1; responseStream_1_1 = await responseStream_1.next(), _a = responseStream_1_1.done, !_a; _e = true) {
                 _c = responseStream_1_1.value;
-                _d = false;
-                const chunk = _c;
-                res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
+                _e = false;
+                const event = _c;
+                if (event.event_type === "step.delta" && ((_d = event.delta) === null || _d === void 0 ? void 0 : _d.type) === "text") {
+                    res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+                }
             }
         }
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
         finally {
             try {
-                if (!_d && !_a && (_b = responseStream_1.return)) await _b.call(responseStream_1);
+                if (!_e && !_a && (_b = responseStream_1.return)) await _b.call(responseStream_1);
             }
             finally { if (e_1) throw e_1.error; }
         }
@@ -240,6 +299,47 @@ exports.chatStream = (0, https_1.onRequest)({ secrets: [geminiApiKey], cors: tru
         res.write(`data: ${JSON.stringify({ text: "Error connecting to AI." })}\n\n`);
         res.write(`data: [DONE]\n\n`);
         res.end();
+    }
+});
+exports.generateOutfit = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
+    if (!request.auth)
+        throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
+    const { items, weatherCondition, temperatureText, userLocation } = request.data || {};
+    if (!items || items.length === 0) {
+        throw new https_1.HttpsError("invalid-argument", "No wardrobe items provided");
+    }
+    const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
+    try {
+        const prompt = `
+You are a personal fashion stylist AI.
+User Location: ${userLocation || "Unknown"}
+Weather: ${weatherCondition} - ${temperatureText}
+Available Items:
+${JSON.stringify(items.map((item) => ({ id: item.id, name: item.name, category: item.category, color: item.color, weather: item.weatherSuitability })), null, 2)}
+
+Create a stylish outfit using 2-4 items from the available list that perfectly matches the weather condition and temperature.
+Return a JSON object with the following schema:
+{
+  "title": "string (Catchy name for the outfit)",
+  "stylingAdvice": "string (Why these items work well together for the weather)",
+  "selectedItemIds": ["string (id of item 1)", "string (id of item 2)"],
+  "weatherMatchScore": 95
+}
+`;
+        const response = await ai.interactions.create({
+            model: "gemini-3.5-flash",
+            input: prompt,
+            response_mime_type: "application/json"
+        });
+        const responseText = response.output_text;
+        if (!responseText)
+            throw new Error("Empty response from Gemini");
+        const parsed = JSON.parse(responseText);
+        return { success: true, result: parsed };
+    }
+    catch (e) {
+        console.error("AI Outfit error:", e);
+        throw new https_1.HttpsError("internal", `Failed to generate outfit: ${e.message}`);
     }
 });
 //# sourceMappingURL=index.js.map

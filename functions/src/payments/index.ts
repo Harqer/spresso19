@@ -1,12 +1,9 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
-import { PubSub } from "@google-cloud/pubsub";
 import Stripe from "stripe";
 
 const stripePublishableKey = defineSecret("STRIPE_PUBLISHABLE_KEY");
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
-const pubSubClient = new PubSub();
-const interactionsTopic = pubSubClient.topic("interactions-topic");
 
 export const getStripeConfig = onCall({ secrets: [stripePublishableKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
@@ -34,55 +31,95 @@ export const createStripeIntent = onCall({ secrets: [stripeSecretKey] }, async (
     }
 });
 
+import * as crypto from "crypto";
+import { executeKitesurfPurchase } from "../kitesurfService";
+import { db } from "../shared/db";
+
 export const confirmPurchase = onCall({ secrets: [stripeSecretKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
     
-    const { productId, quantity, token, address } = request.data || {};
+    const { productId, quantity = 1, token, address } = request.data || {};
     if (!productId || !token) throw new HttpsError("invalid-argument", "Missing params");
     
-    // Simulate signature validation for the voice token from Meta Wearables
-    if (!token.startsWith("KS_SIGN_ACC_")) {
-        throw new HttpsError("permission-denied", "Invalid biometric signature");
-    }
-
-    const stripe = new Stripe(stripeSecretKey.value(), { apiVersion: "2026-07-29.dahlia" as any });
-
     try {
-        // Create a PaymentIntent and confirm it immediately using a test payment method
+        // 1. Decode and Verify Biometric Signature
+        const decodedToken = Buffer.from(token, 'base64').toString('utf8');
+        const biometricData = JSON.parse(decodedToken);
+        const { payload, signature, publicKey } = biometricData;
+
+        const verify = crypto.createVerify('SHA256');
+        verify.update(payload);
+        verify.end();
+
+        const isSignatureValid = verify.verify(
+            `-----BEGIN PUBLIC KEY-----\n${publicKey}\n-----END PUBLIC KEY-----`,
+            signature,
+            'base64'
+        );
+
+        if (!isSignatureValid) {
+            throw new HttpsError("permission-denied", "Cryptographic biometric signature verification failed.");
+        }
+
+        // 2. Fetch Product & Calculate Amount
+        const productDoc = await db.collection("products").doc(productId).get();
+        if (!productDoc.exists) throw new HttpsError("not-found", "Product not found.");
+        const product = productDoc.data()!;
+        const totalCents = Math.round(product.price * 100 * quantity);
+
+        const stripe = new Stripe(stripeSecretKey.value(), { apiVersion: "2025-01-27.acacia" as any });
+
+        // 3. Create & Confirm Payment Intent
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: 24000, // $240.00
+            amount: totalCents,
             currency: "usd",
-            payment_method: "pm_card_visa",
+            payment_method: "pm_card_visa", // In production, this would be a real payment method ID from the user
             confirm: true,
             automatic_payment_methods: {
                 enabled: true,
                 allow_redirects: "never"
             },
-            description: `Order for ${productId} x${quantity} shipped to ${address || 'default address'}`
+            metadata: {
+                userId: request.auth.uid,
+                productId,
+                quantity: quantity.toString(),
+                shippingAddress: address
+            }
         });
 
+        // 4. Trigger Kitesurf Fulfillment
+        const kResult = await executeKitesurfPurchase(
+            productId,
+            address,
+            paymentIntent.id,
+            product.merchantUrl,
+            true,
+            true
+        );
+
         return { 
-            success: true, 
+            success: kResult.success,
+            message: kResult.success ? "Purchase successful and fulfillment triggered." : "Payment succeeded but fulfillment failed.",
             order: { 
-                id: `ORD_${paymentIntent.id}`, 
-                status: paymentIntent.status 
+                id: kResult.orderId,
+                status: paymentIntent.status,
+                vendorRef: kResult.vendorOrderRef
             } 
         };
     } catch (e: any) {
-        console.error("Stripe confirmation error:", e);
+        console.error("Purchase confirmation error:", e);
+        if (e instanceof HttpsError) throw e;
         throw new HttpsError("internal", e.message);
     }
 });
 
-export const ingestInteraction = onCall(async (request) => {
-    if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
-    const { productId, action } = request.data || {};
-    if (!productId || !action) throw new HttpsError("invalid-argument", "Missing params");
-    const eventPayload = { userId: request.auth.uid, productId, action, timestamp: new Date().toISOString() };
-    try {
-        const messageId = await interactionsTopic.publishMessage({ data: Buffer.from(JSON.stringify(eventPayload)) });
-        return { status: "202 Accepted", messageId };
-    } catch (e) {
-        throw new HttpsError("internal", "Failed to process interaction");
-    }
+export const generateGoogleWalletPassJwt = onCall(async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");
+    
+    // In a real implementation, this signs a JWT with the Google Service Account credentials
+    // allowing the client to add a boarding pass, event ticket, or loyalty card to Google Wallet.
+    return {
+        jwt: "mock.jwt.token.for.google.wallet",
+        success: true
+    };
 });

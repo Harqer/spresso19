@@ -1,10 +1,11 @@
 package components.navigation
 
-import components.models.*
-
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.Checkroom
+import androidx.compose.material.icons.outlined.FlightTakeoff
+import androidx.compose.material.icons.outlined.Forum
+import androidx.compose.material.icons.outlined.LocalGroceryStore
 import androidx.compose.ui.graphics.vector.ImageVector
 import navigation.NavKey
 import org.jetbrains.compose.resources.DrawableResource

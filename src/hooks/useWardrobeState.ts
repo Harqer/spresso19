@@ -1,6 +1,7 @@
 import Logger from "../lib/Logger";
 import { useState, useEffect } from "react";
-import { authFetch } from "../lib/firebase";
+import { authFetch, db, auth } from "../lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { ProductItem, HITLPayload } from "../types";
 import { CustomWardrobeItem, GeneratedOutfit, WardrobeCategory, WeatherSuitability } from "../types";
 
@@ -65,19 +66,41 @@ const SEED_PHOTO_GALLERY_ITEMS: CustomWardrobeItem[] = [
 ];
 
 export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout: (payload: HITLPayload) => void) {
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<"STACKED_DECKS" | "ALL" | "SEASONAL" | "PHOTO_GALLERY" | "BOOKMARKS" | "LIKED" | "AI_OUTFIT" | "MIX_MATCH" | "SAVED_OUTFITS">("STACKED_DECKS");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedWeatherFilter, setSelectedWeatherFilter] = useState<string>("ALL");
+  const [wardrobeCategories, setWardrobeCategories] = useState<string[]>([]);
   const [photoGalleryPermission, setPhotoGalleryPermission] = useState<"UNDETERMINED" | "GRANTED" | "DENIED">("UNDETERMINED");
   const [bookmarkedProductIds, setBookmarkedProductIds] = useState<string[]>([]);
   const [likedProducts, setLikedProducts] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchState = async () => {
+      setIsLoading(true);
       try {
-        const storedPrefs = localStorage.getItem("spresso_wardrobe_prefs");
-        if (storedPrefs) {
-          const preferences = JSON.parse(storedPrefs);
+        let preferences: any = null;
+        
+        if (auth.currentUser) {
+          const docRef = doc(db, "users", auth.currentUser.uid, "wardrobe", "data");
+          const snap = await getDoc(docRef);
+          if (snap.exists()) {
+            preferences = snap.data();
+          }
+        } else {
+          const storedPrefs = localStorage.getItem("spresso_wardrobe_prefs");
+          if (storedPrefs) preferences = JSON.parse(storedPrefs);
+        }
+        
+        const schemaRef = doc(db, "system", "wardrobeSchema");
+        const schemaSnap = await getDoc(schemaRef);
+        if (schemaSnap.exists()) {
+          setWardrobeCategories(schemaSnap.data().categories);
+        } else {
+          throw new Error("Missing Backend API - Needs Implementation: Wardrobe categories schema not found in Firestore at system/wardrobeSchema");
+        }
+
+        if (preferences) {
           if (preferences?.galleryPermission === "GRANTED" || preferences?.galleryPermission === "DENIED") {
             setPhotoGalleryPermission(preferences.galleryPermission);
           }
@@ -93,10 +116,18 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
           }
         }
       } catch (err) {
-        Logger.error("Failed to sync wardrobe state from local storage:", err);
+        Logger.error("Failed to sync wardrobe state from backend:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
-    fetchState();
+    
+    // Listen to auth state changes to re-fetch when user logs in
+    const unsubscribe = auth.onAuthStateChanged(() => {
+      fetchState();
+    });
+    
+    return () => unsubscribe();
   }, [products]);
 
   const [userUploadedItems, setUserUploadedItems] = useState<CustomWardrobeItem[]>(INITIAL_PHOTO_GALLERY_ITEMS);
@@ -105,17 +136,29 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
   // Sync back preferences changes
   useEffect(() => {
     if (userUploadedItems.length === 0 && savedFavoriteOutfits.length === 0 && photoGalleryPermission === "UNDETERMINED" && likedProducts.length === 0 && bookmarkedProductIds.length === 0) return;
-    try {
-      localStorage.setItem("spresso_wardrobe_prefs", JSON.stringify({
+    
+    const syncToBackend = async () => {
+      const data = {
         customWardrobeItems: userUploadedItems,
         favoriteOutfits: savedFavoriteOutfits,
         galleryPermission: photoGalleryPermission,
         likedIds: likedProducts.map(p => p.id),
         bookmarkedIds: bookmarkedProductIds
-      }));
-    } catch (e) {
-      Logger.error("Failed to fetch wardrobe state", e);
-    }
+      };
+      
+      try {
+        if (auth.currentUser) {
+          const docRef = doc(db, "users", auth.currentUser.uid, "wardrobe", "data");
+          await setDoc(docRef, data, { merge: true });
+        } else {
+          localStorage.setItem("spresso_wardrobe_prefs", JSON.stringify(data));
+        }
+      } catch (e) {
+        Logger.error("Failed to sync wardrobe state to backend", e);
+      }
+    };
+    
+    syncToBackend();
   }, [userUploadedItems, savedFavoriteOutfits, photoGalleryPermission, likedProducts, bookmarkedProductIds]);
 
   const bookmarkedWardrobeItems: CustomWardrobeItem[] = products
@@ -211,6 +254,8 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
     bookmarkedWardrobeItems, allWardrobeItems, filteredItems,
     handleDeleteItem, handleCheckoutProduct,
     photoGalleryPermission, setPhotoGalleryPermission,
-    grantGalleryPermission, denyGalleryPermission
+    grantGalleryPermission, denyGalleryPermission,
+    wardrobeCategories,
+    isLoading
   };
 }

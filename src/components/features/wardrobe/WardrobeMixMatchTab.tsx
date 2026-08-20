@@ -3,33 +3,43 @@ import { MaterialIcon } from "../../MaterialIcon";
 import { CustomWardrobeItem, GeneratedOutfit, WardrobeCategory } from "../../../types";
 
 interface WardrobeMixMatchTabProps {
-  mixMatchTop: CustomWardrobeItem | null;
-  mixMatchBottom: CustomWardrobeItem | null;
-  mixMatchOuter: CustomWardrobeItem | null;
-  mixMatchShoes: CustomWardrobeItem | null;
-  setMixMatchTop: (item: CustomWardrobeItem | null) => void;
-  setMixMatchBottom: (item: CustomWardrobeItem | null) => void;
-  setMixMatchOuter: (item: CustomWardrobeItem | null) => void;
-  setMixMatchShoes: (item: CustomWardrobeItem | null) => void;
+  mixMatchSlots: Record<string, CustomWardrobeItem | null>;
+  setMixMatchSlots: React.Dispatch<React.SetStateAction<Record<string, CustomWardrobeItem | null>>>;
   setSlotDrawerCategory: (cat: WardrobeCategory | null) => void;
   onSaveFavoriteOutfit: (outfit: GeneratedOutfit) => void;
   setActiveTab: (tab: any) => void;
   slotDrawerCategory: WardrobeCategory | null;
   allWardrobeItems: CustomWardrobeItem[];
+  wardrobeCategories: string[];
 }
 
 export const WardrobeMixMatchTab: React.FC<WardrobeMixMatchTabProps> = ({
-  mixMatchTop, mixMatchBottom, mixMatchOuter, mixMatchShoes,
-  setMixMatchTop, setMixMatchBottom, setMixMatchOuter, setMixMatchShoes,
+  mixMatchSlots, setMixMatchSlots,
   setSlotDrawerCategory, onSaveFavoriteOutfit, setActiveTab,
-  slotDrawerCategory, allWardrobeItems
+  slotDrawerCategory, allWardrobeItems, wardrobeCategories
 }) => {
-  const slots = [
-    { slotLabel: "Top / Shirt", category: "TOP" as WardrobeCategory, item: mixMatchTop, setItem: setMixMatchTop, icon: "apparel" },
-    { slotLabel: "Outerwear / Sweater", category: "SWEATER_OUTERWEAR" as WardrobeCategory, item: mixMatchOuter, setItem: setMixMatchOuter, icon: "dry_cleaning" },
-    { slotLabel: "Bottom / Pants", category: "BOTTOM" as WardrobeCategory, item: mixMatchBottom, setItem: setMixMatchBottom, icon: "checkroom" },
-    { slotLabel: "Footwear", category: "SHOES" as WardrobeCategory, item: mixMatchShoes, setItem: setMixMatchShoes, icon: "roller_skating" }
-  ];
+  // If backend hasn't loaded them, fallback to local standard
+  const activeCategories = wardrobeCategories.length > 0 ? wardrobeCategories : ["TOP", "BOTTOM", "SWEATER_OUTERWEAR", "SHOES", "ACCESSORY", "DRESS"];
+
+  const slots = activeCategories.map(category => ({
+    slotLabel: category.replace("_", " "),
+    category: category as WardrobeCategory,
+    item: mixMatchSlots[category] || null,
+    icon: category === "SHOES" ? "roller_skating" : category === "BOTTOM" ? "checkroom" : category === "ACCESSORY" ? "watch" : "apparel"
+  }));
+
+  const handleClearAll = () => {
+    setMixMatchSlots({});
+  };
+
+  const handleRemoveSlot = (cat: string) => {
+    setMixMatchSlots(prev => ({ ...prev, [cat]: null }));
+  };
+
+  const handleSelectSlot = (cat: string, item: CustomWardrobeItem) => {
+    setMixMatchSlots(prev => ({ ...prev, [cat]: item }));
+    setSlotDrawerCategory(null);
+  };
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -39,7 +49,7 @@ export const WardrobeMixMatchTab: React.FC<WardrobeMixMatchTabProps> = ({
             <h3 className="font-bold text-base text-[#18211e]">Interactive Outfit Mix & Match Canvas</h3>
             <p className="text-xs text-[#5e635f] mt-0.5">Select items from your photo gallery or saved bookmarks to combine into your custom look!</p>
           </div>
-          <button onClick={() => { setMixMatchTop(null); setMixMatchBottom(null); setMixMatchOuter(null); setMixMatchShoes(null); }} className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-xs font-bold rounded-xl text-[#5e635f] transition cursor-pointer">
+          <button onClick={handleClearAll} className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-xs font-bold rounded-xl text-[#5e635f] transition cursor-pointer">
             Clear All Slots
           </button>
         </div>
@@ -49,7 +59,7 @@ export const WardrobeMixMatchTab: React.FC<WardrobeMixMatchTabProps> = ({
             <div key={idx} className="bg-[#f9fbf9] p-4 rounded-2xl border border-[#d8ebd7] space-y-3 flex flex-col justify-between">
               <div className="flex items-center justify-between text-xs font-bold text-[#386633]">
                 <span className="flex items-center space-x-1"><MaterialIcon icon={slot.icon} size={16} /><span>{slot.slotLabel}</span></span>
-                {slot.item && <button onClick={() => slot.setItem(null)} className="text-[10px] text-red-600 hover:underline cursor-pointer">Remove</button>}
+                {slot.item && <button onClick={() => handleRemoveSlot(slot.category)} className="text-[10px] text-red-600 hover:underline cursor-pointer">Remove</button>}
               </div>
               {slot.item ? (
                 <div className="space-y-2 text-center">
@@ -72,14 +82,14 @@ export const WardrobeMixMatchTab: React.FC<WardrobeMixMatchTabProps> = ({
 
         <div className="pt-3 border-t border-[#f2f8f2] flex justify-end">
           <button onClick={() => {
-            const items = [mixMatchTop, mixMatchOuter, mixMatchBottom, mixMatchShoes].filter(Boolean) as CustomWardrobeItem[];
+            const items = Object.values(mixMatchSlots).filter(Boolean) as CustomWardrobeItem[];
             if (items.length === 0) return;
             onSaveFavoriteOutfit({
               id: `custom-mix-${Date.now()}`, title: "Personal Mix & Match Outfit", weatherCondition: "MILD_SPRING_AUTUMN",
               temperatureText: "Custom Styling", items, stylingAdvice: "Hand-crafted combination from your personal photo gallery closet.", weatherMatchScore: 98, savedAt: Date.now()
             });
             setActiveTab("SAVED_OUTFITS");
-          }} disabled={![mixMatchTop, mixMatchOuter, mixMatchBottom, mixMatchShoes].some(Boolean)} className="px-5 py-2.5 bg-[#386633] hover:bg-[#2c5227] text-white rounded-xl text-xs font-bold transition cursor-pointer disabled:opacity-50 flex items-center space-x-2">
+          }} disabled={Object.values(mixMatchSlots).filter(Boolean).length === 0} className="px-5 py-2.5 bg-[#386633] hover:bg-[#2c5227] text-white rounded-xl text-xs font-bold transition cursor-pointer disabled:opacity-50 flex items-center space-x-2">
             <MaterialIcon icon="bookmark_add" size={16} /> <span>Save Mix & Match Outfit</span>
           </button>
         </div>
@@ -94,13 +104,7 @@ export const WardrobeMixMatchTab: React.FC<WardrobeMixMatchTabProps> = ({
             </div>
             <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-3 pr-1">
               {allWardrobeItems.filter(i => i.category === slotDrawerCategory).map(item => (
-                <button key={item.id} onClick={() => {
-                  if (slotDrawerCategory === "TOP" || slotDrawerCategory === "DRESS") setMixMatchTop(item);
-                  if (slotDrawerCategory === "SWEATER_OUTERWEAR") setMixMatchOuter(item);
-                  if (slotDrawerCategory === "BOTTOM") setMixMatchBottom(item);
-                  if (slotDrawerCategory === "SHOES" || slotDrawerCategory === "ACCESSORY") setMixMatchShoes(item);
-                  setSlotDrawerCategory(null);
-                }} className="bg-[#f9fbf9] p-3 rounded-2xl border border-[#d8ebd7] hover:border-[#386633] text-left transition cursor-pointer flex flex-col justify-between space-y-2 group">
+                <button key={item.id} onClick={() => handleSelectSlot(slotDrawerCategory, item)} className="bg-[#f9fbf9] p-3 rounded-2xl border border-[#d8ebd7] hover:border-[#386633] text-left transition cursor-pointer flex flex-col justify-between space-y-2 group">
                   <div className="aspect-square rounded-xl overflow-hidden bg-white border border-[#d8ebd7]">
                     <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
                   </div>

@@ -48,3 +48,11 @@ An architecture context document has been copied to the project at `spresso19/do
 1. **NO LOCAL SETUP OR DEV BYPASSES**: The codebase must remain in a production-ready state at all times. Never introduce or leave behind developmental bypasses such as `onDevLoginRequested`, `devOverrideUid`, or `token === "bypass"`/`"dummy"` authentication backdoors.
 2. **PRODUCTION API KEY PRACTICES ONLY**: All API keys and environment variables must strictly follow production best practices (e.g., Vault-driven secrets or GCP Secret Manager). Developmental "quick starts" or local `.env` setup guidelines that compromise security are strictly forbidden.
 3. **MANDATORY CLEANUP**: Any generated code meant for temporary local testing must be fully removed and replaced with actual production logic prior to completion.
+
+## Proactive Best Practices & Skill Execution (MANDATORY RULE)
+1. **PROACTIVE SKILL DISCOVERY**: Always proactively check for and utilize skills (e.g., `android-cli`, `navigation-3`, `jetpack-compose` rules) that are relevant to the active task, particularly for Jetpack Compose, System Architecture, and code execution.
+2. **FOLLOW BEST PRACTICES UNCONDITIONALLY**: Never write "MVP", "quick hack", or non-standard code if it violates established enterprise best practices. If you are writing Jetpack Compose or System Design code, always apply the scalable, standard patterns from your skill guidelines and references first.
+
+## Strict Prohibition of Automated Code Modification Scripts (MANDATORY RULE)
+1. **MANUAL & RIGOROUS CHECKING ONLY**: When making codebase corrections, refactoring, or cleaning up unused imports/variables, NEVER write and execute generic, automated Python or shell scripts (e.g., regex scanners) to modify the codebase in bulk. Automated scripts are too broad and brittle for complex languages like Kotlin. 
+2. **USE NATIVE LINTERS & MANUAL AUDITS**: Always do the rigorous work manually by relying on native compiler output, native linter warnings (e.g., `./gradlew lintDebug`), or language-aware tools, and manually verifying and applying the corrections yourself.

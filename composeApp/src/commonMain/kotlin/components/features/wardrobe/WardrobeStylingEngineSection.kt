@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun WardrobeStylingEngineSection(
     activeSeason: String,
+    seasons: List<Triple<String, String, androidx.compose.ui.graphics.vector.ImageVector>>,
     onSeasonSelected: (String) -> Unit,
     stylingLoading: Boolean,
     curatedFits: List<CuratedFit>
@@ -46,11 +47,6 @@ fun WardrobeStylingEngineSection(
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                val seasons = listOf(
-                    Triple("Winter", "Winter Wear", Icons.Default.AcUnit),
-                    Triple("Summer", "Hot Summer", Icons.Default.WbSunny),
-                    Triple("Occasion", "Special Occasion", Icons.Default.AutoAwesome)
-                )
                 seasons.forEach { (id, label, icon) ->
                     val isSelected = activeSeason == id
                     Surface(
@@ -97,7 +93,12 @@ fun WardrobeStylingEngineSection(
                                     }
                                 }
                                 Text(fit.stylingNotes, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp), 
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    itemVerticalAlignment = Alignment.Top,
+                                    overflow = androidx.compose.foundation.layout.FlowRowOverflow.Visible
+                                ) {
                                     fit.items.forEach { item ->
                                         Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp)) {
                                             Text(item, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))

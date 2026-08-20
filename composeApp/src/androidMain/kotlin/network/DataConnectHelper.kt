@@ -7,16 +7,6 @@ import com.spresso.dataconnect.execute
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
-actual suspend fun toggleLike(productId: String, userUid: String) {
-    try {
-        com.spresso.dataconnect.SpressoConnectorConnector.instance.toggleLike.execute(
-            productId = productId
-        )
-    } catch (e: Exception) {
-        throw e
-    }
-}
-
 actual suspend fun upsertUserPreference(theme: String?, pushNotifications: Boolean?, emailAlerts: Boolean?) {
     try {
         com.spresso.dataconnect.SpressoConnectorConnector.instance.upsertUserPreference.execute {

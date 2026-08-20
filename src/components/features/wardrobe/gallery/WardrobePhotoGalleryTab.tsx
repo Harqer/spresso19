@@ -10,7 +10,7 @@ interface WardrobePhotoGalleryTabProps {
   selectedRollItemIds: string[];
   setSelectedRollItemIds: React.Dispatch<React.SetStateAction<string[]>>;
   galleryPieces: any[];
-  galleryInputRef: React.RefObject<HTMLInputElement>;
+  galleryInputRef: React.RefObject<HTMLInputElement | null>;
   handleGalleryFiles: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleStyleSelectedOutfit: () => void;
   handleImportItem: (item: any) => void;
@@ -143,6 +143,7 @@ export const WardrobePhotoGalleryTab: React.FC<WardrobePhotoGalleryTabProps> = (
             <WardrobeItemGrid
               items={state.userUploadedItems}
               products={products}
+              wardrobeCategories={state.wardrobeCategories}
               selectedCategory={state.selectedCategory}
               selectedWeatherFilter={state.selectedWeatherFilter}
               onSelectCategory={state.setSelectedCategory}

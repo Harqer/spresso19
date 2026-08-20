@@ -5,17 +5,22 @@ import network.models.HITLChallenge
 import network.models.HITLPayload
 import network.models.HITLProduct
 
-fun ProductItem.toHITLPayload(quantity: Int = 1): HITLPayload {
+fun ProductItem.toHITLPayload(
+    quantity: Int = 1,
+    authorizationId: String = "AUTH-${id.uppercase()}",
+    inventoryConfirmed: Boolean = true,
+    stockRemaining: Int = 10
+): HITLPayload {
     val safePrice = price ?: 0.0
     return HITLPayload(
-        authorizationId = "AUTH-${id.uppercase()}",
+        authorizationId = authorizationId,
         product = HITLProduct(id = id, name = name, price = safePrice, sku = "SKU-${id.uppercase()}", image = imageUrl),
         quantity = quantity,
         totalAmount = safePrice * quantity,
         currency = "USD",
         deviceSource = "WEARABLE",
-        inventoryConfirmed = true,
-        stockRemaining = 10,
+        inventoryConfirmed = inventoryConfirmed,
+        stockRemaining = stockRemaining,
         humanInTheLoopChallenge = HITLChallenge(title = "Biometric Verification Required", message = "Confirm purchase with fingerprint or passkey")
     )
 }

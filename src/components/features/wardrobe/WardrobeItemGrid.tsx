@@ -13,6 +13,7 @@ interface WardrobeItemGridProps {
   onDeleteItem: (item: CustomWardrobeItem) => void;
   onCheckoutProduct: (product: ProductItem) => void;
   onOpenUploadModal: () => void;
+  wardrobeCategories: string[];
 }
 
 export const WardrobeItemGrid: React.FC<WardrobeItemGridProps> = ({
@@ -24,15 +25,18 @@ export const WardrobeItemGrid: React.FC<WardrobeItemGridProps> = ({
   onSelectWeatherFilter,
   onDeleteItem,
   onCheckoutProduct,
-  onOpenUploadModal
+  onOpenUploadModal,
+  wardrobeCategories
 }) => {
+  const activeCategories = wardrobeCategories.length > 0 ? wardrobeCategories : ["TOP", "BOTTOM", "SWEATER_OUTERWEAR", "SHOES", "ACCESSORY", "DRESS"];
+
   return (
     <div className="space-y-4 animate-fadeIn">
       <div className="bg-white p-4 rounded-2xl border border-[#d8ebd7] flex flex-wrap items-center justify-between gap-3 shadow-2xs">
         <div className="flex items-center space-x-2">
           <span className="text-xs font-bold text-[#18211e]">Category:</span>
           <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar">
-            {["ALL", "TOP", "BOTTOM", "SWEATER_OUTERWEAR", "DRESS", "SHOES", "ACCESSORY"].map(cat => (
+            {["ALL", ...activeCategories].map(cat => (
               <button
                 key={cat}
                 onClick={() => onSelectCategory(cat)}

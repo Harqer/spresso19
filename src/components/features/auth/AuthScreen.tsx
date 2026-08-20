@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { SpressoLogo } from "../../../components/SpressoLogo";
-import { loginWithGoogle, logToCrashlytics } from "../../../../lib/firebase";
+import { loginWithGoogle, logToCrashlytics } from "../../../lib/firebase";
 import { MaterialIcon } from "../../../components/MaterialIcon";
 import { EmailAuthForm } from "./EmailAuthForm";
 import { PhoneAuthModal } from "./PhoneAuthModal";

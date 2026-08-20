@@ -16,10 +16,7 @@ export function useWardrobeInteractions(allWardrobeItems: CustomWardrobeItem[], 
   const [temperaturePrompt, setTemperaturePrompt] = useState<string>("38°F Chilly Winter Day");
   const [isGeneratingOutfit, setIsGeneratingOutfit] = useState<boolean>(false);
 
-  const [mixMatchTop, setMixMatchTop] = useState<CustomWardrobeItem | null>(null);
-  const [mixMatchBottom, setMixMatchBottom] = useState<CustomWardrobeItem | null>(null);
-  const [mixMatchOuter, setMixMatchOuter] = useState<CustomWardrobeItem | null>(null);
-  const [mixMatchShoes, setMixMatchShoes] = useState<CustomWardrobeItem | null>(null);
+  const [mixMatchSlots, setMixMatchSlots] = useState<Record<string, CustomWardrobeItem | null>>({});
   const [slotDrawerCategory, setSlotDrawerCategory] = useState<WardrobeCategory | null>(null);
 
   const handleSaveUploadedItem = () => {
@@ -90,8 +87,7 @@ export function useWardrobeInteractions(allWardrobeItems: CustomWardrobeItem[], 
     temperaturePrompt, setTemperaturePrompt,
     isGeneratingOutfit, setIsGeneratingOutfit,
     handleGenerateAIOutfit,
-    mixMatchTop, setMixMatchTop, mixMatchBottom, setMixMatchBottom,
-    mixMatchOuter, setMixMatchOuter, mixMatchShoes, setMixMatchShoes,
+    mixMatchSlots, setMixMatchSlots,
     slotDrawerCategory, setSlotDrawerCategory
   };
 }

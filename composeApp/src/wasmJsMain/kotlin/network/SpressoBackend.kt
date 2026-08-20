@@ -180,6 +180,10 @@ actual object SpressoBackend {
         }
     }
 
+    actual suspend fun uploadImage(bytes: ByteArray, path: String): String {
+        throw UnsupportedOperationException("Firebase Storage upload not yet implemented for Wasm target")
+    }
+
     actual suspend fun addWardrobeItem(
         outfitId: String?,
         category: String,

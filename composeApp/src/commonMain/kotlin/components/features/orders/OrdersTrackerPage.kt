@@ -1,6 +1,8 @@
 package components.features.orders
 
 import components.models.*
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.boolean
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -38,18 +40,29 @@ import network.models.OrderRecord
 
 @Composable
 fun OrdersTrackerPage(
-    orders: List<OrderRecord> = emptyList(),
     apiClient: ApiClient = remember { ApiClient() },
     onAskAI: (String) -> Unit = {},
     onSetReminder: (String) -> Unit = {},
     onInitiateReturn: (String, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
+    var orders by remember { mutableStateOf<List<OrderRecord>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
     var selectedOrderForReturn by remember { mutableStateOf<String?>(null) }
     var returnReason by remember { mutableStateOf("") }
     var isSubmittingReturn by remember { mutableStateOf(false) }
     var returnResultMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        try {
+            orders = apiClient.fetchOrders()
+        } catch(e: Exception) {
+            orders = emptyList() // Fallback gracefully without fake data
+        } finally {
+            isLoading = false
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -111,7 +124,8 @@ fun OrdersTrackerPage(
                 scope.launch {
                     isSubmittingReturn = true
                     try { 
-                        val success = apiClient.createOrder(authorizationId = "return", productId = orderId, quantity = -1, totalAmount = 0.0f, shippingAddress = null, deviceSource = "APP", paymentMethod = "NONE", userConfirmedToken = null)
+                        val response = apiClient.requestOrderReturn(orderId = orderId, reason = reason)
+                        val success = response["success"]?.jsonPrimitive?.boolean == true
                         if (success) {
                             returnResultMessage = "Return request successfully submitted."
                         } else {

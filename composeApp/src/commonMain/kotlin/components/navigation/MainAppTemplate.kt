@@ -1,35 +1,35 @@
 package components.navigation
 
-import components.models.*
-
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation3.runtime.NavEntry
 import components.navigation.AdaptiveNavigationScaffold
 import navigation.NavKey
-import theme.AppTheme
+import navigation.NavigationState
+import navigation.Navigator
 import theme.ThemeMode
 
 @Composable
 fun MainAppTemplate(
-    currentKey: NavKey,
-    onNavigate: (NavKey) -> Unit,
+    navigationState: NavigationState,
+    navigator: Navigator,
     isVoiceRecording: Boolean,
     onToggleVoiceRecording: () -> Unit,
+    modifier: Modifier = Modifier,
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChange: (ThemeMode) -> Unit = {},
     onAskAI: (String) -> Unit = {},
-    modifier: Modifier = Modifier,
-    content: @Composable (NavKey) -> Unit
+    entryProvider: (NavKey) -> NavEntry<NavKey>
 ) {
     AdaptiveNavigationScaffold(
-        currentKey = currentKey,
-        onNavigate = onNavigate,
+        navigationState = navigationState,
+        navigator = navigator,
         isVoiceRecording = isVoiceRecording,
         onToggleVoiceRecording = onToggleVoiceRecording,
         themeMode = themeMode,
         onThemeModeChange = onThemeModeChange,
         onAskAI = onAskAI,
         modifier = modifier,
-        content = content
+        entryProvider = entryProvider
     )
 }

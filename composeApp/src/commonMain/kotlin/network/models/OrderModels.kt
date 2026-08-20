@@ -1,6 +1,7 @@
 package network.models
 
 import kotlinx.serialization.Serializable
+import network.DetectedItem
 import network.ProductItem
 
 @Serializable
@@ -60,18 +61,30 @@ data class HITLPayload(
     val humanInTheLoopChallenge: HITLChallenge? = null
 )
 
-fun network.DetectedItem.toHITLPayload(): HITLPayload {
-    val itemId = "LENS-${detectedName.hashCode()}"
+fun DetectedItem.toHITLPayload(
+    authorizationId: String = "AUTH-LENS-${this.hashCode()}",
+    inventoryConfirmed: Boolean = true,
+    stockRemaining: Int = 10
+): HITLPayload {
+    val safePrice = priceEstimate ?: 0.0
     return HITLPayload(
-        authorizationId = "AUTH-$itemId",
-        product = HITLProduct(id = itemId, name = detectedName, price = priceEstimate, sku = "SKU-$itemId", image = ""),
+        authorizationId = authorizationId,
+        product = HITLProduct(
+            id = matchingCatalogId ?: "lens_${this.hashCode()}",
+            name = detectedName,
+            price = safePrice,
+            sku = "SKU-LENS-${this.hashCode()}",
+            image = ""
+        ),
         quantity = 1,
-        totalAmount = priceEstimate,
+        totalAmount = safePrice,
         currency = "USD",
-        deviceSource = "WEARABLE",
-        inventoryConfirmed = true,
-        stockRemaining = 10,
-        humanInTheLoopChallenge = HITLChallenge(title = "Biometric Verification Required", message = "Confirm 1-Tap Lens purchase with fingerprint or passkey")
+        deviceSource = "WEARABLE_CAMERA",
+        inventoryConfirmed = inventoryConfirmed,
+        stockRemaining = stockRemaining,
+        humanInTheLoopChallenge = HITLChallenge(
+            title = "Approve Lens Purchase",
+            message = "You are purchasing an item detected by Spresso Lens. Verify details before confirming."
+        )
     )
 }
-

@@ -34,20 +34,20 @@ export const GoogleLensHeaderBar: React.FC<GoogleLensHeaderBarProps> = ({
       <div className="flex items-center space-x-2">
         <button
           onClick={onCaptureClick}
-          disabled={isCapturingScreen || isScanning}
+          disabled={isCapturingScreen}
           className="p-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50"
           title="Recapture Screen"
         >
-          <MaterialIcon name="sync" className={`text-base ${isCapturingScreen ? "animate-spin" : ""}`} />
+          <MaterialIcon icon="sync" className={`text-base ${isCapturingScreen ? "animate-spin" : ""}`} />
         </button>
         
         <button
           onClick={onUploadClick}
-          disabled={isCapturingScreen || isScanning}
-          className="p-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white transition-colors"
+          disabled={isScanning}
+          className="p-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50"
           title="Upload Custom Image"
         >
-          <MaterialIcon name="file_upload" className="text-base" />
+          <MaterialIcon icon="file_upload" size={16} />
         </button>
 
         <button
@@ -55,7 +55,7 @@ export const GoogleLensHeaderBar: React.FC<GoogleLensHeaderBarProps> = ({
           className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:bg-rose-500/20 hover:text-rose-400 transition-colors"
           title="Close Lens"
         >
-          <MaterialIcon name="close" className="text-base" />
+          <MaterialIcon icon="close" size={16} />
         </button>
       </div>
     </div>

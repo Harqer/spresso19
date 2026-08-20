@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { sendPhoneVerificationCode, confirmPhoneCode, logToCrashlytics } from "../../../../lib/firebase";
-import { MaterialIcon } from "../../../MaterialIcon";
+import { sendPhoneVerificationCode, confirmPhoneCode, logToCrashlytics } from "../../../lib/firebase";
+import { MaterialIcon } from "../../MaterialIcon";
 
 interface PhoneAuthModalProps {
   onClose: () => void;

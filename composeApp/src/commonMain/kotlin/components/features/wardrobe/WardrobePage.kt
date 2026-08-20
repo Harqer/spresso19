@@ -37,12 +37,53 @@ fun WardrobePage(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-        try {
-            network.SpressoBackend.getWardrobeItems()
-        } catch(e: Exception) {
-            snackbarHostState.showSnackbar("Wardrobe Error: ${e.message}")
+    val refreshWardrobe: () -> Unit = {
+        scope.launch {
+            try {
+                val items = network.SpressoBackend.getWardrobeItems()
+                photos = items.map { item ->
+                    components.features.wardrobe.WardrobePhotoItem(
+                        id = item.id,
+                        title = item.brand ?: item.category,
+                        category = item.category,
+                        photoUrl = item.imageUrl
+                    )
+                }
+            } catch(e: Exception) {
+                snackbarHostState.showSnackbar("Wardrobe Error: ${e.message}")
+            }
         }
+    }
+
+    val imagePicker = ui.rememberImagePicker { bytes ->
+        if (bytes != null) {
+            scope.launch {
+                try {
+                    val uuid = "wardrobe_${kotlin.random.Random.nextInt()}"
+                    val path = "users/me/wardrobe/$uuid.jpg"
+                    
+                    snackbarHostState.showSnackbar("Uploading photo...")
+                    val uploadedUrl = network.SpressoBackend.uploadImage(bytes, path)
+                    
+                    network.SpressoBackend.addWardrobeItem(
+                        outfitId = null,
+                        category = "Uncategorized",
+                        brand = null,
+                        imageUrl = uploadedUrl,
+                        color = null
+                    )
+                    
+                    refreshWardrobe()
+                    snackbarHostState.showSnackbar("Photo added to wardrobe successfully!")
+                } catch(e: Exception) {
+                    snackbarHostState.showSnackbar("Unable to add photo: ${e.message}")
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        refreshWardrobe()
     }
 
     val weatherSummary = "Cold 32°F Winter Season — Tailored thermal cashmere layering & shearling outerwear curated for your fashion profile."
@@ -89,20 +130,7 @@ fun WardrobePage(
                     photos = photos,
                     weatherSummary = weatherSummary,
                     onAddPhotoClick = {
-                        scope.launch {
-                            try {
-                                network.SpressoBackend.addWardrobeItem(
-                                    outfitId = null,
-                                    category = "Uncategorized",
-                                    brand = null,
-                                    imageUrl = "https://example.com/placeholder_wardrobe.png",
-                                    color = null
-                                )
-                                snackbarHostState.showSnackbar("Wardrobe item added successfully.")
-                            } catch(e: Exception) {
-                                snackbarHostState.showSnackbar("Unable to add photo: ${e.message}")
-                            }
-                        }
+                        imagePicker()
                     },
                     onTryOnPhoto = { photo ->
                         onNavigateToTryOn(photo.id)

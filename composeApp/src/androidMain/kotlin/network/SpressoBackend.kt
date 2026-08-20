@@ -4,6 +4,8 @@ import com.spresso.dataconnect.SpressoConnectorConnector
 import com.spresso.dataconnect.execute
 import com.spresso.dataconnect.instance
 import java.util.UUID
+import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.tasks.await
 
 /**
  * Android actual implementation of SpressoBackend.
@@ -163,6 +165,17 @@ actual object SpressoBackend {
             }
         } catch (e: Exception) {
             Telemetry.recordError("getWardrobeItems failed", e)
+            throw e
+        }
+    }
+
+    actual suspend fun uploadImage(bytes: ByteArray, path: String): String {
+        return try {
+            val storageRef = FirebaseStorage.getInstance().reference.child(path)
+            storageRef.putBytes(bytes).await()
+            storageRef.downloadUrl.await().toString()
+        } catch (e: Exception) {
+            Telemetry.recordError("uploadImage failed", e)
             throw e
         }
     }

@@ -59,9 +59,46 @@ export const WardrobePage: React.FC<WardrobePageProps> = ({ onOpenTryOn, onOpenL
   });
 
   const handleAddPhoto = async () => {
-    throw new Error("Missing Backend API - Needs Implementation");
+    try {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.onchange = async (e: any) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          const rawDataUrl = event.target?.result as string;
+          if (rawDataUrl) {
+            try {
+              const { addWardrobeItem } = await import("@firebasegen/spresso-connector");
+              await addWardrobeItem({
+                category: "TOP", // Default to TOP for now, could add UI to select
+                brand: "Unknown",
+                imageUrl: rawDataUrl
+              });
+              
+              setPhotos((prev) => [
+                {
+                  id: `local-${Date.now()}`,
+                  title: file.name.replace(/\.[^/.]+$/, ""),
+                  category: "TOP",
+                  photoUrl: rawDataUrl
+                },
+                ...prev
+              ]);
+            } catch (err: any) {
+              Logger.error("Failed to add wardrobe item via API:", err);
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    } catch (err: any) {
+      Logger.error("Failed to trigger photo add:", err);
+    }
   };
-
   return (
     <div className="w-full max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Header Banner */}

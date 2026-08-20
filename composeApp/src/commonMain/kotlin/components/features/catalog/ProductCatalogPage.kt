@@ -36,6 +36,8 @@ fun ProductCatalogPage(
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    
+    val catalogViewModel = remember { viewmodels.CatalogViewModel(apiClient, scope) }
 
     LaunchedEffect(Unit) {
         isLoading = true
@@ -59,7 +61,9 @@ fun ProductCatalogPage(
         httpClient = httpClient, onProductSelected = onProductSelected,
         onTryOnRequested = onTryOnRequested, userLocation = userLocation, searchRadius = searchRadius,
         onRequestLocationPermission = onRequestLocationPermission, onShareRequested = onShareRequested,
-        onAskAI = onAskAI, apiClient = apiClient, onRetry = { retry() }, modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing)
+        onAskAI = onAskAI, apiClient = apiClient, onRetry = { retry() },
+        catalogViewModel = catalogViewModel,
+        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing)
     )
 }
 

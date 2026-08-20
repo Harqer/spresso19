@@ -62,6 +62,9 @@ kotlin {
             implementation(libs.firebase.dataconnect)
             implementation(libs.firebase.functions)
             implementation(libs.firebase.messaging)
+            implementation(libs.firebase.storage)
+            implementation(libs.firebase.vertexai)
+            implementation(libs.firebase.appcheck.playintegrity)
             implementation(libs.firebase.ui.auth)
             implementation(libs.compose.pay.button)
             implementation(libs.play.services.wallet)
@@ -91,6 +94,8 @@ kotlin {
             implementation(libs.androidx.xr.runtime)
             implementation(libs.androidx.xr.scenecore)
             implementation(libs.coinbase.wallet.mobile.sdk)
+            implementation(libs.zxing.core)
+            implementation(libs.zxing.core)
         }
         val androidUnitTest = sourceSets.getByName("androidUnitTest")
         androidUnitTest.dependencies {
@@ -155,6 +160,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["mwdat_application_id"] = System.getenv("META_APP_ID") ?: "0"
         manifestPlaceholders["mwdat_client_token"] = System.getenv("META_CLIENT_TOKEN") ?: "0"
+        buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${System.getenv("STRIPE_PUBLISHABLE_KEY") ?: "pk_live_51xyz"}\"")
     }
     packaging {
         resources {

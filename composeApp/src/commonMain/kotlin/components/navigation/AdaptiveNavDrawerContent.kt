@@ -1,7 +1,5 @@
 package components.navigation
 
-import components.models.*
-
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -21,8 +19,8 @@ import androidx.compose.ui.unit.dp
 import navigation.NavKey
 import org.jetbrains.compose.resources.vectorResource
 import org.jetbrains.compose.resources.painterResource
-import spresso.composeapp.generated.resources.Res
-import spresso.composeapp.generated.resources.spresso_logo_symbol_transparent
+import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.Image
 
 @Composable
@@ -37,10 +35,11 @@ fun AdaptiveNavDrawerContent(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            Image(
-                painter = painterResource(Res.drawable.spresso_logo_symbol_transparent),
+            Icon(
+                imageVector = Icons.Default.Coffee,
                 contentDescription = "Spresso Logo",
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(28.dp),
+                tint = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(

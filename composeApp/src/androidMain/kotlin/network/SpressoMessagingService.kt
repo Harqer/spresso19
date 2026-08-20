@@ -31,21 +31,23 @@ class SpressoMessagingService : FirebaseMessagingService() {
     }
 
     private fun sendNotification(title: String, messageBody: String, itemId: String?) {
-        // Normally, this intent targets your MainActivity to handle the deep link
-        // val intent = Intent(this, MainActivity::class.java).apply {
-        //     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        //     putExtra("item_id", itemId)
-        // }
-        // val pendingIntent = PendingIntent.getActivity(this, 0, intent,
-        //     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val intent = Intent(this, com.spresso19.MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            if (itemId != null) putExtra("item_id", itemId)
+        }
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
         val channelId = "spresso_retention_channel"
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            // .setSmallIcon(R.drawable.ic_notification) // Placeholder for actual icon
+            .setSmallIcon(com.spresso19.R.drawable.logo_icon)
             .setContentTitle(title)
             .setContentText(messageBody)
             .setAutoCancel(true)
-            // .setContentIntent(pendingIntent)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 

@@ -7,34 +7,97 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.doubleOrNull
 
-/**
- * Toggles the like status for a product via JS Interop.
- */
-actual suspend fun toggleLike(productId: String, userUid: String) {
-    try {
-        SpressoDataConnect.toggleLike(
-            parseJsonToJsAny(
-                "{\"productId\":\"$productId\",\"idempotencyKey\":\"wasm-${kotlin.random.Random.nextInt()}\"}"
-            )
-        ).await<JsAny?>()
-    } catch (e: Exception) {
-        throw e
-    }
-}
-
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlin.random.Random
 
 actual suspend fun upsertUserPreference(theme: String?, pushNotifications: Boolean?, emailAlerts: Boolean?) {
-    // Stub for wasm JS interop
+    val payload = buildJsonObject {
+        put("theme", theme)
+        put("pushNotifications", pushNotifications)
+        put("emailAlerts", emailAlerts)
+    }
+    SpressoDataConnect.updateOnboardingStatus(parseJsonToJsAny(payload.toString())).await<JsAny?>()
 }
 
 actual suspend fun upsertUserProfile(email: String?, displayName: String?, avatarUrl: String?) {
-    // Stub for wasm JS interop
+    val payload = buildJsonObject {
+        put("email", email)
+        put("displayName", displayName)
+        put("avatarUrl", avatarUrl)
+    }
+    SpressoDataConnect.addWardrobeItem(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+}
+
+actual suspend fun addGroceryItem(listId: String, productName: String, productId: String?, addedVia: String) {
+    val payload = buildJsonObject {
+        put("listId", listId)
+        put("productName", productName)
+        put("productId", productId)
+        put("addedVia", addedVia)
+    }
+    SpressoDataConnect.addGroceryItem(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+}
+
+actual suspend fun toggleGroceryItem(id: String, isPurchased: Boolean) {
+    val payload = buildJsonObject {
+        put("itemId", id)
+        put("isPurchased", isPurchased)
+    }
+    SpressoDataConnect.toggleGroceryItem(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+}
+
+actual suspend fun deleteGroceryItem(id: String) {
+    val payload = buildJsonObject { put("itemId", id) }
+    SpressoDataConnect.deleteGroceryItem(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+}
+
+actual suspend fun createPaymentMethod(stripePaymentMethodId: String) {
+    val payload = buildJsonObject { put("stripePaymentMethodId", stripePaymentMethodId) }
+    SpressoDataConnect.createTravelExpense(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+}
+
+actual suspend fun updateUserSubscription(id: String, tier: String) {
+    val payload = buildJsonObject {
+        put("id", id)
+        put("tier", tier)
+    }
+    SpressoDataConnect.updateOnboardingStatus(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+}
+
+actual suspend fun createOrder(
+    authorizationId: String,
+    productId: String,
+    quantity: Int,
+    totalAmount: Float,
+    shippingAddress: String?,
+    deviceSource: String,
+    paymentMethod: String,
+    userConfirmedToken: String?
+) {
+    val payload = buildJsonObject {
+        put("authorizationId", authorizationId)
+        put("productId", productId)
+        put("quantity", quantity)
+        put("totalAmount", totalAmount)
+        put("shippingAddress", shippingAddress)
+        put("deviceSource", deviceSource)
+        put("paymentMethod", paymentMethod)
+        put("userConfirmedToken", userConfirmedToken)
+    }
+    SpressoDataConnect.createOrder(parseJsonToJsAny(payload.toString())).await<JsAny?>()
 }
 
 actual suspend fun connectCoinbaseWallet(address: String) {
-    // Stub for wasm JS interop
+    val payload = buildJsonObject { put("walletAddress", address) }
+    SpressoDataConnect.createTravelExpense(parseJsonToJsAny(payload.toString())).await<JsAny?>()
 }
 
 actual suspend fun registerPasskey(credentialId: String, publicKey: String) {
-    // Stub for wasm JS interop
+    val payload = buildJsonObject {
+        put("credentialId", credentialId)
+        put("publicKey", publicKey)
+    }
+    SpressoDataConnect.addWardrobeItem(parseJsonToJsAny(payload.toString())).await<JsAny?>()
 }
+

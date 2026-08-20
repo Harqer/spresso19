@@ -1,13 +1,14 @@
 package navigation
 
 import kotlinx.serialization.Serializable
+import androidx.navigation3.runtime.NavKey as AndroidXNavKey
 
 /**
  * Type-safe Navigation 3 Key Contract for Spresso.
  * Contains all top-level destinations, feature screens, modals, overlays, and detail flows.
  */
 @Serializable
-sealed interface NavKey {
+sealed interface NavKey : AndroidXNavKey {
     // 1. Auth & Onboarding Flow
     @Serializable
     data object AuthKey : NavKey

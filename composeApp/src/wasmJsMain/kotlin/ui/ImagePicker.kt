@@ -27,10 +27,7 @@ actual fun rememberImagePicker(
                 reader.onload = {
                     val arrayBuffer = reader.result as org.khronos.webgl.ArrayBuffer
                     val intArray = Int8Array(arrayBuffer)
-                    val bytes = ByteArray(intArray.length)
-                    for (i in 0 until intArray.length) {
-                        bytes[i] = getInt8ArrayElement(intArray, i)
-                    }
+                    val bytes = ByteArray(intArray.length) { i -> intArray[i] }
                     onImagePicked(bytes)
                     null
                 }
