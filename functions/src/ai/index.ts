@@ -161,7 +161,7 @@ export const creatorAgentTemplates = onCall(async (request) => {
     try {
         const { db } = await import("../shared/db");
         const snapshot = await db.collection("creator_templates").get();
-        const templates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const templates = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
         return { templates };
     } catch (e) {
         throw new HttpsError("internal", "Failed to fetch creator agent templates");
@@ -238,7 +238,7 @@ export const getQuickPrompts = onCall(async (request) => {
     try {
         const { db } = await import("../shared/db");
         const snapshot = await db.collection("quick_prompts").get();
-        const prompts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const prompts = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
         return { prompts };
     } catch (e) {
         throw new HttpsError("internal", "Failed to fetch quick prompts");
@@ -267,7 +267,7 @@ export const createCatalogCache = onCall({ secrets: [geminiApiKey] }, async (req
         const { db } = await import("../shared/db");
         // Assume products collection holds the large catalog
         const snapshot = await db.collection("products").get();
-        const catalog = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const catalog = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
         const catalogText = JSON.stringify(catalog);
         
         const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
@@ -283,7 +283,7 @@ export const createCatalogCache = onCall({ secrets: [geminiApiKey] }, async (req
     }
 });
 
-import * as admin from "firebase-admin";
+import { getAppCheck } from "firebase-admin/app-check";
 
 export const chatStream = onRequest({ secrets: [geminiApiKey], cors: true }, async (req, res) => {
     // Only allow POST
@@ -299,7 +299,7 @@ export const chatStream = onRequest({ secrets: [geminiApiKey], cors: true }, asy
     }
 
     try {
-        await admin.appCheck().verifyToken(appCheckToken);
+        await getAppCheck().verifyToken(appCheckToken);
     } catch (err) {
         res.status(401).send("Unauthorized: Invalid App Check token");
         return;

@@ -15,6 +15,22 @@ export const auth = getAuth(app);
 export const dataConnect = getDataConnect(app, connectorConfig);
 export const functions = getFunctions(app);
 
+// Initialize Telemetry: Firebase Performance Monitoring & Google Analytics
+let analytics: ReturnType<typeof getAnalytics> | null = null;
+let perf: ReturnType<typeof getPerformance> | null = null;
+
+if (typeof window !== "undefined") {
+  // We only initialize Analytics and Performance in browser environments
+  import("firebase/analytics").then(({ getAnalytics }) => {
+    analytics = getAnalytics(app);
+  });
+  import("firebase/performance").then(({ getPerformance }) => {
+    perf = getPerformance(app);
+  });
+}
+
+export { analytics, perf };
+
 // Enforce browser local persistence for seamless cross-session user state
 setPersistence(auth, browserLocalPersistence).catch((err) => {
   logToCrashlytics("warn", "Could not enable browser local persistence", { error: String(err) });

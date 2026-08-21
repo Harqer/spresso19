@@ -11,7 +11,7 @@ export const curateWardrobe = onCall(async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     try {
         const snapshot = await db.collection("curated_wardrobes").where("userId", "==", request.auth.uid).get();
-        const curatedOutfits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const curatedOutfits = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
         return { curatedOutfits };
     } catch (e) {
         throw new HttpsError("internal", "Failed to curate wardrobe");
@@ -22,7 +22,7 @@ export const getUserLikes = onCall(async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     try {
         const snapshot = await db.collection(`users/${request.auth.uid}/likes`).get();
-        const likes = snapshot.docs.map(doc => doc.id);
+        const likes = snapshot.docs.map((doc: any) => doc.id);
         return { likes };
     } catch (e) {
         throw new HttpsError("internal", "Failed to fetch user likes");
@@ -33,7 +33,7 @@ export const getUserBookmarks = onCall(async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     try {
         const snapshot = await db.collection(`users/${request.auth.uid}/bookmarks`).get();
-        const bookmarks = snapshot.docs.map(doc => doc.id);
+        const bookmarks = snapshot.docs.map((doc: any) => doc.id);
         return { bookmarks };
     } catch (e) {
         throw new HttpsError("internal", "Failed to fetch user bookmarks");
@@ -53,7 +53,7 @@ export const toggleUserLike = onCall(async (request) => {
       const likeRef = db.collection(`users/${request.auth.uid}/likes`).doc(productId);
       const idempotencyRef = db.collection("idempotency_keys").doc(idempotencyKey);
 
-      await db.runTransaction(async (t) => {
+      await db.runTransaction(async (t: any) => {
           const keyDoc = await t.get(idempotencyRef);
           if (keyDoc.exists) return; // Already processed
           t.set(idempotencyRef, { processedAt: new Date().toISOString() });
@@ -85,7 +85,7 @@ export const toggleUserBookmark = onCall(async (request) => {
       const bookmarkRef = db.collection(`users/${request.auth.uid}/bookmarks`).doc(productId);
       const idempotencyRef = db.collection("idempotency_keys").doc(idempotencyKey);
 
-      await db.runTransaction(async (t) => {
+      await db.runTransaction(async (t: any) => {
           const keyDoc = await t.get(idempotencyRef);
           if (keyDoc.exists) return; // Already processed
           t.set(idempotencyRef, { processedAt: new Date().toISOString() });

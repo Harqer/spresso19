@@ -202,7 +202,7 @@ exports.creatorAgentTemplates = (0, https_1.onCall)(async (request) => {
     try {
         const { db } = await Promise.resolve().then(() => __importStar(require("../shared/db")));
         const snapshot = await db.collection("creator_templates").get();
-        const templates = snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        const templates = snapshot.docs.map((doc) => (Object.assign({ id: doc.id }, doc.data())));
         return { templates };
     }
     catch (e) {
@@ -278,7 +278,7 @@ exports.getQuickPrompts = (0, https_1.onCall)(async (request) => {
     try {
         const { db } = await Promise.resolve().then(() => __importStar(require("../shared/db")));
         const snapshot = await db.collection("quick_prompts").get();
-        const prompts = snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        const prompts = snapshot.docs.map((doc) => (Object.assign({ id: doc.id }, doc.data())));
         return { prompts };
     }
     catch (e) {
@@ -304,7 +304,7 @@ exports.createCatalogCache = (0, https_1.onCall)({ secrets: [geminiApiKey] }, as
         const { db } = await Promise.resolve().then(() => __importStar(require("../shared/db")));
         // Assume products collection holds the large catalog
         const snapshot = await db.collection("products").get();
-        const catalog = snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        const catalog = snapshot.docs.map((doc) => (Object.assign({ id: doc.id }, doc.data())));
         const catalogText = JSON.stringify(catalog);
         const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
         const cachedContent = await ai.caches.create({
@@ -318,7 +318,7 @@ exports.createCatalogCache = (0, https_1.onCall)({ secrets: [geminiApiKey] }, as
         throw new https_1.HttpsError("internal", `Failed to create catalog cache: ${e.message}`);
     }
 });
-const admin = __importStar(require("firebase-admin"));
+const app_check_1 = require("firebase-admin/app-check");
 exports.chatStream = (0, https_1.onRequest)({ secrets: [geminiApiKey], cors: true }, async (req, res) => {
     var _a, e_1, _b, _c;
     var _d;
@@ -333,7 +333,7 @@ exports.chatStream = (0, https_1.onRequest)({ secrets: [geminiApiKey], cors: tru
         return;
     }
     try {
-        await admin.appCheck().verifyToken(appCheckToken);
+        await (0, app_check_1.getAppCheck)().verifyToken(appCheckToken);
     }
     catch (err) {
         res.status(401).send("Unauthorized: Invalid App Check token");

@@ -13,7 +13,7 @@ exports.curateWardrobe = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     try {
         const snapshot = await db_1.db.collection("curated_wardrobes").where("userId", "==", request.auth.uid).get();
-        const curatedOutfits = snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        const curatedOutfits = snapshot.docs.map((doc) => (Object.assign({ id: doc.id }, doc.data())));
         return { curatedOutfits };
     }
     catch (e) {
@@ -25,7 +25,7 @@ exports.getUserLikes = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     try {
         const snapshot = await db_1.db.collection(`users/${request.auth.uid}/likes`).get();
-        const likes = snapshot.docs.map(doc => doc.id);
+        const likes = snapshot.docs.map((doc) => doc.id);
         return { likes };
     }
     catch (e) {
@@ -37,7 +37,7 @@ exports.getUserBookmarks = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     try {
         const snapshot = await db_1.db.collection(`users/${request.auth.uid}/bookmarks`).get();
-        const bookmarks = snapshot.docs.map(doc => doc.id);
+        const bookmarks = snapshot.docs.map((doc) => doc.id);
         return { bookmarks };
     }
     catch (e) {

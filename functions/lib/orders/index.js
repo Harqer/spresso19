@@ -15,7 +15,7 @@ exports.getUserOrders = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     try {
         const snapshot = await db_1.db.collection("orders").where("userId", "==", request.auth.uid).get();
-        const orders = snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        const orders = snapshot.docs.map((doc) => (Object.assign({ id: doc.id }, doc.data())));
         return { success: true, orders };
     }
     catch (e) {

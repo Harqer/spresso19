@@ -14,7 +14,7 @@ export const getUserOrders = onCall(async (request) => {
     
     try {
       const snapshot = await db.collection("orders").where("userId", "==", request.auth.uid).get();
-      const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const orders = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
       return { success: true, orders };
     } catch (e) {
       throw new HttpsError("internal", "Failed to fetch orders");
@@ -48,7 +48,7 @@ export const initiateOrderReturn = onCall(async (request) => {
       const returnRef = db.collection("returns").doc();
       const idempotencyRef = db.collection("idempotency_keys").doc(idempotencyKey);
       
-      await db.runTransaction(async (t) => {
+      await db.runTransaction(async (t: any) => {
         const keyDoc = await t.get(idempotencyRef);
         if (keyDoc.exists) {
             // Already processed

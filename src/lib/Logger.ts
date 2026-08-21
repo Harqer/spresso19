@@ -1,5 +1,6 @@
 import { db } from "./firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getApp } from "firebase/app";
 
 type LogLevel = "info" | "warn" | "error";
 
@@ -40,6 +41,21 @@ class Logger {
       await addDoc(collection(db, "logs"), logPayload);
     } catch (e) {
       console.error("Failed to send log telemetry to Firestore:", e);
+    }
+
+    // 3. Google Analytics / Performance telemetry
+    if (typeof window !== "undefined") {
+      import("firebase/analytics").then(({ getAnalytics, logEvent }) => {
+        const app = getApp(); // Requires getApp from firebase/app
+        const analytics = getAnalytics(app);
+        if (analytics) {
+          logEvent(analytics, level === "error" ? "exception" : "log", {
+            description: message,
+            fatal: level === "error",
+            ...context
+          });
+        }
+      }).catch(() => { /* silent fail if analytics isn't available */});
     }
   }
 

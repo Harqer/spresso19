@@ -1,6 +1,6 @@
 import { ai } from "../genkit";
 import { z } from "genkit";
-import * as admin from "firebase-admin";
+import { getFirestore } from "firebase-admin/firestore";
 
 export const addToCartTool = ai.defineTool(
   {
@@ -24,10 +24,10 @@ export const addToCartTool = ai.defineTool(
     
     console.log(`User ${uid} adding ${quantity} of product ${productId} to cart`);
     
-    const db = admin.firestore();
+    const db = getFirestore();
     const cartRef = db.collection("carts").doc(uid);
     
-    await db.runTransaction(async (transaction) => {
+    await db.runTransaction(async (transaction: any) => {
       const cartDoc = await transaction.get(cartRef);
       const data = cartDoc.exists ? cartDoc.data() : { items: [] };
       const items = data?.items || [];
