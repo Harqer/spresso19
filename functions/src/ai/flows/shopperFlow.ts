@@ -6,6 +6,7 @@ import "../tools/addToCart";
 import "../tools/searchProducts";
 import "../tools/parallelWebSearch";
 import "../tools/parallelDeepResearch";
+import "../tools/prepareCryptoPurchase";
 
 export const spressoShopperFlow = ai.defineFlow(
   {

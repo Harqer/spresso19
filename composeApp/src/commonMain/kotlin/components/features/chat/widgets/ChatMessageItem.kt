@@ -8,12 +8,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import components.features.chat.ChatBubbleText
 import components.features.chat.ChatMessageHeader
 import components.features.chat.ChatProductCard
 import network.ChatMessage
 import network.ProductItem
 import io.ktor.client.HttpClient
+import org.jetbrains.compose.resources.stringResource
+import spresso.composeapp.generated.resources.*
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -44,8 +47,16 @@ fun ChatMessageItem(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             ChatMessageHeader(isUser = isUser, timestamp = message.timestamp)
+            val biometricMatch = "\\[BIOMETRIC_CHECKOUT:(.*?)\\]".toRegex().find(message.text)
+            val orderId = biometricMatch?.groupValues?.get(1)
+            val displayText = if (biometricMatch != null) {
+                message.text.replace(biometricMatch.value, "").trim()
+            } else {
+                message.text
+            }
+
             ChatBubbleText(
-                text = message.text,
+                text = displayText,
                 isUser = isUser,
                 thought = message.thought,
                 sources = message.sources,
@@ -54,6 +65,38 @@ fun ChatMessageItem(
                 isStreaming = isGenerating && isLastMessage && !isUser,
                 httpClient = httpClient
             )
+
+            if (orderId != null && !isGenerating) {
+                val passkeyRegistrar = components.features.auth.rememberPasskeyRegistrar()
+                val coroutineScope = rememberCoroutineScope()
+                var purchaseStatus by remember { mutableStateOf<String?>(null) }
+                
+                val authenticatingStr = stringResource(Res.string.auth_authenticating)
+                val confirmedStr = stringResource(Res.string.auth_purchase_confirmed)
+                val failedStr = stringResource(Res.string.auth_failed_to_confirm)
+                val errorStr = stringResource(Res.string.auth_error)
+                val confirmPasskeyStr = stringResource(Res.string.auth_confirm_purchase_passkey)
+
+                Box(modifier = Modifier.padding(start = 32.dp, top = 8.dp).fillMaxWidth()) {
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                purchaseStatus = authenticatingStr
+                                try {
+                                    val success = passkeyRegistrar.authenticateWithPasskey(orderId)
+                                    purchaseStatus = if (success) confirmedStr else failedStr
+                                } catch (e: Exception) {
+                                    purchaseStatus = "$errorStr${e.message}"
+                                }
+                            }
+                        },
+                        enabled = purchaseStatus == null || purchaseStatus == failedStr || purchaseStatus?.startsWith(errorStr) == true
+                    ) {
+                        androidx.compose.material3.Text(purchaseStatus ?: confirmPasskeyStr)
+                    }
+                }
+            }
+
             if (message.products.isNotEmpty()) {
                 Box(modifier = Modifier.padding(start = if (isUser) 0.dp else 32.dp, top = 8.dp).fillMaxWidth()) {
 

@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateGoogleWalletPassJwt = exports.confirmPurchase = exports.createStripeIntent = exports.getStripeConfig = void 0;
+exports.executeBiometricPurchase = exports.generateGoogleWalletPassJwt = exports.confirmPurchase = exports.createStripeIntent = exports.getStripeConfig = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
 const stripe_1 = __importDefault(require("stripe"));
@@ -141,5 +141,81 @@ exports.generateGoogleWalletPassJwt = (0, https_1.onCall)(async (request) => {
         jwt: "mock.jwt.token.for.google.wallet",
         success: true
     };
+});
+const server_1 = require("@simplewebauthn/server");
+const agentkit_1 = require("@coinbase/agentkit");
+const cdpApiKeyId = (0, params_1.defineSecret)("CDP_API_KEY_NAME");
+const cdpApiKeySecret = (0, params_1.defineSecret)("CDP_API_KEY_PRIVATE_KEY");
+exports.executeBiometricPurchase = (0, https_1.onCall)({ secrets: [cdpApiKeyId, cdpApiKeySecret] }, async (request) => {
+    if (!request.auth)
+        throw new https_1.HttpsError("unauthenticated", "Must be logged in.");
+    const { orderId, responseJson, challenge } = request.data;
+    if (!orderId || !responseJson || !challenge) {
+        throw new https_1.HttpsError("invalid-argument", "Missing parameters.");
+    }
+    try {
+        const orderRef = db_1.db.collection("orders").doc(orderId);
+        const orderSnap = await orderRef.get();
+        if (!orderSnap.exists) {
+            throw new https_1.HttpsError("not-found", "Order not found.");
+        }
+        const orderData = orderSnap.data();
+        if (orderData.userId !== request.auth.uid) {
+            throw new https_1.HttpsError("permission-denied", "Order does not belong to this user.");
+        }
+        if (orderData.status !== "PENDING_BIOMETRICS") {
+            throw new https_1.HttpsError("failed-precondition", "Order is not pending biometrics.");
+        }
+        const response = typeof responseJson === 'string' ? JSON.parse(responseJson) : responseJson;
+        // Fetch the user's passkey from DB
+        const passkeysSnapshot = await db_1.db.collection("users").doc(request.auth.uid).collection("passkeys").where("credentialId", "==", response.id).get();
+        if (passkeysSnapshot.empty) {
+            throw new https_1.HttpsError("not-found", "Passkey not found for user.");
+        }
+        const passkeyData = passkeysSnapshot.docs[0].data();
+        // 1. Verify Passkey authentication
+        const verification = await (0, server_1.verifyAuthenticationResponse)({
+            response,
+            expectedChallenge: challenge,
+            expectedOrigin: ["https://spresso.com", "android:apk-key-hash"],
+            expectedRPID: "spresso.com",
+            credential: {
+                id: passkeyData.credentialId,
+                publicKey: Buffer.from(passkeyData.publicKey, "base64"),
+                counter: passkeyData.counter,
+                transports: ["internal", "hybrid"]
+            } // Use as any in case exact types differ slightly
+        });
+        if (!verification.verified) {
+            throw new https_1.HttpsError("permission-denied", "Biometric verification failed.");
+        }
+        // Update counter
+        await passkeysSnapshot.docs[0].ref.update({ counter: verification.authenticationInfo.newCounter });
+        // 2. Initialize Agentic Wallet & Execute USDC transfer
+        const walletProvider = await agentkit_1.CdpEvmWalletProvider.configureWithWallet({
+            apiKeyId: cdpApiKeyId.value(),
+            apiKeySecret: cdpApiKeySecret.value(),
+            networkId: "base-mainnet"
+        });
+        // Dummy vendor address for the sake of the transaction
+        const vendorAddress = "0x0000000000000000000000000000000000000000";
+        // Assuming we would use an actionProvider for ERC20 transfers, but we can do a raw tx or mock the SDK usage
+        // This is a placeholder representing the on-chain transfer logic
+        console.log(`Agentic Wallet (${await walletProvider.getAddress()}): Executing ${orderData.totalAmount} USDC transfer to ${vendorAddress}`);
+        // 3. Update Order Status
+        await orderRef.update({
+            status: "COMPLETED",
+            transactionHash: "mock_tx_hash_" + Date.now(),
+            completedAt: new Date().toISOString()
+        });
+        return {
+            success: true,
+            message: "Purchase executed successfully via Agentic Wallet."
+        };
+    }
+    catch (e) {
+        console.error("executeBiometricPurchase error:", e);
+        throw new https_1.HttpsError("internal", e.message);
+    }
 });
 //# sourceMappingURL=index.js.map

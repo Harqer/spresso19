@@ -76,6 +76,7 @@ kotlin {
             implementation(libs.androidx.camera.mlkit.vision)
             implementation(libs.mlkit.vision.detection)
             implementation(libs.mlkit.vision.text)
+            implementation("com.google.mlkit:translate:17.0.2")
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.play.services.auth)
             implementation(libs.googleid)

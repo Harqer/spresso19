@@ -9,6 +9,10 @@ import { virtualTryOnFlow } from "./flows/virtualTryOnFlow";
 import { spin360Flow } from "./flows/spin360Flow";
 import { behavioralAnalysisFlow } from "./flows/behavioralAnalysisFlow";
 import { discoverPersonalizedProductsFlow } from "./flows/discoverPersonalizedProductsFlow";
+import { ai } from "./genkit";
+import { prepareCryptoPurchaseTool } from "./tools/prepareCryptoPurchase";
+import { getAuth } from "firebase-admin/auth";
+import { getAppCheck } from "firebase-admin/app-check";
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
@@ -282,9 +286,6 @@ export const createCatalogCache = onCall({ secrets: [geminiApiKey] }, async (req
         throw new HttpsError("internal", `Failed to create catalog cache: ${e.message}`);
     }
 });
-
-import { getAppCheck } from "firebase-admin/app-check";
-
 export const chatStream = onRequest({ secrets: [geminiApiKey], cors: true }, async (req, res) => {
     // Only allow POST
     if (req.method !== "POST") {
@@ -298,6 +299,17 @@ export const chatStream = onRequest({ secrets: [geminiApiKey], cors: true }, asy
         return;
     }
 
+    let uid: string | undefined;
+    const authHeader = req.header("Authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        try {
+            const decodedToken = await getAuth().verifyIdToken(authHeader.split("Bearer ")[1]);
+            uid = decodedToken.uid;
+        } catch (err) {
+            console.error("Invalid auth token", err);
+        }
+    }
+
     try {
         await getAppCheck().verifyToken(appCheckToken);
     } catch (err) {
@@ -305,39 +317,32 @@ export const chatStream = onRequest({ secrets: [geminiApiKey], cors: true }, asy
         return;
     }
 
-    const { prompt, cachedContentName } = req.body;
-    const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+    const { prompt, locale } = req.body;
     
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
     try {
-        const aiConfig: any = {
-            model: "gemini-3.5-flash",
-            input: prompt,
-            system_instruction: "You are Spresso Personal Shopper. Keep it brief.",
-            stream: true,
-            safety_settings: [
-                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
-            ] as any,
-            tools: [
-                { parallelAiSearch: {} },
-                { googleMaps: { groundingTypes: { places: {}, routing: {} } } }
-            ] as any
-        };
-        if (cachedContentName) {
-            aiConfig.cachedContent = cachedContentName;
-        }
+        const { stream } = await ai.generateStream({
+            model: "googleai/gemini-1.5-flash",
+            prompt: prompt,
+            system: `You are Spresso Personal Shopper. Keep it brief. You must reply natively in this language locale: ${locale || 'en'}`,
+            tools: [prepareCryptoPurchaseTool],
+            context: { auth: { uid } },
+            config: {
+                safetySettings: [
+                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+                ] as any
+            }
+        });
 
-        const responseStream: any = await ai.interactions.create(aiConfig);
-
-        for await (const event of responseStream) {
-            if (event.event_type === "step.delta" && event.delta?.type === "text") {
-                res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+        for await (const chunk of stream) {
+            if (chunk.text) {
+                res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
             }
         }
         res.write(`data: [DONE]\n\n`);

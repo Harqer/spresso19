@@ -24,4 +24,11 @@ external object SpressoDataConnect {
     fun addWardrobeItem(vars: JsAny? = definedExternally): Promise<JsAny?>
     fun getCreatorAgents(): Promise<JsAny?>
     fun getCreativeTemplates(): Promise<JsAny?>
+    fun upsertUserProfile(vars: JsAny? = definedExternally): Promise<JsAny?>
+    fun upsertUserPreference(vars: JsAny? = definedExternally): Promise<JsAny?>
+    fun createPaymentMethod(vars: JsAny? = definedExternally): Promise<JsAny?>
+    fun deletePaymentMethod(vars: JsAny? = definedExternally): Promise<JsAny?>
+    fun updateUserSubscription(vars: JsAny? = definedExternally): Promise<JsAny?>
+    fun connectCoinbaseWallet(vars: JsAny? = definedExternally): Promise<JsAny?>
+    fun registerPasskey(vars: JsAny? = definedExternally): Promise<JsAny?>
 }

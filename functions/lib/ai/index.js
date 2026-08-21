@@ -51,6 +51,10 @@ const virtualTryOnFlow_1 = require("./flows/virtualTryOnFlow");
 const spin360Flow_1 = require("./flows/spin360Flow");
 const behavioralAnalysisFlow_1 = require("./flows/behavioralAnalysisFlow");
 const discoverPersonalizedProductsFlow_1 = require("./flows/discoverPersonalizedProductsFlow");
+const genkit_1 = require("./genkit");
+const prepareCryptoPurchase_1 = require("./tools/prepareCryptoPurchase");
+const auth_1 = require("firebase-admin/auth");
+const app_check_1 = require("firebase-admin/app-check");
 const geminiApiKey = (0, params_1.defineSecret)("GEMINI_API_KEY");
 exports.generateVirtualTryOn = (0, https_1.onCall)({ enforceAppCheck: true }, async (request) => {
     if (!request.auth)
@@ -318,10 +322,8 @@ exports.createCatalogCache = (0, https_1.onCall)({ secrets: [geminiApiKey] }, as
         throw new https_1.HttpsError("internal", `Failed to create catalog cache: ${e.message}`);
     }
 });
-const app_check_1 = require("firebase-admin/app-check");
 exports.chatStream = (0, https_1.onRequest)({ secrets: [geminiApiKey], cors: true }, async (req, res) => {
     var _a, e_1, _b, _c;
-    var _d;
     // Only allow POST
     if (req.method !== "POST") {
         res.status(405).send("Method Not Allowed");
@@ -332,6 +334,17 @@ exports.chatStream = (0, https_1.onRequest)({ secrets: [geminiApiKey], cors: tru
         res.status(401).send("Unauthorized: Missing App Check token");
         return;
     }
+    let uid;
+    const authHeader = req.header("Authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        try {
+            const decodedToken = await (0, auth_1.getAuth)().verifyIdToken(authHeader.split("Bearer ")[1]);
+            uid = decodedToken.uid;
+        }
+        catch (err) {
+            console.error("Invalid auth token", err);
+        }
+    }
     try {
         await (0, app_check_1.getAppCheck)().verifyToken(appCheckToken);
     }
@@ -339,46 +352,40 @@ exports.chatStream = (0, https_1.onRequest)({ secrets: [geminiApiKey], cors: tru
         res.status(401).send("Unauthorized: Invalid App Check token");
         return;
     }
-    const { prompt, cachedContentName } = req.body;
-    const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
+    const { prompt, locale } = req.body;
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     try {
-        const aiConfig = {
-            model: "gemini-3.5-flash",
-            input: prompt,
-            system_instruction: "You are Spresso Personal Shopper. Keep it brief.",
-            stream: true,
-            safety_settings: [
-                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
-            ],
-            tools: [
-                { parallelAiSearch: {} },
-                { googleMaps: { groundingTypes: { places: {}, routing: {} } } }
-            ]
-        };
-        if (cachedContentName) {
-            aiConfig.cachedContent = cachedContentName;
-        }
-        const responseStream = await ai.interactions.create(aiConfig);
+        const { stream } = await genkit_1.ai.generateStream({
+            model: "googleai/gemini-1.5-flash",
+            prompt: prompt,
+            system: `You are Spresso Personal Shopper. Keep it brief. You must reply natively in this language locale: ${locale || 'en'}`,
+            tools: [prepareCryptoPurchase_1.prepareCryptoPurchaseTool],
+            context: { auth: { uid } },
+            config: {
+                safetySettings: [
+                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+                ]
+            }
+        });
         try {
-            for (var _e = true, responseStream_1 = __asyncValues(responseStream), responseStream_1_1; responseStream_1_1 = await responseStream_1.next(), _a = responseStream_1_1.done, !_a; _e = true) {
-                _c = responseStream_1_1.value;
-                _e = false;
-                const event = _c;
-                if (event.event_type === "step.delta" && ((_d = event.delta) === null || _d === void 0 ? void 0 : _d.type) === "text") {
-                    res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+            for (var _d = true, stream_1 = __asyncValues(stream), stream_1_1; stream_1_1 = await stream_1.next(), _a = stream_1_1.done, !_a; _d = true) {
+                _c = stream_1_1.value;
+                _d = false;
+                const chunk = _c;
+                if (chunk.text) {
+                    res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
                 }
             }
         }
         catch (e_1_1) { e_1 = { error: e_1_1 }; }
         finally {
             try {
-                if (!_e && !_a && (_b = responseStream_1.return)) await _b.call(responseStream_1);
+                if (!_d && !_a && (_b = stream_1.return)) await _b.call(stream_1);
             }
             finally { if (e_1) throw e_1.error; }
         }

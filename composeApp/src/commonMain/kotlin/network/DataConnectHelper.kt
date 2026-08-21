@@ -18,6 +18,7 @@ expect suspend fun addGroceryItem(listId: String, productName: String, productId
 expect suspend fun toggleGroceryItem(id: String, isPurchased: Boolean)
 expect suspend fun deleteGroceryItem(id: String)
 expect suspend fun createPaymentMethod(stripePaymentMethodId: String)
+expect suspend fun deletePaymentMethod(id: String)
 expect suspend fun updateUserSubscription(id: String, tier: String)
 expect suspend fun createOrder(authorizationId: String, productId: String, quantity: Int, totalAmount: Float, shippingAddress: String?, deviceSource: String, paymentMethod: String, userConfirmedToken: String?)
 

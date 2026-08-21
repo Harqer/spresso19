@@ -36,6 +36,7 @@ import network.addGroceryItem as addGroceryItemTopLevel
 import network.toggleGroceryItem as toggleGroceryItemTopLevel
 import network.deleteGroceryItem as deleteGroceryItemTopLevel
 import network.createPaymentMethod as createPaymentMethodTopLevel
+import network.deletePaymentMethod as deletePaymentMethodTopLevel
 import network.updateUserSubscription as updateUserSubscriptionTopLevel
 import network.createOrder as createOrderTopLevel
 import network.registerPasskey as registerPasskeyTopLevel
@@ -226,13 +227,16 @@ open class ApiClient {
                 if (authToken != null) {
                     header(HttpHeaders.Authorization, "Bearer \$authToken")
                 }
+                val localeHelper = com.spresso19.translation.LocaleHelper()
+                val locale = localeHelper.getCurrentLocale()
                 setBody(mapOf(
                     "data" to mapOf(
                         "prompt" to prompt,
                         "imageBase64" to imageBase64,
                         "location" to location,
                         "latLng" to latLng?.let { mapOf("latitude" to it.first, "longitude" to it.second) },
-                        "agentType" to agentType
+                        "agentType" to agentType,
+                        "locale" to locale
                     )
                 ))
             }
@@ -451,8 +455,7 @@ open class ApiClient {
     }
 
     suspend fun removePaymentMethod(id: String): Boolean {
-        // Mock removing payment method
-        delay(800)
+        deletePaymentMethodTopLevel(id)
         return true
     }
 
@@ -514,6 +517,18 @@ open class ApiClient {
             put("challenge", challenge)
         }
         val responseStr = callFirebaseFunction(FirebaseRoutes.VERIFY_PASSKEY_REGISTRATION, payload.toString())
+        val response = json.parseToJsonElement(responseStr).jsonObject
+        val result = response["result"]?.jsonObject ?: response
+        return result["success"]?.jsonPrimitive?.boolean ?: false
+    }
+
+    suspend fun executeBiometricPurchase(orderId: String, responseJson: String, challenge: String): Boolean {
+        val payload = buildJsonObject {
+            put("orderId", orderId)
+            put("responseJson", responseJson)
+            put("challenge", challenge)
+        }
+        val responseStr = callFirebaseFunction("executeBiometricPurchase", payload.toString())
         val response = json.parseToJsonElement(responseStr).jsonObject
         val result = response["result"]?.jsonObject ?: response
         return result["success"]?.jsonPrimitive?.boolean ?: false

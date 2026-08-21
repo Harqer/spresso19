@@ -8,6 +8,7 @@ require("../tools/addToCart");
 require("../tools/searchProducts");
 require("../tools/parallelWebSearch");
 require("../tools/parallelDeepResearch");
+require("../tools/prepareCryptoPurchase");
 exports.spressoShopperFlow = genkit_1.ai.defineFlow({
     name: "spressoShopperFlow",
     inputSchema: genkit_2.z.object({

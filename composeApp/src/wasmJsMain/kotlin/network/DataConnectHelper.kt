@@ -17,7 +17,7 @@ actual suspend fun upsertUserPreference(theme: String?, pushNotifications: Boole
         put("pushNotifications", pushNotifications)
         put("emailAlerts", emailAlerts)
     }
-    SpressoDataConnect.updateOnboardingStatus(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+    SpressoDataConnect.upsertUserPreference(parseJsonToJsAny(payload.toString())).await<JsAny?>()
 }
 
 actual suspend fun upsertUserProfile(email: String?, displayName: String?, avatarUrl: String?) {
@@ -26,7 +26,7 @@ actual suspend fun upsertUserProfile(email: String?, displayName: String?, avata
         put("displayName", displayName)
         put("avatarUrl", avatarUrl)
     }
-    SpressoDataConnect.addWardrobeItem(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+    SpressoDataConnect.upsertUserProfile(parseJsonToJsAny(payload.toString())).await<JsAny?>()
 }
 
 actual suspend fun addGroceryItem(listId: String, productName: String, productId: String?, addedVia: String) {
@@ -54,7 +54,12 @@ actual suspend fun deleteGroceryItem(id: String) {
 
 actual suspend fun createPaymentMethod(stripePaymentMethodId: String) {
     val payload = buildJsonObject { put("stripePaymentMethodId", stripePaymentMethodId) }
-    SpressoDataConnect.createTravelExpense(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+    SpressoDataConnect.createPaymentMethod(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+}
+
+actual suspend fun deletePaymentMethod(id: String) {
+    val payload = buildJsonObject { put("id", id) }
+    SpressoDataConnect.deletePaymentMethod(parseJsonToJsAny(payload.toString())).await<JsAny?>()
 }
 
 actual suspend fun updateUserSubscription(id: String, tier: String) {
@@ -62,7 +67,7 @@ actual suspend fun updateUserSubscription(id: String, tier: String) {
         put("id", id)
         put("tier", tier)
     }
-    SpressoDataConnect.updateOnboardingStatus(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+    SpressoDataConnect.updateUserSubscription(parseJsonToJsAny(payload.toString())).await<JsAny?>()
 }
 
 actual suspend fun createOrder(
@@ -90,7 +95,7 @@ actual suspend fun createOrder(
 
 actual suspend fun connectCoinbaseWallet(address: String) {
     val payload = buildJsonObject { put("walletAddress", address) }
-    SpressoDataConnect.createTravelExpense(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+    SpressoDataConnect.connectCoinbaseWallet(parseJsonToJsAny(payload.toString())).await<JsAny?>()
 }
 
 actual suspend fun registerPasskey(credentialId: String, publicKey: String) {
@@ -98,6 +103,6 @@ actual suspend fun registerPasskey(credentialId: String, publicKey: String) {
         put("credentialId", credentialId)
         put("publicKey", publicKey)
     }
-    SpressoDataConnect.addWardrobeItem(parseJsonToJsAny(payload.toString())).await<JsAny?>()
+    SpressoDataConnect.registerPasskey(parseJsonToJsAny(payload.toString())).await<JsAny?>()
 }
 

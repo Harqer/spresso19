@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Spresso</string>
+    <string name="auth_authenticating">认证中...</string>
+    <string name="auth_purchase_confirmed">购买已确认 ✓</string>
+    <string name="auth_failed_to_confirm">确认失败</string>
+    <string name="auth_error">错误: </string>
+    <string name="auth_confirm_purchase_passkey">使用通行密钥确认购买</string>
+    <string name="settings_language">语言</string>
+</resources>

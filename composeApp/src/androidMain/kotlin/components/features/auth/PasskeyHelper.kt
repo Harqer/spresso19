@@ -85,6 +85,45 @@ actual fun rememberPasskeyRegistrar(): PasskeyRegistrar {
                     throw Exception("Unknown error creating passkey", e)
                 }
             }
+
+            override suspend fun authenticateWithPasskey(orderId: String): Boolean = withContext(Dispatchers.IO) {
+                val credentialManager = CredentialManager.create(context)
+                val apiClient = ApiClient()
+                val dynamicChallenge = apiClient.generatePasskeyChallenge()
+                
+                if (dynamicChallenge.isEmpty()) {
+                    apiClient.close()
+                    throw IllegalStateException("Failed to generate dynamic WebAuthn challenge from backend")
+                }
+
+                val requestJson = """
+                    {
+                        "challenge": "$dynamicChallenge",
+                        "timeout": 60000,
+                        "rpId": "spresso.com",
+                        "userVerification": "required"
+                    }
+                """.trimIndent()
+
+                val request = androidx.credentials.GetPublicKeyCredentialOption(requestJson)
+                val getCredRequest = androidx.credentials.GetCredentialRequest(listOf(request))
+                
+                try {
+                    val result = credentialManager.getCredential(
+                        context as Activity,
+                        getCredRequest
+                    )
+                    
+                    val responseJson = result.credential.data.getString("androidx.credentials.BUNDLE_KEY_AUTHENTICATION_RESPONSE_JSON") ?: ""
+                    
+                    val success = apiClient.executeBiometricPurchase(orderId, responseJson, dynamicChallenge)
+                    apiClient.close()
+                    return@withContext success
+                } catch (e: Exception) {
+                    apiClient.close()
+                    throw Exception("Failed to authenticate passkey: ${e.message}", e)
+                }
+            }
         }
     }
 }

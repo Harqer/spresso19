@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Spresso</string>
+    <string name="auth_authenticating">Autenticando...</string>
+    <string name="auth_purchase_confirmed">Compra Confirmada ✓</string>
+    <string name="auth_failed_to_confirm">Falha ao confirmar</string>
+    <string name="auth_error">Erro: </string>
+    <string name="auth_confirm_purchase_passkey">Confirmar Compra com Passkey</string>
+    <string name="settings_language">Idioma</string>
+</resources>

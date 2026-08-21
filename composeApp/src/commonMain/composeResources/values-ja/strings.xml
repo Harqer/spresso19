@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Spresso</string>
+    <string name="auth_authenticating">認証中...</string>
+    <string name="auth_purchase_confirmed">購入が確認されました ✓</string>
+    <string name="auth_failed_to_confirm">確認に失敗しました</string>
+    <string name="auth_error">エラー: </string>
+    <string name="auth_confirm_purchase_passkey">パスキーで購入を完了する</string>
+    <string name="settings_language">言語</string>
+</resources>

@@ -76,6 +76,16 @@ actual suspend fun createPaymentMethod(stripePaymentMethodId: String) {
     }
 }
 
+actual suspend fun deletePaymentMethod(id: String) {
+    try {
+        com.spresso.dataconnect.SpressoConnectorConnector.instance.deletePaymentMethod.execute(
+            id = java.util.UUID.fromString(id)
+        )
+    } catch (e: Exception) {
+        throw e
+    }
+}
+
 actual suspend fun updateUserSubscription(id: String, tier: String) {
     try {
         com.spresso.dataconnect.SpressoConnectorConnector.instance.updateUserSubscription.execute(
