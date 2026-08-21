@@ -26,6 +26,12 @@ fun SubscriptionMembershipSection(
     onManageSubscription: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val tierColor = when (currentTier) {
+        SubscriptionTier.FREE -> MaterialTheme.colorScheme.outline
+        SubscriptionTier.SPRESSO_VIP -> MaterialTheme.colorScheme.primary
+        SubscriptionTier.CHEF_PRO -> MaterialTheme.colorScheme.tertiary
+    }
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -45,7 +51,7 @@ fun SubscriptionMembershipSection(
                     Icon(
                         imageVector = Icons.Outlined.Star,
                         contentDescription = null,
-                        tint = Color(currentTier.badgeColorHex)
+                        tint = tierColor
                     )
                     Text(
                         text = "Membership & Subscription",
@@ -55,7 +61,7 @@ fun SubscriptionMembershipSection(
                 }
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Color(currentTier.badgeColorHex).copy(alpha = 0.15f)
+                    color = tierColor.copy(alpha = 0.15f)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -66,13 +72,13 @@ fun SubscriptionMembershipSection(
                             imageVector = Icons.Outlined.Verified,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
-                            tint = Color(currentTier.badgeColorHex)
+                            tint = tierColor
                         )
                         Text(
                             text = currentTier.displayName,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(currentTier.badgeColorHex)
+                            color = tierColor
                         )
                     }
                 }

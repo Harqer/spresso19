@@ -26,6 +26,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.meta.wearable.dat.core.Wearables
+import com.meta.wearable.dat.core.types.Permission
+import com.meta.wearable.dat.core.types.PermissionStatus
+import kotlinx.coroutines.launch
 
 @Composable
 actual fun MetaWearablesPage(
@@ -72,9 +75,36 @@ actual fun MetaWearablesPage(
         hasPermissions = results.values.all { it }
     }
 
+    var datPermissionsGranted by remember { mutableStateOf(false) }
+
+    val datPermissionLauncher = rememberLauncherForActivityResult(
+        Wearables.RequestPermissionContract()
+    ) { result ->
+        result.onSuccess { status ->
+            if (status == PermissionStatus.Granted) {
+                datPermissionsGranted = true
+            }
+        }.onFailure { error, _ ->
+            // Handle error, maybe show toast
+            datPermissionsGranted = false
+        }
+    }
+
     LaunchedEffect(Unit) {
         if (!hasPermissions) {
             launcher.launch(permissions.toTypedArray())
+        }
+    }
+    
+    val coroutineScope = rememberCoroutineScope()
+    LaunchedEffect(registrationState?.name) {
+        if (registrationState?.name == "REGISTERED") {
+            Wearables.checkPermissionStatus(Permission.CAMERA)
+                .onSuccess { status ->
+                    if (status == PermissionStatus.Granted) {
+                        datPermissionsGranted = true
+                    }
+                }
         }
     }
 
@@ -141,7 +171,13 @@ actual fun MetaWearablesPage(
                         activity?.let { Wearables.startRegistration(it) }
                         return@Button
                     }
-                    val intent = Intent(context, com.spresso19.SpressoWearablesService::class.java)
+                    if (!datPermissionsGranted) {
+                        datPermissionLauncher.launch(Permission.CAMERA)
+                        return@Button
+                    }
+                    val intent = Intent(context, com.spresso19.SpressoWearablesService::class.java).apply {
+                        action = "com.spresso19.action.HANDS_FREE_CHECKOUT"
+                    }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         context.startForegroundService(intent)
                     } else {
@@ -167,7 +203,13 @@ actual fun MetaWearablesPage(
                         activity?.let { Wearables.startRegistration(it) }
                         return@Button
                     }
-                    val intent = Intent(context, com.spresso19.SpressoWearablesService::class.java)
+                    if (!datPermissionsGranted) {
+                        datPermissionLauncher.launch(Permission.CAMERA)
+                        return@Button
+                    }
+                    val intent = Intent(context, com.spresso19.SpressoWearablesService::class.java).apply {
+                        action = "com.spresso19.action.GROCERY_SCANNER"
+                    }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         context.startForegroundService(intent)
                     } else {
@@ -193,7 +235,13 @@ actual fun MetaWearablesPage(
                         activity?.let { Wearables.startRegistration(it) }
                         return@Button
                     }
-                    val intent = Intent(context, com.spresso19.SpressoWearablesService::class.java)
+                    if (!datPermissionsGranted) {
+                        datPermissionLauncher.launch(Permission.CAMERA)
+                        return@Button
+                    }
+                    val intent = Intent(context, com.spresso19.SpressoWearablesService::class.java).apply {
+                        action = "com.spresso19.action.BARGAIN_CHEF"
+                    }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         context.startForegroundService(intent)
                     } else {

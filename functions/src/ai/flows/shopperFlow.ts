@@ -4,6 +4,8 @@ import { z } from "genkit";
 // Import tools to ensure they are registered with the AI instance
 import "../tools/addToCart";
 import "../tools/searchProducts";
+import "../tools/parallelWebSearch";
+import "../tools/parallelDeepResearch";
 
 export const spressoShopperFlow = ai.defineFlow(
   {

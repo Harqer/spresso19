@@ -235,7 +235,8 @@ fun App(
                         themeMode = themeMode,
                         onThemeModeChange = { themeMode = it },
                         onSignOut = { navigator.replace(NavKey.AuthKey) },
-                        onVerifyEmail = onVerifyEmailRequested
+                        onVerifyEmail = onVerifyEmailRequested,
+                        onNavigateToWearables = { navigator.navigate(NavKey.MetaWearablesKey) }
                     )
                 }
 
@@ -696,7 +697,8 @@ fun App(
                         onSignOut = {
                             navigator.replace(NavKey.AuthKey)
                         },
-                        onVerifyEmail = onVerifyEmailRequested
+                        onVerifyEmail = onVerifyEmailRequested,
+                        onNavigateToWearables = { navigator.navigate(NavKey.MetaWearablesKey) }
                     )
                 }
                 entry<NavKey.AccountManagementKey> { currentDestinationKey ->

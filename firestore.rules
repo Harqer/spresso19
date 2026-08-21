@@ -28,19 +28,19 @@ service cloud.firestore {
       return isValidString(urlStr, 8, 2048) && (urlStr.matches('^https://.*') || urlStr.matches('^gs://.*'));
     }
 
-    // System logs for telemetry & error tracking
     match /logs/{logId} {
       allow create: if isValidId(logId) &&
+        request.resource.data.keys().hasOnly(['level', 'message', 'timestamp']) &&
         isValidString(request.resource.data.level, 1, 20) &&
         isValidString(request.resource.data.message, 1, 2000) &&
         (request.resource.data.timestamp is timestamp || request.resource.data.timestamp == null);
       allow read: if isSignedIn();
     }
 
-    // User profile documents (strict ownership, size limits & field validation)
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow create, update: if isOwner(userId) &&
+        request.resource.data.keys().hasOnly(['displayName', 'email', 'avatarUrl', 'role', 'onboardingCompleted']) &&
         (!('displayName' in request.resource.data) || isValidString(request.resource.data.displayName, 0, 100)) &&
         (!('email' in request.resource.data) || isValidString(request.resource.data.email, 0, 200)) &&
         (!('avatarUrl' in request.resource.data) || isValidUrl(request.resource.data.avatarUrl));
@@ -53,47 +53,47 @@ service cloud.firestore {
         isValidId(orderId) &&
         request.resource.data.totalAmount is number &&
         request.resource.data.totalAmount >= 0 &&
-        isValidString(request.resource.data.status, 1, 50);
-      allow update: if isOwner(userId) &&
-        request.resource.data.totalAmount == resource.data.totalAmount &&
-        request.resource.data.productId == resource.data.productId &&
-        isValidString(request.resource.data.status, 1, 50);
+        request.resource.data.status == 'pending';
+      allow update: if false; // Only backend can update orders
     }
 
-    // User interactive video collection (spin 360, virtual try-on, creator videos)
     match /users/{userId}/videos/{videoId} {
       allow read: if isSignedIn() && (isOwner(userId) || resource.data.isPublic == true);
       allow create: if isOwner(userId) &&
         isValidId(videoId) &&
+        request.resource.data.keys().hasOnly(['videoUrl', 'videoType', 'isPublic']) &&
         isValidUrl(request.resource.data.videoUrl) &&
         isValidString(request.resource.data.videoType, 1, 50);
       allow update: if isOwner(userId) &&
+        request.resource.data.keys().hasOnly(['videoUrl', 'videoType', 'isPublic']) &&
         request.resource.data.videoUrl == resource.data.videoUrl &&
+        request.resource.data.isPublic == resource.data.isPublic &&
         isValidString(request.resource.data.videoType, 1, 50);
       allow delete: if isOwner(userId);
     }
 
-    // Shopping cart collection (authenticated user UID isolation)
     match /users/{userId}/cart/{itemId} {
       allow read: if isOwner(userId);
       allow create, update: if isOwner(userId) &&
         isValidId(itemId) &&
+        request.resource.data.keys().hasOnly(['quantity', 'productId', 'addedAt']) &&
         request.resource.data.quantity is int &&
         request.resource.data.quantity > 0 &&
         isValidString(request.resource.data.productId, 1, 100);
       allow delete: if isOwner(userId);
     }
 
-    // Chat sessions (authenticated user isolation)
     match /chats/{chatId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.isPublic == true);
       allow create: if isSignedIn() &&
         isValidId(chatId) &&
+        request.resource.data.keys().hasOnly(['userId', 'title', 'isPublic', 'createdAt', 'updatedAt']) &&
         request.resource.data.userId == request.auth.uid &&
-        isValidString(request.resource.data.title, 1, 200);
+        isValidString(request.resource.data.title, 1, 100);
       allow update: if isSignedIn() &&
         resource.data.userId == request.auth.uid &&
-        request.resource.data.userId == request.auth.uid;
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasOnly(['userId', 'title', 'isPublic', 'createdAt', 'updatedAt']);
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 

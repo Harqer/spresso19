@@ -3,10 +3,10 @@ package network.models
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class SubscriptionTier(val displayName: String, val badgeColorHex: Long) {
-    FREE("Free Explorer", 0xFF6B7280),
-    SPRESSO_VIP("Spresso VIP", 0xFF059669),
-    CHEF_PRO("Bargain Chef Pro", 0xFF7C3AED)
+enum class SubscriptionTier(val displayName: String) {
+    FREE("Free Explorer"),
+    SPRESSO_VIP("Spresso VIP"),
+    CHEF_PRO("Bargain Chef Pro")
 }
 
 @Serializable

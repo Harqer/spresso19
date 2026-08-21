@@ -22,7 +22,7 @@ class BatchRetentionWorker:
         # This URL should point to the deployed Firebase Cloud Function
         self.genkit_discover_url = os.getenv(
             "GENKIT_DISCOVER_URL", 
-            "http://localhost:5001/spresso-project/us-central1/discoverPersonalizedProducts"
+            "https://us-central1-spresso-5561f.cloudfunctions.net/discoverPersonalizedProducts"
         )
     
     def process_idle_users(self):

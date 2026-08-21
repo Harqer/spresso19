@@ -55,13 +55,41 @@ export async function runMarketplaceActor(platform: "amazon" | "walmart" | "etsy
   return runApifyShoppingActor(target.actorId, actorInput);
 }
 
-export async function runGoogleLensActor(imageUrlOrBase64: string) {
+interface LensBatchRequest {
+  imageUrl: string;
+  resolve: (value: any) => void;
+  reject: (reason?: any) => void;
+}
+
+let lensBatchQueue: LensBatchRequest[] = [];
+let lensBatchTimer: NodeJS.Timeout | null = null;
+
+export async function runGoogleLensActor(imageUrlOrBase64: string): Promise<any> {
   const token = getApifyToken();
   if (!token) return { success: false, error: "Apify is not configured" };
+
+  return new Promise((resolve, reject) => {
+    lensBatchQueue.push({ imageUrl: imageUrlOrBase64, resolve, reject });
+
+    if (!lensBatchTimer) {
+      lensBatchTimer = setTimeout(() => {
+        const batch = lensBatchQueue;
+        lensBatchQueue = [];
+        lensBatchTimer = null;
+        processLensBatch(batch, token).catch(err => {
+          batch.forEach(req => req.resolve({ success: false, error: err.message || "Failed to execute Google Lens search" }));
+        });
+      }, 50);
+    }
+  });
+}
+
+async function processLensBatch(batch: LensBatchRequest[], token: string) {
+  if (batch.length === 0) return;
+
   const actorInput = {
-    imageUrl: imageUrlOrBase64,
-    startUrls: [{ url: imageUrlOrBase64 }],
-    maxItems: 10
+    startUrls: batch.map(req => ({ url: req.imageUrl })),
+    maxItems: 10 * batch.length
   };
 
   try {
@@ -77,7 +105,8 @@ export async function runGoogleLensActor(imageUrlOrBase64: string) {
 
     if (response.ok) {
       const items = await response.json();
-      return { success: true, actor: "borderline~google-lens", results: items };
+      batch.forEach(req => req.resolve({ success: true, actor: "borderline~google-lens", results: items }));
+      return;
     }
 
     const runUrl = "https://api.apify.com/v2/actors/borderline~google-lens/runs";
@@ -91,12 +120,13 @@ export async function runGoogleLensActor(imageUrlOrBase64: string) {
     });
     const runData = await runRes.json();
     if (!runRes.ok) {
-      return { success: false, error: "Apify visual search failed" };
+      batch.forEach(req => req.resolve({ success: false, error: "Apify visual search failed" }));
+      return;
     }
-    return { success: true, actor: "borderline~google-lens", asyncRun: runData.data || runData };
+    batch.forEach(req => req.resolve({ success: true, actor: "borderline~google-lens", asyncRun: runData.data || runData }));
   } catch (err: any) {
     console.error("Google Lens actor error:", err);
-    return { success: false, error: err.message || "Failed to execute Google Lens search" };
+    batch.forEach(req => req.resolve({ success: false, error: err.message || "Failed to execute Google Lens search" }));
   }
 }
 

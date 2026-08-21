@@ -40,9 +40,12 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateOutfit = exports.chatStream = exports.logSearchHistory = exports.getQuickPrompts = exports.vitposeOrchestrateFit = exports.generateCreatorCampaign = exports.creatorAgentTemplates = exports.identifyVisionObject = exports.generateLiveApiToken = exports.discoverPersonalizedProducts = exports.analyzeUserBehavior = exports.generateSpin360 = exports.generateVirtualTryOn = void 0;
+exports.generateOutfit = exports.chatStream = exports.createCatalogCache = exports.processSearchHistoryTelemetry = exports.logSearchHistory = exports.getQuickPrompts = exports.vitposeOrchestrateFit = exports.generateCreatorCampaign = exports.creatorAgentTemplates = exports.identifyVisionObject = exports.generateLiveApiToken = exports.discoverPersonalizedProducts = exports.analyzeUserBehavior = exports.generateSpin360 = exports.generateVirtualTryOn = void 0;
 const https_1 = require("firebase-functions/v2/https");
+const pubsub_1 = require("firebase-functions/v2/pubsub");
+const pubsub_2 = require("@google-cloud/pubsub");
 const params_1 = require("firebase-functions/params");
+const pubsub = new pubsub_2.PubSub();
 const genai_1 = require("@google/genai");
 const virtualTryOnFlow_1 = require("./flows/virtualTryOnFlow");
 const spin360Flow_1 = require("./flows/spin360Flow");
@@ -135,6 +138,12 @@ exports.identifyVisionObject = (0, https_1.onCall)({ secrets: [geminiApiKey] }, 
     if (!imageBase64)
         throw new https_1.HttpsError("invalid-argument", "Missing imageBase64");
     const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
+    const safetySettings = [
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+    ];
     try {
         const response = await ai.interactions.create({
             model: "gemini-3.5-flash",
@@ -142,17 +151,43 @@ exports.identifyVisionObject = (0, https_1.onCall)({ secrets: [geminiApiKey] }, 
                 { type: "text", text: "Identify the primary product in this image. Respond with a JSON object containing the fields: 'productName' (string, short and clean name) and 'estimatedPrice' (number, reasonable estimate)." },
                 { type: "image", mime_type: "image/jpeg", data: imageBase64 }
             ],
-            response_mime_type: "application/json"
+            response_mime_type: "application/json",
+            safety_settings: safetySettings,
+            tools: [{
+                    name: "logProductDiscovery",
+                    description: "Logs the newly discovered product from the visual search.",
+                    parameters: {
+                        type: "OBJECT",
+                        properties: { productName: { type: "STRING" }, price: { type: "NUMBER" } },
+                        required: ["productName", "price"]
+                    }
+                }],
+            tool_config: { function_calling_config: { mode: "ANY" } }
         });
-        const text = response.output_text;
-        if (!text)
-            throw new Error("Empty response from Gemini");
-        const json = JSON.parse(text);
+        let hudAnnotationText = "Unknown Item";
+        let price = 0;
+        if (response.functionCalls && response.functionCalls.length > 0) {
+            const toolCall = response.functionCalls[0];
+            if (toolCall.name === "logProductDiscovery" && toolCall.args) {
+                hudAnnotationText = toolCall.args.productName;
+                price = toolCall.args.price;
+                console.log(`Multimodal Trigger: Logging discovery of ${hudAnnotationText} (${price})`);
+                await pubsub.topic("telemetry-search-history").publishMessage({ json: { event: "vision_discovery", productName: hudAnnotationText, price, uid: request.auth.uid } });
+            }
+        }
+        else {
+            const text = response.output_text;
+            if (!text)
+                throw new Error("Empty response from Gemini");
+            const json = JSON.parse(text);
+            hudAnnotationText = json.productName || "Unknown Item";
+            price = json.estimatedPrice || 0;
+        }
         return {
             success: true,
             detectedResult: {
-                hudAnnotationText: json.productName || "Unknown Item",
-                price: json.estimatedPrice || 0
+                hudAnnotationText,
+                price
             }
         };
     }
@@ -181,8 +216,15 @@ exports.generateCreatorCampaign = (0, https_1.onCall)({ secrets: [geminiApiKey] 
     if (!productName || !campaignGoal)
         throw new https_1.HttpsError("invalid-argument", "Missing required campaign parameters.");
     const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
+    const safetySettings = [
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+    ];
     try {
         const response = await ai.interactions.create({
+            safety_settings: safetySettings,
             model: "gemini-3.5-flash",
             input: `You are an expert marketing AI. Generate a creator campaign for the product "${productName}". The goal is "${campaignGoal}" and the target audience is "${targetAudience || 'General'}". Return ONLY a JSON object with this exact structure: {"campaignTitle": "...", "socialMediaCopy": "...", "suggestedTags": ["...", "..."]}`,
             response_mime_type: "application/json"
@@ -204,8 +246,15 @@ exports.vitposeOrchestrateFit = (0, https_1.onCall)({ secrets: [geminiApiKey] },
     if (!imageBase64)
         throw new https_1.HttpsError("invalid-argument", "Missing imageBase64");
     const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
+    const safetySettings = [
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+    ];
     try {
         const response = await ai.interactions.create({
+            safety_settings: safetySettings,
             model: "gemini-3.5-flash",
             input: [
                 { type: "image", mime_type: "image/jpeg", data: imageBase64 },
@@ -239,7 +288,35 @@ exports.getQuickPrompts = (0, https_1.onCall)(async (request) => {
 exports.logSearchHistory = (0, https_1.onCall)(async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
-    return { success: true };
+    // Offload telemetry to Pub/Sub to decouple from the interactive critical path
+    const topic = pubsub.topic("telemetry-search-history");
+    await topic.publishMessage({ json: request.data || {} });
+    return { success: true, queued: true };
+});
+exports.processSearchHistoryTelemetry = (0, pubsub_1.onMessagePublished)("telemetry-search-history", async (event) => {
+    const data = event.data.message.json;
+    console.log("Processing search history telemetry in background:", data);
+});
+exports.createCatalogCache = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
+    if (!request.auth)
+        throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
+    try {
+        const { db } = await Promise.resolve().then(() => __importStar(require("../shared/db")));
+        // Assume products collection holds the large catalog
+        const snapshot = await db.collection("products").get();
+        const catalog = snapshot.docs.map(doc => (Object.assign({ id: doc.id }, doc.data())));
+        const catalogText = JSON.stringify(catalog);
+        const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
+        const cachedContent = await ai.caches.create({
+            model: "gemini-3.5-flash",
+            input: `Here is the full product catalog:\n${catalogText}`,
+            ttl: "3600s" // Cache for 1 hour
+        });
+        return { success: true, cacheName: cachedContent.name, expireTime: cachedContent.expireTime };
+    }
+    catch (e) {
+        throw new https_1.HttpsError("internal", `Failed to create catalog cache: ${e.message}`);
+    }
 });
 const admin = __importStar(require("firebase-admin"));
 exports.chatStream = (0, https_1.onRequest)({ secrets: [geminiApiKey], cors: true }, async (req, res) => {
@@ -262,18 +339,32 @@ exports.chatStream = (0, https_1.onRequest)({ secrets: [geminiApiKey], cors: tru
         res.status(401).send("Unauthorized: Invalid App Check token");
         return;
     }
-    const { prompt } = req.body;
+    const { prompt, cachedContentName } = req.body;
     const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     try {
-        const responseStream = await ai.interactions.create({
+        const aiConfig = {
             model: "gemini-3.5-flash",
             input: prompt,
             system_instruction: "You are Spresso Personal Shopper. Keep it brief.",
-            stream: true
-        });
+            stream: true,
+            safety_settings: [
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+            ],
+            tools: [
+                { parallelAiSearch: {} },
+                { googleMaps: { groundingTypes: { places: {}, routing: {} } } }
+            ]
+        };
+        if (cachedContentName) {
+            aiConfig.cachedContent = cachedContentName;
+        }
+        const responseStream = await ai.interactions.create(aiConfig);
         try {
             for (var _e = true, responseStream_1 = __asyncValues(responseStream), responseStream_1_1; responseStream_1_1 = await responseStream_1.next(), _a = responseStream_1_1.done, !_a; _e = true) {
                 _c = responseStream_1_1.value;
@@ -329,7 +420,13 @@ Return a JSON object with the following schema:
         const response = await ai.interactions.create({
             model: "gemini-3.5-flash",
             input: prompt,
-            response_mime_type: "application/json"
+            response_mime_type: "application/json",
+            safety_settings: [
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+            ]
         });
         const responseText = response.output_text;
         if (!responseText)

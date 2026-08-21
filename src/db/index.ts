@@ -32,9 +32,12 @@ export const initPool = () => {
 
   if (isProduction && connectionName) {
     // Unix Socket connection path for Google Cloud SQL in Cloud Run target runtime
+    // OR Cloud Spanner PGAdapter running as a sidecar via localhost
+    const useSpannerPGAdapter = process.env.USE_SPANNER_PG_ADAPTER === "true";
     poolConfig = {
       ...poolConfig,
-      host: `/cloudsql/${connectionName}`,
+      host: useSpannerPGAdapter ? "localhost" : `/cloudsql/${connectionName}`,
+      port: useSpannerPGAdapter ? 5432 : undefined,
       user: user || "postgres",
       database: database || "postgres",
     };

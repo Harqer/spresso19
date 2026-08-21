@@ -33,15 +33,15 @@ actual fun rememberPasskeyRegistrar(): PasskeyRegistrar {
                 val requestJson = """
                     {
                         "challenge": "$dynamicChallenge",
-                        "rp": {
-                            "name": "Spresso App",
-                            "id": "spresso.com"
-                        },
-                        "user": {
-                            "id": "user-id-bytes",
-                            "name": "user@spresso.com",
-                            "displayName": "Spresso User"
-                        },
+                            "rp": {
+                                "id": "spresso-5561f.web.app",
+                                "name": "Spresso"
+                            },
+                            "user": {
+                                "id": "12345678",
+                                "name": "user@spresso-5561f.web.app",
+                                "displayName": "User"
+                            },
                         "pubKeyCredParams": [
                             {
                                 "type": "public-key",

@@ -37,7 +37,7 @@ fun OrderTrackerCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Order #${order.id.take(8)}", fontWeight = FontWeight.Bold, fontSize = 14.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                AssistChip(onClick = { uriHandler.openUri("https://spresso.com/tracking/${order.id}") }, label = { Text(order.status, fontSize = 10.sp, fontWeight = FontWeight.Bold) }, leadingIcon = { Icon(Icons.Outlined.LocalShipping, null, modifier = Modifier.size(14.dp)) })
+                AssistChip(onClick = { uriHandler.openUri("https://spresso-5561f.web.app/tracking/${order.id}") }, label = { Text(order.status, fontSize = 10.sp, fontWeight = FontWeight.Bold) }, leadingIcon = { Icon(Icons.Outlined.LocalShipping, null, modifier = Modifier.size(14.dp)) })
             }
             Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceContainerLowest, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

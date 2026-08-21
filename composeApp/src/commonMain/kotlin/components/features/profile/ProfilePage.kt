@@ -40,6 +40,7 @@ fun ProfilePage(
     onNavigateToFavorites: (() -> Unit)? = null,
     onNavigateToOrderHistory: (() -> Unit)? = null,
     onNavigateToNotifications: (() -> Unit)? = null,
+    onNavigateToWearables: (() -> Unit)? = null,
     onNavigateToPrivacySecurity: (() -> Unit)? = null,
     onNavigateToSupport: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -190,6 +191,7 @@ fun ProfilePage(
                 ProfileListItem(icon = Icons.Outlined.History, title = "Order History", subtitle = "Track your purchases", onClick = onNavigateToOrderHistory)
                 ProfileListItem(icon = Icons.Outlined.NotificationsNone, title = "Notifications", subtitle = "Manage alerts and updates", onClick = onNavigateToNotifications)
                 ProfileListItem(icon = Icons.Outlined.CheckCircle, title = "Verify Email", subtitle = "Secure account with digital credentials", onClick = onVerifyEmail)
+                ProfileListItem(icon = Icons.Outlined.Face, title = "Smart Glasses", subtitle = "Manage Meta Wearables", onClick = onNavigateToWearables)
                 
                 ThemeSelectorCard(
                     themeMode = themeMode,

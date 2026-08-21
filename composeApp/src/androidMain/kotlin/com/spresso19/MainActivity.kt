@@ -63,6 +63,7 @@ class MainActivity : FragmentActivity() {
     private val isAccessibilityEnabledState = mutableStateOf(false)
     private val hasAccessibilityConsentState = mutableStateOf(false)
     private val accessibilityDisclosureRequestedState = mutableStateOf(false)
+    private val currentIntentState = mutableStateOf<Intent?>(null)
     private lateinit var accessibilityConsentStore: AccessibilityConsentStore
 
     private val phoneAuthLauncher = registerForActivityResult(com.firebase.ui.auth.FirebaseAuthUIActivityResultContract()) { res ->
@@ -97,9 +98,11 @@ class MainActivity : FragmentActivity() {
             window.isNavigationBarContrastEnforced = false
         }
         checkAndRequestPermissions()
+        currentIntentState.value = intent
 
         setContent {
             val darkTheme = isSystemInDarkTheme()
+            val currentIntent by currentIntentState
 
             val isAccessEnabled by isAccessibilityEnabledState
             val hasConsent by hasAccessibilityConsentState
@@ -108,7 +111,8 @@ class MainActivity : FragmentActivity() {
             var user by remember { mutableStateOf(FirebaseAuth.getInstance().currentUser) }
             var externalNavKey by remember { mutableStateOf<NavKey?>(null) }
 
-            LaunchedEffect(intent) {
+            LaunchedEffect(currentIntent) {
+                val intent = currentIntent
                 if (intent?.hasExtra("order_id") == true) {
                     val orderId = intent.getStringExtra("order_id") ?: ""
                     val arrivalStatus = intent.getStringExtra("arrival_status")
@@ -122,6 +126,30 @@ class MainActivity : FragmentActivity() {
                         }
                     }
                     externalNavKey = NavKey.OrdersKey
+                } else if (intent?.data != null) {
+                    val uri = intent.data
+                    if (uri?.scheme == "spresso" && uri.host != "coinbase-wallet-sdk") {
+                        when (uri.host) {
+                            "product" -> {
+                                val productId = uri.lastPathSegment
+                                if (productId != null) {
+                                    externalNavKey = NavKey.ProductDetailKey(productId)
+                                }
+                            }
+                            "wearables" -> {
+                                externalNavKey = NavKey.MetaWearablesKey
+                            }
+                            "cart" -> {
+                                externalNavKey = NavKey.HITLCheckoutKey
+                            }
+                            "orders" -> {
+                                externalNavKey = NavKey.OrdersKey
+                            }
+                            "grocery" -> {
+                                externalNavKey = NavKey.GroceryKey
+                            }
+                        }
+                    }
                 }
             }
 
@@ -129,11 +157,22 @@ class MainActivity : FragmentActivity() {
                 val receiver = object : BroadcastReceiver() {
                     override fun onReceive(context: Context?, intent: Intent?) {
                         when (intent?.action) {
-                            "com.spresso19.intent.action.START_COOKING" -> {
+                            "com.spresso19.intent.action.START_COOKING",
+                            "com.spresso19.intent.action.COOKING_MODE" -> {
                                 externalNavKey = NavKey.ChatKey(initialPrompt = "Help me cook something delicious!")
                             }
-                            "com.spresso19.intent.action.START_GROCERY" -> {
+                            "com.spresso19.intent.action.START_GROCERY",
+                            "com.spresso19.intent.action.GROCERY_MODE" -> {
                                 externalNavKey = NavKey.GroceryKey
+                            }
+                            "com.spresso19.intent.action.ADD_TO_CART" -> {
+                                val productId = intent.getStringExtra("productId")
+                                if (productId != null) {
+                                    externalNavKey = NavKey.ProductDetailKey(productId)
+                                }
+                            }
+                            "com.spresso19.intent.action.START_CHECKOUT" -> {
+                                externalNavKey = NavKey.HITLCheckoutKey
                             }
                         }
                     }
@@ -141,6 +180,10 @@ class MainActivity : FragmentActivity() {
                 val filter = IntentFilter().apply {
                     addAction("com.spresso19.intent.action.START_COOKING")
                     addAction("com.spresso19.intent.action.START_GROCERY")
+                    addAction("com.spresso19.intent.action.COOKING_MODE")
+                    addAction("com.spresso19.intent.action.GROCERY_MODE")
+                    addAction("com.spresso19.intent.action.ADD_TO_CART")
+                    addAction("com.spresso19.intent.action.START_CHECKOUT")
                 }
                 androidx.core.content.ContextCompat.registerReceiver(
                     this@MainActivity,
@@ -353,6 +396,7 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        currentIntentState.value = intent
         CoinbaseWalletManager.handleResponse(intent.data)
         if (isAccessibilityDisclosureIntent(intent)) {
             accessibilityDisclosureRequestedState.value = true

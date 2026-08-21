@@ -6,6 +6,8 @@ const genkit_2 = require("genkit");
 // Import tools to ensure they are registered with the AI instance
 require("../tools/addToCart");
 require("../tools/searchProducts");
+require("../tools/parallelWebSearch");
+require("../tools/parallelDeepResearch");
 exports.spressoShopperFlow = genkit_1.ai.defineFlow({
     name: "spressoShopperFlow",
     inputSchema: genkit_2.z.object({

@@ -20,6 +20,12 @@ import com.meta.wearable.dat.core.selectors.AutoDeviceSelector
 import com.meta.wearable.dat.core.session.DeviceSession
 import com.meta.wearable.dat.core.session.DeviceSessionState
 import com.meta.wearable.dat.core.types.RegistrationState
+import com.meta.wearable.dat.display.Display
+import com.meta.wearable.dat.display.addDisplay
+import com.meta.wearable.dat.display.removeDisplay
+import com.meta.wearable.dat.display.types.DisplayState
+import com.meta.wearable.dat.display.views.FlexBoxBackground
+import com.meta.wearable.dat.display.views.TextStyle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -39,6 +45,7 @@ class SpressoWearablesService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
     private var session: DeviceSession? = null
     private var stream: Stream? = null
+    private var display: Display? = null
     private var webSocket: WebSocket? = null
     private var audioManager: AudioManager? = null
     private var audioRecorder: audio.AudioRecorder? = null
@@ -58,6 +65,26 @@ class SpressoWearablesService : Service() {
         }
     }
 
+    private var isInitialized = false
+    private var currentAction: String? = null
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        currentAction = intent?.action
+        if (!isInitialized) {
+            isInitialized = true
+            setupAudioManager()
+            setupWebSocket()
+            setupWearables()
+            setupAudioRecorder()
+            audioPlayer = audio.AudioPlayer()
+        } else {
+            webSocket?.close(1000, "Action changed")
+            webSocket = null
+            setupWebSocket()
+        }
+        return super.onStartCommand(intent, flags, startId)
+    }
+
     override fun onCreate() {
         super.onCreate()
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
@@ -69,11 +96,6 @@ class SpressoWearablesService : Service() {
         } else {
             startForeground(1919, createNotification())
         }
-        setupAudioManager()
-        setupWebSocket()
-        setupWearables()
-        setupAudioRecorder()
-        audioPlayer = audio.AudioPlayer()
     }
 
     private fun setupAudioRecorder() {
@@ -182,8 +204,16 @@ class SpressoWearablesService : Service() {
                                 }
                             }
                         } catch (e: Exception) {
-
                             Log.e("SpressoWearables", "Error parsing JSON: ", e)
+                            display?.let { currentDisplay ->
+                                serviceScope.launch {
+                                    currentDisplay.sendContent {
+                                        flexBox(gap = 12, padding = 24, background = FlexBoxBackground.CARD) {
+                                            text("Comm Error", style = TextStyle.HEADING)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -205,9 +235,15 @@ class SpressoWearablesService : Service() {
     }
 
     private fun sendSetupMessage(ws: WebSocket) {
+        val systemPrompt = when (currentAction) {
+            "com.spresso19.action.GROCERY_SCANNER" -> "You are the Spresso AI Grocery Scanner. Use the camera to see ingredients and add them to the grocery list. Call the startGroceryScanner tool if needed."
+            "com.spresso19.action.BARGAIN_CHEF" -> "You are the Spresso AI Bargain Chef. Use the camera to see ingredients and suggest recipes. Call the startCookingAssistance tool if needed."
+            "com.spresso19.action.HANDS_FREE_CHECKOUT" -> "You are the Spresso AI Checkout Assistant. Help the user complete their purchase using Hands-Free Voice Checkout. Use the camera to view the cart or payment method if needed. Call the startHandsFreeCheckout tool to proceed."
+            else -> "You are the Spresso AI Personal Shopper & Chef AI. Use the camera to see products or ingredients. Help the user find products, manage their cart, or cook recipes. Keep responses concise, friendly, and jargon-free."
+        }
         val setup = JSONObject().apply {
             put("setup", JSONObject().apply {
-                put("model", "models/gemini-2.0-flash-exp")
+                put("model", "models/gemini-3.5-flash")
                 put("generationConfig", JSONObject().apply {
                     put("responseModalities", JSONArray().apply { put("AUDIO") })
                     put("speechConfig", JSONObject().apply {
@@ -221,7 +257,7 @@ class SpressoWearablesService : Service() {
                 put("systemInstruction", JSONObject().apply {
                     put("parts", JSONArray().apply {
                         put(JSONObject().apply {
-                            put("text", "You are the Spresso AI Personal Shopper & Chef AI. Use the camera to see products or ingredients. Help the user find products, manage their cart, or cook recipes. Keep responses concise, friendly, and jargon-free.")
+                            put("text", systemPrompt)
                         })
                     })
                 })
@@ -252,14 +288,16 @@ class SpressoWearablesService : Service() {
         when (functionName) {
             "startCookingAssistance" -> {
                 Log.i("SpressoWearables", "Executing Cooking Agent with Safeguard...")
-                val intent = Intent("com.spresso19.intent.action.COOKING_MODE")
+                val intent = Intent("com.spresso19.intent.action.COOKING_MODE").apply { setPackage(packageName) }
                 sendBroadcast(intent)
+                captureSinglePhotoAndSend()
                 sendToolResponse(functionName, JSONObject().put("success", true))
             }
             "startGroceryScanner" -> {
                 Log.i("SpressoWearables", "Executing Grocery Scanner with Safeguard...")
-                val intent = Intent("com.spresso19.intent.action.GROCERY_MODE")
+                val intent = Intent("com.spresso19.intent.action.GROCERY_MODE").apply { setPackage(packageName) }
                 sendBroadcast(intent)
+                captureSinglePhotoAndSend()
                 sendToolResponse(functionName, JSONObject().put("success", true))
             }
             "addToCart" -> {
@@ -268,9 +306,48 @@ class SpressoWearablesService : Service() {
                     // Forward to ViewModel via broadcast or service bound action
                     val intent = Intent("com.spresso19.intent.action.ADD_TO_CART").apply {
                         putExtra("productId", productId)
+                        setPackage(packageName)
                     }
                     sendBroadcast(intent)
                     sendToolResponse(functionName, JSONObject().put("success", true))
+                    
+                    // Show confirmation on Glasses HUD
+                    display?.let { currentDisplay ->
+                        serviceScope.launch {
+                            currentDisplay.sendContent {
+                                flexBox(
+                                    gap = 12,
+                                    padding = 24,
+                                    background = FlexBoxBackground.CARD,
+                                ) {
+                                    text("Added to Cart", style = TextStyle.HEADING)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    sendToolResponse(functionName, JSONObject().put("error", "Missing productId"))
+                }
+            }
+            "startHandsFreeCheckout" -> {
+                Log.i("SpressoWearables", "Executing Hands-Free Checkout with Safeguard...")
+                val intent = Intent("com.spresso19.intent.action.START_CHECKOUT").apply { setPackage(packageName) }
+                sendBroadcast(intent)
+                sendToolResponse(functionName, JSONObject().put("success", true))
+                
+                // Show confirmation on Glasses HUD
+                display?.let { currentDisplay ->
+                    serviceScope.launch {
+                        currentDisplay.sendContent {
+                            flexBox(
+                                gap = 12,
+                                padding = 24,
+                                background = FlexBoxBackground.CARD,
+                            ) {
+                                text("Checkout Ready", style = TextStyle.HEADING)
+                            }
+                        }
+                    }
                 }
             }
             else -> {
@@ -310,6 +387,7 @@ class SpressoWearablesService : Service() {
 
         Wearables.initialize(this).onFailure { error, _ ->
             Log.e("SpressoWearables", "Failed to initialize Wearables: ${error.description}")
+            updateNotification("Connection Failed", "Failed to initialize Wearables")
             return
         }
 
@@ -327,6 +405,7 @@ class SpressoWearablesService : Service() {
     private fun createAndStartSession() {
         session = Wearables.createSession(AutoDeviceSelector()).getOrElse { error ->
             Log.e("SpressoWearables", "Failed to create session: $error")
+            updateNotification("Connection Failed", "Failed to connect to device")
             return
         }
         
@@ -359,34 +438,70 @@ class SpressoWearablesService : Service() {
     private var frameCounter = 0
 
     private fun attachCapabilities(currentSession: DeviceSession) {
-        // Add Camera Stream Capability
+        // Add Display Capability for HUD
+        currentSession.addDisplay().onSuccess { newDisplay ->
+            display = newDisplay
+            serviceScope.launch {
+                newDisplay.state.collect { displayState ->
+                    Log.i("SpressoWearables", "Display state: $displayState")
+                    if (displayState == DisplayState.STARTED) {
+                        Log.i("SpressoWearables", "Display HUD is ready.")
+                    }
+                }
+            }
+        }.onFailure { error, _ ->
+            Log.e("SpressoWearables", "Failed to add display: ${error.description}")
+        }
+    }
+
+    private fun sendCameraErrorToGemini() {
+        val msg = JSONObject().apply {
+            put("clientContent", JSONObject().apply {
+                put("turns", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("role", "user")
+                        put("parts", JSONArray().apply {
+                            put(JSONObject().apply {
+                                put("text", "System Error: The glasses camera failed to capture a photo. Please inform the user.")
+                            })
+                        })
+                    })
+                })
+                put("turnComplete", true)
+            })
+        }
+        webSocket?.send(msg.toString())
+    }
+
+    private fun captureSinglePhotoAndSend() {
+        val currentSession = session ?: return
+        
+        Log.i("SpressoWearables", "Starting stream to capture single photo...")
         currentSession.addStream(
-            StreamConfiguration(videoQuality = VideoQuality.MEDIUM, frameRate = 24)
+            StreamConfiguration(videoQuality = VideoQuality.HIGH, frameRate = 30)
         ).onSuccess { currentStream ->
             stream = currentStream
-            currentStream.start().onFailure { error, _ ->
-                Log.e("SpressoWearables", "Failed to start stream: \${error.description}")
-            }
-
-            serviceScope.launch {
-                currentStream.videoStream.collect { frame ->
-                    frameCounter++
-                    if (frameCounter % 3 != 0) return@collect // Drop 2 out of 3 frames to save CPU (8fps effective)
-
-                    // Dispatch heavy image processing off the Main thread
-                    withContext(Dispatchers.Default) {
-
-                        try {
-                            val bitmap = com.spresso19.wearable.YuvToBitmapConverter.convert(
-                                frame.buffer,
-                                frame.width,
-                                frame.height
-                            )
+            currentStream.start().onSuccess {
+                serviceScope.launch(Dispatchers.Default) {
+                    try {
+                        currentStream.capturePhoto().onSuccess { photoData ->
+                            Log.i("SpressoWearables", "Photo captured successfully!")
+                            
+                            val bitmap = when (photoData) {
+                                is com.meta.wearable.dat.camera.types.PhotoData.Bitmap -> photoData.bitmap
+                                is com.meta.wearable.dat.camera.types.PhotoData.HEIC -> {
+                                    val buffer = photoData.data.duplicate().apply { rewind() }
+                                    val bytes = ByteArray(buffer.remaining())
+                                    buffer.get(bytes)
+                                    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                }
+                                else -> null
+                            }
+                            
                             if (bitmap != null) {
                                 frameOutStream.reset()
-                                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, frameOutStream)
-                                val byteArray = frameOutStream.toByteArray()
-                                val base64Data = android.util.Base64.encodeToString(byteArray, android.util.Base64.NO_WRAP)
+                                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, frameOutStream)
+                                val base64Data = android.util.Base64.encodeToString(frameOutStream.toByteArray(), android.util.Base64.NO_WRAP)
                                 
                                 val message = JSONObject().apply {
                                     put("realtimeInput", JSONObject().apply {
@@ -400,18 +515,45 @@ class SpressoWearablesService : Service() {
                                 }
                                 webSocket?.send(message.toString())
                             }
-                        } catch (e: Exception) {
-                            Log.e("SpressoWearables", "Frame convert/send error", e)
+                            
+                            // Immediately stop and remove stream after capturing the photo
+                            currentStream.stop()
+                            currentSession.removeStream()
+                            stream = null
+                        }.onFailure { error, _ ->
+                            Log.e("SpressoWearables", "Failed to capture photo: ${error.description}")
+                            sendCameraErrorToGemini()
+                            currentStream.stop()
+                            currentSession.removeStream()
                         }
+                    } catch (e: Exception) {
+                        Log.e("SpressoWearables", "Error during photo capture", e)
+                        sendCameraErrorToGemini()
+                        currentStream.stop()
+                        currentSession.removeStream()
                     }
                 }
+            }.onFailure { error, _ ->
+                Log.e("SpressoWearables", "Failed to start stream for photo: ${error.description}")
+                sendCameraErrorToGemini()
             }
         }.onFailure { error, _ ->
-            Log.e("SpressoWearables", "Failed to add stream: ${error.description}")
+            Log.e("SpressoWearables", "Failed to add stream for photo: ${error.description}")
+            sendCameraErrorToGemini()
         }
     }
 
-    private fun createNotification(): Notification {
+    private fun updateNotification(title: String, text: String) {
+        val manager = getSystemService(NotificationManager::class.java)
+        val notification = NotificationCompat.Builder(this, "spresso_wearables_channel")
+            .setContentTitle(title)
+            .setContentText(text)
+            .setSmallIcon(R.drawable.ic_lens)
+            .build()
+        manager.notify(1919, notification)
+    }
+
+    private fun createNotification(title: String = "Spresso Glasses Active", text: String = "Connected to Smart Glasses"): Notification {
         val channelId = "spresso_wearables_channel"
         val channel = NotificationChannel(
             channelId,
@@ -422,8 +564,8 @@ class SpressoWearablesService : Service() {
         manager.createNotificationChannel(channel)
 
         return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Spresso Glasses Active")
-            .setContentText("Connected to Smart Glasses")
+            .setContentTitle(title)
+            .setContentText(text)
             .setSmallIcon(R.drawable.ic_lens)
             .build()
     }
@@ -446,6 +588,12 @@ class SpressoWearablesService : Service() {
         session?.removeStream()?.onFailure { error, _ ->
             Log.e("SpressoWearables", "Failed to remove stream: ${error.description}")
         }
+        
+        display?.stop()
+        session?.removeDisplay()?.onFailure { error, _ ->
+            Log.e("SpressoWearables", "Failed to remove display: ${error.description}")
+        }
+        
         session?.stop()
         
         serviceScope.cancel()
