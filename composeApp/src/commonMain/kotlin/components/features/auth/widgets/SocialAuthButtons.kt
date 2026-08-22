@@ -18,23 +18,23 @@ import spresso.composeapp.generated.resources.google_logo
 @Composable
 fun SocialAuthButtons(
     onGoogleSignInRequested: () -> Unit,
-    onPhoneSignInRequested: () -> Unit
+    onPhoneSignInRequested: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         OutlinedButton(
             onClick = onGoogleSignInRequested,
             modifier = Modifier.fillMaxWidth().height(50.dp),
             shape = RoundedCornerShape(25.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Image(
                     painter = painterResource(Res.drawable.google_logo),
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(20.dp),
                 )
                 Text("Continue with Google", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
             }
@@ -44,9 +44,14 @@ fun SocialAuthButtons(
             onClick = onPhoneSignInRequested,
             modifier = Modifier.fillMaxWidth().height(50.dp),
             shape = RoundedCornerShape(25.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
-            Icon(Icons.Default.Phone, contentDescription = "Phone", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
+            Icon(
+                Icons.Default.Phone,
+                contentDescription = "Phone",
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
             Spacer(modifier = Modifier.width(8.dp))
             Text("Continue with phone", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
         }

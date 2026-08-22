@@ -1,8 +1,5 @@
 package components.features.profile
 
-import components.models.*
-
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,10 +10,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import components.models.*
 import network.models.UserProfileData
 import utils.GreetingManager
 
@@ -24,7 +21,7 @@ import utils.GreetingManager
 fun UserProfileHeaderSection(
     profile: UserProfileData,
     onUpdateName: ((String) -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var isEditingName by remember { mutableStateOf(false) }
     var editedName by remember { mutableStateOf(profile.name) }
@@ -33,24 +30,24 @@ fun UserProfileHeaderSection(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Surface(
                 modifier = Modifier.size(72.dp),
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer
+                color = MaterialTheme.colorScheme.primaryContainer,
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Outlined.AccountCircle,
                         contentDescription = "User Avatar",
                         modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
             }
@@ -62,7 +59,7 @@ fun UserProfileHeaderSection(
                             value = editedName,
                             onValueChange = { editedName = it },
                             singleLine = true,
-                            modifier = Modifier.widthIn(max = 200.dp)
+                            modifier = Modifier.widthIn(max = 200.dp),
                         )
                         IconButton(onClick = {
                             onUpdateName?.invoke(editedName)
@@ -76,7 +73,7 @@ fun UserProfileHeaderSection(
                         Text(
                             text = GreetingManager.getGreeting(profile.name),
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
                         IconButton(onClick = { isEditingName = true }, modifier = Modifier.size(24.dp)) {
                             Icon(Icons.Outlined.Edit, contentDescription = "Edit Name", modifier = Modifier.size(16.dp))
@@ -86,7 +83,7 @@ fun UserProfileHeaderSection(
                 Text(
                     text = profile.email,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

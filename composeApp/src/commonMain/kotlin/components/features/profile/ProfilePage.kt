@@ -1,29 +1,25 @@
 package components.features.profile
 
-import components.models.*
-import components.features.profile.widgets.ProfileListItem
-import components.features.profile.widgets.ThemeSelectorCard
-import components.features.profile.widgets.ProfileHeader
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
-import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import components.features.profile.widgets.ProfileHeader
+import components.features.profile.widgets.ProfileListItem
+import components.features.profile.widgets.ThemeSelectorCard
+import components.models.*
+import kotlinx.coroutines.launch
 import network.ApiClient
 import network.models.UserProfileData
 import theme.ThemeMode
@@ -43,16 +39,17 @@ fun ProfilePage(
     onNavigateToWearables: (() -> Unit)? = null,
     onNavigateToPrivacySecurity: (() -> Unit)? = null,
     onNavigateToSupport: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val bgLight = MaterialTheme.colorScheme.background
     val scrollState = rememberScrollState()
 
-    val isDark = when (themeMode) {
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
-        ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
-    }
+    val isDark =
+        when (themeMode) {
+            ThemeMode.LIGHT -> false
+            ThemeMode.DARK -> true
+            ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+        }
 
     var userProfile by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<UserProfileData?>(null) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -73,17 +70,18 @@ fun ProfilePage(
         modifier = modifier.fillMaxSize(),
         containerColor = if (isDark) MaterialTheme.colorScheme.surface else bgLight,
         contentWindowInsets = WindowInsets.safeDrawing,
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .consumeWindowInsets(innerPadding)
-                .verticalScroll(scrollState)
-                .padding(24.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding)
+                    .verticalScroll(scrollState)
+                    .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             if (userProfile != null) {
                 UserProfileHeaderSection(
@@ -98,7 +96,7 @@ fun ProfilePage(
                                 snackbarHostState.showSnackbar("Failed to update profile.")
                             }
                         }
-                    }
+                    },
                 )
 
                 SubscriptionMembershipSection(
@@ -107,7 +105,14 @@ fun ProfilePage(
                     onManageSubscription = {
                         scope.launch {
                             try {
-                                val newTier = if (userProfile!!.tier == network.models.SubscriptionTier.FREE) network.models.SubscriptionTier.SPRESSO_VIP else network.models.SubscriptionTier.FREE
+                                val newTier =
+                                    if (userProfile!!.tier ==
+                                        network.models.SubscriptionTier.FREE
+                                    ) {
+                                        network.models.SubscriptionTier.SPRESSO_VIP
+                                    } else {
+                                        network.models.SubscriptionTier.FREE
+                                    }
                                 val newTierName = newTier.name
                                 val success = userUid?.let { uid -> apiClient?.updateUserSubscription(uid, newTierName) } ?: false
                                 if (success) {
@@ -121,7 +126,7 @@ fun ProfilePage(
                                 snackbarHostState.showSnackbar("Failed to update subscription.")
                             }
                         }
-                    }
+                    },
                 )
 
                 PaymentWalletSection(
@@ -132,9 +137,9 @@ fun ProfilePage(
                             try {
                                 val success = apiClient?.createPaymentMethod(stripePaymentMethodId = "pm_card_visa") ?: false
                                 if (success) {
-                                    val newCard = network.models.PaymentCardInfo(id = "card_${kotlin.random.Random.nextInt()}", brand = "Visa", last4 = "4242", expiryMonth = 12, expiryYear = 2028)
-                                    val updated = userProfile!!.copy(savedCards = userProfile!!.savedCards + newCard)
-                                    userProfile = updated
+                                    if (userUid != null) {
+                                        userProfile = apiClient?.fetchUserProfile(userUid)
+                                    }
                                     snackbarHostState.showSnackbar("Payment card added successfully.")
                                 } else {
                                     snackbarHostState.showSnackbar("Failed to add payment card.")
@@ -175,24 +180,49 @@ fun ProfilePage(
                                 snackbarHostState.showSnackbar("Failed to connect Coinbase Wallet.")
                             }
                         }
-                    }
+                    },
                 )
             } else {
                 ProfileHeader(
                     userProfile = null,
                     userName = userName,
-                    userUid = userUid
+                    userUid = userUid,
                 )
             }
 
             // Action Cards (Web Parity Settings)
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                ProfileListItem(icon = Icons.Outlined.FavoriteBorder, title = "My Favorites", subtitle = "View saved products", onClick = onNavigateToFavorites)
-                ProfileListItem(icon = Icons.Outlined.History, title = "Order History", subtitle = "Track your purchases", onClick = onNavigateToOrderHistory)
-                ProfileListItem(icon = Icons.Outlined.NotificationsNone, title = "Notifications", subtitle = "Manage alerts and updates", onClick = onNavigateToNotifications)
-                ProfileListItem(icon = Icons.Outlined.CheckCircle, title = "Verify Email", subtitle = "Secure account with digital credentials", onClick = onVerifyEmail)
-                ProfileListItem(icon = Icons.Outlined.Face, title = "Smart Glasses", subtitle = "Manage Meta Wearables", onClick = onNavigateToWearables)
-                
+                ProfileListItem(
+                    icon = Icons.Outlined.FavoriteBorder,
+                    title = "My Favorites",
+                    subtitle = "View saved products",
+                    onClick = onNavigateToFavorites,
+                )
+                ProfileListItem(
+                    icon = Icons.Outlined.History,
+                    title = "Order History",
+                    subtitle = "Track your purchases",
+                    onClick = onNavigateToOrderHistory,
+                )
+                ProfileListItem(
+                    icon = Icons.Outlined.NotificationsNone,
+                    title = "Notifications",
+                    subtitle = "Manage alerts and updates",
+                    onClick = onNavigateToNotifications,
+                )
+                ProfileListItem(
+                    icon = Icons.Outlined.CheckCircle,
+                    title = "Verify Email",
+                    subtitle = "Secure account with digital credentials",
+                    onClick = onVerifyEmail,
+                )
+                ProfileListItem(
+                    icon = Icons.Outlined.Face,
+                    title = "Smart Glasses",
+                    subtitle = "Manage Meta Wearables",
+                    onClick = onNavigateToWearables,
+                )
+
                 ThemeSelectorCard(
                     themeMode = themeMode,
                     onThemeModeChange = { newTheme ->
@@ -209,11 +239,21 @@ fun ProfilePage(
                                 }
                             }
                         }
-                    }
+                    },
                 )
 
-                ProfileListItem(icon = Icons.Outlined.Security, title = "Privacy & Security", subtitle = "Biometric and account safety", onClick = onNavigateToPrivacySecurity)
-                ProfileListItem(icon = Icons.AutoMirrored.Outlined.HelpOutline, title = "Support", subtitle = "Contact Spresso Concierge", onClick = onNavigateToSupport)
+                ProfileListItem(
+                    icon = Icons.Outlined.Security,
+                    title = "Privacy & Security",
+                    subtitle = "Biometric and account safety",
+                    onClick = onNavigateToPrivacySecurity,
+                )
+                ProfileListItem(
+                    icon = Icons.AutoMirrored.Outlined.HelpOutline,
+                    title = "Support",
+                    subtitle = "Contact Spresso Concierge",
+                    onClick = onNavigateToSupport,
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -235,9 +275,9 @@ fun ProfilePage(
                             snackbarHostState.showSnackbar("User ID is missing.")
                         }
                     }
-                }
+                },
             )
-            
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }

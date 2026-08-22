@@ -1,7 +1,5 @@
 package components.features.camera
 
-import androidx.compose.material3.MaterialTheme
-
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -13,32 +11,26 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.video.FileOutputOptions
 import androidx.camera.video.Recording
-import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
-import androidx.camera.view.video.AudioConfig
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.border
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import java.io.File
-import java.util.concurrent.Executors
-import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import java.util.concurrent.Executors
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -46,7 +38,7 @@ fun CameraCaptureView(
     onImageCaptured: (ByteArray) -> Unit,
     onFrameCaptured: ((ByteArray) -> Unit)? = null,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -58,10 +50,11 @@ fun CameraCaptureView(
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-        hasCameraPermission = permissions[Manifest.permission.CAMERA] ?: hasCameraPermission
-        hasAudioPermission = permissions[Manifest.permission.RECORD_AUDIO] ?: hasAudioPermission
-    }
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+            hasCameraPermission = permissions[Manifest.permission.CAMERA] ?: hasCameraPermission
+            hasAudioPermission = permissions[Manifest.permission.RECORD_AUDIO] ?: hasAudioPermission
+        }
 
     LaunchedEffect(Unit) {
         val permissionsToRequest = mutableListOf<String>()
@@ -76,13 +69,14 @@ fun CameraCaptureView(
         CameraPermissionDialog(
             onRequestPermission = { permissionLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) },
             onOpenSettings = {
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.fromParts("package", context.packageName, null)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
+                val intent =
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
                 context.startActivity(intent)
             },
-            onDismiss = onDismiss
+            onDismiss = onDismiss,
         )
         return
     }
@@ -93,48 +87,53 @@ fun CameraCaptureView(
     var activeMode by remember { mutableStateOf("PHOTO") }
     var zoomRatio by remember { mutableStateOf(1.0f) }
     var isShutterFlashVisible by remember { mutableStateOf(false) }
-    
+
     // Recording state
     var isRecording by remember { mutableStateOf(false) }
     var activeRecording by remember { mutableStateOf<Recording?>(null) }
-    
+
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    
+
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
 
-    val cameraController = remember {
-        LifecycleCameraController(context).apply {
-            bindToLifecycle(lifecycleOwner)
-            setEnabledUseCases(CameraController.IMAGE_CAPTURE or CameraController.VIDEO_CAPTURE or CameraController.IMAGE_ANALYSIS)
-            setImageAnalysisBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            isPinchToZoomEnabled = true
-            isTapToFocusEnabled = true
+    val cameraController =
+        remember {
+            LifecycleCameraController(context).apply {
+                bindToLifecycle(lifecycleOwner)
+                setEnabledUseCases(CameraController.IMAGE_CAPTURE or CameraController.VIDEO_CAPTURE or CameraController.IMAGE_ANALYSIS)
+                setImageAnalysisBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                isPinchToZoomEnabled = true
+                isTapToFocusEnabled = true
+            }
         }
-    }
 
     LaunchedEffect(isFrontLens) {
         val targetSelector = if (isFrontLens) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
         cameraController.cameraSelector = targetSelector
     }
 
-    val objectDetector = remember {
-        val options = com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions.Builder()
-            .setDetectorMode(com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions.STREAM_MODE)
-            .enableMultipleObjects()
-            .build()
-        com.google.mlkit.vision.objects.ObjectDetection.getClient(options)
-    }
+    val objectDetector =
+        remember {
+            val options =
+                com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
+                    .Builder()
+                    .setDetectorMode(com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions.STREAM_MODE)
+                    .enableMultipleObjects()
+                    .build()
+            com.google.mlkit.vision.objects.ObjectDetection
+                .getClient(options)
+        }
 
     var detectedObjects by remember { mutableStateOf<List<com.google.mlkit.vision.objects.DetectedObject>>(emptyList()) }
 
-    LaunchedEffect(Unit) { 
+    LaunchedEffect(Unit) {
         cameraController.setImageAnalysisAnalyzer(
             ContextCompat.getMainExecutor(context),
             androidx.camera.mlkit.vision.MlKitAnalyzer(
                 listOf(objectDetector),
                 androidx.camera.core.ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
-                ContextCompat.getMainExecutor(context)
+                ContextCompat.getMainExecutor(context),
             ) { result ->
                 val objects = result?.getValue(objectDetector)
                 if (objects != null) {
@@ -142,16 +141,16 @@ fun CameraCaptureView(
                 } else {
                     detectedObjects = emptyList()
                 }
-            }
+            },
         )
     }
-    
-    DisposableEffect(Unit) { 
-        onDispose { 
+
+    DisposableEffect(Unit) {
+        onDispose {
             activeRecording?.stop()
-            cameraExecutor.shutdown() 
+            cameraExecutor.shutdown()
             objectDetector.close()
-        } 
+        }
     }
 
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
@@ -168,15 +167,16 @@ fun CameraCaptureView(
         }
     }
 
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) {
-            coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                val inputStream = context.contentResolver.openInputStream(uri)
-                val bytes = inputStream?.readBytes()
-                if (bytes != null) onImageCaptured(bytes)
+    val galleryLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            if (uri != null) {
+                coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    val bytes = inputStream?.readBytes()
+                    if (bytes != null) onImageCaptured(bytes)
+                }
             }
         }
-    }
 
     Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(
@@ -188,7 +188,7 @@ fun CameraCaptureView(
                     previewView = this
                 }
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
         )
 
         ObjectDetectionOverlay(detectedObjects = detectedObjects)
@@ -200,43 +200,50 @@ fun CameraCaptureView(
         if (isShutterFlashVisible) Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.8f)))
 
         CameraTopBar(
-            flashMode = flashMode, showGrid = showGrid, isFrontLens = isFrontLens,
+            flashMode = flashMode,
+            showGrid = showGrid,
+            isFrontLens = isFrontLens,
             onClose = onDismiss,
             onToggleFlash = {
-                flashMode = when (flashMode) {
-                    ImageCapture.FLASH_MODE_OFF -> ImageCapture.FLASH_MODE_ON
-                    ImageCapture.FLASH_MODE_ON -> ImageCapture.FLASH_MODE_AUTO
-                    else -> ImageCapture.FLASH_MODE_OFF
-                }
+                flashMode =
+                    when (flashMode) {
+                        ImageCapture.FLASH_MODE_OFF -> ImageCapture.FLASH_MODE_ON
+                        ImageCapture.FLASH_MODE_ON -> ImageCapture.FLASH_MODE_AUTO
+                        else -> ImageCapture.FLASH_MODE_OFF
+                    }
                 cameraController.imageCaptureFlashMode = flashMode
             },
             onToggleGrid = { showGrid = !showGrid },
             onSwitchLens = { isFrontLens = !isFrontLens },
-            modifier = Modifier.align(Alignment.TopCenter)
+            modifier = Modifier.align(Alignment.TopCenter),
         )
 
         CameraBottomBar(
-            activeMode = activeMode, 
+            activeMode = activeMode,
             isRecording = isRecording,
             zoomRatio = zoomRatio,
-            onSelectZoom = { ratio -> zoomRatio = ratio; cameraController.setZoomRatio(ratio) },
-            onModeSelected = { 
-                if (!isRecording) activeMode = it 
-            }, 
+            onSelectZoom = { ratio ->
+                zoomRatio = ratio
+                cameraController.setZoomRatio(ratio)
+            },
+            onModeSelected = {
+                if (!isRecording) activeMode = it
+            },
             onGalleryClick = {
                 galleryLauncher.launch("image/*")
             },
             onToggleRecordVideo = {
-                activeRecording = CameraCaptureActions.toggleVideoRecording(
-                    context = context,
-                    cameraController = cameraController,
-                    isRecording = isRecording,
-                    activeRecording = activeRecording,
-                    hasAudioPermission = hasAudioPermission,
-                    onRecordingStarted = { isRecording = true },
-                    onRecordingStopped = { isRecording = false },
-                    onVideoCaptured = { onImageCaptured(it) }
-                )
+                activeRecording =
+                    CameraCaptureActions.toggleVideoRecording(
+                        context = context,
+                        cameraController = cameraController,
+                        isRecording = isRecording,
+                        activeRecording = activeRecording,
+                        hasAudioPermission = hasAudioPermission,
+                        onRecordingStarted = { isRecording = true },
+                        onRecordingStopped = { isRecording = false },
+                        onVideoCaptured = { onImageCaptured(it) },
+                    )
             },
             onCapturePhoto = {
                 CameraCaptureActions.capturePhoto(
@@ -246,15 +253,15 @@ fun CameraCaptureView(
                     isFrontLens = isFrontLens,
                     onShutter = { isShutterFlashVisible = true },
                     onImageCaptured = onImageCaptured,
-                    onComplete = { isShutterFlashVisible = false }
+                    onComplete = { isShutterFlashVisible = false },
                 )
             },
-            modifier = Modifier.align(Alignment.BottomCenter)
+            modifier = Modifier.align(Alignment.BottomCenter),
         )
 
         androidx.compose.material3.SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 120.dp)
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 120.dp),
         )
     }
 }

@@ -4,8 +4,9 @@ import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.ktor.websocket.*
 import io.ktor.http.HttpHeaders
+import io.ktor.websocket.*
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.serialization.Serializable
@@ -15,44 +16,43 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-import kotlinx.coroutines.cancel
 
 enum class ConnectionState {
     DISCONNECTED,
     CONNECTING,
     CONNECTED,
     RECONNECTING,
-    ERROR
+    ERROR,
 }
 
 @Serializable
 data class AgentEngineBidiStreamOutput(
-    val output: AgentEngineOutput? = null
+    val output: AgentEngineOutput? = null,
 )
 
 @Serializable
 data class AgentEngineOutput(
     val inline_data: AgentEngineInlineData? = null,
     val part: AgentEnginePart? = null,
-    val end_of_turn: Boolean? = null
+    val end_of_turn: Boolean? = null,
 )
 
 @Serializable
 data class AgentEngineInlineData(
     val mime_type: String? = null,
-    val data: String? = null
+    val data: String? = null,
 )
 
 @Serializable
 data class AgentEnginePart(
-    val text: String? = null
+    val text: String? = null,
 )
 
 @Serializable
 data class AudioControlPayload(
     val action: String,
     val isMuted: Boolean? = null,
-    val isPaused: Boolean? = null
+    val isPaused: Boolean? = null,
 )
 
 @Serializable
@@ -61,35 +61,35 @@ data class ClientMessage(
     val text: String? = null,
     val realtimeInput: RealtimeInput? = null,
     val clientContent: ClientContent? = null,
-    val control: AudioControlPayload? = null
+    val control: AudioControlPayload? = null,
 )
 
 @Serializable
 data class RealtimeInput(
-    val mediaChunks: List<MediaChunk> = emptyList()
+    val mediaChunks: List<MediaChunk> = emptyList(),
 )
 
 @Serializable
 data class MediaChunk(
     val mimeType: String,
-    val data: String
+    val data: String,
 )
 
 @Serializable
 data class ClientContent(
     val turns: List<ContentTurn> = emptyList(),
-    val turnComplete: Boolean = true
+    val turnComplete: Boolean = true,
 )
 
 @Serializable
 data class ContentTurn(
     val role: String = "user",
-    val parts: List<ContentPart> = emptyList()
+    val parts: List<ContentPart> = emptyList(),
 )
 
 @Serializable
 data class ContentPart(
-    val text: String? = null
+    val text: String? = null,
 )
 
 @Serializable
@@ -101,31 +101,31 @@ data class ServerMessage(
     val error: String? = null,
     val message: String? = null,
     val serverContent: ServerContent? = null,
-    val bidiStreamOutput: AgentEngineBidiStreamOutput? = null
+    val bidiStreamOutput: AgentEngineBidiStreamOutput? = null,
 )
 
 @Serializable
 data class ServerContent(
     val modelTurn: ModelTurn? = null,
     val turnComplete: Boolean? = null,
-    val interrupted: Boolean? = null
+    val interrupted: Boolean? = null,
 )
 
 @Serializable
 data class ModelTurn(
-    val parts: List<ModelPart> = emptyList()
+    val parts: List<ModelPart> = emptyList(),
 )
 
 @Serializable
 data class ModelPart(
     val text: String? = null,
-    val inlineData: InlineData? = null
+    val inlineData: InlineData? = null,
 )
 
 @Serializable
 data class InlineData(
     val mimeType: String,
-    val data: String
+    val data: String,
 )
 
 open class LiveApiClient {
@@ -138,11 +138,16 @@ open class LiveApiClient {
         const val INITIAL_RECONNECT_DELAY_MS = 1000L
     }
 
-    private val client = HttpClient {
-        install(WebSockets)
-    }
+    private val client =
+        HttpClient {
+            install(WebSockets)
+        }
 
-    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = false }
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = false
+        }
     private var session: DefaultClientWebSocketSession? = null
 
     var connectionState: ConnectionState = ConnectionState.DISCONNECTED
@@ -162,7 +167,7 @@ open class LiveApiClient {
         onReceiveText: (String) -> Unit,
         onInterrupted: () -> Unit = {},
         onStateChanged: (ConnectionState) -> Unit = {},
-        onError: (String) -> Unit = {}
+        onError: (String) -> Unit = {},
     ) {
         isManuallyClosed = false
 
@@ -174,26 +179,33 @@ open class LiveApiClient {
                 connectionState = if (attempt == 0) ConnectionState.CONNECTING else ConnectionState.RECONNECTING
                 onStateChanged(connectionState)
 
-                val functionsUrl = try { SpressoConfig.cloudFunctionsBaseUrl } catch (_: Exception) { "https://us-central1-spresso-5561f.cloudfunctions.net" }
-                val tokenResponse = client.post("$functionsUrl/generateLiveApiToken") {
-                    if (!authToken.isNullOrEmpty()) {
-                        header(HttpHeaders.Authorization, "Bearer $authToken")
+                val functionsUrl =
+                    try {
+                        SpressoConfig.cloudFunctionsBaseUrl
+                    } catch (_: Exception) {
+                        "https://us-central1-spresso-5561f.cloudfunctions.net"
                     }
-                }.bodyAsText()
+                val tokenResponse =
+                    client
+                        .post("$functionsUrl/generateLiveApiToken") {
+                            if (!authToken.isNullOrEmpty()) {
+                                header(HttpHeaders.Authorization, "Bearer $authToken")
+                            }
+                        }.bodyAsText()
                 val tokenJson = json.parseToJsonElement(tokenResponse)
-                val ephemeralToken = tokenJson.jsonObject["token"]?.jsonPrimitive?.content ?: throw Exception("Failed to retrieve ephemeral token")
+                val ephemeralToken =
+                    tokenJson.jsonObject["token"]?.jsonPrimitive?.content ?: throw Exception("Failed to retrieve ephemeral token")
                 // Gemini Interactions Live API Endpoint
                 val wsUrl = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=$ephemeralToken"
 
                 client.webSocket(
-                    urlString = wsUrl
+                    urlString = wsUrl,
                 ) {
                     session = this
-                    
+
                     connectionState = ConnectionState.CONNECTED
                     onStateChanged(ConnectionState.CONNECTED)
                     attempt = 0 // Reset reconnect attempts on successful handshake
-
 
                     for (incomingFrame in incoming) {
                         if (!isActive || isManuallyClosed) break
@@ -300,44 +312,57 @@ open class LiveApiClient {
     }
 
     @OptIn(ExperimentalEncodingApi::class)
-    open suspend fun sendAudioChunk(base64Audio: String, mimeType: String = DEFAULT_INPUT_MIME) {
+    open suspend fun sendAudioChunk(
+        base64Audio: String,
+        mimeType: String = DEFAULT_INPUT_MIME,
+    ) {
         if (isMuted || isPaused || connectionState != ConnectionState.CONNECTED) return
-        val message = ClientMessage(
-            audio = base64Audio,
-            realtimeInput = RealtimeInput(
-                mediaChunks = listOf(MediaChunk(mimeType = mimeType, data = base64Audio))
+        val message =
+            ClientMessage(
+                audio = base64Audio,
+                realtimeInput =
+                    RealtimeInput(
+                        mediaChunks = listOf(MediaChunk(mimeType = mimeType, data = base64Audio)),
+                    ),
             )
-        )
         session?.send(json.encodeToString(message))
     }
 
-    open suspend fun sendVideoFrame(base64Image: String, mimeType: String = "image/jpeg") {
+    open suspend fun sendVideoFrame(
+        base64Image: String,
+        mimeType: String = "image/jpeg",
+    ) {
         if (connectionState != ConnectionState.CONNECTED) return
-        val message = ClientMessage(
-            realtimeInput = RealtimeInput(
-                mediaChunks = listOf(MediaChunk(mimeType = mimeType, data = base64Image))
+        val message =
+            ClientMessage(
+                realtimeInput =
+                    RealtimeInput(
+                        mediaChunks = listOf(MediaChunk(mimeType = mimeType, data = base64Image)),
+                    ),
             )
-        )
         session?.send(json.encodeToString(message))
     }
 
     open suspend fun sendTextContent(text: String) {
         if (connectionState != ConnectionState.CONNECTED) return
-        val message = ClientMessage(
-            text = text,
-            clientContent = ClientContent(
-                turns = listOf(ContentTurn(role = "user", parts = listOf(ContentPart(text = text)))),
-                turnComplete = true
+        val message =
+            ClientMessage(
+                text = text,
+                clientContent =
+                    ClientContent(
+                        turns = listOf(ContentTurn(role = "user", parts = listOf(ContentPart(text = text)))),
+                        turnComplete = true,
+                    ),
             )
-        )
         session?.send(json.encodeToString(message))
     }
 
     suspend fun sendMute(muted: Boolean) {
         isMuted = muted
-        val message = ClientMessage(
-            control = AudioControlPayload(action = if (muted) "mute" else "unmute", isMuted = muted)
-        )
+        val message =
+            ClientMessage(
+                control = AudioControlPayload(action = if (muted) "mute" else "unmute", isMuted = muted),
+            )
         try {
             session?.send(json.encodeToString(message))
         } catch (e: Exception) {
@@ -347,9 +372,10 @@ open class LiveApiClient {
 
     suspend fun sendPause() {
         isPaused = true
-        val message = ClientMessage(
-            control = AudioControlPayload(action = "pause", isPaused = true)
-        )
+        val message =
+            ClientMessage(
+                control = AudioControlPayload(action = "pause", isPaused = true),
+            )
         try {
             session?.send(json.encodeToString(message))
         } catch (e: Exception) {
@@ -359,9 +385,10 @@ open class LiveApiClient {
 
     suspend fun sendResume() {
         isPaused = false
-        val message = ClientMessage(
-            control = AudioControlPayload(action = "resume", isPaused = false)
-        )
+        val message =
+            ClientMessage(
+                control = AudioControlPayload(action = "resume", isPaused = false),
+            )
         try {
             session?.send(json.encodeToString(message))
         } catch (e: Exception) {
@@ -370,9 +397,10 @@ open class LiveApiClient {
     }
 
     suspend fun sendInterrupt() {
-        val message = ClientMessage(
-            control = AudioControlPayload(action = "interrupt")
-        )
+        val message =
+            ClientMessage(
+                control = AudioControlPayload(action = "interrupt"),
+            )
         try {
             session?.send(json.encodeToString(message))
         } catch (e: Exception) {
@@ -396,4 +424,3 @@ open class LiveApiClient {
         }
     }
 }
-

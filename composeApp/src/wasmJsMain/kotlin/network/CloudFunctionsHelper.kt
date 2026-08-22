@@ -26,18 +26,20 @@ private val httpClient by lazy {
     }
 }
 
-
-
-actual suspend fun callFirebaseFunction(functionName: String, dataJson: String): String {
+actual suspend fun callFirebaseFunction(
+    functionName: String,
+    dataJson: String,
+): String {
     val authToken = getCurrentUserIdToken()
-    val response = httpClient.post(
-        "${SpressoConfig.cloudFunctionsBaseUrl}/$functionName"
-    ) {
-        contentType(ContentType.Application.Json)
-        if (!authToken.isNullOrEmpty()) {
-            header(HttpHeaders.Authorization, "Bearer $authToken")
+    val response =
+        httpClient.post(
+            "${SpressoConfig.cloudFunctionsBaseUrl}/$functionName",
+        ) {
+            contentType(ContentType.Application.Json)
+            if (!authToken.isNullOrEmpty()) {
+                header(HttpHeaders.Authorization, "Bearer $authToken")
+            }
+            setBody(dataJson)
         }
-        setBody(dataJson)
-    }
     return response.bodyAsText()
 }

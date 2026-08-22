@@ -17,19 +17,19 @@ import androidx.compose.ui.unit.dp
 fun GroceryCategoryFilter(
     categories: List<String>,
     selectedCategory: String,
-    onCategorySelected: (String) -> Unit
+    onCategorySelected: (String) -> Unit,
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(categories) { cat ->
             val isSelected = selectedCategory == cat
             FilterChip(
                 selected = isSelected,
                 onClick = { onCategorySelected(cat) },
-                label = { Text(cat, fontWeight = FontWeight.SemiBold) }
+                label = { Text(cat, fontWeight = FontWeight.SemiBold) },
             )
         }
     }

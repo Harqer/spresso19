@@ -7,7 +7,6 @@ import { ElevatedQuickActionFab } from "./ElevatedQuickActionFab";
 import { LocationDetailsView } from "./LocationDetailsView";
 import { AIShopperInputBar } from "./AIShopperInputBar";
 import { ErrorStateFallback } from "./shared/Fallbacks";
-import { GoogleLensBoundingBox } from "./features/vision/GoogleLensBoundingBox";
 import { GoogleLensCategoryTabs } from "./features/vision/GoogleLensCategoryTabs";
 
 import html2canvas from "html2canvas";
@@ -58,11 +57,8 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
   const [showLocationDetails, setShowLocationDetails] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
-  // Coordinate and gesture tracking states for draw selection
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
-  const [currentPoint, setCurrentPoint] = useState<{ x: number; y: number } | null>(null);
-  const [cropBox, setCropBox] = useState<{ ymin: number; xmin: number; ymax: number; xmax: number } | null>(null);
+  // DOM Object detection state
+  const [domObjects, setDomObjects] = useState<Array<{id: string; box: { ymin: number, xmin: number, ymax: number, xmax: number }}>>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
@@ -89,7 +85,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
       setScreenSnapshot(null);
       setDetectedRegions([]);
       setSelectedRegionId(0);
-      setCropBox(null);
+      setDomObjects([]);
     }
   }, [isOpen, initialProduct]);
 
@@ -98,6 +94,24 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
     try {
       const modalEl = document.getElementById("google-lens-modal-container");
       if (modalEl) modalEl.style.visibility = "hidden";
+
+      // Scan DOM for visually prominent elements to auto-highlight
+      const elements = Array.from(document.querySelectorAll('img, [data-product-id], [data-lens-id]'));
+      const objects: any[] = [];
+      elements.forEach((el, index) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 60 && rect.height > 60 && rect.top >= 0 && rect.left >= 0 && rect.bottom <= window.innerHeight && rect.right <= window.innerWidth) {
+          const ymin = Math.round((rect.top / window.innerHeight) * 1000);
+          const xmin = Math.round((rect.left / window.innerWidth) * 1000);
+          const ymax = Math.round((rect.bottom / window.innerHeight) * 1000);
+          const xmax = Math.round((rect.right / window.innerWidth) * 1000);
+          objects.push({
+            id: `dom-obj-${index}`,
+            box: { ymin: Math.max(0, ymin), xmin: Math.max(0, xmin), ymax: Math.min(1000, ymax), xmax: Math.min(1000, xmax) }
+          });
+        }
+      });
+      setDomObjects(objects);
 
       const canvasPromise = html2canvas(document.body, {
         useCORS: true,
@@ -115,7 +129,10 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
       if (canvas) {
         const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
         setScreenSnapshot(dataUrl);
-        runGoogleLensScreenAnalysis(dataUrl);
+        // We defer runGoogleLensScreenAnalysis until the user taps a highlighted dot, unless it's empty
+        if (objects.length === 0) {
+            runGoogleLensScreenAnalysis(dataUrl);
+        }
       } else {
         throw new Error("Screen capture timeout fallback");
       }
@@ -151,154 +168,17 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
       const { httpsCallable } = await import("firebase/functions");
       const lensSearch = httpsCallable(functions, "lensSearch");
 
-      // We explicitly throw an error here because the backend API for lensSearch has not been implemented
-      // on the new Cloud Functions architecture yet.
-      throw new Error("Missing Backend API - Needs Implementation");
+      const res = await lensSearch({ imageBase64 });
+      const data = res.data as any;
+      if (data && data.regions) {
+        setDetectedRegions(data.regions);
+      }
+      setIsScanning(false);
     } catch (error: any) {
       Logger.error("Lens search failed", error);
       setErrorMessage(error.message || "Visual analysis is currently unavailable.");
       setIsScanning(false);
     }
-  };
-
-  // Gesture handling functions (Click / Drag crop selection)
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!screenSnapshot || !imageContainerRef.current) return;
-    const rect = imageContainerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    setStartPoint({ x, y });
-    setCurrentPoint({ x, y });
-    setIsDrawing(true);
-    setCropBox(null);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDrawing || !startPoint || !imageContainerRef.current) return;
-    const rect = imageContainerRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-    const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
-    setCurrentPoint({ x, y });
-  };
-
-  const handleMouseUp = async () => {
-    if (!isDrawing || !startPoint || !currentPoint || !imageContainerRef.current) return;
-    setIsDrawing(false);
-
-    const rect = imageContainerRef.current.getBoundingClientRect();
-    const x1 = Math.min(startPoint.x, currentPoint.x);
-    const x2 = Math.max(startPoint.x, currentPoint.x);
-    const y1 = Math.min(startPoint.y, currentPoint.y);
-    const y2 = Math.max(startPoint.y, currentPoint.y);
-
-    const width = x2 - x1;
-    const height = y2 - y1;
-
-    // Check if it's a simple tap/click
-    if (width < 10 && height < 10) {
-      const pctX = (startPoint.x / rect.width) * 100;
-      const pctY = (startPoint.y / rect.height) * 100;
-      setIsScanning(true);
-      try {
-        const cropped = await cropImageSnippet(screenSnapshot!, undefined, { x: pctX, y: pctY });
-        await runGoogleLensScreenAnalysis(cropped);
-      } catch (err) {
-        setIsScanning(false);
-      }
-      return;
-    }
-
-    const ymin = Math.round((y1 / rect.height) * 1000);
-    const xmin = Math.round((x1 / rect.width) * 1000);
-    const ymax = Math.round((y2 / rect.height) * 1000);
-    const xmax = Math.round((x2 / rect.width) * 1000);
-
-    setCropBox({ ymin, xmin, ymax, xmax });
-
-    setIsScanning(true);
-    try {
-      const cropped = await cropImageSnippet(screenSnapshot!, [ymin, xmin, ymax, xmax]);
-      await runGoogleLensScreenAnalysis(cropped);
-    } catch (err) {
-      setIsScanning(false);
-    }
-  };
-
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!screenSnapshot || !imageContainerRef.current || e.touches.length === 0) return;
-    const rect = imageContainerRef.current.getBoundingClientRect();
-    const touch = e.touches[0];
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-    setStartPoint({ x, y });
-    setCurrentPoint({ x, y });
-    setIsDrawing(true);
-    setCropBox(null);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!isDrawing || !startPoint || !imageContainerRef.current || e.touches.length === 0) return;
-    const rect = imageContainerRef.current.getBoundingClientRect();
-    const touch = e.touches[0];
-    const x = Math.max(0, Math.min(touch.clientX - rect.left, rect.width));
-    const y = Math.max(0, Math.min(touch.clientY - rect.top, rect.height));
-    setCurrentPoint({ x, y });
-  };
-
-  const handleTouchEnd = async () => {
-    if (!isDrawing || !startPoint || !currentPoint || !imageContainerRef.current) return;
-    setIsDrawing(false);
-
-    const rect = imageContainerRef.current.getBoundingClientRect();
-    const x1 = Math.min(startPoint.x, currentPoint.x);
-    const x2 = Math.max(startPoint.x, currentPoint.x);
-    const y1 = Math.min(startPoint.y, currentPoint.y);
-    const y2 = Math.max(startPoint.y, currentPoint.y);
-
-    const width = x2 - x1;
-    const height = y2 - y1;
-
-    if (width < 10 && height < 10) {
-      const pctX = (startPoint.x / rect.width) * 100;
-      const pctY = (startPoint.y / rect.height) * 100;
-      setIsScanning(true);
-      try {
-        const cropped = await cropImageSnippet(screenSnapshot!, undefined, { x: pctX, y: pctY });
-        await runGoogleLensScreenAnalysis(cropped);
-      } catch (err) {
-        setIsScanning(false);
-      }
-      return;
-    }
-
-    const ymin = Math.round((y1 / rect.height) * 1000);
-    const xmin = Math.round((x1 / rect.width) * 1000);
-    const ymax = Math.round((y2 / rect.height) * 1000);
-    const xmax = Math.round((x2 / rect.width) * 1000);
-
-    setCropBox({ ymin, xmin, ymax, xmax });
-
-    setIsScanning(true);
-    try {
-      const cropped = await cropImageSnippet(screenSnapshot!, [ymin, xmin, ymax, xmax]);
-      await runGoogleLensScreenAnalysis(cropped);
-    } catch (err) {
-      setIsScanning(false);
-    }
-  };
-
-  const getBoxStyle = () => {
-    if (!startPoint || !currentPoint) return {};
-    const left = Math.min(startPoint.x, currentPoint.x);
-    const top = Math.min(startPoint.y, currentPoint.y);
-    const width = Math.abs(startPoint.x - currentPoint.x);
-    const height = Math.abs(startPoint.y - currentPoint.y);
-    return {
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${width}px`,
-      height: `${height}px`,
-    };
   };
 
   if (!isOpen) return null;
@@ -384,7 +264,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                     meets perfection
                   </h1>
                   <p className="text-xs sm:text-sm text-stone-200 font-sans leading-relaxed max-w-md">
-                    {currentItem?.description || "Select an object by drawing or clicking on the screen capture to run Spresso Google Lens."}
+                    {currentItem?.description || "Tap on any glowing dot on the screen capture to instantly identify the object with Spresso Lens."}
                   </p>
 
                   {currentItem && (
@@ -426,63 +306,60 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                   )}
                 </div>
 
-                {/* Interactive Screen Capture Selection Container */}
+                {/* Interactive Screen Capture Auto-Detection Overlay */}
                 <div className="md:col-span-6 flex items-center justify-center relative my-4 sm:my-0">
                   <div
                     ref={imageContainerRef}
-                    className="relative w-full max-w-[340px] h-[340px] rounded-3xl overflow-hidden border border-white/20 bg-stone-900 shadow-2xl cursor-crosshair select-none flex items-center justify-center"
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
+                    className="relative w-full max-w-[340px] flex items-center justify-center border border-white/20 bg-stone-900 rounded-3xl overflow-hidden shadow-2xl"
                   >
                     {screenSnapshot ? (
-                      <img
-                        src={screenSnapshot}
-                        alt="Captured App Screen"
-                        className="w-full h-full object-contain pointer-events-none"
-                      />
+                      <div className="relative w-full" style={{ aspectRatio: `${window.innerWidth}/${window.innerHeight}` }}>
+                        <img
+                          src={screenSnapshot}
+                          alt="Captured App Screen"
+                          className="w-full h-full object-cover pointer-events-none"
+                        />
+                        
+                        {/* Render Auto-Detected Object Dots */}
+                        {domObjects.map((obj) => {
+                          const centerX = (obj.box.xmin + obj.box.xmax) / 2 / 10;
+                          const centerY = (obj.box.ymin + obj.box.ymax) / 2 / 10;
+                          return (
+                             <div
+                                key={obj.id}
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setIsScanning(true);
+                                  try {
+                                    const { ymin, xmin, ymax, xmax } = obj.box;
+                                    const cropped = await cropImageSnippet(screenSnapshot!, [ymin, xmin, ymax, xmax]);
+                                    await runGoogleLensScreenAnalysis(cropped);
+                                  } catch (err) {
+                                    setIsScanning(false);
+                                  }
+                                }}
+                                className="absolute w-10 h-10 -ml-5 -mt-5 bg-black/20 backdrop-blur-md border border-white/30 rounded-xl cursor-pointer flex items-center justify-center hover:bg-white/20 hover:scale-110 transition-all shadow-lg z-40"
+                                style={{ left: `${centerX}%`, top: `${centerY}%` }}
+                             >
+                               <MaterialIcon icon="search" size={24} className="text-white drop-shadow-md" />
+                             </div>
+                          );
+                        })}
+
+                        {/* Pulsing scanning overlay if processing */}
+                        {isScanning && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none z-50">
+                            <div className="w-full h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent animate-pulse absolute top-1/2 left-0 right-0 transform -translate-y-1/2" />
+                            <MaterialIcon icon="auto_awesome" size={32} className="text-orange-400 animate-spin" />
+                          </div>
+                        )}
+                      </div>
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-stone-400 space-y-2">
+                      <div className="w-full h-[340px] flex flex-col items-center justify-center text-stone-400 space-y-2">
                         <MaterialIcon icon="image" size={36} />
                         <span className="text-xs">Capturing screen layout...</span>
                       </div>
                     )}
-
-                    {/* Pulsing scanning overlay if processing */}
-                    {isScanning && (
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none z-30">
-                        <div className="w-full h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent animate-pulse absolute top-1/2 left-0 right-0 transform -translate-y-1/2" />
-                        <MaterialIcon icon="auto_awesome" size={32} className="text-orange-400 animate-spin" />
-                      </div>
-                    )}
-
-                    {/* Current Selection Box Overlay */}
-                    {isDrawing && (
-                      <div
-                        className="absolute border-2 border-dashed border-orange-500 bg-orange-500/10 pointer-events-none z-25"
-                        style={getBoxStyle()}
-                      />
-                    )}
-
-                    <GoogleLensBoundingBox
-                      cropBox={cropBox}
-                      startPoint={startPoint}
-                      currentPoint={currentPoint}
-                      containerRect={imageContainerRef.current?.getBoundingClientRect()}
-                      onChange={(newBox) => setCropBox(newBox)}
-                      onResizeEnd={async (newBox) => {
-                        setIsScanning(true);
-                        try {
-                          const cropped = await cropImageSnippet(screenSnapshot!, [newBox.ymin, newBox.xmin, newBox.ymax, newBox.xmax]);
-                          await runGoogleLensScreenAnalysis(cropped);
-                        } catch (err) {
-                          setIsScanning(false);
-                        }
-                      }}
-                    />
                   </div>
                 </div>
 
@@ -583,7 +460,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                   !isScanning && (
                     <div className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/10 mt-6">
                       <MaterialIcon icon="broken_image" size={32} className="text-white/30 mb-2" />
-                      <p className="text-sm font-bold text-white/50">Draw over or click the screenshot above to identify items</p>
+                      <p className="text-sm font-bold text-white/50">Tap a glowing dot on the screenshot to identify items</p>
                     </div>
                   )
                 )}

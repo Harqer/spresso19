@@ -6,9 +6,9 @@ import androidx.compose.runtime.remember
 @Composable
 actual fun rememberBiometricAuthenticator(
     onSuccess: () -> Unit,
-    onError: (String) -> Unit
-): BiometricAuthenticator {
-    return remember(onSuccess) {
+    onError: (String) -> Unit,
+): BiometricAuthenticator =
+    remember(onSuccess) {
         object : BiometricAuthenticator {
             override fun authenticate() {
                 // Biometrics are not supported on Web.
@@ -16,4 +16,3 @@ actual fun rememberBiometricAuthenticator(
             }
         }
     }
-}

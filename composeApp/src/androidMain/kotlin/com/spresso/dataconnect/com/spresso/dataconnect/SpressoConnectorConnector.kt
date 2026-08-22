@@ -1,1137 +1,1062 @@
 
 @file:Suppress(
-  "KotlinRedundantDiagnosticSuppress",
-  "PropertyName",
-  "MayBeConstant",
-  "RedundantVisibilityModifier",
-  "RedundantCompanionReference",
-  "RemoveEmptyClassBody",
-  "SpellCheckingInspection",
-  "unused",
+    "KotlinRedundantDiagnosticSuppress",
+    "PropertyName",
+    "MayBeConstant",
+    "RedundantVisibilityModifier",
+    "RedundantCompanionReference",
+    "RemoveEmptyClassBody",
+    "SpellCheckingInspection",
+    "unused",
 )
 
 package com.spresso.dataconnect
 
 import com.google.firebase.dataconnect.getInstance as _fdcGetInstance
-import kotlin.time.Duration.Companion.milliseconds as _milliseconds
 
 public interface SpressoConnectorConnector : com.google.firebase.dataconnect.generated.GeneratedConnector<SpressoConnectorConnector> {
-  override val dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect
+    override val dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect
 
-  
     public val addGroceryItem: AddGroceryItemMutation
-  
+
     public val addVideo: AddVideoMutation
-  
+
     public val addWardrobeItem: AddWardrobeItemMutation
-  
+
     public val connectCoinbaseWallet: ConnectCoinbaseWalletMutation
-  
+
     public val createExpense: CreateExpenseMutation
-  
+
     public val createGroceryList: CreateGroceryListMutation
-  
+
     public val createOrder: CreateOrderMutation
-  
+
     public val createPaymentMethod: CreatePaymentMethodMutation
-  
+
     public val createTravelExpense: CreateTravelExpenseMutation
-  
+
     public val createVoiceNote: CreateVoiceNoteMutation
-  
+
     public val createWardrobeOutfit: CreateWardrobeOutfitMutation
-  
+
     public val deleteGroceryItem: DeleteGroceryItemMutation
-  
+
     public val deletePaymentMethod: DeletePaymentMethodMutation
-  
+
     public val getCreativeTemplates: GetCreativeTemplatesQuery
-  
+
     public val getCreatorAgents: GetCreatorAgentsQuery
-  
+
     public val getGroceryList: GetGroceryListQuery
-  
+
     public val getItineraryEvents: GetItineraryEventsQuery
-  
+
     public val getOnboardingStatus: GetOnboardingStatusQuery
-  
+
     public val getPaymentMethods: GetPaymentMethodsQuery
-  
+
     public val getProductById: GetProductByIdQuery
-  
+
     public val getTravelExpenses: GetTravelExpensesQuery
-  
+
     public val getTrips: GetTripsQuery
-  
+
     public val getUserCart: GetUserCartQuery
-  
+
     public val getUserOrders: GetUserOrdersQuery
-  
+
     public val getUserPreference: GetUserPreferenceQuery
-  
+
     public val getUserPreferences: GetUserPreferencesQuery
-  
+
     public val getUserProfile: GetUserProfileQuery
-  
+
     public val getUserSubscription: GetUserSubscriptionQuery
-  
+
     public val getUserVideos: GetUserVideosQuery
-  
+
     public val getVisionHistory: GetVisionHistoryQuery
-  
+
     public val getVoiceNotes: GetVoiceNotesQuery
-  
+
     public val getWardrobeItems: GetWardrobeItemsQuery
-  
+
     public val getWardrobeOutfits: GetWardrobeOutfitsQuery
-  
+
     public val listProducts: ListProductsQuery
-  
+
     public val logVisionEvent: LogVisionEventMutation
-  
+
     public val registerPasskey: RegisterPasskeyMutation
-  
+
     public val toggleGroceryItem: ToggleGroceryItemMutation
-  
+
     public val toggleLike: ToggleLikeMutation
-  
+
     public val updateOnboardingStatus: UpdateOnboardingStatusMutation
-  
-    public val updateUserSubscription: UpdateUserSubscriptionMutation
-  
+
     public val upsertUserPreference: UpsertUserPreferenceMutation
-  
+
     public val upsertUserProfile: UpsertUserProfileMutation
-  
 
-  public companion object {
-    @Suppress("MemberVisibilityCanBePrivate")
-    public val config: com.google.firebase.dataconnect.ConnectorConfig = com.google.firebase.dataconnect.ConnectorConfig(
-      connector = "spresso-connector",
-      location = "us-central1",
-      serviceId = "spresso-dataconnect",
-    )
+    public val upsertUserSubscription: UpsertUserSubscriptionMutation
 
-    public fun getInstance(
-      dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect
-    ):SpressoConnectorConnector = synchronized(instances) {
-      instances.getOrPut(dataConnect) {
-        SpressoConnectorConnectorImpl(dataConnect)
-      }
+    public companion object {
+        @Suppress("MemberVisibilityCanBePrivate")
+        public val config: com.google.firebase.dataconnect.ConnectorConfig =
+            com.google.firebase.dataconnect.ConnectorConfig(
+                connector = "spresso-connector",
+                location = "us-central1",
+                serviceId = "spresso-dataconnect",
+            )
+
+        public fun getInstance(dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect): SpressoConnectorConnector =
+            synchronized(instances) {
+                instances.getOrPut(dataConnect) {
+                    SpressoConnectorConnectorImpl(dataConnect)
+                }
+            }
+
+        private val instances = java.util.WeakHashMap<com.google.firebase.dataconnect.FirebaseDataConnect, SpressoConnectorConnectorImpl>()
     }
-
-    private val instances = java.util.WeakHashMap<com.google.firebase.dataconnect.FirebaseDataConnect, SpressoConnectorConnectorImpl>()
-
-    
-  }
 }
 
-public val SpressoConnectorConnector.Companion.instance:SpressoConnectorConnector
-  get() = getInstance(com.google.firebase.dataconnect.FirebaseDataConnect._fdcGetInstance(
-    config
-  ))
+public val SpressoConnectorConnector.Companion.instance: SpressoConnectorConnector
+    get() =
+        getInstance(
+            com.google.firebase.dataconnect.FirebaseDataConnect._fdcGetInstance(
+                config,
+            ),
+        )
 
 public fun SpressoConnectorConnector.Companion.getInstance(
-  settings: com.google.firebase.dataconnect.DataConnectSettings = com.google.firebase.dataconnect.DataConnectSettings()
-):SpressoConnectorConnector =
-  getInstance(com.google.firebase.dataconnect.FirebaseDataConnect._fdcGetInstance(config, settings))
+    settings: com.google.firebase.dataconnect.DataConnectSettings =
+        com.google.firebase.dataconnect
+            .DataConnectSettings(),
+): SpressoConnectorConnector =
+    getInstance(
+        com.google.firebase.dataconnect.FirebaseDataConnect
+            ._fdcGetInstance(config, settings),
+    )
 
 public fun SpressoConnectorConnector.Companion.getInstance(
-  app: com.google.firebase.FirebaseApp,
-  settings: com.google.firebase.dataconnect.DataConnectSettings = com.google.firebase.dataconnect.DataConnectSettings()
-):SpressoConnectorConnector =
-  getInstance(com.google.firebase.dataconnect.FirebaseDataConnect._fdcGetInstance(app, config, settings))
+    app: com.google.firebase.FirebaseApp,
+    settings: com.google.firebase.dataconnect.DataConnectSettings =
+        com.google.firebase.dataconnect
+            .DataConnectSettings(),
+): SpressoConnectorConnector =
+    getInstance(
+        com.google.firebase.dataconnect.FirebaseDataConnect
+            ._fdcGetInstance(app, config, settings),
+    )
 
 private class SpressoConnectorConnectorImpl(
-  override val dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect
+    override val dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect,
 ) : SpressoConnectorConnector {
-  
     override val addGroceryItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      AddGroceryItemMutationImpl(this)
+        AddGroceryItemMutationImpl(this)
     }
-  
+
     override val addVideo by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      AddVideoMutationImpl(this)
+        AddVideoMutationImpl(this)
     }
-  
+
     override val addWardrobeItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      AddWardrobeItemMutationImpl(this)
+        AddWardrobeItemMutationImpl(this)
     }
-  
+
     override val connectCoinbaseWallet by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      ConnectCoinbaseWalletMutationImpl(this)
+        ConnectCoinbaseWalletMutationImpl(this)
     }
-  
+
     override val createExpense by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      CreateExpenseMutationImpl(this)
+        CreateExpenseMutationImpl(this)
     }
-  
+
     override val createGroceryList by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      CreateGroceryListMutationImpl(this)
+        CreateGroceryListMutationImpl(this)
     }
-  
+
     override val createOrder by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      CreateOrderMutationImpl(this)
+        CreateOrderMutationImpl(this)
     }
-  
+
     override val createPaymentMethod by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      CreatePaymentMethodMutationImpl(this)
+        CreatePaymentMethodMutationImpl(this)
     }
-  
+
     override val createTravelExpense by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      CreateTravelExpenseMutationImpl(this)
+        CreateTravelExpenseMutationImpl(this)
     }
-  
+
     override val createVoiceNote by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      CreateVoiceNoteMutationImpl(this)
+        CreateVoiceNoteMutationImpl(this)
     }
-  
+
     override val createWardrobeOutfit by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      CreateWardrobeOutfitMutationImpl(this)
+        CreateWardrobeOutfitMutationImpl(this)
     }
-  
+
     override val deleteGroceryItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      DeleteGroceryItemMutationImpl(this)
+        DeleteGroceryItemMutationImpl(this)
     }
-  
+
     override val deletePaymentMethod by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      DeletePaymentMethodMutationImpl(this)
+        DeletePaymentMethodMutationImpl(this)
     }
-  
+
     override val getCreativeTemplates by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetCreativeTemplatesQueryImpl(this)
+        GetCreativeTemplatesQueryImpl(this)
     }
-  
+
     override val getCreatorAgents by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetCreatorAgentsQueryImpl(this)
+        GetCreatorAgentsQueryImpl(this)
     }
-  
+
     override val getGroceryList by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetGroceryListQueryImpl(this)
+        GetGroceryListQueryImpl(this)
     }
-  
+
     override val getItineraryEvents by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetItineraryEventsQueryImpl(this)
+        GetItineraryEventsQueryImpl(this)
     }
-  
+
     override val getOnboardingStatus by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetOnboardingStatusQueryImpl(this)
+        GetOnboardingStatusQueryImpl(this)
     }
-  
+
     override val getPaymentMethods by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetPaymentMethodsQueryImpl(this)
+        GetPaymentMethodsQueryImpl(this)
     }
-  
+
     override val getProductById by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetProductByIdQueryImpl(this)
+        GetProductByIdQueryImpl(this)
     }
-  
+
     override val getTravelExpenses by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetTravelExpensesQueryImpl(this)
+        GetTravelExpensesQueryImpl(this)
     }
-  
+
     override val getTrips by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetTripsQueryImpl(this)
+        GetTripsQueryImpl(this)
     }
-  
+
     override val getUserCart by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetUserCartQueryImpl(this)
+        GetUserCartQueryImpl(this)
     }
-  
+
     override val getUserOrders by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetUserOrdersQueryImpl(this)
+        GetUserOrdersQueryImpl(this)
     }
-  
+
     override val getUserPreference by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetUserPreferenceQueryImpl(this)
+        GetUserPreferenceQueryImpl(this)
     }
-  
+
     override val getUserPreferences by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetUserPreferencesQueryImpl(this)
+        GetUserPreferencesQueryImpl(this)
     }
-  
+
     override val getUserProfile by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetUserProfileQueryImpl(this)
+        GetUserProfileQueryImpl(this)
     }
-  
+
     override val getUserSubscription by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetUserSubscriptionQueryImpl(this)
+        GetUserSubscriptionQueryImpl(this)
     }
-  
+
     override val getUserVideos by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetUserVideosQueryImpl(this)
+        GetUserVideosQueryImpl(this)
     }
-  
+
     override val getVisionHistory by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetVisionHistoryQueryImpl(this)
+        GetVisionHistoryQueryImpl(this)
     }
-  
+
     override val getVoiceNotes by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetVoiceNotesQueryImpl(this)
+        GetVoiceNotesQueryImpl(this)
     }
-  
+
     override val getWardrobeItems by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetWardrobeItemsQueryImpl(this)
+        GetWardrobeItemsQueryImpl(this)
     }
-  
+
     override val getWardrobeOutfits by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      GetWardrobeOutfitsQueryImpl(this)
+        GetWardrobeOutfitsQueryImpl(this)
     }
-  
+
     override val listProducts by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      ListProductsQueryImpl(this)
+        ListProductsQueryImpl(this)
     }
-  
+
     override val logVisionEvent by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      LogVisionEventMutationImpl(this)
+        LogVisionEventMutationImpl(this)
     }
-  
+
     override val registerPasskey by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      RegisterPasskeyMutationImpl(this)
+        RegisterPasskeyMutationImpl(this)
     }
-  
+
     override val toggleGroceryItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      ToggleGroceryItemMutationImpl(this)
+        ToggleGroceryItemMutationImpl(this)
     }
-  
+
     override val toggleLike by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      ToggleLikeMutationImpl(this)
+        ToggleLikeMutationImpl(this)
     }
-  
+
     override val updateOnboardingStatus by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      UpdateOnboardingStatusMutationImpl(this)
+        UpdateOnboardingStatusMutationImpl(this)
     }
-  
-    override val updateUserSubscription by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      UpdateUserSubscriptionMutationImpl(this)
-    }
-  
+
     override val upsertUserPreference by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      UpsertUserPreferenceMutationImpl(this)
+        UpsertUserPreferenceMutationImpl(this)
     }
-  
+
     override val upsertUserProfile by lazy(LazyThreadSafetyMode.PUBLICATION) {
-      UpsertUserProfileMutationImpl(this)
+        UpsertUserProfileMutationImpl(this)
     }
-  
 
-  @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
-  override fun operations(): List<com.google.firebase.dataconnect.generated.GeneratedOperation<SpressoConnectorConnector, *, *>> =
-    queries() + mutations()
+    override val upsertUserSubscription by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        UpsertUserSubscriptionMutationImpl(this)
+    }
 
-  @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
-  override fun mutations(): List<com.google.firebase.dataconnect.generated.GeneratedMutation<SpressoConnectorConnector, *, *>> =
-    listOf(
-      addGroceryItem,
-        addVideo,
-        addWardrobeItem,
-        connectCoinbaseWallet,
-        createExpense,
-        createGroceryList,
-        createOrder,
-        createPaymentMethod,
-        createTravelExpense,
-        createVoiceNote,
-        createWardrobeOutfit,
-        deleteGroceryItem,
-        deletePaymentMethod,
-        logVisionEvent,
-        registerPasskey,
-        toggleGroceryItem,
-        toggleLike,
-        updateOnboardingStatus,
-        updateUserSubscription,
-        upsertUserPreference,
-        upsertUserProfile,
-        
-    )
+    @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
+    override fun operations(): List<com.google.firebase.dataconnect.generated.GeneratedOperation<SpressoConnectorConnector, *, *>> =
+        queries() + mutations()
 
-  @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
-  override fun queries(): List<com.google.firebase.dataconnect.generated.GeneratedQuery<SpressoConnectorConnector, *, *>> =
-    listOf(
-      getCreativeTemplates,
-        getCreatorAgents,
-        getGroceryList,
-        getItineraryEvents,
-        getOnboardingStatus,
-        getPaymentMethods,
-        getProductById,
-        getTravelExpenses,
-        getTrips,
-        getUserCart,
-        getUserOrders,
-        getUserPreference,
-        getUserPreferences,
-        getUserProfile,
-        getUserSubscription,
-        getUserVideos,
-        getVisionHistory,
-        getVoiceNotes,
-        getWardrobeItems,
-        getWardrobeOutfits,
-        listProducts,
-        
-    )
+    @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
+    override fun mutations(): List<com.google.firebase.dataconnect.generated.GeneratedMutation<SpressoConnectorConnector, *, *>> =
+        listOf(
+            addGroceryItem,
+            addVideo,
+            addWardrobeItem,
+            connectCoinbaseWallet,
+            createExpense,
+            createGroceryList,
+            createOrder,
+            createPaymentMethod,
+            createTravelExpense,
+            createVoiceNote,
+            createWardrobeOutfit,
+            deleteGroceryItem,
+            deletePaymentMethod,
+            logVisionEvent,
+            registerPasskey,
+            toggleGroceryItem,
+            toggleLike,
+            updateOnboardingStatus,
+            upsertUserPreference,
+            upsertUserProfile,
+            upsertUserSubscription,
+        )
 
-  @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
-  override fun copy(dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect) =
-    SpressoConnectorConnectorImpl(dataConnect)
+    @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
+    override fun queries(): List<com.google.firebase.dataconnect.generated.GeneratedQuery<SpressoConnectorConnector, *, *>> =
+        listOf(
+            getCreativeTemplates,
+            getCreatorAgents,
+            getGroceryList,
+            getItineraryEvents,
+            getOnboardingStatus,
+            getPaymentMethods,
+            getProductById,
+            getTravelExpenses,
+            getTrips,
+            getUserCart,
+            getUserOrders,
+            getUserPreference,
+            getUserPreferences,
+            getUserProfile,
+            getUserSubscription,
+            getUserVideos,
+            getVisionHistory,
+            getVoiceNotes,
+            getWardrobeItems,
+            getWardrobeOutfits,
+            listProducts,
+        )
 
-  override fun equals(other: Any?): Boolean =
-    other is SpressoConnectorConnectorImpl &&
-    other.dataConnect == dataConnect
+    @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
+    override fun copy(dataConnect: com.google.firebase.dataconnect.FirebaseDataConnect) = SpressoConnectorConnectorImpl(dataConnect)
 
-  override fun hashCode(): Int =
-    java.util.Objects.hash(
-      "SpressoConnectorConnectorImpl",
-      dataConnect,
-    )
+    override fun equals(other: Any?): Boolean =
+        other is SpressoConnectorConnectorImpl &&
+            other.dataConnect == dataConnect
 
-  override fun toString(): String =
-    "SpressoConnectorConnectorImpl(dataConnect=$dataConnect)"
+    override fun hashCode(): Int =
+        java.util.Objects.hash(
+            "SpressoConnectorConnectorImpl",
+            dataConnect,
+        )
+
+    override fun toString(): String = "SpressoConnectorConnectorImpl(dataConnect=$dataConnect)"
 }
 
-
-
 private open class SpressoConnectorConnectorGeneratedQueryImpl<Data, Variables>(
-  override val connector: SpressoConnectorConnector,
-  override val operationName: String,
-  override val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data>,
-  override val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables>,
+    override val connector: SpressoConnectorConnector,
+    override val operationName: String,
+    override val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data>,
+    override val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables>,
 ) : com.google.firebase.dataconnect.generated.GeneratedQuery<SpressoConnectorConnector, Data, Variables> {
-
-  @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
-  override fun copy(
-    connector: SpressoConnectorConnector,
-    operationName: String,
-    dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data>,
-    variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables>,
-  ) =
-    SpressoConnectorConnectorGeneratedQueryImpl(
-      connector, operationName, dataDeserializer, variablesSerializer
+    @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
+    override fun copy(
+        connector: SpressoConnectorConnector,
+        operationName: String,
+        dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data>,
+        variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables>,
+    ) = SpressoConnectorConnectorGeneratedQueryImpl(
+        connector,
+        operationName,
+        dataDeserializer,
+        variablesSerializer,
     )
 
-  @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
-  override fun <NewVariables> withVariablesSerializer(
-    variablesSerializer: kotlinx.serialization.SerializationStrategy<NewVariables>
-  ) =
-    SpressoConnectorConnectorGeneratedQueryImpl(
-      connector, operationName, dataDeserializer, variablesSerializer
-    )
+    @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
+    override fun <NewVariables> withVariablesSerializer(variablesSerializer: kotlinx.serialization.SerializationStrategy<NewVariables>) =
+        SpressoConnectorConnectorGeneratedQueryImpl(
+            connector,
+            operationName,
+            dataDeserializer,
+            variablesSerializer,
+        )
 
-  @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
-  override fun <NewData> withDataDeserializer(
-    dataDeserializer: kotlinx.serialization.DeserializationStrategy<NewData>
-  ) =
-    SpressoConnectorConnectorGeneratedQueryImpl(
-      connector, operationName, dataDeserializer, variablesSerializer
-    )
+    @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
+    override fun <NewData> withDataDeserializer(dataDeserializer: kotlinx.serialization.DeserializationStrategy<NewData>) =
+        SpressoConnectorConnectorGeneratedQueryImpl(
+            connector,
+            operationName,
+            dataDeserializer,
+            variablesSerializer,
+        )
 
-  override fun equals(other: Any?): Boolean =
-    other is SpressoConnectorConnectorGeneratedQueryImpl<*,*> &&
-    other.connector == connector &&
-    other.operationName == operationName &&
-    other.dataDeserializer == dataDeserializer &&
-    other.variablesSerializer == variablesSerializer
+    override fun equals(other: Any?): Boolean =
+        other is SpressoConnectorConnectorGeneratedQueryImpl<*, *> &&
+            other.connector == connector &&
+            other.operationName == operationName &&
+            other.dataDeserializer == dataDeserializer &&
+            other.variablesSerializer == variablesSerializer
 
-  override fun hashCode(): Int =
-    java.util.Objects.hash(
-      "SpressoConnectorConnectorGeneratedQueryImpl",
-      connector, operationName, dataDeserializer, variablesSerializer
-    )
+    override fun hashCode(): Int =
+        java.util.Objects.hash(
+            "SpressoConnectorConnectorGeneratedQueryImpl",
+            connector,
+            operationName,
+            dataDeserializer,
+            variablesSerializer,
+        )
 
-  override fun toString(): String =
-    "SpressoConnectorConnectorGeneratedQueryImpl(" +
-    "operationName=$operationName, " +
-    "dataDeserializer=$dataDeserializer, " +
-    "variablesSerializer=$variablesSerializer, " +
-    "connector=$connector)"
+    override fun toString(): String =
+        "SpressoConnectorConnectorGeneratedQueryImpl(" +
+            "operationName=$operationName, " +
+            "dataDeserializer=$dataDeserializer, " +
+            "variablesSerializer=$variablesSerializer, " +
+            "connector=$connector)"
 }
 
 private open class SpressoConnectorConnectorGeneratedMutationImpl<Data, Variables>(
-  override val connector: SpressoConnectorConnector,
-  override val operationName: String,
-  override val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data>,
-  override val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables>,
+    override val connector: SpressoConnectorConnector,
+    override val operationName: String,
+    override val dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data>,
+    override val variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables>,
 ) : com.google.firebase.dataconnect.generated.GeneratedMutation<SpressoConnectorConnector, Data, Variables> {
-
-  @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
-  override fun copy(
-    connector: SpressoConnectorConnector,
-    operationName: String,
-    dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data>,
-    variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables>,
-  ) =
-    SpressoConnectorConnectorGeneratedMutationImpl(
-      connector, operationName, dataDeserializer, variablesSerializer
+    @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
+    override fun copy(
+        connector: SpressoConnectorConnector,
+        operationName: String,
+        dataDeserializer: kotlinx.serialization.DeserializationStrategy<Data>,
+        variablesSerializer: kotlinx.serialization.SerializationStrategy<Variables>,
+    ) = SpressoConnectorConnectorGeneratedMutationImpl(
+        connector,
+        operationName,
+        dataDeserializer,
+        variablesSerializer,
     )
 
-  @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
-  override fun <NewVariables> withVariablesSerializer(
-    variablesSerializer: kotlinx.serialization.SerializationStrategy<NewVariables>
-  ) =
-    SpressoConnectorConnectorGeneratedMutationImpl(
-      connector, operationName, dataDeserializer, variablesSerializer
-    )
+    @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
+    override fun <NewVariables> withVariablesSerializer(variablesSerializer: kotlinx.serialization.SerializationStrategy<NewVariables>) =
+        SpressoConnectorConnectorGeneratedMutationImpl(
+            connector,
+            operationName,
+            dataDeserializer,
+            variablesSerializer,
+        )
 
-  @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
-  override fun <NewData> withDataDeserializer(
-    dataDeserializer: kotlinx.serialization.DeserializationStrategy<NewData>
-  ) =
-    SpressoConnectorConnectorGeneratedMutationImpl(
-      connector, operationName, dataDeserializer, variablesSerializer
-    )
+    @com.google.firebase.dataconnect.ExperimentalFirebaseDataConnect
+    override fun <NewData> withDataDeserializer(dataDeserializer: kotlinx.serialization.DeserializationStrategy<NewData>) =
+        SpressoConnectorConnectorGeneratedMutationImpl(
+            connector,
+            operationName,
+            dataDeserializer,
+            variablesSerializer,
+        )
 
-  override fun equals(other: Any?): Boolean =
-    other is SpressoConnectorConnectorGeneratedMutationImpl<*,*> &&
-    other.connector == connector &&
-    other.operationName == operationName &&
-    other.dataDeserializer == dataDeserializer &&
-    other.variablesSerializer == variablesSerializer
+    override fun equals(other: Any?): Boolean =
+        other is SpressoConnectorConnectorGeneratedMutationImpl<*, *> &&
+            other.connector == connector &&
+            other.operationName == operationName &&
+            other.dataDeserializer == dataDeserializer &&
+            other.variablesSerializer == variablesSerializer
 
-  override fun hashCode(): Int =
-    java.util.Objects.hash(
-      "SpressoConnectorConnectorGeneratedMutationImpl",
-      connector, operationName, dataDeserializer, variablesSerializer
-    )
+    override fun hashCode(): Int =
+        java.util.Objects.hash(
+            "SpressoConnectorConnectorGeneratedMutationImpl",
+            connector,
+            operationName,
+            dataDeserializer,
+            variablesSerializer,
+        )
 
-  override fun toString(): String =
-    "SpressoConnectorConnectorGeneratedMutationImpl(" +
-    "operationName=$operationName, " +
-    "dataDeserializer=$dataDeserializer, " +
-    "variablesSerializer=$variablesSerializer, " +
-    "connector=$connector)"
+    override fun toString(): String =
+        "SpressoConnectorConnectorGeneratedMutationImpl(" +
+            "operationName=$operationName, " +
+            "dataDeserializer=$dataDeserializer, " +
+            "variablesSerializer=$variablesSerializer, " +
+            "connector=$connector)"
 }
 
-
-
 private class AddGroceryItemMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  AddGroceryItemMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      AddGroceryItemMutation.Data,
-      AddGroceryItemMutation.Variables
-  >(
-    connector,
-    AddGroceryItemMutation.Companion.operationName,
-    AddGroceryItemMutation.Companion.dataDeserializer,
-    AddGroceryItemMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        AddGroceryItemMutation.Data,
+        AddGroceryItemMutation.Variables,
+    >(
+        connector,
+        AddGroceryItemMutation.Companion.operationName,
+        AddGroceryItemMutation.Companion.dataDeserializer,
+        AddGroceryItemMutation.Companion.variablesSerializer,
+    ),
+    AddGroceryItemMutation
 
 private class AddVideoMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  AddVideoMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      AddVideoMutation.Data,
-      AddVideoMutation.Variables
-  >(
-    connector,
-    AddVideoMutation.Companion.operationName,
-    AddVideoMutation.Companion.dataDeserializer,
-    AddVideoMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        AddVideoMutation.Data,
+        AddVideoMutation.Variables,
+    >(
+        connector,
+        AddVideoMutation.Companion.operationName,
+        AddVideoMutation.Companion.dataDeserializer,
+        AddVideoMutation.Companion.variablesSerializer,
+    ),
+    AddVideoMutation
 
 private class AddWardrobeItemMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  AddWardrobeItemMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      AddWardrobeItemMutation.Data,
-      AddWardrobeItemMutation.Variables
-  >(
-    connector,
-    AddWardrobeItemMutation.Companion.operationName,
-    AddWardrobeItemMutation.Companion.dataDeserializer,
-    AddWardrobeItemMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        AddWardrobeItemMutation.Data,
+        AddWardrobeItemMutation.Variables,
+    >(
+        connector,
+        AddWardrobeItemMutation.Companion.operationName,
+        AddWardrobeItemMutation.Companion.dataDeserializer,
+        AddWardrobeItemMutation.Companion.variablesSerializer,
+    ),
+    AddWardrobeItemMutation
 
 private class ConnectCoinbaseWalletMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  ConnectCoinbaseWalletMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      ConnectCoinbaseWalletMutation.Data,
-      ConnectCoinbaseWalletMutation.Variables
-  >(
-    connector,
-    ConnectCoinbaseWalletMutation.Companion.operationName,
-    ConnectCoinbaseWalletMutation.Companion.dataDeserializer,
-    ConnectCoinbaseWalletMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        ConnectCoinbaseWalletMutation.Data,
+        ConnectCoinbaseWalletMutation.Variables,
+    >(
+        connector,
+        ConnectCoinbaseWalletMutation.Companion.operationName,
+        ConnectCoinbaseWalletMutation.Companion.dataDeserializer,
+        ConnectCoinbaseWalletMutation.Companion.variablesSerializer,
+    ),
+    ConnectCoinbaseWalletMutation
 
 private class CreateExpenseMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  CreateExpenseMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      CreateExpenseMutation.Data,
-      CreateExpenseMutation.Variables
-  >(
-    connector,
-    CreateExpenseMutation.Companion.operationName,
-    CreateExpenseMutation.Companion.dataDeserializer,
-    CreateExpenseMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        CreateExpenseMutation.Data,
+        CreateExpenseMutation.Variables,
+    >(
+        connector,
+        CreateExpenseMutation.Companion.operationName,
+        CreateExpenseMutation.Companion.dataDeserializer,
+        CreateExpenseMutation.Companion.variablesSerializer,
+    ),
+    CreateExpenseMutation
 
 private class CreateGroceryListMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  CreateGroceryListMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      CreateGroceryListMutation.Data,
-      CreateGroceryListMutation.Variables
-  >(
-    connector,
-    CreateGroceryListMutation.Companion.operationName,
-    CreateGroceryListMutation.Companion.dataDeserializer,
-    CreateGroceryListMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        CreateGroceryListMutation.Data,
+        CreateGroceryListMutation.Variables,
+    >(
+        connector,
+        CreateGroceryListMutation.Companion.operationName,
+        CreateGroceryListMutation.Companion.dataDeserializer,
+        CreateGroceryListMutation.Companion.variablesSerializer,
+    ),
+    CreateGroceryListMutation
 
 private class CreateOrderMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  CreateOrderMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      CreateOrderMutation.Data,
-      CreateOrderMutation.Variables
-  >(
-    connector,
-    CreateOrderMutation.Companion.operationName,
-    CreateOrderMutation.Companion.dataDeserializer,
-    CreateOrderMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        CreateOrderMutation.Data,
+        CreateOrderMutation.Variables,
+    >(
+        connector,
+        CreateOrderMutation.Companion.operationName,
+        CreateOrderMutation.Companion.dataDeserializer,
+        CreateOrderMutation.Companion.variablesSerializer,
+    ),
+    CreateOrderMutation
 
 private class CreatePaymentMethodMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  CreatePaymentMethodMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      CreatePaymentMethodMutation.Data,
-      CreatePaymentMethodMutation.Variables
-  >(
-    connector,
-    CreatePaymentMethodMutation.Companion.operationName,
-    CreatePaymentMethodMutation.Companion.dataDeserializer,
-    CreatePaymentMethodMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        CreatePaymentMethodMutation.Data,
+        CreatePaymentMethodMutation.Variables,
+    >(
+        connector,
+        CreatePaymentMethodMutation.Companion.operationName,
+        CreatePaymentMethodMutation.Companion.dataDeserializer,
+        CreatePaymentMethodMutation.Companion.variablesSerializer,
+    ),
+    CreatePaymentMethodMutation
 
 private class CreateTravelExpenseMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  CreateTravelExpenseMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      CreateTravelExpenseMutation.Data,
-      CreateTravelExpenseMutation.Variables
-  >(
-    connector,
-    CreateTravelExpenseMutation.Companion.operationName,
-    CreateTravelExpenseMutation.Companion.dataDeserializer,
-    CreateTravelExpenseMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        CreateTravelExpenseMutation.Data,
+        CreateTravelExpenseMutation.Variables,
+    >(
+        connector,
+        CreateTravelExpenseMutation.Companion.operationName,
+        CreateTravelExpenseMutation.Companion.dataDeserializer,
+        CreateTravelExpenseMutation.Companion.variablesSerializer,
+    ),
+    CreateTravelExpenseMutation
 
 private class CreateVoiceNoteMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  CreateVoiceNoteMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      CreateVoiceNoteMutation.Data,
-      CreateVoiceNoteMutation.Variables
-  >(
-    connector,
-    CreateVoiceNoteMutation.Companion.operationName,
-    CreateVoiceNoteMutation.Companion.dataDeserializer,
-    CreateVoiceNoteMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        CreateVoiceNoteMutation.Data,
+        CreateVoiceNoteMutation.Variables,
+    >(
+        connector,
+        CreateVoiceNoteMutation.Companion.operationName,
+        CreateVoiceNoteMutation.Companion.dataDeserializer,
+        CreateVoiceNoteMutation.Companion.variablesSerializer,
+    ),
+    CreateVoiceNoteMutation
 
 private class CreateWardrobeOutfitMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  CreateWardrobeOutfitMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      CreateWardrobeOutfitMutation.Data,
-      CreateWardrobeOutfitMutation.Variables
-  >(
-    connector,
-    CreateWardrobeOutfitMutation.Companion.operationName,
-    CreateWardrobeOutfitMutation.Companion.dataDeserializer,
-    CreateWardrobeOutfitMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        CreateWardrobeOutfitMutation.Data,
+        CreateWardrobeOutfitMutation.Variables,
+    >(
+        connector,
+        CreateWardrobeOutfitMutation.Companion.operationName,
+        CreateWardrobeOutfitMutation.Companion.dataDeserializer,
+        CreateWardrobeOutfitMutation.Companion.variablesSerializer,
+    ),
+    CreateWardrobeOutfitMutation
 
 private class DeleteGroceryItemMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  DeleteGroceryItemMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      DeleteGroceryItemMutation.Data,
-      DeleteGroceryItemMutation.Variables
-  >(
-    connector,
-    DeleteGroceryItemMutation.Companion.operationName,
-    DeleteGroceryItemMutation.Companion.dataDeserializer,
-    DeleteGroceryItemMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        DeleteGroceryItemMutation.Data,
+        DeleteGroceryItemMutation.Variables,
+    >(
+        connector,
+        DeleteGroceryItemMutation.Companion.operationName,
+        DeleteGroceryItemMutation.Companion.dataDeserializer,
+        DeleteGroceryItemMutation.Companion.variablesSerializer,
+    ),
+    DeleteGroceryItemMutation
 
 private class DeletePaymentMethodMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  DeletePaymentMethodMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      DeletePaymentMethodMutation.Data,
-      DeletePaymentMethodMutation.Variables
-  >(
-    connector,
-    DeletePaymentMethodMutation.Companion.operationName,
-    DeletePaymentMethodMutation.Companion.dataDeserializer,
-    DeletePaymentMethodMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        DeletePaymentMethodMutation.Data,
+        DeletePaymentMethodMutation.Variables,
+    >(
+        connector,
+        DeletePaymentMethodMutation.Companion.operationName,
+        DeletePaymentMethodMutation.Companion.dataDeserializer,
+        DeletePaymentMethodMutation.Companion.variablesSerializer,
+    ),
+    DeletePaymentMethodMutation
 
 private class GetCreativeTemplatesQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetCreativeTemplatesQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetCreativeTemplatesQuery.Data,
-      Unit
-  >(
-    connector,
-    GetCreativeTemplatesQuery.Companion.operationName,
-    GetCreativeTemplatesQuery.Companion.dataDeserializer,
-    GetCreativeTemplatesQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetCreativeTemplatesQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetCreativeTemplatesQuery.Companion.operationName,
+        GetCreativeTemplatesQuery.Companion.dataDeserializer,
+        GetCreativeTemplatesQuery.Companion.variablesSerializer,
+    ),
+    GetCreativeTemplatesQuery
 
 private class GetCreatorAgentsQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetCreatorAgentsQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetCreatorAgentsQuery.Data,
-      Unit
-  >(
-    connector,
-    GetCreatorAgentsQuery.Companion.operationName,
-    GetCreatorAgentsQuery.Companion.dataDeserializer,
-    GetCreatorAgentsQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetCreatorAgentsQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetCreatorAgentsQuery.Companion.operationName,
+        GetCreatorAgentsQuery.Companion.dataDeserializer,
+        GetCreatorAgentsQuery.Companion.variablesSerializer,
+    ),
+    GetCreatorAgentsQuery
 
 private class GetGroceryListQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetGroceryListQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetGroceryListQuery.Data,
-      GetGroceryListQuery.Variables
-  >(
-    connector,
-    GetGroceryListQuery.Companion.operationName,
-    GetGroceryListQuery.Companion.dataDeserializer,
-    GetGroceryListQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetGroceryListQuery.Data,
+        GetGroceryListQuery.Variables,
+    >(
+        connector,
+        GetGroceryListQuery.Companion.operationName,
+        GetGroceryListQuery.Companion.dataDeserializer,
+        GetGroceryListQuery.Companion.variablesSerializer,
+    ),
+    GetGroceryListQuery
 
 private class GetItineraryEventsQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetItineraryEventsQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetItineraryEventsQuery.Data,
-      Unit
-  >(
-    connector,
-    GetItineraryEventsQuery.Companion.operationName,
-    GetItineraryEventsQuery.Companion.dataDeserializer,
-    GetItineraryEventsQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetItineraryEventsQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetItineraryEventsQuery.Companion.operationName,
+        GetItineraryEventsQuery.Companion.dataDeserializer,
+        GetItineraryEventsQuery.Companion.variablesSerializer,
+    ),
+    GetItineraryEventsQuery
 
 private class GetOnboardingStatusQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetOnboardingStatusQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetOnboardingStatusQuery.Data,
-      Unit
-  >(
-    connector,
-    GetOnboardingStatusQuery.Companion.operationName,
-    GetOnboardingStatusQuery.Companion.dataDeserializer,
-    GetOnboardingStatusQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetOnboardingStatusQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetOnboardingStatusQuery.Companion.operationName,
+        GetOnboardingStatusQuery.Companion.dataDeserializer,
+        GetOnboardingStatusQuery.Companion.variablesSerializer,
+    ),
+    GetOnboardingStatusQuery
 
 private class GetPaymentMethodsQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetPaymentMethodsQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetPaymentMethodsQuery.Data,
-      Unit
-  >(
-    connector,
-    GetPaymentMethodsQuery.Companion.operationName,
-    GetPaymentMethodsQuery.Companion.dataDeserializer,
-    GetPaymentMethodsQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetPaymentMethodsQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetPaymentMethodsQuery.Companion.operationName,
+        GetPaymentMethodsQuery.Companion.dataDeserializer,
+        GetPaymentMethodsQuery.Companion.variablesSerializer,
+    ),
+    GetPaymentMethodsQuery
 
 private class GetProductByIdQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetProductByIdQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetProductByIdQuery.Data,
-      GetProductByIdQuery.Variables
-  >(
-    connector,
-    GetProductByIdQuery.Companion.operationName,
-    GetProductByIdQuery.Companion.dataDeserializer,
-    GetProductByIdQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetProductByIdQuery.Data,
+        GetProductByIdQuery.Variables,
+    >(
+        connector,
+        GetProductByIdQuery.Companion.operationName,
+        GetProductByIdQuery.Companion.dataDeserializer,
+        GetProductByIdQuery.Companion.variablesSerializer,
+    ),
+    GetProductByIdQuery
 
 private class GetTravelExpensesQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetTravelExpensesQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetTravelExpensesQuery.Data,
-      Unit
-  >(
-    connector,
-    GetTravelExpensesQuery.Companion.operationName,
-    GetTravelExpensesQuery.Companion.dataDeserializer,
-    GetTravelExpensesQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetTravelExpensesQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetTravelExpensesQuery.Companion.operationName,
+        GetTravelExpensesQuery.Companion.dataDeserializer,
+        GetTravelExpensesQuery.Companion.variablesSerializer,
+    ),
+    GetTravelExpensesQuery
 
 private class GetTripsQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetTripsQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetTripsQuery.Data,
-      Unit
-  >(
-    connector,
-    GetTripsQuery.Companion.operationName,
-    GetTripsQuery.Companion.dataDeserializer,
-    GetTripsQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetTripsQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetTripsQuery.Companion.operationName,
+        GetTripsQuery.Companion.dataDeserializer,
+        GetTripsQuery.Companion.variablesSerializer,
+    ),
+    GetTripsQuery
 
 private class GetUserCartQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetUserCartQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetUserCartQuery.Data,
-      Unit
-  >(
-    connector,
-    GetUserCartQuery.Companion.operationName,
-    GetUserCartQuery.Companion.dataDeserializer,
-    GetUserCartQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetUserCartQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetUserCartQuery.Companion.operationName,
+        GetUserCartQuery.Companion.dataDeserializer,
+        GetUserCartQuery.Companion.variablesSerializer,
+    ),
+    GetUserCartQuery
 
 private class GetUserOrdersQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetUserOrdersQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetUserOrdersQuery.Data,
-      Unit
-  >(
-    connector,
-    GetUserOrdersQuery.Companion.operationName,
-    GetUserOrdersQuery.Companion.dataDeserializer,
-    GetUserOrdersQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetUserOrdersQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetUserOrdersQuery.Companion.operationName,
+        GetUserOrdersQuery.Companion.dataDeserializer,
+        GetUserOrdersQuery.Companion.variablesSerializer,
+    ),
+    GetUserOrdersQuery
 
 private class GetUserPreferenceQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetUserPreferenceQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetUserPreferenceQuery.Data,
-      Unit
-  >(
-    connector,
-    GetUserPreferenceQuery.Companion.operationName,
-    GetUserPreferenceQuery.Companion.dataDeserializer,
-    GetUserPreferenceQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetUserPreferenceQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetUserPreferenceQuery.Companion.operationName,
+        GetUserPreferenceQuery.Companion.dataDeserializer,
+        GetUserPreferenceQuery.Companion.variablesSerializer,
+    ),
+    GetUserPreferenceQuery
 
 private class GetUserPreferencesQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetUserPreferencesQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetUserPreferencesQuery.Data,
-      Unit
-  >(
-    connector,
-    GetUserPreferencesQuery.Companion.operationName,
-    GetUserPreferencesQuery.Companion.dataDeserializer,
-    GetUserPreferencesQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetUserPreferencesQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetUserPreferencesQuery.Companion.operationName,
+        GetUserPreferencesQuery.Companion.dataDeserializer,
+        GetUserPreferencesQuery.Companion.variablesSerializer,
+    ),
+    GetUserPreferencesQuery
 
 private class GetUserProfileQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetUserProfileQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetUserProfileQuery.Data,
-      Unit
-  >(
-    connector,
-    GetUserProfileQuery.Companion.operationName,
-    GetUserProfileQuery.Companion.dataDeserializer,
-    GetUserProfileQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetUserProfileQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetUserProfileQuery.Companion.operationName,
+        GetUserProfileQuery.Companion.dataDeserializer,
+        GetUserProfileQuery.Companion.variablesSerializer,
+    ),
+    GetUserProfileQuery
 
 private class GetUserSubscriptionQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetUserSubscriptionQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetUserSubscriptionQuery.Data,
-      Unit
-  >(
-    connector,
-    GetUserSubscriptionQuery.Companion.operationName,
-    GetUserSubscriptionQuery.Companion.dataDeserializer,
-    GetUserSubscriptionQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetUserSubscriptionQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetUserSubscriptionQuery.Companion.operationName,
+        GetUserSubscriptionQuery.Companion.dataDeserializer,
+        GetUserSubscriptionQuery.Companion.variablesSerializer,
+    ),
+    GetUserSubscriptionQuery
 
 private class GetUserVideosQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetUserVideosQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetUserVideosQuery.Data,
-      Unit
-  >(
-    connector,
-    GetUserVideosQuery.Companion.operationName,
-    GetUserVideosQuery.Companion.dataDeserializer,
-    GetUserVideosQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetUserVideosQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetUserVideosQuery.Companion.operationName,
+        GetUserVideosQuery.Companion.dataDeserializer,
+        GetUserVideosQuery.Companion.variablesSerializer,
+    ),
+    GetUserVideosQuery
 
 private class GetVisionHistoryQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetVisionHistoryQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetVisionHistoryQuery.Data,
-      Unit
-  >(
-    connector,
-    GetVisionHistoryQuery.Companion.operationName,
-    GetVisionHistoryQuery.Companion.dataDeserializer,
-    GetVisionHistoryQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetVisionHistoryQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetVisionHistoryQuery.Companion.operationName,
+        GetVisionHistoryQuery.Companion.dataDeserializer,
+        GetVisionHistoryQuery.Companion.variablesSerializer,
+    ),
+    GetVisionHistoryQuery
 
 private class GetVoiceNotesQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetVoiceNotesQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetVoiceNotesQuery.Data,
-      Unit
-  >(
-    connector,
-    GetVoiceNotesQuery.Companion.operationName,
-    GetVoiceNotesQuery.Companion.dataDeserializer,
-    GetVoiceNotesQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetVoiceNotesQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetVoiceNotesQuery.Companion.operationName,
+        GetVoiceNotesQuery.Companion.dataDeserializer,
+        GetVoiceNotesQuery.Companion.variablesSerializer,
+    ),
+    GetVoiceNotesQuery
 
 private class GetWardrobeItemsQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetWardrobeItemsQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetWardrobeItemsQuery.Data,
-      Unit
-  >(
-    connector,
-    GetWardrobeItemsQuery.Companion.operationName,
-    GetWardrobeItemsQuery.Companion.dataDeserializer,
-    GetWardrobeItemsQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetWardrobeItemsQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetWardrobeItemsQuery.Companion.operationName,
+        GetWardrobeItemsQuery.Companion.dataDeserializer,
+        GetWardrobeItemsQuery.Companion.variablesSerializer,
+    ),
+    GetWardrobeItemsQuery
 
 private class GetWardrobeOutfitsQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  GetWardrobeOutfitsQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      GetWardrobeOutfitsQuery.Data,
-      Unit
-  >(
-    connector,
-    GetWardrobeOutfitsQuery.Companion.operationName,
-    GetWardrobeOutfitsQuery.Companion.dataDeserializer,
-    GetWardrobeOutfitsQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        GetWardrobeOutfitsQuery.Data,
+        Unit,
+    >(
+        connector,
+        GetWardrobeOutfitsQuery.Companion.operationName,
+        GetWardrobeOutfitsQuery.Companion.dataDeserializer,
+        GetWardrobeOutfitsQuery.Companion.variablesSerializer,
+    ),
+    GetWardrobeOutfitsQuery
 
 private class ListProductsQueryImpl(
-  connector: SpressoConnectorConnector
-):
-  ListProductsQuery,
-  SpressoConnectorConnectorGeneratedQueryImpl<
-      ListProductsQuery.Data,
-      Unit
-  >(
-    connector,
-    ListProductsQuery.Companion.operationName,
-    ListProductsQuery.Companion.dataDeserializer,
-    ListProductsQuery.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedQueryImpl<
+        ListProductsQuery.Data,
+        Unit,
+    >(
+        connector,
+        ListProductsQuery.Companion.operationName,
+        ListProductsQuery.Companion.dataDeserializer,
+        ListProductsQuery.Companion.variablesSerializer,
+    ),
+    ListProductsQuery
 
 private class LogVisionEventMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  LogVisionEventMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      LogVisionEventMutation.Data,
-      LogVisionEventMutation.Variables
-  >(
-    connector,
-    LogVisionEventMutation.Companion.operationName,
-    LogVisionEventMutation.Companion.dataDeserializer,
-    LogVisionEventMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        LogVisionEventMutation.Data,
+        LogVisionEventMutation.Variables,
+    >(
+        connector,
+        LogVisionEventMutation.Companion.operationName,
+        LogVisionEventMutation.Companion.dataDeserializer,
+        LogVisionEventMutation.Companion.variablesSerializer,
+    ),
+    LogVisionEventMutation
 
 private class RegisterPasskeyMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  RegisterPasskeyMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      RegisterPasskeyMutation.Data,
-      RegisterPasskeyMutation.Variables
-  >(
-    connector,
-    RegisterPasskeyMutation.Companion.operationName,
-    RegisterPasskeyMutation.Companion.dataDeserializer,
-    RegisterPasskeyMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        RegisterPasskeyMutation.Data,
+        RegisterPasskeyMutation.Variables,
+    >(
+        connector,
+        RegisterPasskeyMutation.Companion.operationName,
+        RegisterPasskeyMutation.Companion.dataDeserializer,
+        RegisterPasskeyMutation.Companion.variablesSerializer,
+    ),
+    RegisterPasskeyMutation
 
 private class ToggleGroceryItemMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  ToggleGroceryItemMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      ToggleGroceryItemMutation.Data,
-      ToggleGroceryItemMutation.Variables
-  >(
-    connector,
-    ToggleGroceryItemMutation.Companion.operationName,
-    ToggleGroceryItemMutation.Companion.dataDeserializer,
-    ToggleGroceryItemMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        ToggleGroceryItemMutation.Data,
+        ToggleGroceryItemMutation.Variables,
+    >(
+        connector,
+        ToggleGroceryItemMutation.Companion.operationName,
+        ToggleGroceryItemMutation.Companion.dataDeserializer,
+        ToggleGroceryItemMutation.Companion.variablesSerializer,
+    ),
+    ToggleGroceryItemMutation
 
 private class ToggleLikeMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  ToggleLikeMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      ToggleLikeMutation.Data,
-      ToggleLikeMutation.Variables
-  >(
-    connector,
-    ToggleLikeMutation.Companion.operationName,
-    ToggleLikeMutation.Companion.dataDeserializer,
-    ToggleLikeMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        ToggleLikeMutation.Data,
+        ToggleLikeMutation.Variables,
+    >(
+        connector,
+        ToggleLikeMutation.Companion.operationName,
+        ToggleLikeMutation.Companion.dataDeserializer,
+        ToggleLikeMutation.Companion.variablesSerializer,
+    ),
+    ToggleLikeMutation
 
 private class UpdateOnboardingStatusMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  UpdateOnboardingStatusMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      UpdateOnboardingStatusMutation.Data,
-      UpdateOnboardingStatusMutation.Variables
-  >(
-    connector,
-    UpdateOnboardingStatusMutation.Companion.operationName,
-    UpdateOnboardingStatusMutation.Companion.dataDeserializer,
-    UpdateOnboardingStatusMutation.Companion.variablesSerializer,
-  )
-
-
-private class UpdateUserSubscriptionMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  UpdateUserSubscriptionMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      UpdateUserSubscriptionMutation.Data,
-      UpdateUserSubscriptionMutation.Variables
-  >(
-    connector,
-    UpdateUserSubscriptionMutation.Companion.operationName,
-    UpdateUserSubscriptionMutation.Companion.dataDeserializer,
-    UpdateUserSubscriptionMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        UpdateOnboardingStatusMutation.Data,
+        UpdateOnboardingStatusMutation.Variables,
+    >(
+        connector,
+        UpdateOnboardingStatusMutation.Companion.operationName,
+        UpdateOnboardingStatusMutation.Companion.dataDeserializer,
+        UpdateOnboardingStatusMutation.Companion.variablesSerializer,
+    ),
+    UpdateOnboardingStatusMutation
 
 private class UpsertUserPreferenceMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  UpsertUserPreferenceMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      UpsertUserPreferenceMutation.Data,
-      UpsertUserPreferenceMutation.Variables
-  >(
-    connector,
-    UpsertUserPreferenceMutation.Companion.operationName,
-    UpsertUserPreferenceMutation.Companion.dataDeserializer,
-    UpsertUserPreferenceMutation.Companion.variablesSerializer,
-  )
-
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        UpsertUserPreferenceMutation.Data,
+        UpsertUserPreferenceMutation.Variables,
+    >(
+        connector,
+        UpsertUserPreferenceMutation.Companion.operationName,
+        UpsertUserPreferenceMutation.Companion.dataDeserializer,
+        UpsertUserPreferenceMutation.Companion.variablesSerializer,
+    ),
+    UpsertUserPreferenceMutation
 
 private class UpsertUserProfileMutationImpl(
-  connector: SpressoConnectorConnector
-):
-  UpsertUserProfileMutation,
-  SpressoConnectorConnectorGeneratedMutationImpl<
-      UpsertUserProfileMutation.Data,
-      UpsertUserProfileMutation.Variables
-  >(
-    connector,
-    UpsertUserProfileMutation.Companion.operationName,
-    UpsertUserProfileMutation.Companion.dataDeserializer,
-    UpsertUserProfileMutation.Companion.variablesSerializer,
-  )
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        UpsertUserProfileMutation.Data,
+        UpsertUserProfileMutation.Variables,
+    >(
+        connector,
+        UpsertUserProfileMutation.Companion.operationName,
+        UpsertUserProfileMutation.Companion.dataDeserializer,
+        UpsertUserProfileMutation.Companion.variablesSerializer,
+    ),
+    UpsertUserProfileMutation
 
-
+private class UpsertUserSubscriptionMutationImpl(
+    connector: SpressoConnectorConnector,
+) : SpressoConnectorConnectorGeneratedMutationImpl<
+        UpsertUserSubscriptionMutation.Data,
+        UpsertUserSubscriptionMutation.Variables,
+    >(
+        connector,
+        UpsertUserSubscriptionMutation.Companion.operationName,
+        UpsertUserSubscriptionMutation.Companion.dataDeserializer,
+        UpsertUserSubscriptionMutation.Companion.variablesSerializer,
+    ),
+    UpsertUserSubscriptionMutation

@@ -3,11 +3,18 @@ import Stripe from 'stripe';
 import { executeKitesurfPurchase } from './kitesurfService';
 
 const router = Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', {
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error("Missing STRIPE_SECRET_KEY environment variable");
+}
+if (!process.env.STRIPE_WEBHOOK_SECRET) {
+  throw new Error("Missing STRIPE_WEBHOOK_SECRET environment variable");
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-01-27.acacia' as any
 });
 
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test_mock';
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 router.post('/', async (req: Request, res: Response) => {
   const sig = req.headers['stripe-signature'];

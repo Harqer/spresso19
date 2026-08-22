@@ -1,39 +1,21 @@
 package components.features.orders
 
-import components.models.*
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.boolean
-
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.automirrored.outlined.AssignmentReturn
-import components.features.grocery.toPriceString
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import components.shared.widgets.MediaActionCard
-import components.shared.elements.SpressoButton
-import components.shared.elements.SpressoButtonVariant
-import components.features.orders.OrderReturnDialog
-import components.features.orders.OrderReturnResultCard
-import components.features.orders.OrderTrackerEmptyState
-import components.features.orders.OrderTrackerHeroHeader
+import components.models.*
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonPrimitive
 import network.ApiClient
 import network.models.OrderRecord
@@ -44,7 +26,7 @@ fun OrdersTrackerPage(
     onAskAI: (String) -> Unit = {},
     onSetReminder: (String) -> Unit = {},
     onInitiateReturn: (String, String) -> Unit = { _, _ -> },
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var orders by remember { mutableStateOf<List<OrderRecord>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -57,7 +39,7 @@ fun OrdersTrackerPage(
     LaunchedEffect(Unit) {
         try {
             orders = apiClient.fetchOrders()
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             orders = emptyList() // Fallback gracefully without fake data
         } finally {
             isLoading = false
@@ -67,21 +49,23 @@ fun OrdersTrackerPage(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets.safeDrawing,
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         val layoutDirection = LocalLayoutDirection.current
         LazyVerticalGrid(
             columns = GridCells.Adaptive(300.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .consumeWindowInsets(innerPadding),
-            contentPadding = PaddingValues(
-                start = innerPadding.calculateStartPadding(layoutDirection) + 24.dp,
-                top = innerPadding.calculateTopPadding() + 24.dp,
-                end = innerPadding.calculateEndPadding(layoutDirection) + 24.dp,
-                bottom = innerPadding.calculateBottomPadding() + 24.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .consumeWindowInsets(innerPadding),
+            contentPadding =
+                PaddingValues(
+                    start = innerPadding.calculateStartPadding(layoutDirection) + 24.dp,
+                    top = innerPadding.calculateTopPadding() + 24.dp,
+                    end = innerPadding.calculateEndPadding(layoutDirection) + 24.dp,
+                    bottom = innerPadding.calculateBottomPadding() + 24.dp,
+                ),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             item {
                 OrderTrackerHeroHeader()
@@ -104,7 +88,7 @@ fun OrdersTrackerPage(
                         apiClient = apiClient,
                         onSetReminder = onSetReminder,
                         onInitiateReturn = { orderId -> selectedOrderForReturn = orderId },
-                        onAskAI = onAskAI
+                        onAskAI = onAskAI,
                     )
                 }
             }
@@ -123,7 +107,7 @@ fun OrdersTrackerPage(
                 onInitiateReturn(orderId, reason)
                 scope.launch {
                     isSubmittingReturn = true
-                    try { 
+                    try {
                         val response = apiClient.requestOrderReturn(orderId = orderId, reason = reason)
                         val success = response["success"]?.jsonPrimitive?.boolean == true
                         if (success) {
@@ -132,14 +116,14 @@ fun OrdersTrackerPage(
                             returnResultMessage = "Failed to submit return request."
                         }
                         selectedOrderForReturn = null
-                        returnReason = "" 
-                    } catch(e: Exception) {
+                        returnReason = ""
+                    } catch (e: Exception) {
                         returnResultMessage = "Failed to submit return: ${e.message}"
-                    } finally { 
+                    } finally {
                         isSubmittingReturn = false
                     }
                 }
-            }
+            },
         )
     }
 }

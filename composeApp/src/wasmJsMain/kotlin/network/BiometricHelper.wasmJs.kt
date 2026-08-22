@@ -1,22 +1,23 @@
 package network
 
-import kotlin.js.Promise
-import kotlinx.coroutines.await
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
-actual suspend fun promptBiometricAuth(reason: String, payload: String): String? = 
+actual suspend fun promptBiometricAuth(
+    reason: String,
+    payload: String,
+): String? =
     suspendCancellableCoroutine { continuation ->
         triggerWebAuthnSignature(
             reason = reason,
             payload = payload,
             onSuccess = { signature -> continuation.resume(signature) },
-            onError = { continuation.resume(null) }
+            onError = { continuation.resume(null) },
         )
     }
 
-@JsFun("""
+@JsFun(
+    """
 function(reason, payload, onSuccess, onError) {
     if (!window.PublicKeyCredential || !navigator.credentials) {
         onError("WebAuthn not supported");
@@ -49,11 +50,11 @@ function(reason, payload, onSuccess, onError) {
         onError(err.message || "Authentication failed");
     });
 }
-""")
+""",
+)
 private external fun triggerWebAuthnSignature(
     reason: String,
     payload: String,
     onSuccess: (String) -> Unit,
-    onError: (String?) -> Unit
+    onError: (String?) -> Unit,
 )
-

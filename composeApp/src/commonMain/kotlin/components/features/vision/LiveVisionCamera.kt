@@ -6,5 +6,5 @@ import androidx.compose.ui.Modifier
 @Composable
 expect fun LiveVisionCamera(
     onObjectDetected: (ByteArray, List<List<Float>>) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 )

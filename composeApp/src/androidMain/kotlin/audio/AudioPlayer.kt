@@ -9,28 +9,30 @@ actual class AudioPlayer {
     private val sampleRate = 24000 // Configured for Gemini Live API 24kHz output
     private val channelConfig = AudioFormat.CHANNEL_OUT_MONO
     private val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-    
+
     init {
         try {
             val bufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-            audioTrack = AudioTrack.Builder()
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ASSISTANT)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                        .build()
-                )
-                .setAudioFormat(
-                    AudioFormat.Builder()
-                        .setEncoding(audioFormat)
-                        .setSampleRate(sampleRate)
-                        .setChannelMask(channelConfig)
-                        .build()
-                )
-                .setBufferSizeInBytes(bufferSize)
-                .setTransferMode(AudioTrack.MODE_STREAM)
-                .build()
-                
+            audioTrack =
+                AudioTrack
+                    .Builder()
+                    .setAudioAttributes(
+                        AudioAttributes
+                            .Builder()
+                            .setUsage(AudioAttributes.USAGE_ASSISTANT)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build(),
+                    ).setAudioFormat(
+                        AudioFormat
+                            .Builder()
+                            .setEncoding(audioFormat)
+                            .setSampleRate(sampleRate)
+                            .setChannelMask(channelConfig)
+                            .build(),
+                    ).setBufferSizeInBytes(bufferSize)
+                    .setTransferMode(AudioTrack.MODE_STREAM)
+                    .build()
+
             if (audioTrack?.state == AudioTrack.STATE_INITIALIZED) {
                 audioTrack?.play()
             }
@@ -39,7 +41,7 @@ actual class AudioPlayer {
             audioTrack = null
         }
     }
-    
+
     actual fun playChunk(chunk: ByteArray) {
         try {
             if (audioTrack?.state == AudioTrack.STATE_INITIALIZED && audioTrack?.playState != AudioTrack.PLAYSTATE_STOPPED) {
@@ -49,7 +51,7 @@ actual class AudioPlayer {
             network.Telemetry.recordError("Error writing to AudioTrack", e)
         }
     }
-    
+
     actual fun stop() {
         try {
             if (audioTrack?.state == AudioTrack.STATE_INITIALIZED && audioTrack?.playState != AudioTrack.PLAYSTATE_STOPPED) {
@@ -60,7 +62,7 @@ actual class AudioPlayer {
             network.Telemetry.recordError("Error stopping AudioTrack", e)
         }
     }
-    
+
     actual fun release() {
         stop()
         try {

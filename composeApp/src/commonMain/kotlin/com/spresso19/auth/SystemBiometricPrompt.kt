@@ -9,5 +9,5 @@ interface BiometricAuthenticator {
 @Composable
 expect fun rememberBiometricAuthenticator(
     onSuccess: () -> Unit,
-    onError: (String) -> Unit
+    onError: (String) -> Unit,
 ): BiometricAuthenticator

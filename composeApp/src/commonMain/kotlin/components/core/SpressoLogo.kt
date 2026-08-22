@@ -20,26 +20,28 @@ enum class LogoSize { Small, Medium, Large, ExtraLarge }
 fun SpressoLogo(
     modifier: Modifier = Modifier,
     size: LogoSize = LogoSize.Medium,
-    showText: Boolean = true
+    showText: Boolean = true,
 ) {
-    val height = when (size) {
-        LogoSize.Small -> 36.dp
-        LogoSize.Medium -> 56.dp
-        LogoSize.Large -> 112.dp
-        LogoSize.ExtraLarge -> 180.dp
-    }
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-        val painter = if (showText) {
-            painterResource(Res.drawable.logo)
-        } else {
-            painterResource(Res.drawable.logo_icon_transparent)
+    val height =
+        when (size) {
+            LogoSize.Small -> 36.dp
+            LogoSize.Medium -> 56.dp
+            LogoSize.Large -> 112.dp
+            LogoSize.ExtraLarge -> 180.dp
         }
-        
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+        val painter =
+            if (showText) {
+                painterResource(Res.drawable.logo)
+            } else {
+                painterResource(Res.drawable.logo_icon_transparent)
+            }
+
         Image(
             painter = painter,
             contentDescription = "Spresso Logo",
             modifier = Modifier.height(height),
-            contentScale = ContentScale.Fit
+            contentScale = ContentScale.Fit,
         )
     }
 }

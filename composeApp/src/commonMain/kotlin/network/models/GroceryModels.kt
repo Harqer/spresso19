@@ -11,5 +11,5 @@ data class GroceryItem(
     val category: String,
     val estimatedPrice: Double,
     val checked: Boolean = false,
-    val storeNote: String? = null
+    val storeNote: String? = null,
 )

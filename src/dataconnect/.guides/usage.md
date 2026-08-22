@@ -14,7 +14,7 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { upsertUserProfile, createOrder, addVideo, toggleLike, createExpense, createTravelExpense, createVoiceNote, createPaymentMethod, deletePaymentMethod, updateUserSubscription } from '@firebasegen/spresso-connector';
+import { upsertUserProfile, createOrder, addVideo, toggleLike, createExpense, createTravelExpense, createVoiceNote, createPaymentMethod, deletePaymentMethod, upsertUserSubscription } from '@firebasegen/spresso-connector';
 
 
 // Operation UpsertUserProfile:  For variables, look at type UpsertUserProfileVars in ../index.d.ts
@@ -44,8 +44,8 @@ const { data } = await CreatePaymentMethod(dataConnect, createPaymentMethodVars)
 // Operation DeletePaymentMethod:  For variables, look at type DeletePaymentMethodVars in ../index.d.ts
 const { data } = await DeletePaymentMethod(dataConnect, deletePaymentMethodVars);
 
-// Operation UpdateUserSubscription:  For variables, look at type UpdateUserSubscriptionVars in ../index.d.ts
-const { data } = await UpdateUserSubscription(dataConnect, updateUserSubscriptionVars);
+// Operation UpsertUserSubscription:  For variables, look at type UpsertUserSubscriptionVars in ../index.d.ts
+const { data } = await UpsertUserSubscription(dataConnect, upsertUserSubscriptionVars);
 
 
 ```

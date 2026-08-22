@@ -1,12 +1,6 @@
 package components.shared
 
-import com.spresso19.auth.rememberBiometricAuthenticator
-import ui.GooglePayButton
-import components.features.grocery.toPriceString
-import components.shared.HITLCheckoutSummaryCard
-
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -43,23 +37,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.spresso19.auth.rememberBiometricAuthenticator
-import ui.GooglePayButton
 import components.features.grocery.toPriceString
-import components.shared.HITLCheckoutSummaryCard
 import network.models.HITLPayload
+import ui.GooglePayButton
 
 @Composable
 fun HITLCheckoutModal(
     payload: HITLPayload?,
     onDismiss: () -> Unit,
     onConfirmPurchase: (paymentMethod: String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     if (payload == null) return
 
@@ -68,15 +59,16 @@ fun HITLCheckoutModal(
     var isAuthenticating by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val biometricAuthenticator = rememberBiometricAuthenticator(
-        onSuccess = {
-            biometricVerified = true
-            isAuthenticating = false
-        },
-        onError = {
-            isAuthenticating = false
-        }
-    )
+    val biometricAuthenticator =
+        rememberBiometricAuthenticator(
+            onSuccess = {
+                biometricVerified = true
+                isAuthenticating = false
+            },
+            onError = {
+                isAuthenticating = false
+            },
+        )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -84,10 +76,19 @@ fun HITLCheckoutModal(
         shape = RoundedCornerShape(24.dp),
         containerColor = MaterialTheme.colorScheme.surface,
         title = {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(12.dp)) {
-                        Icon(Icons.Default.Fingerprint, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(8.dp).size(24.dp))
+                        Icon(
+                            Icons.Default.Fingerprint,
+                            null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(8.dp).size(24.dp),
+                        )
                     }
                     Column {
                         Text("Biometric Authorization", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -110,16 +111,30 @@ fun HITLCheckoutModal(
                             modifier = Modifier.weight(1f).clickable { selectedPaymentMethod = method },
                             shape = RoundedCornerShape(12.dp),
                             color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLowest,
-                            border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+                            border =
+                                BorderStroke(
+                                    1.dp,
+                                    if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                ),
                         ) {
                             Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(
-                                    when (method) { "Google Pay" -> Icons.Default.Payment; "Coinbase USDC" -> Icons.Default.CurrencyBitcoin; else -> Icons.Default.CreditCard },
+                                    when (method) {
+                                        "Google Pay" -> Icons.Default.Payment
+                                        "Coinbase USDC" -> Icons.Default.CurrencyBitcoin
+                                        else -> Icons.Default.CreditCard
+                                    },
                                     null,
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(18.dp),
                                 )
-                                Text(method, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+                                Text(
+                                    method,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                )
                             }
                         }
                     }
@@ -129,9 +144,17 @@ fun HITLCheckoutModal(
                 if (errorMessage != null) {
                     Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                 }
-                Surface(color = MaterialTheme.colorScheme.surfaceContainerLowest, shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                                 Text("Biometric Lock", fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -144,7 +167,13 @@ fun HITLCheckoutModal(
                                     }
                                 },
                                 label = { Text(if (biometricVerified) "Verified" else "Action Required", fontSize = 9.sp) },
-                                leadingIcon = { Icon(if (biometricVerified) Icons.Default.Check else Icons.Default.Warning, null, modifier = Modifier.size(12.dp)) }
+                                leadingIcon = {
+                                    Icon(
+                                        if (biometricVerified) Icons.Default.Check else Icons.Default.Warning,
+                                        null,
+                                        modifier = Modifier.size(12.dp),
+                                    )
+                                },
                             )
                         }
                         if (!biometricVerified) {
@@ -155,8 +184,12 @@ fun HITLCheckoutModal(
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.primary),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                                colors =
+                                    ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        contentColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                             ) {
                                 Icon(Icons.Default.Fingerprint, null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -171,14 +204,14 @@ fun HITLCheckoutModal(
             if (biometricVerified && selectedPaymentMethod == "Google Pay") {
                 GooglePayButton(
                     amount = payload.totalAmount.toPriceString(),
-                    onResult = { success, msg -> 
+                    onResult = { success, msg ->
                         if (success) {
                             onConfirmPurchase("Google Pay - Success")
                         } else {
                             errorMessage = "Google Pay Failed: $msg"
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             } else {
                 Button(
@@ -186,13 +219,13 @@ fun HITLCheckoutModal(
                     enabled = biometricVerified,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 ) {
                     Icon(Icons.Default.ShoppingBag, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Confirm Purchase • $${payload.totalAmount.toPriceString()}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
-        }
+        },
     )
 }

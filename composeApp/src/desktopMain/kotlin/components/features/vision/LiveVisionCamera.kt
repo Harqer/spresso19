@@ -6,7 +6,7 @@ import androidx.compose.ui.Modifier
 @Composable
 actual fun LiveVisionCamera(
     onObjectDetected: (ByteArray, List<List<Float>>) -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
 ) {
     // Stub for desktop
 }

@@ -1,6 +1,5 @@
 package components.features.chat.cards
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -28,7 +27,7 @@ fun DiscoveryCard(
     onClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     trackingId: String? = null,
-    trackingAction: String? = null
+    trackingAction: String? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val apiClient = androidx.compose.runtime.remember { network.ApiClient() }
@@ -36,31 +35,32 @@ fun DiscoveryCard(
     val themeBgColor = if (isErrorTheme) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer
 
     Surface(
-        modifier = modifier.clickable { 
-            if (trackingId != null && trackingAction != null) {
-                coroutineScope.launch {
-                    apiClient.recordInteraction(trackingId, trackingAction)
+        modifier =
+            modifier.clickable {
+                if (trackingId != null && trackingAction != null) {
+                    coroutineScope.launch {
+                        apiClient.recordInteraction(trackingId, trackingAction)
+                    }
                 }
-            }
-            onClick(prompt) 
-        },
+                onClick(prompt)
+            },
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp
+        shadowElevation = 2.dp,
     ) {
         Column(
             modifier = Modifier.padding(20.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Surface(
                     shape = CircleShape,
                     color = themeBgColor,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(36.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(icon, contentDescription = null, tint = themeColor, modifier = Modifier.size(18.dp))
@@ -72,14 +72,14 @@ fun DiscoveryCard(
                     text = title,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 14.sp
+                    lineHeight = 14.sp,
                 )
             }
         }

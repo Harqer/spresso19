@@ -22,10 +22,16 @@ import network.ProductItem
 fun LazyGridScope.wardrobePhotoGalleryGrid(
     photos: List<WardrobePhoto>,
     handleAddPhoto: () -> Unit,
-    onSelectTryOn: (ProductItem?) -> Unit
+    onSelectTryOn: (ProductItem?) -> Unit,
 ) {
     item(span = { GridItemSpan(maxLineSpan) }) {
-        Text("PHOTO GALLERY LOOKS (${photos.size})", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, letterSpacing = 1.sp, modifier = Modifier.padding(top = 16.dp))
+        Text(
+            "PHOTO GALLERY LOOKS (${photos.size})",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(top = 16.dp),
+        )
     }
 
     if (photos.isEmpty()) {
@@ -35,12 +41,12 @@ fun LazyGridScope.wardrobePhotoGalleryGrid(
                 modifier = Modifier.fillMaxWidth().height(192.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Surface(color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(12.dp), modifier = Modifier.size(48.dp)) {
                         Box(contentAlignment = Alignment.Center) {
@@ -48,7 +54,11 @@ fun LazyGridScope.wardrobePhotoGalleryGrid(
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text("Tap Plus to Add Your First Wardrobe Photo", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Tap Plus to Add Your First Wardrobe Photo",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
         }
@@ -59,12 +69,12 @@ fun LazyGridScope.wardrobePhotoGalleryGrid(
                 modifier = Modifier.fillMaxWidth().height(224.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) // Dashed isn't natively supported easily, using solid with alpha
+                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)), // Dashed isn't natively supported easily, using solid with alpha
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Surface(color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(12.dp), modifier = Modifier.size(40.dp)) {
                         Box(contentAlignment = Alignment.Center) {
@@ -85,15 +95,20 @@ fun LazyGridScope.wardrobePhotoGalleryGrid(
                 badgeContent = {
                     Surface(
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                        shape = RoundedCornerShape(4.dp)
+                        shape = RoundedCornerShape(4.dp),
                     ) {
-                        Text(p.category.uppercase(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.surface, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+                        Text(
+                            p.category.uppercase(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.surface,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        )
                     }
                 },
                 actionRow = {
                     SpressoButton(
                         text = "Try On",
-                        onClick = { 
+                        onClick = {
                             onSelectTryOn(
                                 ProductItem(
                                     id = p.id,
@@ -101,18 +116,18 @@ fun LazyGridScope.wardrobePhotoGalleryGrid(
                                     price = 0.0,
                                     imageUrl = p.photoUrl,
                                     category = p.category,
-                                    brand = "Personal Closet"
-                                )
+                                    brand = "Personal Closet",
+                                ),
                             )
                         },
                         variant = SpressoButtonVariant.SECONDARY,
                         icon = Icons.Default.Visibility,
                         trackingId = "wardrobe_photo",
-                        trackingAction = "click_try_on_${p.id}"
+                        trackingAction = "click_try_on_${p.id}",
                     )
                 },
                 trackingId = "wardrobe_photo_card",
-                trackingAction = "click_photo_${p.id}"
+                trackingAction = "click_photo_${p.id}",
             )
         }
     }

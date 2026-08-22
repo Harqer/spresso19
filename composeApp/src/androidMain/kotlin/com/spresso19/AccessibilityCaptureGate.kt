@@ -3,7 +3,7 @@ package com.spresso19
 /** A single, short-lived request created by a visible user action. */
 internal data class ExplicitCaptureRequest(
     val token: String,
-    val requestedAtMillis: Long
+    val requestedAtMillis: Long,
 )
 
 /**
@@ -13,7 +13,7 @@ internal data class ExplicitCaptureRequest(
  */
 internal class AccessibilityCaptureGate(
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
-    private val requestLifetimeMillis: Long = REQUEST_LIFETIME_MILLIS
+    private val requestLifetimeMillis: Long = REQUEST_LIFETIME_MILLIS,
 ) {
     private var activeToken: String? = null
     private var lastAcceptedToken: String? = null
@@ -21,7 +21,7 @@ internal class AccessibilityCaptureGate(
     fun accept(
         request: ExplicitCaptureRequest,
         hasConsent: Boolean,
-        serviceEnabled: Boolean
+        serviceEnabled: Boolean,
     ): Boolean {
         if (!hasConsent || !serviceEnabled || !isFresh(request) || request.token.isBlank()) {
             return false
@@ -37,9 +37,8 @@ internal class AccessibilityCaptureGate(
     fun isActiveAndFresh(
         request: ExplicitCaptureRequest,
         hasConsent: Boolean,
-        serviceEnabled: Boolean
-    ): Boolean =
-        activeToken == request.token && hasConsent && serviceEnabled && isFresh(request)
+        serviceEnabled: Boolean,
+    ): Boolean = activeToken == request.token && hasConsent && serviceEnabled && isFresh(request)
 
     fun complete(request: ExplicitCaptureRequest) {
         if (activeToken == request.token) {

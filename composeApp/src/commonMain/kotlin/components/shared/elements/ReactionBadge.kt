@@ -14,19 +14,19 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ReactionBadge(
     icon: ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         modifier = modifier.size(48.dp),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceVariant,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        shadowElevation = 4.dp
+        shadowElevation = 4.dp,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier.padding(12.dp),
         )
     }
 }

@@ -1,7 +1,5 @@
 package components.models
 
-
-
 data class TripRecord(
     val id: String,
     val title: String,
@@ -11,7 +9,7 @@ data class TripRecord(
     val status: String,
     val coverImage: String,
     val budgetTotal: Double,
-    val spentTotal: Double
+    val spentTotal: Double,
 )
 
 data class ItineraryEvent(
@@ -26,7 +24,7 @@ data class ItineraryEvent(
     val qrData: String? = null,
     val confirmationCode: String? = null,
     val gate: String? = null,
-    val seat: String? = null
+    val seat: String? = null,
 )
 
 data class TravelExpense(
@@ -36,12 +34,12 @@ data class TravelExpense(
     val currency: String,
     val category: String,
     val merchant: String,
-    val date: String
+    val date: String,
 )
 
 data class VoiceNote(
     val id: String,
     val tripId: String,
     val transcript: String,
-    val createdAt: String
+    val createdAt: String,
 )

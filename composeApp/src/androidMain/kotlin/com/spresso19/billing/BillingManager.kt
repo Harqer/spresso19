@@ -24,18 +24,21 @@ import network.Telemetry
 
 private const val TAG = "BillingManager"
 
-class BillingManager(context: Context) : PurchasesUpdatedListener {
-
+class BillingManager(
+    context: Context,
+) : PurchasesUpdatedListener {
     private val _purchases = MutableStateFlow<List<Purchase>>(emptyList())
     val purchases = _purchases.asStateFlow()
 
     // Internal scope for billing tasks — not tied to any Activity lifecycle
     private val billingScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private val billingClient: BillingClient = BillingClient.newBuilder(context)
-        .setListener(this)
-        .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
-        .build()
+    private val billingClient: BillingClient =
+        BillingClient
+            .newBuilder(context)
+            .setListener(this)
+            .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+            .build()
 
     // Exponential backoff reconnect state
     private var reconnectAttempts = 0
@@ -46,23 +49,25 @@ class BillingManager(context: Context) : PurchasesUpdatedListener {
     }
 
     private fun startConnection() {
-        billingClient.startConnection(object : BillingClientStateListener {
-            override fun onBillingSetupFinished(billingResult: BillingResult) {
-                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    Log.i(TAG, "Billing client setup finished successfully")
-                    reconnectAttempts = 0
-                    // Restore any purchases that may have completed while the app was not running
-                    queryPendingPurchases()
-                } else {
-                    Log.e(TAG, "Billing setup failed: ${billingResult.debugMessage} (code=${billingResult.responseCode})")
+        billingClient.startConnection(
+            object : BillingClientStateListener {
+                override fun onBillingSetupFinished(billingResult: BillingResult) {
+                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                        Log.i(TAG, "Billing client setup finished successfully")
+                        reconnectAttempts = 0
+                        // Restore any purchases that may have completed while the app was not running
+                        queryPendingPurchases()
+                    } else {
+                        Log.e(TAG, "Billing setup failed: ${billingResult.debugMessage} (code=${billingResult.responseCode})")
+                    }
                 }
-            }
 
-            override fun onBillingServiceDisconnected() {
-                Log.w(TAG, "Billing service disconnected — scheduling reconnect (attempt $reconnectAttempts)")
-                scheduleReconnect()
-            }
-        })
+                override fun onBillingServiceDisconnected() {
+                    Log.w(TAG, "Billing service disconnected — scheduling reconnect (attempt $reconnectAttempts)")
+                    scheduleReconnect()
+                }
+            },
+        )
     }
 
     /**
@@ -88,9 +93,11 @@ class BillingManager(context: Context) : PurchasesUpdatedListener {
      */
     private fun queryPendingPurchases() {
         billingScope.launch {
-            val params = QueryPurchasesParams.newBuilder()
-                .setProductType(BillingClient.ProductType.INAPP)
-                .build()
+            val params =
+                QueryPurchasesParams
+                    .newBuilder()
+                    .setProductType(BillingClient.ProductType.INAPP)
+                    .build()
             billingClient.queryPurchasesAsync(params) { billingResult, purchaseList ->
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     Log.d(TAG, "Restored ${purchaseList.size} pending purchases")
@@ -108,7 +115,10 @@ class BillingManager(context: Context) : PurchasesUpdatedListener {
         }
     }
 
-    override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
+    override fun onPurchasesUpdated(
+        billingResult: BillingResult,
+        purchases: MutableList<Purchase>?,
+    ) {
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 if (purchases != null) {
@@ -131,7 +141,7 @@ class BillingManager(context: Context) : PurchasesUpdatedListener {
                 Log.e(TAG, "Purchase update error: ${billingResult.debugMessage} (code=${billingResult.responseCode})")
                 Telemetry.recordError(
                     "onPurchasesUpdated error code=${billingResult.responseCode}",
-                    Exception(billingResult.debugMessage)
+                    Exception(billingResult.debugMessage),
                 )
             }
         }
@@ -142,9 +152,11 @@ class BillingManager(context: Context) : PurchasesUpdatedListener {
      * Required within 3 days of purchase; unacknowledged purchases are automatically refunded.
      */
     private fun acknowledgePurchase(purchase: Purchase) {
-        val params = AcknowledgePurchaseParams.newBuilder()
-            .setPurchaseToken(purchase.purchaseToken)
-            .build()
+        val params =
+            AcknowledgePurchaseParams
+                .newBuilder()
+                .setPurchaseToken(purchase.purchaseToken)
+                .build()
         billingClient.acknowledgePurchase(params) { billingResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 Log.i(TAG, "Purchase acknowledged: ${purchase.orderId}")
@@ -152,22 +164,29 @@ class BillingManager(context: Context) : PurchasesUpdatedListener {
                 Log.e(TAG, "Failed to acknowledge purchase ${purchase.orderId}: ${billingResult.debugMessage}")
                 Telemetry.recordError(
                     "acknowledgePurchase failed for orderId=${purchase.orderId}",
-                    Exception(billingResult.debugMessage)
+                    Exception(billingResult.debugMessage),
                 )
             }
         }
     }
 
-    fun launchBillingFlow(activity: Activity, productDetails: ProductDetails) {
-        val productDetailsParamsList = listOf(
-            BillingFlowParams.ProductDetailsParams.newBuilder()
-                .setProductDetails(productDetails)
-                .build()
-        )
+    fun launchBillingFlow(
+        activity: Activity,
+        productDetails: ProductDetails,
+    ) {
+        val productDetailsParamsList =
+            listOf(
+                BillingFlowParams.ProductDetailsParams
+                    .newBuilder()
+                    .setProductDetails(productDetails)
+                    .build(),
+            )
 
-        val billingFlowParams = BillingFlowParams.newBuilder()
-            .setProductDetailsParamsList(productDetailsParamsList)
-            .build()
+        val billingFlowParams =
+            BillingFlowParams
+                .newBuilder()
+                .setProductDetailsParamsList(productDetailsParamsList)
+                .build()
 
         val result = billingClient.launchBillingFlow(activity, billingFlowParams)
         if (result.responseCode != BillingClient.BillingResponseCode.OK) {

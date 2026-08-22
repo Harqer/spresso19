@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 actual fun GooglePayButton(
     amount: String,
     onResult: (Boolean, String) -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
 ) {
     // Stub for Web
 }
@@ -15,7 +15,7 @@ actual fun GooglePayButton(
 @Composable
 actual fun GoogleWalletSaveButton(
     passId: String,
-    modifier: Modifier
+    modifier: Modifier,
 ) {
     // Stub for Web
 }

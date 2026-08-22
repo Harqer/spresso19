@@ -10,16 +10,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.xr.glimmer.GlimmerTheme
 
 @Composable
-fun SpressoGlimmerApp(isCooking: Boolean) {
+fun SpressoGlimmerApp(
+    isCooking: Boolean,
+    instructions: List<String> = emptyList(),
+    isGenerating: Boolean = false,
+    onRequestRecipe: () -> Unit,
+) {
     GlimmerTheme {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black), // Black background for additive display
-            contentAlignment = Alignment.BottomCenter // Bottom-aligned UI
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
+            // Black background for additive display
+            contentAlignment = Alignment.BottomCenter, // Bottom-aligned UI
         ) {
             if (isCooking) {
-                ChefAssistanceCard(instructions = emptyList())
+                ChefAssistanceCard(
+                    instructions = instructions,
+                    isGenerating = isGenerating,
+                    onRequestRecipe = onRequestRecipe,
+                )
             } else {
                 GroceryListStack()
             }

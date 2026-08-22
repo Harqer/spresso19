@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import components.shared.elements.SpressoButton
@@ -23,24 +22,24 @@ import components.shared.elements.SpressoButtonVariant
 fun GroceryAddItemRow(
     newItemName: String,
     onNameChange: (String) -> Unit,
-    onAdd: () -> Unit
+    onAdd: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedTextField(
                 value = newItemName,
                 onValueChange = onNameChange,
                 placeholder = { Text("Add an item...", fontSize = 13.sp) },
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
             )
             SpressoButton(
                 text = "Add",
@@ -48,7 +47,7 @@ fun GroceryAddItemRow(
                 modifier = Modifier,
                 variant = SpressoButtonVariant.PRIMARY,
                 trackingId = "grocery_add_item",
-                trackingAction = "click"
+                trackingAction = "click",
             )
         }
     }

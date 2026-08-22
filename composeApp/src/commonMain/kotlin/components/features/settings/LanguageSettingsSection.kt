@@ -15,40 +15,41 @@ import spresso.composeapp.generated.resources.*
 fun LanguageSettingsSection() {
     val localeHelper = remember { LocaleHelper() }
     var currentLocale by remember { mutableStateOf(localeHelper.getCurrentLocale()) }
-    
-    val supportedLocales = listOf(
-        "en" to "English",
-        "es" to "Español",
-        "de" to "Deutsch",
-        "fr" to "Français",
-        "ja" to "日本語",
-        "pt-BR" to "Português (Brasil)",
-        "zh-Hans" to "简体中文",
-        "ru" to "Русский",
-        "uk" to "Українська"
-    )
+
+    val supportedLocales =
+        listOf(
+            "en" to "English",
+            "es" to "Español",
+            "de" to "Deutsch",
+            "fr" to "Français",
+            "ja" to "日本語",
+            "pt-BR" to "Português (Brasil)",
+            "zh-Hans" to "简体中文",
+            "ru" to "Русский",
+            "uk" to "Українська",
+        )
 
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
         Text(stringResource(Res.string.settings_language), style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         supportedLocales.forEach { (tag, name) ->
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        localeHelper.setLocale(tag)
-                        currentLocale = tag
-                    }
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            localeHelper.setLocale(tag)
+                            currentLocale = tag
+                        }.padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 RadioButton(
                     selected = currentLocale.startsWith(tag),
                     onClick = {
                         localeHelper.setLocale(tag)
                         currentLocale = tag
-                    }
+                    },
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(name)

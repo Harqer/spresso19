@@ -16,5 +16,5 @@ expect fun MetaWearablesPage(
     onPairClick: () -> Unit = {},
     onStartHandsFreeCheckout: () -> Unit = {},
     onDismiss: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 )

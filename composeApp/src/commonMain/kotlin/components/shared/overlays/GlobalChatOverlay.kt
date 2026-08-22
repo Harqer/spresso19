@@ -24,28 +24,29 @@ fun GlobalChatOverlay(
     modifier: Modifier = Modifier,
     onOpenLiveCamera: (() -> Unit)? = null,
     onOpenObjectDetection: (() -> Unit)? = null,
-    onToggleVoice: (() -> Unit)? = null
+    onToggleVoice: (() -> Unit)? = null,
 ) {
     if (isVisible) {
         SpressoBottomSheet(
             onDismissRequest = onDismissRequest,
             title = "Ask Spresso AI",
-            modifier = modifier
+            modifier = modifier,
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
             ) {
                 AIShopperInputBar(
-                    onSend = { 
+                    onSend = {
                         onSendMessage(it)
                         onDismissRequest()
                     },
                     onOpenLiveCamera = onOpenLiveCamera,
                     onOpenObjectDetection = onOpenObjectDetection,
                     onToggleVoice = onToggleVoice,
-                    placeholder = "How can I help you today?"
+                    placeholder = "How can I help you today?",
                 )
             }
         }

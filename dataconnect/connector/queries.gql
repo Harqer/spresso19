@@ -143,7 +143,6 @@ query GetPaymentMethods @auth(level: USER) {
 
 query GetUserSubscription @auth(level: USER) {
   userSubscriptions(where: { userId: { eq_expr: "auth.uid" } }) {
-    id
     tier
     status
     currentPeriodEnd

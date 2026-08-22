@@ -1,26 +1,14 @@
 package components.features.chat
 
-import components.models.*
-
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import components.core.NetworkImage
+import components.models.*
 import io.ktor.client.HttpClient
 import network.ProductItem
 
@@ -30,7 +18,7 @@ fun ChatProductCard(
     onAddToCart: (ProductItem) -> Unit = { },
     onSelectTryOn: (ProductItem) -> Unit = { },
     httpClient: HttpClient? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     components.shared.widgets.MediaActionCard(
         imageUrl = product.imageUrl,
@@ -47,7 +35,7 @@ fun ChatProductCard(
                 onClick = { onSelectTryOn(product) },
                 modifier = Modifier.weight(1f).height(36.dp),
                 trackingId = product.id,
-                trackingAction = "try_on"
+                trackingAction = "try_on",
             )
             components.shared.elements.SpressoButton(
                 text = "Buy Now",
@@ -56,11 +44,10 @@ fun ChatProductCard(
                 onClick = { onAddToCart(product) },
                 modifier = Modifier.weight(1f).height(36.dp),
                 trackingId = product.id,
-                trackingAction = "buy_now"
+                trackingAction = "buy_now",
             )
         },
         trackingId = product.id,
-        trackingAction = "view_product"
+        trackingAction = "view_product",
     )
 }
-

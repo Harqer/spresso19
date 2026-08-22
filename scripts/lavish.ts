@@ -18,7 +18,7 @@ function handleStatus() {
   printHeader();
   console.log("system_status[7]{subsystem,provider,status,endpoint}:");
   console.log("  \"SSE Streaming Chat\",Gemini 3.5 Flash,ACTIVE,https://spresso-5561f.web.app/api/chat/stream");
-  console.log("  \"Live Assistant WebSockets\",Gemini 3.1 Live,ACTIVE,wss://spresso-5561f.web.app/api/live-chef");
+  console.log("  \"Live Assistant WebSockets\",Gemini 3.1 Live,ACTIVE,wss://us-central1-aiplatform.googleapis.com/... (Agent Engine)");
   console.log("  \"Camera Lens Search\",Gemini Vision,ACTIVE,https://spresso-5561f.web.app/api/lens-search");
   console.log("  \"Meta Wearables DAT\",Bluetooth LE & TTS,ACTIVE,MetaWearablesManager.kt");
   console.log("  \"HITL Biometric Checkout\",Auth Token Gate,ACTIVE,https://spresso-5561f.web.app/api/purchase/confirm");
@@ -50,7 +50,7 @@ function handleRouting() {
   printHeader();
   console.log("multimodal_routing[5]{input_source,protocol,backend_target,device_target}:");
   console.log("  \"Camera Snapshot\",REST / Base64,https://spresso-5561f.web.app/api/lens-search,\"Android CameraX / Web Upload\"");
-  console.log("  \"Natural Voice Mic\",WebSocket (16k in / 24k out),wss://spresso-5561f.web.app/api/live-chef,\"Android Mic / Web Audio\"");
+  console.log("  \"Natural Voice Mic\",WebSocket (16k in / 24k out),wss://us-central1-aiplatform.googleapis.com/... (Agent Engine),\"Android Mic / Web Audio\"");
   console.log("  \"Meta Smart Glasses\",Meta DAT Bluetooth LE,MetaWearablesManager.kt,\"Ray-Ban Meta Smart Glasses\"");
   console.log("  \"Text Prompt & Chips\",Server-Sent Events (SSE),https://spresso-5561f.web.app/api/chat/stream,\"Compose / Web Chat Input Bar\"");
   console.log("  \"Biometric 1-Tap Buy\",Signed Auth Token,https://spresso-5561f.web.app/api/purchase/confirm,\"HITLCheckoutModal.kt\"");

@@ -10,11 +10,16 @@ expect suspend fun getCurrentUserIdToken(): String?
 expect fun signOut()
 
 /** Signs in with email and password */
-expect suspend fun signInWithEmailAndPassword(email: String, password: String): Boolean
+expect suspend fun signInWithEmailAndPassword(
+    email: String,
+    password: String,
+): Boolean
 
 /** Creates a new user with email and password */
-expect suspend fun createUserWithEmailAndPassword(email: String, password: String): Boolean
+expect suspend fun createUserWithEmailAndPassword(
+    email: String,
+    password: String,
+): Boolean
 
 /** Signs in with Google */
 expect suspend fun signInWithGoogle(): Boolean
-

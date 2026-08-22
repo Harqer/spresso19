@@ -8,7 +8,10 @@ import androidx.core.content.ContextCompat
 import com.google.android.engage.service.BroadcastReceiverPermissions
 
 class EngageBroadcastReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context?, intent: Intent?) {
+    override fun onReceive(
+        context: Context?,
+        intent: Intent?,
+    ) {
         if (intent == null || context == null) return
         when (intent.action) {
             "com.google.android.engage.action.PUBLISH_RECOMMENDATION" ->
@@ -31,21 +34,22 @@ class EngageBroadcastReceiver : BroadcastReceiver() {
             val appContext = context.applicationContext
             val receiver = EngageBroadcastReceiver()
 
-            val filter = IntentFilter().apply {
-                addAction("com.google.android.engage.action.PUBLISH_RECOMMENDATION")
-                addAction("com.google.android.engage.action.PUBLISH_FEATURED")
-                addAction("com.google.android.engage.action.shopping.PUBLISH_SHOPPING_CART")
-                addAction("com.google.android.engage.action.shopping.PUBLISH_SHOPPING_LIST")
-                addAction("com.google.android.engage.action.shopping.PUBLISH_REORDER_CLUSTER")
-                addAction("com.google.android.engage.action.shopping.PUBLISH_ORDER_TRACKING_CLUSTER")
-            }
+            val filter =
+                IntentFilter().apply {
+                    addAction("com.google.android.engage.action.PUBLISH_RECOMMENDATION")
+                    addAction("com.google.android.engage.action.PUBLISH_FEATURED")
+                    addAction("com.google.android.engage.action.shopping.PUBLISH_SHOPPING_CART")
+                    addAction("com.google.android.engage.action.shopping.PUBLISH_SHOPPING_LIST")
+                    addAction("com.google.android.engage.action.shopping.PUBLISH_REORDER_CLUSTER")
+                    addAction("com.google.android.engage.action.shopping.PUBLISH_ORDER_TRACKING_CLUSTER")
+                }
             ContextCompat.registerReceiver(
                 appContext,
                 receiver,
                 filter,
                 BroadcastReceiverPermissions.BROADCAST_REQUEST_DATA_PUBLISH_PERMISSION,
                 null,
-                ContextCompat.RECEIVER_EXPORTED
+                ContextCompat.RECEIVER_EXPORTED,
             )
         }
     }

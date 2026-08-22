@@ -1,7 +1,5 @@
 package components.features.orders
 
-import components.models.*
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import components.models.*
 
 @Composable
 fun OrderReturnDialog(
@@ -22,7 +21,7 @@ fun OrderReturnDialog(
     onReturnReasonChange: (String) -> Unit,
     isSubmittingReturn: Boolean,
     onDismissRequest: () -> Unit,
-    onConfirmReturn: () -> Unit
+    onConfirmReturn: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -33,33 +32,33 @@ fun OrderReturnDialog(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             Icons.AutoMirrored.Outlined.AssignmentReturn,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(22.dp),
                         )
                         Text(
                             "Initiate Return ($orderId)",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                     IconButton(
                         onClick = onDismissRequest,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp),
                     ) {
                         Icon(
                             Icons.Outlined.Close,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
@@ -71,24 +70,35 @@ fun OrderReturnDialog(
                 Text(
                     "Our automated 30-day return policy applies. Provide a reason below and a prepaid shipping label will be generated immediately.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Reason for Return", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
+                    Text(
+                        "Reason for Return",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
                     OutlinedTextField(
                         value = returnReason,
                         onValueChange = onReturnReasonChange,
-                        placeholder = { Text("e.g. Item defective or damaged", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        placeholder = {
+                            Text(
+                                "e.g. Item defective or damaged",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isSubmittingReturn,
                         shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.background,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.background,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                        ),
-                        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.background,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            ),
+                        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface),
                     )
                 }
             }
@@ -97,13 +107,18 @@ fun OrderReturnDialog(
             Button(
                 onClick = onConfirmReturn,
                 enabled = !isSubmittingReturn && returnReason.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                ),
-                shape = RoundedCornerShape(12.dp)
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                    ),
+                shape = RoundedCornerShape(12.dp),
             ) {
-                Text("Confirm Return", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onPrimary)
+                Text(
+                    "Confirm Return",
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
             }
         },
         dismissButton = {
@@ -111,10 +126,14 @@ fun OrderReturnDialog(
                 onClick = onDismissRequest,
                 enabled = !isSubmittingReturn,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
             ) {
-                Text("Cancel", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Cancel",
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-        }
+        },
     )
 }

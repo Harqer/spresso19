@@ -2,7 +2,8 @@ package ui
 
 import androidx.compose.runtime.Composable
 
-@JsFun("""
+@JsFun(
+    """
 () => {
     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -10,10 +11,12 @@ import androidx.compose.runtime.Composable
     }
     return null;
 }
-""")
+""",
+)
 external fun createSpeechRecognition(): JsAny?
 
-@JsFun("""
+@JsFun(
+    """
 (recognition, lang, onResult, onError) => {
     recognition.lang = lang;
     recognition.interimResults = false;
@@ -27,20 +30,21 @@ external fun createSpeechRecognition(): JsAny?
     };
     recognition.start();
 }
-""")
+""",
+)
 external fun startSpeechRecognitionInterop(
-    recognition: JsAny, 
-    lang: String, 
-    onResult: (String) -> Unit, 
-    onError: (String) -> Unit
+    recognition: JsAny,
+    lang: String,
+    onResult: (String) -> Unit,
+    onError: (String) -> Unit,
 )
 
 @Composable
 actual fun rememberSpeechRecognizer(
     onResult: (String) -> Unit,
-    onError: (String) -> Unit
-): () -> Unit {
-    return {
+    onError: (String) -> Unit,
+): () -> Unit =
+    {
         val recognition = createSpeechRecognition()
         if (recognition != null) {
             startSpeechRecognitionInterop(recognition, "en-US", onResult, onError)
@@ -48,4 +52,3 @@ actual fun rememberSpeechRecognizer(
             onError("Web Speech API not supported in this browser.")
         }
     }
-}

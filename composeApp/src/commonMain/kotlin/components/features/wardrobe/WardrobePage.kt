@@ -1,36 +1,29 @@
 package components.features.wardrobe
 
-import components.models.*
-import androidx.compose.material3.MaterialTheme
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import kotlinx.coroutines.launch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import components.features.wardrobe.WardrobePhotoItem
-import components.features.wardrobe.WardrobeGallerySection
+import components.models.*
+import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 @Composable
 fun WardrobePage(
     onNavigateToTryOn: (String) -> Unit,
     onOpenLens: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var photos by remember { mutableStateOf<List<WardrobePhotoItem>>(emptyList()) }
 
@@ -41,46 +34,49 @@ fun WardrobePage(
         scope.launch {
             try {
                 val items = network.SpressoBackend.getWardrobeItems()
-                photos = items.map { item ->
-                    components.features.wardrobe.WardrobePhotoItem(
-                        id = item.id,
-                        title = item.brand ?: item.category,
-                        category = item.category,
-                        photoUrl = item.imageUrl
-                    )
-                }
-            } catch(e: Exception) {
+                photos =
+                    items.map { item ->
+                        components.features.wardrobe.WardrobePhotoItem(
+                            id = item.id,
+                            title = item.brand ?: item.category,
+                            category = item.category,
+                            photoUrl = item.imageUrl,
+                        )
+                    }
+            } catch (e: Exception) {
                 snackbarHostState.showSnackbar("Wardrobe Error: ${e.message}")
             }
         }
     }
 
-    val imagePicker = ui.rememberImagePicker { bytes ->
-        if (bytes != null) {
-            scope.launch {
-                try {
-                    val uuid = "wardrobe_${kotlin.random.Random.nextInt()}"
-                    val path = "users/me/wardrobe/$uuid.jpg"
-                    
-                    snackbarHostState.showSnackbar("Uploading photo...")
-                    val uploadedUrl = network.SpressoBackend.uploadImage(bytes, path)
-                    
-                    network.SpressoBackend.addWardrobeItem(
-                        outfitId = null,
-                        category = "Uncategorized",
-                        brand = null,
-                        imageUrl = uploadedUrl,
-                        color = null
-                    )
-                    
-                    refreshWardrobe()
-                    snackbarHostState.showSnackbar("Photo added to wardrobe successfully!")
-                } catch(e: Exception) {
-                    snackbarHostState.showSnackbar("Unable to add photo: ${e.message}")
+    val imagePicker =
+        ui.rememberImagePicker { bytes ->
+            if (bytes != null) {
+                scope.launch {
+                    try {
+                        val userUid = network.getCurrentUserUid() ?: "anon"
+                        val uuid = "wardrobe_${userUid}_${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}"
+                        val path = "users/me/wardrobe/$uuid.jpg"
+
+                        snackbarHostState.showSnackbar("Uploading photo...")
+                        val uploadedUrl = network.SpressoBackend.uploadImage(bytes, path)
+
+                        network.SpressoBackend.addWardrobeItem(
+                            outfitId = null,
+                            category = "Uncategorized",
+                            brand = null,
+                            imageUrl = uploadedUrl,
+                            color = null,
+                        )
+
+                        refreshWardrobe()
+                        snackbarHostState.showSnackbar("Photo added to wardrobe successfully!")
+                    } catch (e: Exception) {
+                        snackbarHostState.showSnackbar("Unable to add photo: ${e.message}")
+                    }
                 }
             }
         }
-    }
 
     LaunchedEffect(Unit) {
         refreshWardrobe()
@@ -94,33 +90,35 @@ fun WardrobePage(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        contentWindowInsets = WindowInsets(0.dp)
+        contentWindowInsets = WindowInsets(0.dp),
     ) { paddingValues ->
         LazyVerticalGrid(
             columns = GridCells.Adaptive(300.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.surfaceContainerLowest),
-            contentPadding = PaddingValues(
-                start = insetsPadding.calculateStartPadding(layoutDirection) + 16.dp,
-                top = insetsPadding.calculateTopPadding() + 16.dp,
-                end = insetsPadding.calculateEndPadding(layoutDirection) + 16.dp,
-                bottom = insetsPadding.calculateBottomPadding() + 16.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.surfaceContainerLowest),
+            contentPadding =
+                PaddingValues(
+                    start = insetsPadding.calculateStartPadding(layoutDirection) + 16.dp,
+                    top = insetsPadding.calculateTopPadding() + 16.dp,
+                    end = insetsPadding.calculateEndPadding(layoutDirection) + 16.dp,
+                    bottom = insetsPadding.calculateBottomPadding() + 16.dp,
+                ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = "My Digital Wardrobe & Fits",
                         style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         text = "AI curated fits based on your styling preferences, weather forecasts, and occasion wear history.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -134,7 +132,7 @@ fun WardrobePage(
                     },
                     onTryOnPhoto = { photo ->
                         onNavigateToTryOn(photo.id)
-                    }
+                    },
                 )
             }
         }

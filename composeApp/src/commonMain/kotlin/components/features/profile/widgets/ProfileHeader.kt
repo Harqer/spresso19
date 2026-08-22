@@ -17,24 +17,24 @@ import utils.GreetingManager
 fun ProfileHeader(
     userProfile: UserProfileData?,
     userName: String?,
-    userUid: String?
+    userUid: String?,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Surface(
             modifier = Modifier.size(100.dp),
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.secondaryContainer
+            color = MaterialTheme.colorScheme.secondaryContainer,
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    Icons.Outlined.AccountBox, 
-                    null, 
+                    Icons.Outlined.AccountBox,
+                    null,
                     modifier = Modifier.size(56.dp),
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             }
         }

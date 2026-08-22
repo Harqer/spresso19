@@ -6,7 +6,9 @@ import android.content.Context
  * Stores only the user's current accessibility disclosure decision.
  * Screen captures are never written to this store.
  */
-internal class AccessibilityConsentStore(context: Context) {
+internal class AccessibilityConsentStore(
+    context: Context,
+) {
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     fun hasCurrentConsent(): Boolean =
@@ -14,7 +16,8 @@ internal class AccessibilityConsentStore(context: Context) {
             preferences.getInt(CONSENT_VERSION_KEY, 0) == CURRENT_CONSENT_VERSION
 
     fun grantCurrentConsent() {
-        preferences.edit()
+        preferences
+            .edit()
             .putBoolean(CONSENT_GRANTED_KEY, true)
             .putInt(CONSENT_VERSION_KEY, CURRENT_CONSENT_VERSION)
             .putLong(CONSENT_ACCEPTED_AT_KEY, System.currentTimeMillis())
@@ -22,7 +25,8 @@ internal class AccessibilityConsentStore(context: Context) {
     }
 
     fun revokeConsent() {
-        preferences.edit()
+        preferences
+            .edit()
             .putBoolean(CONSENT_GRANTED_KEY, false)
             .remove(CONSENT_ACCEPTED_AT_KEY)
             .apply()

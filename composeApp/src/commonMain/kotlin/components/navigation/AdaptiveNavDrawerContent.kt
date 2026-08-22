@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.Text
@@ -18,34 +20,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import navigation.NavKey
 import org.jetbrains.compose.resources.vectorResource
-import org.jetbrains.compose.resources.painterResource
-import androidx.compose.material.icons.filled.Coffee
-import androidx.compose.material.icons.Icons
-import androidx.compose.foundation.Image
 
 @Composable
 fun AdaptiveNavDrawerContent(
     currentKey: NavKey,
     onNavigate: (NavKey) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     PermanentDrawerSheet(modifier = modifier.width(260.dp)) {
         Spacer(modifier = Modifier.height(16.dp))
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             Icon(
                 imageVector = Icons.Default.Coffee,
                 contentDescription = "Spresso Logo",
                 modifier = Modifier.size(28.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = "Spresso",
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Black
+                fontWeight = FontWeight.Black,
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -62,7 +60,7 @@ fun AdaptiveNavDrawerContent(
                 },
                 selected = selected,
                 onClick = { onNavigate(item.key) },
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             )
         }
     }

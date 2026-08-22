@@ -1,19 +1,18 @@
 package components.features.vision
 
-import components.models.*
-
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import components.models.*
 
 @Composable
 fun ObjectBoundingBoxOverlay(
@@ -23,14 +22,15 @@ fun ObjectBoundingBoxOverlay(
     xmax: Float,
     modifier: Modifier = Modifier,
     strokeColor: Color = MaterialTheme.colorScheme.primary,
-    label: String = "Detected object bounding box"
+    label: String = "Detected object bounding box",
 ) {
     Canvas(
-        modifier = modifier
-            .fillMaxSize()
-            .semantics(mergeDescendants = true) {
-                contentDescription = label
-            }
+        modifier =
+            modifier
+                .fillMaxSize()
+                .semantics(mergeDescendants = true) {
+                    contentDescription = label
+                },
     ) {
         val scaleY = if (ymax > 1f) 1000f else 1f
         val scaleX = if (xmax > 1f) 1000f else 1f
@@ -43,7 +43,7 @@ fun ObjectBoundingBoxOverlay(
             color = strokeColor,
             topLeft = Offset(left, top),
             size = Size(width, height),
-            style = Stroke(width = 3.dp.toPx())
+            style = Stroke(width = 3.dp.toPx()),
         )
     }
 }

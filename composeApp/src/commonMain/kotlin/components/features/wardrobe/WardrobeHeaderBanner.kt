@@ -17,40 +17,50 @@ import components.shared.elements.SpressoButtonVariant
 
 @Composable
 fun WardrobeHeaderBanner(
-    handleAddPhoto: () -> Unit
+    handleAddPhoto: () -> Unit,
+    onOpenLens: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 1.dp
+        shadowElevation = 1.dp,
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Checkroom, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                    Text("My Wardrobe & Photo Gallery", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Icon(
+                        Icons.Default.Checkroom,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Text(
+                        "My Wardrobe & Photo Gallery",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
                 }
                 Text(
                     "Deep styling intelligence, weather-tailored fits, and virtual try-on integrations.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SpressoButton(
                     text = "Screen Lens",
-                    onClick = { /* onOpenLens */ },
+                    onClick = onOpenLens,
                     variant = SpressoButtonVariant.OUTLINE,
                     icon = Icons.Default.CenterFocusWeak,
                     trackingId = "wardrobe_view",
-                    trackingAction = "click_screen_lens"
+                    trackingAction = "click_screen_lens",
                 )
 
                 SpressoButton(
@@ -59,7 +69,7 @@ fun WardrobeHeaderBanner(
                     variant = SpressoButtonVariant.PRIMARY,
                     icon = Icons.Default.Add,
                     trackingId = "wardrobe_view",
-                    trackingAction = "click_add_look"
+                    trackingAction = "click_add_look",
                 )
             }
         }

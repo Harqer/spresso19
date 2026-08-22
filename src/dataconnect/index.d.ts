@@ -363,12 +363,11 @@ export interface GetUserProfileData {
 
 export interface GetUserSubscriptionData {
   userSubscriptions: ({
-    id: UUIDString;
     tier?: string | null;
     status?: string | null;
     currentPeriodEnd?: string | null;
     stripeSubscriptionId?: string | null;
-  } & UserSubscription_Key)[];
+  })[];
 }
 
 export interface GetUserVideosData {
@@ -538,15 +537,6 @@ export interface UpdateOnboardingStatusVariables {
   isCompleted: boolean;
 }
 
-export interface UpdateUserSubscriptionData {
-  userSubscription_update?: UserSubscription_Key | null;
-}
-
-export interface UpdateUserSubscriptionVariables {
-  id: UUIDString;
-  tier: string;
-}
-
 export interface UpsertUserPreferenceData {
   userPreference_upsert: UserPreference_Key;
 }
@@ -567,6 +557,14 @@ export interface UpsertUserProfileVariables {
   avatarUrl?: string | null;
 }
 
+export interface UpsertUserSubscriptionData {
+  userSubscription_upsert: UserSubscription_Key;
+}
+
+export interface UpsertUserSubscriptionVariables {
+  tier: string;
+}
+
 export interface UserLike_Key {
   userUid: string;
   productId: string;
@@ -579,7 +577,7 @@ export interface UserPreference_Key {
 }
 
 export interface UserSubscription_Key {
-  id: UUIDString;
+  userId: string;
   __typename?: 'UserSubscription_Key';
 }
 
@@ -721,17 +719,17 @@ export const deletePaymentMethodRef: DeletePaymentMethodRef;
 export function deletePaymentMethod(vars: DeletePaymentMethodVariables): MutationPromise<DeletePaymentMethodData, DeletePaymentMethodVariables>;
 export function deletePaymentMethod(dc: DataConnect, vars: DeletePaymentMethodVariables): MutationPromise<DeletePaymentMethodData, DeletePaymentMethodVariables>;
 
-interface UpdateUserSubscriptionRef {
+interface UpsertUserSubscriptionRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: UpdateUserSubscriptionVariables): MutationRef<UpdateUserSubscriptionData, UpdateUserSubscriptionVariables>;
+  (vars: UpsertUserSubscriptionVariables): MutationRef<UpsertUserSubscriptionData, UpsertUserSubscriptionVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: UpdateUserSubscriptionVariables): MutationRef<UpdateUserSubscriptionData, UpdateUserSubscriptionVariables>;
+  (dc: DataConnect, vars: UpsertUserSubscriptionVariables): MutationRef<UpsertUserSubscriptionData, UpsertUserSubscriptionVariables>;
   operationName: string;
 }
-export const updateUserSubscriptionRef: UpdateUserSubscriptionRef;
+export const upsertUserSubscriptionRef: UpsertUserSubscriptionRef;
 
-export function updateUserSubscription(vars: UpdateUserSubscriptionVariables): MutationPromise<UpdateUserSubscriptionData, UpdateUserSubscriptionVariables>;
-export function updateUserSubscription(dc: DataConnect, vars: UpdateUserSubscriptionVariables): MutationPromise<UpdateUserSubscriptionData, UpdateUserSubscriptionVariables>;
+export function upsertUserSubscription(vars: UpsertUserSubscriptionVariables): MutationPromise<UpsertUserSubscriptionData, UpsertUserSubscriptionVariables>;
+export function upsertUserSubscription(dc: DataConnect, vars: UpsertUserSubscriptionVariables): MutationPromise<UpsertUserSubscriptionData, UpsertUserSubscriptionVariables>;
 
 interface UpsertUserPreferenceRef {
   /* Allow users to create refs without passing in DataConnect */

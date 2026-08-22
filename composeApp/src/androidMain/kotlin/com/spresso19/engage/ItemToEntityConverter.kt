@@ -10,27 +10,27 @@ data class ProductItem(
     val title: String,
     val price: Double,
     val imageUrl: String,
-    val productUrl: String
+    val productUrl: String,
 )
 
 object ItemToEntityConverter {
-    fun convert(item: ProductItem): ShoppingEntity {
-        return ShoppingEntity.Builder()
+    fun convert(item: ProductItem): ShoppingEntity =
+        ShoppingEntity
+            .Builder()
             .setEntityId(item.id)
             .setTitle(item.title)
             .setPrice(
-                Price.Builder()
+                Price
+                    .Builder()
                     .setCurrentPrice("$" + item.price)
-                    .build()
-            )
-            .addPosterImage(
-                Image.Builder()
+                    .build(),
+            ).addPosterImage(
+                Image
+                    .Builder()
                     .setImageUri(Uri.parse(item.imageUrl))
                     .setImageHeightInPixel(500)
                     .setImageWidthInPixel(500)
-                    .build()
-            )
-            .setActionLinkUri(Uri.parse(item.productUrl))
+                    .build(),
+            ).setActionLinkUri(Uri.parse(item.productUrl))
             .build()
-    }
 }

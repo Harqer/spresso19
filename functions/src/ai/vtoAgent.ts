@@ -4,9 +4,7 @@ import { parallelWebSearchTool } from "./tools/parallelWebSearch";
 import { ai } from "./genkit";
 import { z } from "genkit";
 
-// Note: If using the official ADK in the future, it might look like this:
-// import { AgentEngine } from '@google-cloud/agent-engine';
-// For now, we mock the AgentEngine interface wrapping Vertex AI or Genkit.
+// Replaced mock with real Genkit execution
 export class AgentEngine {
   constructor(public config: any) {
     console.log("Initializing AgentEngine with config:", config);
@@ -14,7 +12,17 @@ export class AgentEngine {
 
   async execute(task: string, context?: any) {
     console.log(`Executing task: ${task}`);
-    return { result: "Success" };
+    try {
+      const response = await ai.generate({
+        model: this.config.model || "googleai/gemini-1.5-flash",
+        tools: this.config.tools,
+        prompt: task,
+      });
+      return { result: response.text };
+    } catch (e: any) {
+      console.error("AgentEngine execution failed:", e);
+      throw new Error(`AgentEngine failed: ${e.message}`);
+    }
   }
 }
 
@@ -60,16 +68,13 @@ export const generateLocationContext = ai.defineTool(
   async ({ location }: { location: string }, ctx: any) => {
     console.log(`Generating location context for: ${location}`);
     
-    // Step 1: Google Maps Grounding Mock / Integration
-    const mapsContext = `Grounding results for ${location}: [lat, lng, environmental factors]`;
-    
-    // Step 2: Parallel API integration to get high-res context (using existing tool logic)
+    // Real Parallel API integration to get high-res context (using existing tool logic)
     const researchResult = await parallelDeepResearchTool({
       query: `Analyze visual environment, lighting, and cinematic mood of ${location}.`,
       processor: "pro"
     } as any, ctx as any);
 
-    const fullContext = `${mapsContext}\n\nParallel Deep Research:\n${JSON.stringify(researchResult)}`;
+    const fullContext = `Parallel Deep Research:\n${JSON.stringify(researchResult)}`;
     
     return { context: fullContext };
   }

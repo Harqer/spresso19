@@ -10,26 +10,33 @@ import androidx.work.workDataOf
 import java.util.concurrent.TimeUnit
 
 object EngagePublisher {
-
-    fun publishPeriodically(context: Context, publishType: String) {
-        val workRequest = PeriodicWorkRequestBuilder<EngageWorker>(Constants.REPEAT_INTERVAL, TimeUnit.HOURS)
-            .setInputData(workDataOf(Constants.PUBLISH_TYPE_KEY to publishType))
-            .build()
+    fun publishPeriodically(
+        context: Context,
+        publishType: String,
+    ) {
+        val workRequest =
+            PeriodicWorkRequestBuilder<EngageWorker>(Constants.REPEAT_INTERVAL, TimeUnit.HOURS)
+                .setInputData(workDataOf(Constants.PUBLISH_TYPE_KEY to publishType))
+                .build()
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             "EngagePeriodic_$publishType",
             ExistingPeriodicWorkPolicy.KEEP,
-            workRequest
+            workRequest,
         )
     }
 
-    fun publishOneTime(context: Context, publishType: String) {
-        val workRequest = OneTimeWorkRequestBuilder<EngageWorker>()
-            .setInputData(workDataOf(Constants.PUBLISH_TYPE_KEY to publishType))
-            .build()
+    fun publishOneTime(
+        context: Context,
+        publishType: String,
+    ) {
+        val workRequest =
+            OneTimeWorkRequestBuilder<EngageWorker>()
+                .setInputData(workDataOf(Constants.PUBLISH_TYPE_KEY to publishType))
+                .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             "EngageOneTime_$publishType",
             ExistingWorkPolicy.REPLACE,
-            workRequest
+            workRequest,
         )
     }
 }

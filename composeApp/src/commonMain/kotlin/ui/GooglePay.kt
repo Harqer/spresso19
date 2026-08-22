@@ -7,11 +7,11 @@ import androidx.compose.ui.Modifier
 expect fun GooglePayButton(
     amount: String,
     onResult: (Boolean, String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 )
 
 @Composable
 expect fun GoogleWalletSaveButton(
     passId: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 )

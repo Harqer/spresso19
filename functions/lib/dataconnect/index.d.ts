@@ -361,12 +361,11 @@ export interface GetUserProfileData {
 
 export interface GetUserSubscriptionData {
   userSubscriptions: ({
-    id: UUIDString;
     tier?: string | null;
     status?: string | null;
     currentPeriodEnd?: string | null;
     stripeSubscriptionId?: string | null;
-  } & UserSubscription_Key)[];
+  })[];
 }
 
 export interface GetUserVideosData {
@@ -536,15 +535,6 @@ export interface UpdateOnboardingStatusVariables {
   isCompleted: boolean;
 }
 
-export interface UpdateUserSubscriptionData {
-  userSubscription_update?: UserSubscription_Key | null;
-}
-
-export interface UpdateUserSubscriptionVariables {
-  id: UUIDString;
-  tier: string;
-}
-
 export interface UpsertUserPreferenceData {
   userPreference_upsert: UserPreference_Key;
 }
@@ -565,6 +555,14 @@ export interface UpsertUserProfileVariables {
   avatarUrl?: string | null;
 }
 
+export interface UpsertUserSubscriptionData {
+  userSubscription_upsert: UserSubscription_Key;
+}
+
+export interface UpsertUserSubscriptionVariables {
+  tier: string;
+}
+
 export interface UserLike_Key {
   userUid: string;
   productId: string;
@@ -577,7 +575,7 @@ export interface UserPreference_Key {
 }
 
 export interface UserSubscription_Key {
-  id: UUIDString;
+  userId: string;
   __typename?: 'UserSubscription_Key';
 }
 
@@ -656,10 +654,10 @@ export function deletePaymentMethod(dc: DataConnect, vars: DeletePaymentMethodVa
 /** Generated Node Admin SDK operation action function for the 'DeletePaymentMethod' Mutation. Allow users to pass in custom DataConnect instances. */
 export function deletePaymentMethod(vars: DeletePaymentMethodVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeletePaymentMethodData>>;
 
-/** Generated Node Admin SDK operation action function for the 'UpdateUserSubscription' Mutation. Allow users to execute without passing in DataConnect. */
-export function updateUserSubscription(dc: DataConnect, vars: UpdateUserSubscriptionVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateUserSubscriptionData>>;
-/** Generated Node Admin SDK operation action function for the 'UpdateUserSubscription' Mutation. Allow users to pass in custom DataConnect instances. */
-export function updateUserSubscription(vars: UpdateUserSubscriptionVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateUserSubscriptionData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertUserSubscription' Mutation. Allow users to execute without passing in DataConnect. */
+export function upsertUserSubscription(dc: DataConnect, vars: UpsertUserSubscriptionVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertUserSubscriptionData>>;
+/** Generated Node Admin SDK operation action function for the 'UpsertUserSubscription' Mutation. Allow users to pass in custom DataConnect instances. */
+export function upsertUserSubscription(vars: UpsertUserSubscriptionVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertUserSubscriptionData>>;
 
 /** Generated Node Admin SDK operation action function for the 'UpsertUserPreference' Mutation. Allow users to execute without passing in DataConnect. */
 export function upsertUserPreference(dc: DataConnect, vars?: UpsertUserPreferenceVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpsertUserPreferenceData>>;

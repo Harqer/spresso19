@@ -1,13 +1,9 @@
 package viewmodels
 
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onCompletion
@@ -23,7 +19,7 @@ class ChatViewModel(
     private val apiClient: ApiClient,
     private val scope: CoroutineScope,
     private val liveApiClient: LiveApiClient = LiveApiClient(),
-    private val generativeAiService: network.GenerativeAiService? = null
+    private val generativeAiService: network.GenerativeAiService? = null,
 ) {
     val messages = mutableStateListOf<ChatMessage>()
     var isGenerating by mutableStateOf(false)
@@ -35,33 +31,32 @@ class ChatViewModel(
     var liveTranscript by mutableStateOf("")
 
     fun sendMessage(
-
         prompt: String,
         imageBase64: String? = null,
         location: String? = null,
         latLng: Pair<Double, Double>? = null,
-        agentType: String? = "SHOPPING_CONCIERGE"
+        agentType: String? = "SHOPPING_CONCIERGE",
     ) {
         val userMsgId = "u-" + messages.size
         messages.add(ChatMessage(id = userMsgId, text = prompt, isUser = true))
-        
+
         val aiMsgId = "ai-" + messages.size
         var aiText = ""
         var aiThought = ""
         val currentSources = mutableListOf<GroundingSource>()
         val currentProducts = mutableListOf<ProductItem>()
-        
+
         scope.launch {
             try {
                 errorMessage = null
-                apiClient.streamChat(
-                    prompt = prompt,
-                    imageBase64 = imageBase64,
-                    location = location,
-                    latLng = latLng,
-                    agentType = agentType
-                )
-                    .onStart { isGenerating = true }
+                apiClient
+                    .streamChat(
+                        prompt = prompt,
+                        imageBase64 = imageBase64,
+                        location = location,
+                        latLng = latLng,
+                        agentType = agentType,
+                    ).onStart { isGenerating = true }
                     .onCompletion { isGenerating = false }
                     .catch { e ->
                         isGenerating = false
@@ -71,45 +66,61 @@ class ChatViewModel(
                             text = if (aiText.isNotBlank()) aiText else "Unable to fetch live recommendations: $errorText",
                             thought = null,
                             sources = currentSources,
-                            products = currentProducts
+                            products = currentProducts,
                         )
-                    }
-                .collect { chunk ->
-                    when (chunk.type) {
-                        "text", "text_delta" -> {
-                            aiText += chunk.text ?: ""
-                            updateOrAddAiMessage(aiMsgId, aiText, aiThought, sources = currentSources, products = currentProducts)
-                        }
-                        "thought", "thought_delta" -> {
-                            aiThought += chunk.text ?: ""
-                            updateOrAddAiMessage(aiMsgId, aiText, aiThought, sources = currentSources, products = currentProducts)
-                        }
-                        "grounding_sources" -> {
-                            chunk.sources?.let { currentSources.addAll(it) }
-                            updateOrAddAiMessage(aiMsgId, aiText, aiThought, sources = currentSources, products = currentProducts)
-                        }
-                        "recommended_products", "products" -> {
-                            val prods = chunk.recommendedProducts ?: chunk.products
-                            prods?.let { currentProducts.addAll(it) }
-                            updateOrAddAiMessage(aiMsgId, aiText, aiThought, sources = currentSources, products = currentProducts)
-                        }
-                        "tool_call" -> {
-                            chunk.result?.let { result ->
-                                if (result.success) {
-                                    val mediaUrl = result.spinVideoUrl ?: result.tryOnMeta?.renderedImageUrl
-                                    val mediaType = if (result.spinVideoUrl != null) "video" else if (result.tryOnMeta != null) "image" else null
-                                    
-                                    if (mediaUrl != null) {
-                                        updateOrAddAiMessage(aiMsgId, aiText, aiThought, mediaUrl, mediaType, sources = currentSources, products = currentProducts)
+                    }.collect { chunk ->
+                        when (chunk.type) {
+                            "text", "text_delta" -> {
+                                aiText += chunk.text ?: ""
+                                updateOrAddAiMessage(aiMsgId, aiText, aiThought, sources = currentSources, products = currentProducts)
+                            }
+                            "thought", "thought_delta" -> {
+                                aiThought += chunk.text ?: ""
+                                updateOrAddAiMessage(aiMsgId, aiText, aiThought, sources = currentSources, products = currentProducts)
+                            }
+                            "grounding_sources" -> {
+                                chunk.sources?.let { currentSources.addAll(it) }
+                                updateOrAddAiMessage(aiMsgId, aiText, aiThought, sources = currentSources, products = currentProducts)
+                            }
+                            "recommended_products", "products" -> {
+                                val prods = chunk.recommendedProducts ?: chunk.products
+                                prods?.let { currentProducts.addAll(it) }
+                                updateOrAddAiMessage(aiMsgId, aiText, aiThought, sources = currentSources, products = currentProducts)
+                            }
+                            "tool_call" -> {
+                                chunk.result?.let { result ->
+                                    if (result.success) {
+                                        val mediaUrl = result.spinVideoUrl ?: result.tryOnMeta?.renderedImageUrl
+                                        val mediaType =
+                                            if (result.spinVideoUrl !=
+                                                null
+                                            ) {
+                                                "video"
+                                            } else if (result.tryOnMeta != null) {
+                                                "image"
+                                            } else {
+                                                null
+                                            }
+
+                                        if (mediaUrl != null) {
+                                            updateOrAddAiMessage(
+                                                aiMsgId,
+                                                aiText,
+                                                aiThought,
+                                                mediaUrl,
+                                                mediaType,
+                                                sources = currentSources,
+                                                products = currentProducts,
+                                            )
+                                        }
                                     }
                                 }
                             }
-                        }
-                        "done" -> {
-                            isGenerating = false
+                            "done" -> {
+                                isGenerating = false
+                            }
                         }
                     }
-                }
             } catch (e: Exception) {
                 isGenerating = false
                 val errorText = e.message ?: "An unexpected error occurred."
@@ -118,16 +129,15 @@ class ChatViewModel(
                     text = if (aiText.isNotBlank()) aiText else "Unable to fetch live recommendations: \$errorText",
                     thought = null,
                     sources = currentSources,
-                    products = currentProducts
+                    products = currentProducts,
                 )
             }
         }
     }
 
-
     fun sendCameraSnapshot(
         imageBase64: String,
-        prompt: String? = null
+        prompt: String? = null,
     ) {
         val userPrompt = prompt ?: "Identify items in camera image and find matches."
         val userMsgId = "u-cam-" + messages.size
@@ -142,7 +152,7 @@ class ChatViewModel(
                 val lensResponse = apiClient.performLensSearch(imageBase64)
                 if (lensResponse.success && (lensResponse.detectedResult != null || lensResponse.apifyResults.isNotEmpty())) {
                     val products = mutableListOf<ProductItem>()
-                    
+
                     lensResponse.detectedResult?.detectedItems?.forEachIndexed { index, item ->
                         products.add(
                             ProductItem(
@@ -152,8 +162,8 @@ class ChatViewModel(
                                 category = item.category,
                                 price = item.priceEstimate,
                                 imageUrl = "",
-                                rating = null
-                            )
+                                rating = null,
+                            ),
                         )
                     }
 
@@ -168,17 +178,18 @@ class ChatViewModel(
                                     category = "Search Match",
                                     price = priceVal ?: 0.0, // UI layer requires a double, but maybe we can make price nullable? Wait, I will keep 0.0 if it's not nullable, or if nullable use null
                                     imageUrl = match.imageUrl ?: "",
-                                    rating = null
-                                )
+                                    rating = null,
+                                ),
                             )
                         }
                     }
 
-                    val annotText = lensResponse.detectedResult?.hudAnnotationText ?: "Found ${products.size} visual matches via Spresso Lens Search."
+                    val annotText =
+                        lensResponse.detectedResult?.hudAnnotationText ?: "Found ${products.size} visual matches via Spresso Lens Search."
                     updateOrAddAiMessage(
                         id = aiMsgId,
                         text = annotText,
-                        products = products
+                        products = products,
                     )
                     isGenerating = false
                 } else {
@@ -202,7 +213,7 @@ class ChatViewModel(
 
     fun startVoiceStream(
         agentType: String = "SHOPPING_CONCIERGE",
-        onReceiveAudio: ((ByteArray) -> Unit)? = null
+        onReceiveAudio: ((ByteArray) -> Unit)? = null,
     ) {
         isVoiceActive = true
         isVoiceListening = true
@@ -212,11 +223,11 @@ class ChatViewModel(
         val voiceMsgId = "voice-live-" + messages.size
         var accumulatedText = ""
 
-        val systemInstructions = when (agentType) {
-            "BARGAIN_CHEF" -> "You are Chef AI, a real-time voice and video cooking assistant. You observe the user's kitchen counter or cooking ingredients via camera video stream, listen to their questions via live mic audio, and speak back with friendly, real-time step-by-step culinary guidance, ingredient substitutions, and local bargain grocery tips. Use a premium, conversational tone (Sulafat standard). STRICTLY FORBIDDEN: Do not use technical jargon like 'modality', 'input', 'processing', 'data', or 'visual stream' in your spoken responses. Keep the immersion unbroken."
-            else -> "You are the Spresso AI Personal Shopper. Your job is to help the user find products, manage their cart, and answer questions. Keep your responses concise, helpful, and friendly. Use a premium, conversational tone (Sulafat standard). STRICTLY FORBIDDEN: Do not use technical jargon like 'modality', 'input', 'processing', 'data', or 'latency' in your spoken or written responses. Use a jargon-free conversational flow."
-        }
-
+        val systemInstructions =
+            when (agentType) {
+                "BARGAIN_CHEF" -> "You are Chef AI, a real-time voice and video cooking assistant. You observe the user's kitchen counter or cooking ingredients via camera video stream, listen to their questions via live mic audio, and speak back with friendly, real-time step-by-step culinary guidance, ingredient substitutions, and local bargain grocery tips. Use a premium, conversational tone (Sulafat standard). STRICTLY FORBIDDEN: Do not use technical jargon like 'modality', 'input', 'processing', 'data', or 'visual stream' in your spoken responses. Keep the immersion unbroken."
+                else -> "You are the Spresso AI Personal Shopper. Your job is to help the user find products, manage their cart, and answer questions. Keep your responses concise, helpful, and friendly. Use a premium, conversational tone (Sulafat standard). STRICTLY FORBIDDEN: Do not use technical jargon like 'modality', 'input', 'processing', 'data', or 'latency' in your spoken or written responses. Use a jargon-free conversational flow."
+            }
 
         scope.launch {
             try {
@@ -234,7 +245,7 @@ class ChatViewModel(
                     onInterrupted = {
                         isVoiceSpeaking = false
                         isVoiceListening = true
-                    }
+                    },
                 )
             } catch (e: Exception) {
                 isVoiceActive = false
@@ -244,8 +255,6 @@ class ChatViewModel(
             }
         }
     }
-
-
 
     fun stopVoiceStream() {
         liveApiClient.close()
@@ -278,7 +287,10 @@ class ChatViewModel(
         }
     }
 
-    fun sendStandardAudio(audioBytes: ByteArray, prompt: String = "Please analyze this audio.") {
+    fun sendStandardAudio(
+        audioBytes: ByteArray,
+        prompt: String = "Please analyze this audio.",
+    ) {
         if (generativeAiService != null) {
             val userMsgId = "u-audio-" + messages.size
             messages.add(ChatMessage(id = userMsgId, text = "🔊 [Audio Message Sent]", isUser = true))
@@ -303,27 +315,27 @@ class ChatViewModel(
     }
 
     private fun updateOrAddAiMessage(
-
-        id: String, 
-        text: String, 
+        id: String,
+        text: String,
         thought: String? = null,
         mediaUrl: String? = null,
         mediaType: String? = null,
         sources: List<GroundingSource> = emptyList(),
-        products: List<ProductItem> = emptyList()
+        products: List<ProductItem> = emptyList(),
     ) {
         val index = messages.indexOfFirst { it.id == id }
-        val newMessage = ChatMessage(
-            id = id, 
-            text = text, 
-            isUser = false, 
-            thought = thought,
-            mediaUrl = mediaUrl,
-            mediaType = mediaType,
-            sources = sources,
-            products = products,
-            isStreaming = isGenerating
-        )
+        val newMessage =
+            ChatMessage(
+                id = id,
+                text = text,
+                isUser = false,
+                thought = thought,
+                mediaUrl = mediaUrl,
+                mediaType = mediaType,
+                sources = sources,
+                products = products,
+                isStreaming = isGenerating,
+            )
         if (index != -1) {
             messages[index] = newMessage
         } else {
@@ -338,4 +350,3 @@ class ChatViewModel(
         isGenerating = false
     }
 }
-

@@ -39,7 +39,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*CreateVoiceNote*](#createvoicenote)
   - [*CreatePaymentMethod*](#createpaymentmethod)
   - [*DeletePaymentMethod*](#deletepaymentmethod)
-  - [*UpdateUserSubscription*](#updateusersubscription)
+  - [*UpsertUserSubscription*](#upsertusersubscription)
   - [*UpsertUserPreference*](#upsertuserpreference)
   - [*CreateGroceryList*](#creategrocerylist)
   - [*AddGroceryItem*](#addgroceryitem)
@@ -1339,12 +1339,11 @@ The `data` property is an object of type `GetUserSubscriptionData`, which is def
 ```typescript
 export interface GetUserSubscriptionData {
   userSubscriptions: ({
-    id: UUIDString;
     tier?: string | null;
     status?: string | null;
     currentPeriodEnd?: string | null;
     stripeSubscriptionId?: string | null;
-  } & UserSubscription_Key)[];
+  })[];
 }
 ```
 ### Using `GetUserSubscription`'s action shortcut function
@@ -3286,115 +3285,112 @@ executeMutation(ref).then((response) => {
 });
 ```
 
-## UpdateUserSubscription
-You can execute the `UpdateUserSubscription` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+## UpsertUserSubscription
+You can execute the `UpsertUserSubscription` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
 ```typescript
-updateUserSubscription(vars: UpdateUserSubscriptionVariables): MutationPromise<UpdateUserSubscriptionData, UpdateUserSubscriptionVariables>;
+upsertUserSubscription(vars: UpsertUserSubscriptionVariables): MutationPromise<UpsertUserSubscriptionData, UpsertUserSubscriptionVariables>;
 
-interface UpdateUserSubscriptionRef {
+interface UpsertUserSubscriptionRef {
   ...
   /* Allow users to create refs without passing in DataConnect */
-  (vars: UpdateUserSubscriptionVariables): MutationRef<UpdateUserSubscriptionData, UpdateUserSubscriptionVariables>;
+  (vars: UpsertUserSubscriptionVariables): MutationRef<UpsertUserSubscriptionData, UpsertUserSubscriptionVariables>;
 }
-export const updateUserSubscriptionRef: UpdateUserSubscriptionRef;
+export const upsertUserSubscriptionRef: UpsertUserSubscriptionRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
 ```typescript
-updateUserSubscription(dc: DataConnect, vars: UpdateUserSubscriptionVariables): MutationPromise<UpdateUserSubscriptionData, UpdateUserSubscriptionVariables>;
+upsertUserSubscription(dc: DataConnect, vars: UpsertUserSubscriptionVariables): MutationPromise<UpsertUserSubscriptionData, UpsertUserSubscriptionVariables>;
 
-interface UpdateUserSubscriptionRef {
+interface UpsertUserSubscriptionRef {
   ...
-  (dc: DataConnect, vars: UpdateUserSubscriptionVariables): MutationRef<UpdateUserSubscriptionData, UpdateUserSubscriptionVariables>;
+  (dc: DataConnect, vars: UpsertUserSubscriptionVariables): MutationRef<UpsertUserSubscriptionData, UpsertUserSubscriptionVariables>;
 }
-export const updateUserSubscriptionRef: UpdateUserSubscriptionRef;
+export const upsertUserSubscriptionRef: UpsertUserSubscriptionRef;
 ```
 
-If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the updateUserSubscriptionRef:
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertUserSubscriptionRef:
 ```typescript
-const name = updateUserSubscriptionRef.operationName;
+const name = upsertUserSubscriptionRef.operationName;
 console.log(name);
 ```
 
 ### Variables
-The `UpdateUserSubscription` mutation requires an argument of type `UpdateUserSubscriptionVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+The `UpsertUserSubscription` mutation requires an argument of type `UpsertUserSubscriptionVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
 
 ```typescript
-export interface UpdateUserSubscriptionVariables {
-  id: UUIDString;
+export interface UpsertUserSubscriptionVariables {
   tier: string;
 }
 ```
 ### Return Type
-Recall that executing the `UpdateUserSubscription` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+Recall that executing the `UpsertUserSubscription` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
 
-The `data` property is an object of type `UpdateUserSubscriptionData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+The `data` property is an object of type `UpsertUserSubscriptionData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
 ```typescript
-export interface UpdateUserSubscriptionData {
-  userSubscription_update?: UserSubscription_Key | null;
+export interface UpsertUserSubscriptionData {
+  userSubscription_upsert: UserSubscription_Key;
 }
 ```
-### Using `UpdateUserSubscription`'s action shortcut function
+### Using `UpsertUserSubscription`'s action shortcut function
 
 ```typescript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, updateUserSubscription, UpdateUserSubscriptionVariables } from '@firebasegen/spresso-connector';
+import { connectorConfig, upsertUserSubscription, UpsertUserSubscriptionVariables } from '@firebasegen/spresso-connector';
 
-// The `UpdateUserSubscription` mutation requires an argument of type `UpdateUserSubscriptionVariables`:
-const updateUserSubscriptionVars: UpdateUserSubscriptionVariables = {
-  id: ..., 
+// The `UpsertUserSubscription` mutation requires an argument of type `UpsertUserSubscriptionVariables`:
+const upsertUserSubscriptionVars: UpsertUserSubscriptionVariables = {
   tier: ..., 
 };
 
-// Call the `updateUserSubscription()` function to execute the mutation.
+// Call the `upsertUserSubscription()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
-const { data } = await updateUserSubscription(updateUserSubscriptionVars);
+const { data } = await upsertUserSubscription(upsertUserSubscriptionVars);
 // Variables can be defined inline as well.
-const { data } = await updateUserSubscription({ id: ..., tier: ..., });
+const { data } = await upsertUserSubscription({ tier: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
-const { data } = await updateUserSubscription(dataConnect, updateUserSubscriptionVars);
+const { data } = await upsertUserSubscription(dataConnect, upsertUserSubscriptionVars);
 
-console.log(data.userSubscription_update);
+console.log(data.userSubscription_upsert);
 
 // Or, you can use the `Promise` API.
-updateUserSubscription(updateUserSubscriptionVars).then((response) => {
+upsertUserSubscription(upsertUserSubscriptionVars).then((response) => {
   const data = response.data;
-  console.log(data.userSubscription_update);
+  console.log(data.userSubscription_upsert);
 });
 ```
 
-### Using `UpdateUserSubscription`'s `MutationRef` function
+### Using `UpsertUserSubscription`'s `MutationRef` function
 
 ```typescript
 import { getDataConnect, executeMutation } from 'firebase/data-connect';
-import { connectorConfig, updateUserSubscriptionRef, UpdateUserSubscriptionVariables } from '@firebasegen/spresso-connector';
+import { connectorConfig, upsertUserSubscriptionRef, UpsertUserSubscriptionVariables } from '@firebasegen/spresso-connector';
 
-// The `UpdateUserSubscription` mutation requires an argument of type `UpdateUserSubscriptionVariables`:
-const updateUserSubscriptionVars: UpdateUserSubscriptionVariables = {
-  id: ..., 
+// The `UpsertUserSubscription` mutation requires an argument of type `UpsertUserSubscriptionVariables`:
+const upsertUserSubscriptionVars: UpsertUserSubscriptionVariables = {
   tier: ..., 
 };
 
-// Call the `updateUserSubscriptionRef()` function to get a reference to the mutation.
-const ref = updateUserSubscriptionRef(updateUserSubscriptionVars);
+// Call the `upsertUserSubscriptionRef()` function to get a reference to the mutation.
+const ref = upsertUserSubscriptionRef(upsertUserSubscriptionVars);
 // Variables can be defined inline as well.
-const ref = updateUserSubscriptionRef({ id: ..., tier: ..., });
+const ref = upsertUserSubscriptionRef({ tier: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
-const ref = updateUserSubscriptionRef(dataConnect, updateUserSubscriptionVars);
+const ref = upsertUserSubscriptionRef(dataConnect, upsertUserSubscriptionVars);
 
 // Call `executeMutation()` on the reference to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await executeMutation(ref);
 
-console.log(data.userSubscription_update);
+console.log(data.userSubscription_upsert);
 
 // Or, you can use the `Promise` API.
 executeMutation(ref).then((response) => {
   const data = response.data;
-  console.log(data.userSubscription_update);
+  console.log(data.userSubscription_upsert);
 });
 ```
 

@@ -1,10 +1,10 @@
 package components.features.travel
 
-import components.models.*
-
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -12,9 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-
+import components.models.*
 
 data class KmpBoardingPass(
     val flightNumber: String,
@@ -22,7 +20,7 @@ data class KmpBoardingPass(
     val destination: String,
     val departureTime: String,
     val seat: String,
-    val gate: String
+    val gate: String,
 )
 
 @Composable
@@ -30,19 +28,28 @@ fun KmpBoardingPassCard(pass: KmpBoardingPass) {
     Card(
         modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(text = "Flight ${pass.flightNumber}", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(text = pass.origin, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Icon(imageVector = Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(11.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(text = "${pass.destination} • ${pass.departureTime}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(11.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "${pass.destination} • ${pass.departureTime}",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 

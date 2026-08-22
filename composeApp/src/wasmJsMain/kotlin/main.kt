@@ -7,10 +7,17 @@ import kotlinx.browser.window
 external fun signInWithGoogle()
 
 @JsName("signInWithEmail")
-external fun signInWithEmail(email: String, pass: String)
+external fun signInWithEmail(
+    email: String,
+    pass: String,
+)
 
 @JsName("signUpWithEmail")
-external fun signUpWithEmail(name: String, email: String, pass: String)
+external fun signUpWithEmail(
+    name: String,
+    email: String,
+    pass: String,
+)
 
 @JsName("signInWithPhone")
 external fun signInWithPhone(phoneNumber: String): kotlin.js.Promise<kotlin.js.JsAny?>
@@ -54,7 +61,7 @@ fun main() {
                         window.alert("Phone Sign-In failed: ${e.message}")
                     }
                 }
-            }
+            },
         )
     }
 }

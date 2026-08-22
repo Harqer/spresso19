@@ -17,7 +17,9 @@ sealed interface NavKey : AndroidXNavKey {
     data object SplashScreenKey : NavKey
 
     @Serializable
-    data class GamifiedOnboardingKey(val initialStep: Int = 1) : NavKey
+    data class GamifiedOnboardingKey(
+        val initialStep: Int = 1,
+    ) : NavKey
 
     @Serializable
     data object EmailVerificationKey : NavKey
@@ -26,7 +28,7 @@ sealed interface NavKey : AndroidXNavKey {
     @Serializable
     data class ChatKey(
         val initialPrompt: String? = null,
-        val initialImage: String? = null
+        val initialImage: String? = null,
     ) : NavKey
 
     @Serializable
@@ -37,7 +39,7 @@ sealed interface NavKey : AndroidXNavKey {
 
     @Serializable
     data class ChatDiscoveryCardKey(
-        val category: String = "general"
+        val category: String = "general",
     ) : NavKey
 
     // 3. Product Catalog & Curation Flow
@@ -49,7 +51,7 @@ sealed interface NavKey : AndroidXNavKey {
 
     @Serializable
     data class ProductDetailKey(
-        val productId: String
+        val productId: String,
     ) : NavKey
 
     @Serializable
@@ -59,7 +61,7 @@ sealed interface NavKey : AndroidXNavKey {
     @Serializable
     data class WardrobeKey(
         val displayMediaUrl: String? = null,
-        val isVideoPlaying: Boolean = false
+        val isVideoPlaying: Boolean = false,
     ) : NavKey
 
     @Serializable
@@ -74,7 +76,7 @@ sealed interface NavKey : AndroidXNavKey {
     // 5. Smart Vision & Lens Flow
     @Serializable
     data class SmartVisionKey(
-        val selectedProductId: String? = null
+        val selectedProductId: String? = null,
     ) : NavKey
 
     @Serializable
@@ -86,7 +88,7 @@ sealed interface NavKey : AndroidXNavKey {
 
     @Serializable
     data class IngredientChecklistKey(
-        val recipeName: String = "Quick Meal"
+        val recipeName: String = "Quick Meal",
     ) : NavKey
 
     // 7. Orders & Checkout Flow
@@ -95,12 +97,12 @@ sealed interface NavKey : AndroidXNavKey {
 
     @Serializable
     data class OrderReturnKey(
-        val orderId: String
+        val orderId: String,
     ) : NavKey
 
     @Serializable
     data class OrderReturnResultKey(
-        val returnId: String
+        val returnId: String,
     ) : NavKey
 
     @Serializable
@@ -109,7 +111,7 @@ sealed interface NavKey : AndroidXNavKey {
     // 8. Creator Agents & Studio Flow
     @Serializable
     data class CreatorKey(
-        val selectedTemplateId: String = "economic"
+        val selectedTemplateId: String = "economic",
     ) : NavKey
 
     @Serializable
@@ -126,12 +128,12 @@ sealed interface NavKey : AndroidXNavKey {
     data class TravelQrModalKey(
         val eventTitle: String = "Flight Ticket",
         val eventLocation: String = "Gate A4",
-        val qrData: String = "SPRESSO-PASS-2026"
+        val qrData: String = "SPRESSO-PASS-2026",
     ) : NavKey
 
     @Serializable
     data class TravelReceiptScannerKey(
-        val activeTripId: String = "trip-current"
+        val activeTripId: String = "trip-current",
     ) : NavKey
 
     @Serializable

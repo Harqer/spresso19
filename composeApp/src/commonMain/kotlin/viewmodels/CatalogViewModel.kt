@@ -1,16 +1,19 @@
 package viewmodels
 
+import components.features.catalog.screens.toHITLPayload
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import network.ProductItem
-import network.ApiClient
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import network.ApiClient
+import network.ProductItem
 import network.models.HITLPayload
-import components.features.catalog.screens.toHITLPayload
 
-class CatalogViewModel(private val apiClient: ApiClient, private val scope: CoroutineScope) {
+class CatalogViewModel(
+    private val apiClient: ApiClient,
+    private val scope: CoroutineScope,
+) {
     private val _activeDetailProduct = MutableStateFlow<ProductItem?>(null)
     val activeDetailProduct: StateFlow<ProductItem?> = _activeDetailProduct.asStateFlow()
 
@@ -32,10 +35,11 @@ class CatalogViewModel(private val apiClient: ApiClient, private val scope: Coro
         scope.launch {
             try {
                 val (confirmed, stock) = apiClient.checkInventory(product.id)
-                _hitlCheckoutPayload.value = product.toHITLPayload(
-                    inventoryConfirmed = confirmed,
-                    stockRemaining = stock
-                )
+                _hitlCheckoutPayload.value =
+                    product.toHITLPayload(
+                        inventoryConfirmed = confirmed,
+                        stockRemaining = stock,
+                    )
             } catch (e: Exception) {
                 _checkoutStatus.value = "Failed to initiate checkout: ${e.message}"
             }
@@ -46,12 +50,14 @@ class CatalogViewModel(private val apiClient: ApiClient, private val scope: Coro
         val payload = _hitlCheckoutPayload.value ?: return
         scope.launch {
             try {
-                val msg = apiClient.confirmCheckoutWithToken(
-                    payload.product.id, 
-                    payload.quantity, 
-                    payload.authorizationId, 
-                    address ?: "Default Shipping Address"
-                ).message ?: "Order confirmed!"
+                val msg =
+                    apiClient
+                        .confirmCheckoutWithToken(
+                            payload.product.id,
+                            payload.quantity,
+                            payload.authorizationId,
+                            address ?: "Default Shipping Address",
+                        ).message ?: "Order confirmed!"
                 _checkoutStatus.value = msg
             } catch (e: Exception) {
                 _checkoutStatus.value = "Checkout note: ${e.message}"
@@ -60,11 +66,11 @@ class CatalogViewModel(private val apiClient: ApiClient, private val scope: Coro
             }
         }
     }
-    
+
     fun dismissCheckout() {
         _hitlCheckoutPayload.value = null
     }
-    
+
     fun setCheckoutStatus(status: String) {
         _checkoutStatus.value = status
     }

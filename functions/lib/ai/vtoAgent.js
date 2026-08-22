@@ -6,9 +6,7 @@ const parallelDeepResearch_1 = require("./tools/parallelDeepResearch");
 const parallelWebSearch_1 = require("./tools/parallelWebSearch");
 const genkit_1 = require("./genkit");
 const genkit_2 = require("genkit");
-// Note: If using the official ADK in the future, it might look like this:
-// import { AgentEngine } from '@google-cloud/agent-engine';
-// For now, we mock the AgentEngine interface wrapping Vertex AI or Genkit.
+// Replaced mock with real Genkit execution
 class AgentEngine {
     constructor(config) {
         this.config = config;
@@ -16,7 +14,18 @@ class AgentEngine {
     }
     async execute(task, context) {
         console.log(`Executing task: ${task}`);
-        return { result: "Success" };
+        try {
+            const response = await genkit_1.ai.generate({
+                model: this.config.model || "googleai/gemini-1.5-flash",
+                tools: this.config.tools,
+                prompt: task,
+            });
+            return { result: response.text };
+        }
+        catch (e) {
+            console.error("AgentEngine execution failed:", e);
+            throw new Error(`AgentEngine failed: ${e.message}`);
+        }
     }
 }
 exports.AgentEngine = AgentEngine;
@@ -53,14 +62,12 @@ exports.generateLocationContext = genkit_1.ai.defineTool({
     }),
 }, async ({ location }, ctx) => {
     console.log(`Generating location context for: ${location}`);
-    // Step 1: Google Maps Grounding Mock / Integration
-    const mapsContext = `Grounding results for ${location}: [lat, lng, environmental factors]`;
-    // Step 2: Parallel API integration to get high-res context (using existing tool logic)
+    // Real Parallel API integration to get high-res context (using existing tool logic)
     const researchResult = await (0, parallelDeepResearch_1.parallelDeepResearchTool)({
         query: `Analyze visual environment, lighting, and cinematic mood of ${location}.`,
         processor: "pro"
     }, ctx);
-    const fullContext = `${mapsContext}\n\nParallel Deep Research:\n${JSON.stringify(researchResult)}`;
+    const fullContext = `Parallel Deep Research:\n${JSON.stringify(researchResult)}`;
     return { context: fullContext };
 });
 exports.triggerDataflowVideoPipeline = genkit_1.ai.defineTool({

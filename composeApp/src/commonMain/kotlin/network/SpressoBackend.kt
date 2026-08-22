@@ -6,21 +6,26 @@ package network
  * No stubs, no empty bodies, no mock returns.
  */
 expect object SpressoBackend {
-
     // ── Grocery ──────────────────────────────────────────────────────────────
     suspend fun addGroceryItem(
         listId: String,
         productName: String,
         productId: String?,
-        addedVia: String
+        addedVia: String,
     )
 
-    suspend fun toggleGroceryItem(itemId: String, isPurchased: Boolean)
+    suspend fun toggleGroceryItem(
+        itemId: String,
+        isPurchased: Boolean,
+    )
 
     suspend fun deleteGroceryItem(itemId: String)
 
     // ── Onboarding ───────────────────────────────────────────────────────────
-    suspend fun updateOnboardingStatus(currentStep: Int, isCompleted: Boolean)
+    suspend fun updateOnboardingStatus(
+        currentStep: Int,
+        isCompleted: Boolean,
+    )
 
     // ── Orders ───────────────────────────────────────────────────────────────
     suspend fun createOrder(
@@ -31,11 +36,14 @@ expect object SpressoBackend {
         shippingAddress: String?,
         deviceSource: String,
         paymentMethod: String,
-        userConfirmedToken: String?
+        userConfirmedToken: String?,
     )
 
     // ── Travel ───────────────────────────────────────────────────────────────
-    suspend fun createVoiceNote(tripId: String, transcript: String)
+    suspend fun createVoiceNote(
+        tripId: String,
+        transcript: String,
+    )
 
     suspend fun createTravelExpense(
         tripId: String,
@@ -43,14 +51,14 @@ expect object SpressoBackend {
         currency: String?,
         category: String,
         merchant: String,
-        items: String?
+        items: String?,
     )
 
     // ── Vision ───────────────────────────────────────────────────────────────
     suspend fun logVisionEvent(
         detectedObjects: String,
         context: String?,
-        imageUrl: String?
+        imageUrl: String?,
     )
 
     // ── Wardrobe ─────────────────────────────────────────────────────────────
@@ -58,14 +66,17 @@ expect object SpressoBackend {
 
     suspend fun getWardrobeItems(): List<WardrobeItemData>
 
-    suspend fun uploadImage(bytes: ByteArray, path: String): String
+    suspend fun uploadImage(
+        bytes: ByteArray,
+        path: String,
+    ): String
 
     suspend fun addWardrobeItem(
         outfitId: String?,
         category: String,
         brand: String?,
         imageUrl: String,
-        color: String?
+        color: String?,
     )
 
     // ── Creator ──────────────────────────────────────────────────────────────
@@ -81,7 +92,7 @@ data class WardrobeOutfitData(
     val title: String,
     val description: String?,
     val imageUrl: String?,
-    val items: List<WardrobeItemData>
+    val items: List<WardrobeItemData>,
 )
 
 data class WardrobeItemData(
@@ -89,7 +100,7 @@ data class WardrobeItemData(
     val category: String,
     val brand: String?,
     val imageUrl: String,
-    val color: String?
+    val color: String?,
 )
 
 data class CreatorAgentData(
@@ -99,13 +110,13 @@ data class CreatorAgentData(
     val subtitle: String,
     val iconName: String,
     val capabilities: String,
-    val quickPrompts: List<QuickPromptData>
+    val quickPrompts: List<QuickPromptData>,
 )
 
 data class QuickPromptData(
     val id: String,
     val label: String,
-    val prompt: String
+    val prompt: String,
 )
 
 data class CreativeTemplateData(
@@ -115,5 +126,5 @@ data class CreativeTemplateData(
     val category: String,
     val description: String?,
     val iconName: String,
-    val promptExample: String?
+    val promptExample: String?,
 )

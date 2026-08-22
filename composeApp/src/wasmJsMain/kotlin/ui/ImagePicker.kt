@@ -2,21 +2,23 @@ package ui
 
 import androidx.compose.runtime.Composable
 import kotlinx.browser.document
+import org.khronos.webgl.Int8Array
 import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.events.Event
-import org.w3c.files.File
 import org.w3c.files.FileReader
-import org.khronos.webgl.Int8Array
 
 @JsFun("(array, index) => array[index]")
-external fun getInt8ArrayElement(array: Int8Array, index: Int): Byte
+external fun getInt8ArrayElement(
+    array: Int8Array,
+    index: Int,
+): Byte
 
 @Composable
 actual fun rememberImagePicker(
     onFrameCaptured: ((ByteArray) -> Unit)?,
-    onImagePicked: (ByteArray?) -> Unit
-): () -> Unit {
-    return {
+    onImagePicked: (ByteArray?) -> Unit,
+): () -> Unit =
+    {
         val input = document.createElement("input") as HTMLInputElement
         input.type = "file"
         input.accept = "image/*"
@@ -39,4 +41,3 @@ actual fun rememberImagePicker(
         }
         input.click()
     }
-}

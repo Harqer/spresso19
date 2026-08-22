@@ -18,25 +18,29 @@ import androidx.compose.ui.unit.sp
 fun CoinbaseWalletCard(
     web3WalletAddress: String?,
     onConnectCoinbaseWallet: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Column {
                     Text("Coinbase Wallet", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     if (web3WalletAddress != null) {
-                        Text("Connected: ${web3WalletAddress.take(6)}...${web3WalletAddress.takeLast(4)}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "Connected: ${web3WalletAddress.take(6)}...${web3WalletAddress.takeLast(4)}",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     } else {
                         Text("Not connected", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -51,9 +55,14 @@ fun CoinbaseWalletCard(
             } else {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
+                    color = MaterialTheme.colorScheme.primaryContainer,
                 ) {
-                    Text("Active", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Active",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
         }

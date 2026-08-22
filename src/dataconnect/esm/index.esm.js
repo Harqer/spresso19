@@ -113,16 +113,16 @@ export function deletePaymentMethod(dcOrVars, vars) {
   return executeMutation(deletePaymentMethodRef(dcInstance, inputVars));
 }
 
-export const updateUserSubscriptionRef = (dcOrVars, vars) => {
+export const upsertUserSubscriptionRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
-  return mutationRef(dcInstance, 'UpdateUserSubscription', inputVars);
+  return mutationRef(dcInstance, 'UpsertUserSubscription', inputVars);
 }
-updateUserSubscriptionRef.operationName = 'UpdateUserSubscription';
+upsertUserSubscriptionRef.operationName = 'UpsertUserSubscription';
 
-export function updateUserSubscription(dcOrVars, vars) {
+export function upsertUserSubscription(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
-  return executeMutation(updateUserSubscriptionRef(dcInstance, inputVars));
+  return executeMutation(upsertUserSubscriptionRef(dcInstance, inputVars));
 }
 
 export const upsertUserPreferenceRef = (dcOrVars, vars) => {

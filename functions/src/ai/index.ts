@@ -92,7 +92,7 @@ export const generateLiveApiToken = onCall({ secrets: [geminiApiKey], enforceApp
     }
 });
 
-export const identifyVisionObject = onCall({ secrets: [geminiApiKey] }, async (request) => {
+export const identifyVisionObject = onCall({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     const { imageBase64 } = request.data || {};
     if (!imageBase64) throw new HttpsError("invalid-argument", "Missing imageBase64");
@@ -160,7 +160,7 @@ export const identifyVisionObject = onCall({ secrets: [geminiApiKey] }, async (r
     }
 });
 
-export const creatorAgentTemplates = onCall(async (request) => {
+export const creatorAgentTemplates = onCall({ enforceAppCheck: true }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     try {
         const { db } = await import("../shared/db");
@@ -172,7 +172,7 @@ export const creatorAgentTemplates = onCall(async (request) => {
     }
 });
 
-export const generateCreatorCampaign = onCall({ secrets: [geminiApiKey] }, async (request) => {
+export const generateCreatorCampaign = onCall({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     const { productName, campaignGoal, targetAudience } = request.data || {};
     if (!productName || !campaignGoal) throw new HttpsError("invalid-argument", "Missing required campaign parameters.");
@@ -203,7 +203,7 @@ export const generateCreatorCampaign = onCall({ secrets: [geminiApiKey] }, async
     }
 });
 
-export const vitposeOrchestrateFit = onCall({ secrets: [geminiApiKey] }, async (request) => {
+export const vitposeOrchestrateFit = onCall({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     const { imageBase64 } = request.data || {};
     if (!imageBase64) throw new HttpsError("invalid-argument", "Missing imageBase64");
@@ -237,7 +237,7 @@ export const vitposeOrchestrateFit = onCall({ secrets: [geminiApiKey] }, async (
     }
 });
 
-export const getQuickPrompts = onCall(async (request) => {
+export const getQuickPrompts = onCall({ enforceAppCheck: true }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     try {
         const { db } = await import("../shared/db");
@@ -249,7 +249,7 @@ export const getQuickPrompts = onCall(async (request) => {
     }
 });
 
-export const logSearchHistory = onCall(async (request) => {
+export const logSearchHistory = onCall({ enforceAppCheck: true }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     
     // Offload telemetry to Pub/Sub to decouple from the interactive critical path
@@ -264,7 +264,7 @@ export const processSearchHistoryTelemetry = onMessagePublished("telemetry-searc
     console.log("Processing search history telemetry in background:", data);
 });
 
-export const createCatalogCache = onCall({ secrets: [geminiApiKey] }, async (request) => {
+export const createCatalogCache = onCall({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     
     try {
@@ -355,7 +355,7 @@ export const chatStream = onRequest({ secrets: [geminiApiKey], cors: true }, asy
     }
 });
 
-export const generateOutfit = onCall({ secrets: [geminiApiKey] }, async (request) => {
+export const generateOutfit = onCall({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     
     const { items, weatherCondition, temperatureText, userLocation } = request.data || {};
@@ -401,5 +401,63 @@ Return a JSON object with the following schema:
     } catch (e: any) {
         console.error("AI Outfit error:", e);
         throw new HttpsError("internal", `Failed to generate outfit: ${e.message}`);
+    }
+});
+
+export const lensSearch = onCall({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+    
+    const { imageBase64 } = request.data || {};
+    if (!imageBase64) {
+        throw new HttpsError("invalid-argument", "No imageBase64 provided");
+    }
+
+    const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+    try {
+        const prompt = `
+You are an AI personal shopper. 
+Analyze the provided image snippet of a product or object.
+Identify the item, assign it an estimated price, a high-level category, and a short description.
+Return ONLY a JSON object with this exact structure:
+{
+  "regions": [
+    {
+      "id": 1,
+      "label": "string",
+      "price": "string",
+      "category": "string",
+      "description": "string"
+    }
+  ]
+}
+`;
+        
+        // Ensure data is properly formatted for the inline data part
+        // The imageBase64 from the frontend usually includes 'data:image/jpeg;base64,' prefix.
+        const cleanBase64 = imageBase64.includes("base64,") ? imageBase64.split("base64,")[1] : imageBase64;
+
+        const response = await ai.interactions.create({
+            model: "gemini-3.5-flash",
+            input: [
+                { type: "image", mime_type: "image/jpeg", data: cleanBase64 },
+                { type: "text", text: prompt }
+            ],
+            response_mime_type: "application/json",
+            safety_settings: [
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+            ] as any
+        });
+
+        const responseText = response.output_text;
+        if (!responseText) throw new Error("Empty response from Gemini");
+        const parsed = JSON.parse(responseText);
+        
+        return parsed; // Returns { regions: [...] }
+    } catch (e: any) {
+        console.error("AI Lens error:", e);
+        throw new HttpsError("internal", `Failed to run lens analysis: ${e.message}`);
     }
 });

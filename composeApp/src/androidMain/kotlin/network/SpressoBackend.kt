@@ -1,41 +1,43 @@
 package network
 
+import com.google.firebase.storage.FirebaseStorage
 import com.spresso.dataconnect.SpressoConnectorConnector
 import com.spresso.dataconnect.execute
 import com.spresso.dataconnect.instance
-import java.util.UUID
-import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
+import java.util.UUID
 
 /**
  * Android actual implementation of SpressoBackend.
  * All operations connect to Firebase Data Connect — zero stubs, zero empty bodies.
  */
 actual object SpressoBackend {
-
     // ── Grocery ──────────────────────────────────────────────────────────────
 
     actual suspend fun addGroceryItem(
         listId: String,
         productName: String,
         productId: String?,
-        addedVia: String
+        addedVia: String,
     ) {
         val listUuid = UUID.fromString(listId)
         SpressoConnectorConnector.instance.addGroceryItem.execute(
             listId = listUuid,
             productName = productName,
-            addedVia = addedVia
+            addedVia = addedVia,
         ) {
             this.productId = productId
         }
     }
 
-    actual suspend fun toggleGroceryItem(itemId: String, isPurchased: Boolean) {
+    actual suspend fun toggleGroceryItem(
+        itemId: String,
+        isPurchased: Boolean,
+    ) {
         val itemUuid = UUID.fromString(itemId)
         SpressoConnectorConnector.instance.toggleGroceryItem.execute(
             id = itemUuid,
-            isPurchased = isPurchased
+            isPurchased = isPurchased,
         )
     }
 
@@ -46,10 +48,13 @@ actual object SpressoBackend {
 
     // ── Onboarding ───────────────────────────────────────────────────────────
 
-    actual suspend fun updateOnboardingStatus(currentStep: Int, isCompleted: Boolean) {
+    actual suspend fun updateOnboardingStatus(
+        currentStep: Int,
+        isCompleted: Boolean,
+    ) {
         SpressoConnectorConnector.instance.updateOnboardingStatus.execute(
             currentStep = currentStep,
-            isCompleted = isCompleted
+            isCompleted = isCompleted,
         )
     }
 
@@ -63,7 +68,7 @@ actual object SpressoBackend {
         shippingAddress: String?,
         deviceSource: String,
         paymentMethod: String,
-        userConfirmedToken: String?
+        userConfirmedToken: String?,
     ) {
         SpressoConnectorConnector.instance.createOrder.execute(
             authorizationId = authorizationId,
@@ -71,7 +76,7 @@ actual object SpressoBackend {
             quantity = quantity,
             totalAmount = totalAmount,
             deviceSource = deviceSource,
-            paymentMethod = paymentMethod
+            paymentMethod = paymentMethod,
         ) {
             this.shippingAddress = shippingAddress
             this.userConfirmedToken = userConfirmedToken
@@ -80,11 +85,14 @@ actual object SpressoBackend {
 
     // ── Travel ───────────────────────────────────────────────────────────────
 
-    actual suspend fun createVoiceNote(tripId: String, transcript: String) {
+    actual suspend fun createVoiceNote(
+        tripId: String,
+        transcript: String,
+    ) {
         val tripUuid = UUID.fromString(tripId)
         SpressoConnectorConnector.instance.createVoiceNote.execute(
             tripId = tripUuid,
-            transcript = transcript
+            transcript = transcript,
         )
     }
 
@@ -94,14 +102,14 @@ actual object SpressoBackend {
         currency: String?,
         category: String,
         merchant: String,
-        items: String?
+        items: String?,
     ) {
         val tripUuid = UUID.fromString(tripId)
         SpressoConnectorConnector.instance.createTravelExpense.execute(
             tripId = tripUuid,
             amount = amount,
             category = category,
-            merchant = merchant
+            merchant = merchant,
         ) {
             this.currency = currency
             this.items = items
@@ -113,10 +121,10 @@ actual object SpressoBackend {
     actual suspend fun logVisionEvent(
         detectedObjects: String,
         context: String?,
-        imageUrl: String?
+        imageUrl: String?,
     ) {
         SpressoConnectorConnector.instance.logVisionEvent.execute(
-            detectedObjects = detectedObjects
+            detectedObjects = detectedObjects,
         ) {
             this.context = context
             this.imageUrl = imageUrl
@@ -125,8 +133,8 @@ actual object SpressoBackend {
 
     // ── Wardrobe ─────────────────────────────────────────────────────────────
 
-    actual suspend fun getWardrobeOutfits(): List<WardrobeOutfitData> {
-        return try {
+    actual suspend fun getWardrobeOutfits(): List<WardrobeOutfitData> =
+        try {
             val result = SpressoConnectorConnector.instance.getWardrobeOutfits.execute()
             result.data.wardrobeOutfits.map { outfit ->
                 WardrobeOutfitData(
@@ -134,25 +142,25 @@ actual object SpressoBackend {
                     title = outfit.title,
                     description = outfit.description,
                     imageUrl = outfit.imageUrl,
-                    items = outfit.items.map { item ->
-                        WardrobeItemData(
-                            id = item.id.toString(),
-                            category = item.category,
-                            brand = item.brand,
-                            imageUrl = item.imageUrl,
-                            color = item.color
-                        )
-                    }
+                    items =
+                        outfit.items.map { item ->
+                            WardrobeItemData(
+                                id = item.id.toString(),
+                                category = item.category,
+                                brand = item.brand,
+                                imageUrl = item.imageUrl,
+                                color = item.color,
+                            )
+                        },
                 )
             }
         } catch (e: Exception) {
             Telemetry.recordError("getWardrobeOutfits failed", e)
             throw e
         }
-    }
 
-    actual suspend fun getWardrobeItems(): List<WardrobeItemData> {
-        return try {
+    actual suspend fun getWardrobeItems(): List<WardrobeItemData> =
+        try {
             val result = SpressoConnectorConnector.instance.getWardrobeItems.execute()
             result.data.wardrobeItems.map { item ->
                 WardrobeItemData(
@@ -160,17 +168,19 @@ actual object SpressoBackend {
                     category = item.category,
                     brand = item.brand,
                     imageUrl = item.imageUrl,
-                    color = item.color
+                    color = item.color,
                 )
             }
         } catch (e: Exception) {
             Telemetry.recordError("getWardrobeItems failed", e)
             throw e
         }
-    }
 
-    actual suspend fun uploadImage(bytes: ByteArray, path: String): String {
-        return try {
+    actual suspend fun uploadImage(
+        bytes: ByteArray,
+        path: String,
+    ): String =
+        try {
             val storageRef = FirebaseStorage.getInstance().reference.child(path)
             storageRef.putBytes(bytes).await()
             storageRef.downloadUrl.await().toString()
@@ -178,19 +188,18 @@ actual object SpressoBackend {
             Telemetry.recordError("uploadImage failed", e)
             throw e
         }
-    }
 
     actual suspend fun addWardrobeItem(
         outfitId: String?,
         category: String,
         brand: String?,
         imageUrl: String,
-        color: String?
+        color: String?,
     ) {
         val outfitUuid = outfitId?.let { UUID.fromString(it) }
         SpressoConnectorConnector.instance.addWardrobeItem.execute(
             category = category,
-            imageUrl = imageUrl
+            imageUrl = imageUrl,
         ) {
             this.outfitId = outfitUuid
             this.brand = brand
@@ -200,8 +209,8 @@ actual object SpressoBackend {
 
     // ── Creator ──────────────────────────────────────────────────────────────
 
-    actual suspend fun getCreatorAgents(): List<CreatorAgentData> {
-        return try {
+    actual suspend fun getCreatorAgents(): List<CreatorAgentData> =
+        try {
             val result = SpressoConnectorConnector.instance.getCreatorAgents.execute()
             result.data.creatorAgents.map { agent ->
                 CreatorAgentData(
@@ -211,23 +220,23 @@ actual object SpressoBackend {
                     subtitle = agent.subtitle,
                     iconName = agent.iconName,
                     capabilities = agent.capabilities,
-                    quickPrompts = agent.quickPrompts.map { qp ->
-                        QuickPromptData(
-                            id = qp.id.toString(),
-                            label = qp.label,
-                            prompt = qp.prompt
-                        )
-                    }
+                    quickPrompts =
+                        agent.quickPrompts.map { qp ->
+                            QuickPromptData(
+                                id = qp.id.toString(),
+                                label = qp.label,
+                                prompt = qp.prompt,
+                            )
+                        },
                 )
             }
         } catch (e: Exception) {
             Telemetry.recordError("getCreatorAgents failed", e)
             throw e
         }
-    }
 
-    actual suspend fun getCreativeTemplates(): List<CreativeTemplateData> {
-        return try {
+    actual suspend fun getCreativeTemplates(): List<CreativeTemplateData> =
+        try {
             val result = SpressoConnectorConnector.instance.getCreativeTemplates.execute()
             result.data.creativeTemplates.map { template ->
                 CreativeTemplateData(
@@ -237,12 +246,11 @@ actual object SpressoBackend {
                     category = template.category,
                     description = template.description,
                     iconName = template.iconName,
-                    promptExample = template.promptExample
+                    promptExample = template.promptExample,
                 )
             }
         } catch (e: Exception) {
             Telemetry.recordError("getCreativeTemplates failed", e)
             throw e
         }
-    }
 }

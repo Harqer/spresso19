@@ -10,14 +10,14 @@ class IosPermissionsManager : PermissionsManager {
         val status = PHPhotoLibrary.authorizationStatus()
         return status == PHAuthorizationStatusAuthorized
     }
-    
+
     override fun requestGalleryPermission(onResult: (Boolean) -> Unit) {
         val currentStatus = PHPhotoLibrary.authorizationStatus()
         if (currentStatus == PHAuthorizationStatusAuthorized) {
             onResult(true)
             return
         }
-        
+
         PHPhotoLibrary.requestAuthorization { status ->
             onResult(status == PHAuthorizationStatusAuthorized)
         }
@@ -25,6 +25,4 @@ class IosPermissionsManager : PermissionsManager {
 }
 
 @Composable
-actual fun rememberPermissionsManager(): PermissionsManager {
-    return remember { IosPermissionsManager() }
-}
+actual fun rememberPermissionsManager(): PermissionsManager = remember { IosPermissionsManager() }

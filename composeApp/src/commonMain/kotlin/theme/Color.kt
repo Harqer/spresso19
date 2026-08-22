@@ -123,13 +123,16 @@ val secondaryContainerDark = Color(0xFF324B49)
  * Shifts the hue/tone of a custom brand or semantic color towards the primary accent color
  * to ensure visual harmony when dynamic color or custom baseline schemes are active.
  */
-fun Color.harmonizeWithPrimary(primary: Color, fraction: Float = 0.15f): Color {
+fun Color.harmonizeWithPrimary(
+    primary: Color,
+    fraction: Float = 0.15f,
+): Color {
     if (this == Color.Unspecified || primary == Color.Unspecified) return this
     return Color(
         red = this.red + (primary.red - this.red) * fraction,
         green = this.green + (primary.green - this.green) * fraction,
         blue = this.blue + (primary.blue - this.blue) * fraction,
-        alpha = this.alpha
+        alpha = this.alpha,
     )
 }
 

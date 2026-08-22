@@ -1,7 +1,6 @@
 package utils
 
 import android.graphics.Bitmap
-import android.view.WindowManager
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.google.zxing.BarcodeFormat
@@ -10,8 +9,8 @@ import com.spresso19.MainActivity
 import java.util.UUID
 
 actual object PlatformUtils {
-    actual fun generateQrCode(data: String): ImageBitmap? {
-        return try {
+    actual fun generateQrCode(data: String): ImageBitmap? =
+        try {
             val writer = QRCodeWriter()
             val bitMatrix = writer.encode(data, BarcodeFormat.QR_CODE, 512, 512)
             val width = bitMatrix.width
@@ -26,7 +25,6 @@ actual object PlatformUtils {
         } catch (e: Exception) {
             null
         }
-    }
 
     actual fun setScreenBrightness(brightness: Float) {
         val activity = MainActivity.currentActivity ?: return
@@ -37,7 +35,5 @@ actual object PlatformUtils {
         }
     }
 
-    actual fun generateUUID(): String {
-        return UUID.randomUUID().toString()
-    }
+    actual fun generateUUID(): String = UUID.randomUUID().toString()
 }

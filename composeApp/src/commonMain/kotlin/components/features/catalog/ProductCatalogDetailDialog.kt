@@ -1,8 +1,6 @@
 package components.features.catalog
 
 import androidx.compose.animation.animateContentSize
-import components.models.*
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,9 +12,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import components.models.*
 import components.shared.elements.SpressoButton
 import components.shared.elements.SpressoButtonVariant
 import network.ProductItem
@@ -30,52 +28,57 @@ fun ProductCatalogDetailDialog(
     onSpin360: (String) -> Unit,
     onLike: () -> Unit,
     onShare: (String) -> Unit,
-    onBuyNow: (String) -> Unit
+    onBuyNow: (String) -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(product.name) },
         text = {
             Column(
-                modifier = Modifier.animateContentSize(animationSpec = androidx.compose.animation.core.spring()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier =
+                    Modifier.animateContentSize(
+                        animationSpec =
+                            androidx.compose.animation.core
+                                .spring(),
+                    ),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text("${product.brand} • $${product.price}", style = MaterialTheme.typography.titleMedium)
                 if (checkoutStatus != null) {
                     Text(checkoutStatus, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
                 }
-                
+
                 SpressoButton(
                     text = "Virtual Try-On",
                     onClick = { onTryOn(product) },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     trackingId = "detail_tryon_${product.id}",
-                    trackingAction = "click_tryon"
+                    trackingAction = "click_tryon",
                 )
                 Text(
                     text = "See how this product looks on you before buying.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 16.dp, start = 4.dp, end = 4.dp)
+                    modifier = Modifier.padding(bottom = 16.dp, start = 4.dp, end = 4.dp),
                 )
-                
+
                 SpressoButton(
                     text = "Spin 360",
                     onClick = { onSpin360(product.id) },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     trackingId = "detail_spin360_${product.id}",
-                    trackingAction = "click_spin360"
+                    trackingAction = "click_spin360",
                 )
                 Text(
                     text = "View the product from every angle in high fidelity 3D.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 16.dp, start = 4.dp, end = 4.dp)
+                    modifier = Modifier.padding(bottom = 16.dp, start = 4.dp, end = 4.dp),
                 )
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     SpressoButton(
                         text = "Like",
@@ -83,7 +86,7 @@ fun ProductCatalogDetailDialog(
                         modifier = Modifier.weight(1f),
                         variant = SpressoButtonVariant.SECONDARY,
                         trackingId = "detail_like_${product.id}",
-                        trackingAction = "click_like"
+                        trackingAction = "click_like",
                     )
                     SpressoButton(
                         text = "Share",
@@ -91,7 +94,7 @@ fun ProductCatalogDetailDialog(
                         modifier = Modifier.weight(1f),
                         variant = SpressoButtonVariant.SECONDARY,
                         trackingId = "detail_share_${product.id}",
-                        trackingAction = "click_share"
+                        trackingAction = "click_share",
                     )
                 }
             }
@@ -102,7 +105,7 @@ fun ProductCatalogDetailDialog(
                 onClick = { onBuyNow(product.id) },
                 icon = Icons.Default.ShoppingCart,
                 trackingId = "detail_buy_${product.id}",
-                trackingAction = "click_1tap_buy"
+                trackingAction = "click_1tap_buy",
             )
         },
         dismissButton = {
@@ -111,8 +114,8 @@ fun ProductCatalogDetailDialog(
                 onClick = onDismiss,
                 variant = SpressoButtonVariant.GHOST,
                 trackingId = "detail_close_${product.id}",
-                trackingAction = "click_close_dialog"
+                trackingAction = "click_close_dialog",
             )
-        }
+        },
     )
 }

@@ -17,17 +17,33 @@ export class AgentIdentityManager {
   }
 
   private initializeKeys() {
-    // 1. Generate Ed25519 Key Pair
-    const { publicKey: edPub, privateKey: edPriv } = crypto.generateKeyPairSync('ed25519', {
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-    });
-    this.ed25519PublicKey = edPub;
-    this.ed25519PrivateKey = edPriv;
+    // 1. Generate or Load Ed25519 Key Pair
+    if (process.env.AGENT_ED25519_PRIVATE_KEY && process.env.AGENT_ED25519_PUBLIC_KEY) {
+      this.ed25519PrivateKey = process.env.AGENT_ED25519_PRIVATE_KEY.replace(/\\n/g, '\n');
+      this.ed25519PublicKey = process.env.AGENT_ED25519_PUBLIC_KEY.replace(/\\n/g, '\n');
+    } else {
+      console.warn("Generating ephemeral Ed25519 keys. Identity will be lost on restart.");
+      const { publicKey: edPub, privateKey: edPriv } = crypto.generateKeyPairSync('ed25519', {
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+      });
+      this.ed25519PublicKey = edPub;
+      this.ed25519PrivateKey = edPriv;
+    }
 
-    // 2. Generate ML-DSA (Dilithium) Key Pair (Simulated for Node until native support)
-    this.mldsaPublicKey = 'mldsa-public-key-placeholder';
-    this.mldsaPrivateKey = 'mldsa-private-key-placeholder';
+    // 2. Generate or Load ML-DSA (Dilithium) Key Pair (Simulated for Node until native support)
+    if (process.env.AGENT_MLDSA_PRIVATE_KEY && process.env.AGENT_MLDSA_PUBLIC_KEY) {
+      this.mldsaPrivateKey = process.env.AGENT_MLDSA_PRIVATE_KEY.replace(/\\n/g, '\n');
+      this.mldsaPublicKey = process.env.AGENT_MLDSA_PUBLIC_KEY.replace(/\\n/g, '\n');
+    } else {
+      console.warn("Generating ephemeral ML-DSA cryptographic simulation keys. Identity will be lost on restart.");
+      const { publicKey: mlPub, privateKey: mlPriv } = crypto.generateKeyPairSync('ed25519', {
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+      });
+      this.mldsaPublicKey = mlPub;
+      this.mldsaPrivateKey = mlPriv;
+    }
   }
 
   /**
@@ -41,8 +57,11 @@ export class AgentIdentityManager {
     
     const ed25519Signature = signer.sign(this.ed25519PrivateKey, 'base64');
     
-    // Simulate ML-DSA Signature
-    const mldsaSignature = Buffer.from(`mldsa-sig-${payload.length}`).toString('base64');
+    // Simulate ML-DSA Signature using secondary ed25519 key
+    const mlSigner = crypto.createSign('ed25519');
+    mlSigner.update(payload);
+    mlSigner.end();
+    const mldsaSignature = mlSigner.sign(this.mldsaPrivateKey, 'base64');
 
     return `${ed25519Signature}.${mldsaSignature}`;
   }
@@ -62,7 +81,10 @@ export class AgentIdentityManager {
       const edValid = verifier.verify(this.ed25519PublicKey, edSig, 'base64');
       
       // Simulated ML-DSA validation
-      const mlValid = mlSig === Buffer.from(`mldsa-sig-${payload.length}`).toString('base64');
+      const mlVerifier = crypto.createVerify('ed25519');
+      mlVerifier.update(payload);
+      mlVerifier.end();
+      const mlValid = mlVerifier.verify(this.mldsaPublicKey, mlSig, 'base64');
 
       return edValid && mlValid;
     } catch (e) {

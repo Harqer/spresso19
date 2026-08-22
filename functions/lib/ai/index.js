@@ -40,7 +40,7 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateOutfit = exports.chatStream = exports.createCatalogCache = exports.processSearchHistoryTelemetry = exports.logSearchHistory = exports.getQuickPrompts = exports.vitposeOrchestrateFit = exports.generateCreatorCampaign = exports.creatorAgentTemplates = exports.identifyVisionObject = exports.generateLiveApiToken = exports.discoverPersonalizedProducts = exports.analyzeUserBehavior = exports.generateSpin360 = exports.generateVirtualTryOn = void 0;
+exports.lensSearch = exports.generateOutfit = exports.chatStream = exports.createCatalogCache = exports.processSearchHistoryTelemetry = exports.logSearchHistory = exports.getQuickPrompts = exports.vitposeOrchestrateFit = exports.generateCreatorCampaign = exports.creatorAgentTemplates = exports.identifyVisionObject = exports.generateLiveApiToken = exports.discoverPersonalizedProducts = exports.analyzeUserBehavior = exports.generateSpin360 = exports.generateVirtualTryOn = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const pubsub_1 = require("firebase-functions/v2/pubsub");
 const pubsub_2 = require("@google-cloud/pubsub");
@@ -135,7 +135,7 @@ exports.generateLiveApiToken = (0, https_1.onCall)({ secrets: [geminiApiKey], en
         throw new https_1.HttpsError("internal", "Failed to generate ephemeral token");
     }
 });
-exports.identifyVisionObject = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
+exports.identifyVisionObject = (0, https_1.onCall)({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     const { imageBase64 } = request.data || {};
@@ -200,7 +200,7 @@ exports.identifyVisionObject = (0, https_1.onCall)({ secrets: [geminiApiKey] }, 
         throw new https_1.HttpsError("internal", "Failed to identify vision object");
     }
 });
-exports.creatorAgentTemplates = (0, https_1.onCall)(async (request) => {
+exports.creatorAgentTemplates = (0, https_1.onCall)({ enforceAppCheck: true }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     try {
@@ -213,7 +213,7 @@ exports.creatorAgentTemplates = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("internal", "Failed to fetch creator agent templates");
     }
 });
-exports.generateCreatorCampaign = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
+exports.generateCreatorCampaign = (0, https_1.onCall)({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     const { productName, campaignGoal, targetAudience } = request.data || {};
@@ -243,7 +243,7 @@ exports.generateCreatorCampaign = (0, https_1.onCall)({ secrets: [geminiApiKey] 
         throw new https_1.HttpsError("internal", `Failed to generate campaign: ${e.message}`);
     }
 });
-exports.vitposeOrchestrateFit = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
+exports.vitposeOrchestrateFit = (0, https_1.onCall)({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     const { imageBase64 } = request.data || {};
@@ -276,7 +276,7 @@ exports.vitposeOrchestrateFit = (0, https_1.onCall)({ secrets: [geminiApiKey] },
         throw new https_1.HttpsError("internal", `Failed to orchestrate fit: ${e.message}`);
     }
 });
-exports.getQuickPrompts = (0, https_1.onCall)(async (request) => {
+exports.getQuickPrompts = (0, https_1.onCall)({ enforceAppCheck: true }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     try {
@@ -289,7 +289,7 @@ exports.getQuickPrompts = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("internal", "Failed to fetch quick prompts");
     }
 });
-exports.logSearchHistory = (0, https_1.onCall)(async (request) => {
+exports.logSearchHistory = (0, https_1.onCall)({ enforceAppCheck: true }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     // Offload telemetry to Pub/Sub to decouple from the interactive critical path
@@ -301,7 +301,7 @@ exports.processSearchHistoryTelemetry = (0, pubsub_1.onMessagePublished)("teleme
     const data = event.data.message.json;
     console.log("Processing search history telemetry in background:", data);
 });
-exports.createCatalogCache = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
+exports.createCatalogCache = (0, https_1.onCall)({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     try {
@@ -399,7 +399,7 @@ exports.chatStream = (0, https_1.onRequest)({ secrets: [geminiApiKey], cors: tru
         res.end();
     }
 });
-exports.generateOutfit = (0, https_1.onCall)({ secrets: [geminiApiKey] }, async (request) => {
+exports.generateOutfit = (0, https_1.onCall)({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     const { items, weatherCondition, temperatureText, userLocation } = request.data || {};
@@ -444,6 +444,60 @@ Return a JSON object with the following schema:
     catch (e) {
         console.error("AI Outfit error:", e);
         throw new https_1.HttpsError("internal", `Failed to generate outfit: ${e.message}`);
+    }
+});
+exports.lensSearch = (0, https_1.onCall)({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
+    if (!request.auth)
+        throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
+    const { imageBase64 } = request.data || {};
+    if (!imageBase64) {
+        throw new https_1.HttpsError("invalid-argument", "No imageBase64 provided");
+    }
+    const ai = new genai_1.GoogleGenAI({ apiKey: geminiApiKey.value() });
+    try {
+        const prompt = `
+You are an AI personal shopper. 
+Analyze the provided image snippet of a product or object.
+Identify the item, assign it an estimated price, a high-level category, and a short description.
+Return ONLY a JSON object with this exact structure:
+{
+  "regions": [
+    {
+      "id": 1,
+      "label": "string",
+      "price": "string",
+      "category": "string",
+      "description": "string"
+    }
+  ]
+}
+`;
+        // Ensure data is properly formatted for the inline data part
+        // The imageBase64 from the frontend usually includes 'data:image/jpeg;base64,' prefix.
+        const cleanBase64 = imageBase64.includes("base64,") ? imageBase64.split("base64,")[1] : imageBase64;
+        const response = await ai.interactions.create({
+            model: "gemini-3.5-flash",
+            input: [
+                { type: "image", mime_type: "image/jpeg", data: cleanBase64 },
+                { type: "text", text: prompt }
+            ],
+            response_mime_type: "application/json",
+            safety_settings: [
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+            ]
+        });
+        const responseText = response.output_text;
+        if (!responseText)
+            throw new Error("Empty response from Gemini");
+        const parsed = JSON.parse(responseText);
+        return parsed; // Returns { regions: [...] }
+    }
+    catch (e) {
+        console.error("AI Lens error:", e);
+        throw new https_1.HttpsError("internal", `Failed to run lens analysis: ${e.message}`);
     }
 });
 //# sourceMappingURL=index.js.map

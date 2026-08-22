@@ -3,10 +3,12 @@ package network.models
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class SubscriptionTier(val displayName: String) {
+enum class SubscriptionTier(
+    val displayName: String,
+) {
     FREE("Free Explorer"),
     SPRESSO_VIP("Spresso VIP"),
-    CHEF_PRO("Bargain Chef Pro")
+    CHEF_PRO("Bargain Chef Pro"),
 }
 
 @Serializable
@@ -16,7 +18,7 @@ data class PaymentCardInfo(
     val last4: String,
     val expiryMonth: Int,
     val expiryYear: Int,
-    val isDefault: Boolean = false
+    val isDefault: Boolean = false,
 )
 
 @Serializable
@@ -35,29 +37,28 @@ data class UserProfileData(
     val explicitInterests: List<String> = emptyList(),
     val inferredPainPoints: List<String> = emptyList(),
     val behavioralProfileSummary: String? = null,
-    val web3WalletAddress: String? = null
+    val web3WalletAddress: String? = null,
 )
 
 object GooglePayConfig {
-    fun createAllowedPaymentMethodsJson(publishableKey: String): String {
-        return """
-            [
-              {
-                "type": "CARD",
-                "parameters": {
-                  "allowedAuthMethods": ["PAN_ONLY", "CRYPTOGRAM_3DS"],
-                  "allowedCardNetworks": ["AMEX", "DISCOVER", "JCB", "MASTERCARD", "VISA"]
-                },
-                "tokenizationSpecification": {
-                  "type": "PAYMENT_GATEWAY",
-                  "parameters": {
-                    "gateway": "stripe",
-                    "stripe:version": "2020-08-27",
-                    "stripe:publishableKey": "$publishableKey"
-                  }
-                }
+    fun createAllowedPaymentMethodsJson(publishableKey: String): String =
+        """
+        [
+          {
+            "type": "CARD",
+            "parameters": {
+              "allowedAuthMethods": ["PAN_ONLY", "CRYPTOGRAM_3DS"],
+              "allowedCardNetworks": ["AMEX", "DISCOVER", "JCB", "MASTERCARD", "VISA"]
+            },
+            "tokenizationSpecification": {
+              "type": "PAYMENT_GATEWAY",
+              "parameters": {
+                "gateway": "stripe",
+                "stripe:version": "2020-08-27",
+                "stripe:publishableKey": "$publishableKey"
               }
-            ]
+            }
+          }
+        ]
         """.trimIndent()
-    }
 }

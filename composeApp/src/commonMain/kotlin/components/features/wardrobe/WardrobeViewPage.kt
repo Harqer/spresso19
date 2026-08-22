@@ -1,9 +1,6 @@
 package components.features.wardrobe
 
-import network.ProductItem
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
@@ -11,33 +8,21 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import kotlinx.coroutines.launch
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import components.core.NetworkImage
 import io.ktor.client.HttpClient
-import kotlinx.coroutines.delay
-import androidx.compose.foundation.BorderStroke
-import components.shared.elements.SpressoButton
-import components.shared.elements.SpressoButtonVariant
-import components.shared.widgets.MediaActionCard
+import network.ProductItem
 
 // Data Classes
 data class CuratedFit(
     val fitName: String,
     val season: String,
     val stylingNotes: String,
-    val items: List<String>
+    val items: List<String>,
 )
 
 data class WardrobePhoto(
@@ -45,10 +30,8 @@ data class WardrobePhoto(
     val title: String,
     val category: String,
     val photoUrl: String,
-    val photoBytes: ByteArray? = null
+    val photoBytes: ByteArray? = null,
 )
-
-
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -60,7 +43,7 @@ fun WardrobeViewPage(
     products: List<ProductItem> = emptyList(),
     onSelectTryOn: (ProductItem?) -> Unit = {},
     onRequestHITLCheckout: (Any) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var photos by remember { mutableStateOf<List<WardrobePhoto>>(emptyList()) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -68,15 +51,16 @@ fun WardrobeViewPage(
     LaunchedEffect(Unit) {
         try {
             val items = network.SpressoBackend.getWardrobeItems()
-            photos = items.map { item ->
-                WardrobePhoto(
-                    id = item.id,
-                    title = item.brand ?: "Unknown",
-                    category = item.category ?: "Unknown",
-                    photoUrl = item.imageUrl ?: ""
-                )
-            }
-        } catch(e: Exception) {
+            photos =
+                items.map { item ->
+                    WardrobePhoto(
+                        id = item.id,
+                        title = item.brand ?: "Unknown",
+                        category = item.category ?: "Unknown",
+                        photoUrl = item.imageUrl ?: "",
+                    )
+                }
+        } catch (e: Exception) {
             snackbarHostState.showSnackbar("Error: ${e.message}")
         }
     }
@@ -84,20 +68,21 @@ fun WardrobeViewPage(
     var activeSeason by remember { mutableStateOf("Winter") }
     var stylingLoading by remember { mutableStateOf(false) }
     val apiClient = remember { network.ApiClient() }
-    
-    val dynamicSeasons = remember {
-        listOf(
-            Triple("Winter", "Winter Wear", androidx.compose.material.icons.Icons.Default.AcUnit),
-            Triple("Summer", "Hot Summer", androidx.compose.material.icons.Icons.Default.WbSunny),
-            Triple("Occasion", "Special Occasion", androidx.compose.material.icons.Icons.Default.AutoAwesome)
-        )
-    }
+
+    val dynamicSeasons =
+        remember {
+            listOf(
+                Triple("Winter", "Winter Wear", androidx.compose.material.icons.Icons.Default.AcUnit),
+                Triple("Summer", "Hot Summer", androidx.compose.material.icons.Icons.Default.WbSunny),
+                Triple("Occasion", "Special Occasion", androidx.compose.material.icons.Icons.Default.AutoAwesome),
+            )
+        }
 
     LaunchedEffect(Unit) {
         try {
             val climate = apiClient.getWeatherContext()
             activeSeason = climate
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             // keep default
         }
     }
@@ -106,15 +91,16 @@ fun WardrobeViewPage(
     LaunchedEffect(activeSeason) {
         try {
             stylingLoading = true
-            curatedFits = network.SpressoBackend.getWardrobeOutfits().map { outfit ->
-                CuratedFit(
-                    fitName = outfit.title,
-                    season = activeSeason, // fallback since it's missing in backend data
-                    stylingNotes = outfit.description ?: "",
-                    items = outfit.items.map { it.id }
-                )
-            }
-        } catch(e: Exception) {
+            curatedFits =
+                network.SpressoBackend.getWardrobeOutfits().map { outfit ->
+                    CuratedFit(
+                        fitName = outfit.title,
+                        season = activeSeason, // fallback since it's missing in backend data
+                        stylingNotes = outfit.description ?: "",
+                        items = outfit.items.map { it.id },
+                    )
+                }
+        } catch (e: Exception) {
             snackbarHostState.showSnackbar("Error: ${e.message}")
         } finally {
             stylingLoading = false
@@ -122,22 +108,7 @@ fun WardrobeViewPage(
     }
 
     val handleAddPhoto: () -> Unit = {
-        kotlinx.coroutines.GlobalScope.launch {
-            try {
-                network.SpressoBackend.addWardrobeItem(outfitId = "new_outfit_${kotlin.random.Random.nextInt()}", category = "Uncategorized", brand = "Personal", imageUrl = "file://placeholder", color = "Unknown")
-                val items = network.SpressoBackend.getWardrobeItems()
-                photos = items.map { item ->
-                    WardrobePhoto(
-                        id = item.id,
-                        title = item.brand ?: "Unknown",
-                        category = item.category ?: "Unknown",
-                        photoUrl = item.imageUrl ?: ""
-                    )
-                }
-            } catch(e: Exception) {
-                snackbarHostState.showSnackbar("Error: ${e.message}")
-            }
-        }
+        onPickImageRequested()
     }
 
     val layoutDirection = androidx.compose.ui.platform.LocalLayoutDirection.current
@@ -145,42 +116,46 @@ fun WardrobeViewPage(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        contentWindowInsets = WindowInsets(0.dp)
+        contentWindowInsets = WindowInsets(0.dp),
     ) { innerPadding ->
         LazyVerticalGrid(
             columns = GridCells.Adaptive(160.dp),
             modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).padding(innerPadding),
-            contentPadding = PaddingValues(
-                start = 16.dp + safeDrawingPadding.calculateStartPadding(layoutDirection),
-                top = 16.dp + safeDrawingPadding.calculateTopPadding(),
-                end = 16.dp + safeDrawingPadding.calculateEndPadding(layoutDirection),
-                bottom = 16.dp + safeDrawingPadding.calculateBottomPadding()
-            ),
+            contentPadding =
+                PaddingValues(
+                    start = 16.dp + safeDrawingPadding.calculateStartPadding(layoutDirection),
+                    top = 16.dp + safeDrawingPadding.calculateTopPadding(),
+                    end = 16.dp + safeDrawingPadding.calculateEndPadding(layoutDirection),
+                    bottom = 16.dp + safeDrawingPadding.calculateBottomPadding(),
+                ),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-        // 1. Header Banner
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            WardrobeHeaderBanner(handleAddPhoto)
-        }
+            // 1. Header Banner
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                WardrobeHeaderBanner(
+                    handleAddPhoto = handleAddPhoto,
+                    onOpenLens = onPickImageRequested,
+                )
+            }
 
-        // 2. Genkit AI Styling Engine
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            WardrobeStylingEngineSection(
-                activeSeason = activeSeason,
-                seasons = dynamicSeasons,
-                onSeasonSelected = { activeSeason = it },
-                stylingLoading = stylingLoading,
-                curatedFits = curatedFits
+            // 2. Genkit AI Styling Engine
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                WardrobeStylingEngineSection(
+                    activeSeason = activeSeason,
+                    seasons = dynamicSeasons,
+                    onSeasonSelected = { activeSeason = it },
+                    stylingLoading = stylingLoading,
+                    curatedFits = curatedFits,
+                )
+            }
+
+            // 3. Photo Gallery Looks Title
+            wardrobePhotoGalleryGrid(
+                photos = photos,
+                handleAddPhoto = handleAddPhoto,
+                onSelectTryOn = onSelectTryOn,
             )
         }
-
-        // 3. Photo Gallery Looks Title
-        wardrobePhotoGalleryGrid(
-            photos = photos,
-            handleAddPhoto = handleAddPhoto,
-            onSelectTryOn = onSelectTryOn
-        )
-    }
     }
 }

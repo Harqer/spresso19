@@ -13,7 +13,17 @@ To achieve this, ALWAYS leverage the principles of **Recursive Language Models (
 Whenever the user asks a question about the project, assume the answer is already in the codebase or the generated artifacts, and use your tools to find it.
 
 ## Persistent Architecture Context
-An architecture context document has been copied to the project at `spresso19/docs/spresso19_architecture_context.md`. When waking up for a new session or encountering ambiguity about the stack, always read this file first.
+An architecture context document has been copied to the project at `docs/spresso19_architecture_context.md`. When waking up for a new session or encountering ambiguity about the stack, always read this file first.
+
+**GCP Environment:**
+- Project ID: `spresso-5561f`
+- Default Region: `us-central1`
+
+**Core Architecture (STRICT):**
+- **Frontend**: React 19 SPA (Vite + Tailwind CSS v4).
+- **Backend (Serverless)**: Firebase Cloud Functions and **Vertex AI Agent Engine**.
+- **AI/WebSockets**: The "Chef AI" is a **Python ADK Agent** deployed to Agent Engine. It uses the Gemini Multimodal Live API natively via Agent Engine WebSockets.
+- **PROHIBITED**: DO NOT hallucinate or propose a custom Node.js Express backend for WebSockets. The architecture is purely serverless (Firebase + Agent Engine).
 
 ## UI Badge & Overstatement Elimination Standard (STRICT USER MANDATE)
 1. **ONLY Product & Restaurant Star Ratings Allowed**: The ONLY visual rating badges allowed in the UI are standard customer product / restaurant star ratings (`★ 4.8`).

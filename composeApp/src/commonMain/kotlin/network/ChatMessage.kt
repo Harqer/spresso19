@@ -15,5 +15,5 @@ data class ChatMessage(
     val products: List<ProductItem> = emptyList(),
     val mediaUrl: String? = null,
     val mediaType: String? = null,
-    val widget: String? = null
+    val widget: String? = null,
 )

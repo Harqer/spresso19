@@ -1,10 +1,10 @@
 # Spresso19 Application Context & Architecture Report
 
 ## Overview
-**Spresso AI Personal Shopper** (also featuring **Bargain Chef AI**) is a highly interactive, generative AI-powered web application. It acts as a comprehensive shopping concierge and cooking assistant. The app offers real-time multimodal (voice and video) chat interactions, virtual try-ons, location-based local store shopping, and automated order tracking.
+**Spresso AI Personal Shopper** (also featuring **Chef AI**) is a highly interactive, generative AI-powered web application. It acts as a comprehensive shopping concierge and cooking assistant. The app offers real-time multimodal (voice and video) chat interactions, virtual try-ons, location-based local store shopping, and automated order tracking.
 
 > [!NOTE]
-> The `/android-cli describe` command was run against this repository as requested, but it returned `Error: gradlew not found` because this is a **web application** (React + Express), not an Android native app.
+> The `/android-cli describe` command was run against this repository as requested, but it returned `Error: gradlew not found` because this is a **web application** (React + Firebase / Agent Engine), not an Android native app.
 
 ## Frontend Architecture
 The frontend is a **React 19** Single Page Application (SPA) built with **Vite** and styled using **Tailwind CSS v4**.
@@ -29,12 +29,11 @@ The main tabs/screens (`src/App.tsx`) are:
 It also features numerous Modals for Virtual Try-On, Checkout (HITL - Human In The Loop), Google Lens, Location Permission, and Dynamic Theming.
 
 ## Backend Architecture
-The backend is a **Node.js Express** server (`server.ts`) that serves both API endpoints and static assets. 
-During development, it uses Vite's middleware to hot-reload the React app. In production, it serves the compiled React bundle from `dist`.
+The backend is fundamentally serverless, heavily utilizing **Firebase Cloud Functions** and **Vertex AI Agent Engine**. There is no monolithic Express server required.
 
-- **Database**: Uses **PostgreSQL** with **Drizzle ORM** (`src/db/schema.ts`).
-- **WebSockets (Real-time)**: Exposes a `/api/live-chef` WebSocket server utilizing the `@google/genai` Live API. This enables the "Bargain Chef AI" to stream live audio/video and interact in real time.
-- **AI Integrations**: Heavy use of `@genkit-ai/ai` and `@google/genai` to orchestrate multiple AI pipelines (Vision parsing, personalized feeds, GenMedia kit generation).
+- **Database**: Uses **PostgreSQL** with **Drizzle ORM** (`src/db/schema.ts`) and **Cloud Spanner** for global catalog data.
+- **WebSockets (Real-time)**: The "Chef AI" utilizes the **Vertex AI Agent Engine** with **Python ADK agents** to connect directly to the Gemini Multimodal Live API via WebSockets, eliminating the need for a custom Node.js Express middle-tier.
+- **AI Integrations**: Heavy use of `@genkit-ai/ai`, Python ADK, and MCP (Model Context Protocol) toolboxes to orchestrate multiple AI pipelines (Vision parsing, personalized feeds, GenMedia kit generation).
 - **Web Scraping/Actors**: Integrates with Apify (`apifyService.ts`) to fetch product feeds, scrape marketplaces (Amazon, Walmart, Etsy), and run Google Lens visual searches.
 
 ## API Wiring
@@ -46,14 +45,14 @@ The frontend communicates with the backend via several REST endpoints and WebSoc
   - `POST /api/purchase/authorize` & `POST /api/purchase/confirm` (Simulates human-in-the-loop purchases)
 - **Streaming Chat**:
   - `POST /api/chat/stream`: Uses Server-Sent Events (SSE) to stream Gemini text/thought responses and Google Search/Maps grounding metadata.
-- **WebSockets**:
-  - `ws://.../api/live-chef`: Real-time streaming of PCM audio and JPEG video frames for the voice cooking assistant.
+- **WebSockets (Agent Engine)**:
+  - `wss://[region]-aiplatform.googleapis.com/...`: Real-time bidirectional streaming of PCM audio and JPEG video frames directly to the Python ADK Chef agent.
 - **Vision & Try-On Pipeline**:
   - `POST /api/vision/identify` (Identifies objects using Gemini Vision)
   - `POST /api/vitpose/extract-keypoints` (ViTPose human body keypoint extraction)
   - `POST /api/genkit/try-on-flow` (Genkit flow orchestrating garment try-on)
 - **Specialized Agents**:
-  - `POST /api/recipe/bargain-chef`
+  - `POST /api/recipe/chef`
   - `POST /api/economic-research`
   - `POST /api/creator/generate-campaign`
 

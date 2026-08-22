@@ -1,7 +1,5 @@
 package components.features.wardrobe
 
-import components.models.*
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
@@ -22,33 +20,35 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import components.models.*
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import theme.AppTheme
 
 data class WardrobeSubTab(
     val id: String,
     val label: String,
-    val icon: ImageVector
+    val icon: ImageVector,
 )
 
 @Composable
 fun WardrobeTabChips(
     selectedTabId: String,
     onTabSelected: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val subTabs = listOf(
-        WardrobeSubTab("ai_outfits", "AI Outfits", Icons.Default.AutoAwesome),
-        WardrobeSubTab("seasonal", "Seasonal", Icons.Default.WbSunny),
-        WardrobeSubTab("mix_match", "Mix & Match", Icons.Default.Tune),
-        WardrobeSubTab("liked", "Liked", Icons.Default.Favorite),
-        WardrobeSubTab("saved", "Saved", Icons.Default.Bookmark)
-    )
+    val subTabs =
+        listOf(
+            WardrobeSubTab("ai_outfits", "AI Outfits", Icons.Default.AutoAwesome),
+            WardrobeSubTab("seasonal", "Seasonal", Icons.Default.WbSunny),
+            WardrobeSubTab("mix_match", "Mix & Match", Icons.Default.Tune),
+            WardrobeSubTab("liked", "Liked", Icons.Default.Favorite),
+            WardrobeSubTab("saved", "Saved", Icons.Default.Bookmark),
+        )
 
     LazyRow(
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(subTabs) { tab ->
             val isSelected = selectedTabId == tab.id
@@ -60,14 +60,15 @@ fun WardrobeTabChips(
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
                     )
                 },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                colors =
+                    FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
             )
         }
     }
@@ -79,7 +80,7 @@ fun WardrobeTabChipsPreview() {
     AppTheme {
         WardrobeTabChips(
             selectedTabId = "ai_outfits",
-            onTabSelected = {}
+            onTabSelected = {},
         )
     }
 }

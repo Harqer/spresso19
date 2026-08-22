@@ -7,65 +7,24 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
-import android.view.MotionEvent
-import android.view.View
 import android.view.WindowManager
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandIn
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkOut
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
-import kotlinx.coroutines.launch
 
-class SpressoFloatingOverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner {
+class SpressoFloatingOverlayService :
+    Service(),
+    LifecycleOwner,
+    SavedStateRegistryOwner {
     private var windowManager: WindowManager? = null
     private var floatingView: ComposeView? = null
     private val lifecycleRegistry = LifecycleRegistry(this)
@@ -84,38 +43,51 @@ class SpressoFloatingOverlayService : Service(), LifecycleOwner, SavedStateRegis
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        
-        floatingView = ComposeView(this).apply {
-            setViewTreeLifecycleOwner(this@SpressoFloatingOverlayService)
-            setViewTreeSavedStateRegistryOwner(this@SpressoFloatingOverlayService)
-            setContent {
-                MaterialTheme {
-                    OverlayContent(
-                        onClose = { stopSelf() },
-                        onExpand = { expandOverlay() }
-                    )
+
+        floatingView =
+            ComposeView(this).apply {
+                setViewTreeLifecycleOwner(this@SpressoFloatingOverlayService)
+                setViewTreeSavedStateRegistryOwner(this@SpressoFloatingOverlayService)
+                setContent {
+                    MaterialTheme {
+                        OverlayContent(
+                            onClose = { stopSelf() },
+                            onExpand = { expandOverlay() },
+                            onBookmark = {
+                                sendBroadcast(Intent("com.spresso19.intent.action.BOOKMARK").apply { setPackage(packageName) })
+                            },
+                            onTryOn = {
+                                sendBroadcast(Intent("com.spresso19.intent.action.TRY_ON").apply { setPackage(packageName) })
+                            },
+                            onSearch = {
+                                sendBroadcast(Intent("com.spresso19.intent.action.SEARCH").apply { setPackage(packageName) })
+                            },
+                        )
+                    }
                 }
             }
-        }
 
-        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        val layoutFlag =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            } else {
+                @Suppress("DEPRECATION")
+                WindowManager.LayoutParams.TYPE_PHONE
+            }
 
-        layoutParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            layoutFlag,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 0
-            y = 200
-        }
+        layoutParams =
+            WindowManager
+                .LayoutParams(
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    layoutFlag,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                    PixelFormat.TRANSLUCENT,
+                ).apply {
+                    gravity = Gravity.TOP or Gravity.START
+                    x = 0
+                    y = 200
+                }
 
         windowManager?.addView(floatingView, layoutParams)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
@@ -136,5 +108,3 @@ class SpressoFloatingOverlayService : Service(), LifecycleOwner, SavedStateRegis
         floatingView?.let { windowManager?.removeView(it) }
     }
 }
-
-

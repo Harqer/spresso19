@@ -12,7 +12,6 @@ import kotlinx.serialization.json.jsonPrimitive
  * Read operations and AI requests route through Cloud Functions HTTPS callable endpoints.
  */
 actual object SpressoBackend {
-
     private val json = Json { ignoreUnknownKeys = true }
 
     // ── Grocery ──────────────────────────────────────────────────────────────
@@ -21,42 +20,58 @@ actual object SpressoBackend {
         listId: String,
         productName: String,
         productId: String?,
-        addedVia: String
+        addedVia: String,
     ) {
-        SpressoDataConnect.addGroceryItem(
-            parseJsonToJsAny(buildJson {
-                put("listId", listId)
-                put("productName", productName)
-                put("productId", productId)
-                put("addedVia", addedVia)
-            })
-        ).await<JsAny?>()
+        SpressoDataConnect
+            .addGroceryItem(
+                parseJsonToJsAny(
+                    buildJson {
+                        put("listId", listId)
+                        put("productName", productName)
+                        put("productId", productId)
+                        put("addedVia", addedVia)
+                    },
+                ),
+            ).await<JsAny?>()
     }
 
-    actual suspend fun toggleGroceryItem(itemId: String, isPurchased: Boolean) {
-        SpressoDataConnect.toggleGroceryItem(
-            parseJsonToJsAny(buildJson {
-                put("itemId", itemId)
-                put("isPurchased", isPurchased)
-            })
-        ).await<JsAny?>()
+    actual suspend fun toggleGroceryItem(
+        itemId: String,
+        isPurchased: Boolean,
+    ) {
+        SpressoDataConnect
+            .toggleGroceryItem(
+                parseJsonToJsAny(
+                    buildJson {
+                        put("itemId", itemId)
+                        put("isPurchased", isPurchased)
+                    },
+                ),
+            ).await<JsAny?>()
     }
 
     actual suspend fun deleteGroceryItem(itemId: String) {
-        SpressoDataConnect.deleteGroceryItem(
-            parseJsonToJsAny(buildJson { put("itemId", itemId) })
-        ).await<JsAny?>()
+        SpressoDataConnect
+            .deleteGroceryItem(
+                parseJsonToJsAny(buildJson { put("itemId", itemId) }),
+            ).await<JsAny?>()
     }
 
     // ── Onboarding ───────────────────────────────────────────────────────────
 
-    actual suspend fun updateOnboardingStatus(currentStep: Int, isCompleted: Boolean) {
-        SpressoDataConnect.updateOnboardingStatus(
-            parseJsonToJsAny(buildJson {
-                put("currentStep", currentStep)
-                put("isCompleted", isCompleted)
-            })
-        ).await<JsAny?>()
+    actual suspend fun updateOnboardingStatus(
+        currentStep: Int,
+        isCompleted: Boolean,
+    ) {
+        SpressoDataConnect
+            .updateOnboardingStatus(
+                parseJsonToJsAny(
+                    buildJson {
+                        put("currentStep", currentStep)
+                        put("isCompleted", isCompleted)
+                    },
+                ),
+            ).await<JsAny?>()
     }
 
     // ── Orders ───────────────────────────────────────────────────────────────
@@ -69,31 +84,40 @@ actual object SpressoBackend {
         shippingAddress: String?,
         deviceSource: String,
         paymentMethod: String,
-        userConfirmedToken: String?
+        userConfirmedToken: String?,
     ) {
-        SpressoDataConnect.createOrder(
-            parseJsonToJsAny(buildJson {
-                put("authorizationId", authorizationId)
-                put("productId", productId)
-                put("quantity", quantity)
-                put("totalAmount", totalAmount)
-                put("shippingAddress", shippingAddress)
-                put("deviceSource", deviceSource)
-                put("paymentMethod", paymentMethod)
-                put("userConfirmedToken", userConfirmedToken)
-            })
-        ).await<JsAny?>()
+        SpressoDataConnect
+            .createOrder(
+                parseJsonToJsAny(
+                    buildJson {
+                        put("authorizationId", authorizationId)
+                        put("productId", productId)
+                        put("quantity", quantity)
+                        put("totalAmount", totalAmount)
+                        put("shippingAddress", shippingAddress)
+                        put("deviceSource", deviceSource)
+                        put("paymentMethod", paymentMethod)
+                        put("userConfirmedToken", userConfirmedToken)
+                    },
+                ),
+            ).await<JsAny?>()
     }
 
     // ── Travel ───────────────────────────────────────────────────────────────
 
-    actual suspend fun createVoiceNote(tripId: String, transcript: String) {
-        SpressoDataConnect.createVoiceNote(
-            parseJsonToJsAny(buildJson {
-                put("tripId", tripId)
-                put("transcript", transcript)
-            })
-        ).await<JsAny?>()
+    actual suspend fun createVoiceNote(
+        tripId: String,
+        transcript: String,
+    ) {
+        SpressoDataConnect
+            .createVoiceNote(
+                parseJsonToJsAny(
+                    buildJson {
+                        put("tripId", tripId)
+                        put("transcript", transcript)
+                    },
+                ),
+            ).await<JsAny?>()
     }
 
     actual suspend fun createTravelExpense(
@@ -102,18 +126,21 @@ actual object SpressoBackend {
         currency: String?,
         category: String,
         merchant: String,
-        items: String?
+        items: String?,
     ) {
-        SpressoDataConnect.createTravelExpense(
-            parseJsonToJsAny(buildJson {
-                put("tripId", tripId)
-                put("amount", amount)
-                put("currency", currency ?: "USD")
-                put("category", category)
-                put("merchant", merchant)
-                put("items", items)
-            })
-        ).await<JsAny?>()
+        SpressoDataConnect
+            .createTravelExpense(
+                parseJsonToJsAny(
+                    buildJson {
+                        put("tripId", tripId)
+                        put("amount", amount)
+                        put("currency", currency ?: "USD")
+                        put("category", category)
+                        put("merchant", merchant)
+                        put("items", items)
+                    },
+                ),
+            ).await<JsAny?>()
     }
 
     // ── Vision ───────────────────────────────────────────────────────────────
@@ -121,15 +148,18 @@ actual object SpressoBackend {
     actual suspend fun logVisionEvent(
         detectedObjects: String,
         context: String?,
-        imageUrl: String?
+        imageUrl: String?,
     ) {
-        SpressoDataConnect.logVisionEvent(
-            parseJsonToJsAny(buildJson {
-                put("detectedObjects", detectedObjects)
-                put("context", context)
-                put("imageUrl", imageUrl)
-            })
-        ).await<JsAny?>()
+        SpressoDataConnect
+            .logVisionEvent(
+                parseJsonToJsAny(
+                    buildJson {
+                        put("detectedObjects", detectedObjects)
+                        put("context", context)
+                        put("imageUrl", imageUrl)
+                    },
+                ),
+            ).await<JsAny?>()
     }
 
     // ── Wardrobe ─────────────────────────────────────────────────────────────
@@ -147,17 +177,18 @@ actual object SpressoBackend {
                 title = obj["title"]?.jsonPrimitive?.content ?: "",
                 description = obj["description"]?.jsonPrimitive?.content,
                 imageUrl = obj["imageUrl"]?.jsonPrimitive?.content,
-                items = (obj["items"]?.jsonArray ?: kotlinx.serialization.json.JsonArray(emptyList()))
-                    .mapNotNull { itemEl ->
-                        val itemObj = itemEl.jsonObject
-                        WardrobeItemData(
-                            id = itemObj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null,
-                            category = itemObj["category"]?.jsonPrimitive?.content ?: "",
-                            brand = itemObj["brand"]?.jsonPrimitive?.content,
-                            imageUrl = itemObj["imageUrl"]?.jsonPrimitive?.content ?: "",
-                            color = itemObj["color"]?.jsonPrimitive?.content
-                        )
-                    }
+                items =
+                    (obj["items"]?.jsonArray ?: kotlinx.serialization.json.JsonArray(emptyList()))
+                        .mapNotNull { itemEl ->
+                            val itemObj = itemEl.jsonObject
+                            WardrobeItemData(
+                                id = itemObj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null,
+                                category = itemObj["category"]?.jsonPrimitive?.content ?: "",
+                                brand = itemObj["brand"]?.jsonPrimitive?.content,
+                                imageUrl = itemObj["imageUrl"]?.jsonPrimitive?.content ?: "",
+                                color = itemObj["color"]?.jsonPrimitive?.content,
+                            )
+                        },
             )
         }
     }
@@ -175,31 +206,35 @@ actual object SpressoBackend {
                 category = obj["category"]?.jsonPrimitive?.content ?: "",
                 brand = obj["brand"]?.jsonPrimitive?.content,
                 imageUrl = obj["imageUrl"]?.jsonPrimitive?.content ?: "",
-                color = obj["color"]?.jsonPrimitive?.content
+                color = obj["color"]?.jsonPrimitive?.content,
             )
         }
     }
 
-    actual suspend fun uploadImage(bytes: ByteArray, path: String): String {
-        throw UnsupportedOperationException("Firebase Storage upload not yet implemented for Wasm target")
-    }
+    actual suspend fun uploadImage(
+        bytes: ByteArray,
+        path: String,
+    ): String = throw UnsupportedOperationException("Firebase Storage upload not yet implemented for Wasm target")
 
     actual suspend fun addWardrobeItem(
         outfitId: String?,
         category: String,
         brand: String?,
         imageUrl: String,
-        color: String?
+        color: String?,
     ) {
-        SpressoDataConnect.addWardrobeItem(
-            parseJsonToJsAny(buildJson {
-                put("outfitId", outfitId)
-                put("category", category)
-                put("brand", brand)
-                put("imageUrl", imageUrl)
-                put("color", color)
-            })
-        ).await<JsAny?>()
+        SpressoDataConnect
+            .addWardrobeItem(
+                parseJsonToJsAny(
+                    buildJson {
+                        put("outfitId", outfitId)
+                        put("category", category)
+                        put("brand", brand)
+                        put("imageUrl", imageUrl)
+                        put("color", color)
+                    },
+                ),
+            ).await<JsAny?>()
     }
 
     // ── Creator ──────────────────────────────────────────────────────────────
@@ -219,16 +254,18 @@ actual object SpressoBackend {
                 subtitle = obj["subtitle"]?.jsonPrimitive?.content ?: "",
                 iconName = obj["iconName"]?.jsonPrimitive?.content ?: "",
                 capabilities = obj["capabilities"]?.jsonPrimitive?.content ?: "",
-                quickPrompts = (obj["quickPrompts"]?.jsonArray
-                    ?: kotlinx.serialization.json.JsonArray(emptyList()))
-                    .mapNotNull { qpEl ->
+                quickPrompts =
+                    (
+                        obj["quickPrompts"]?.jsonArray
+                            ?: kotlinx.serialization.json.JsonArray(emptyList())
+                    ).mapNotNull { qpEl ->
                         val qpObj = qpEl.jsonObject
                         QuickPromptData(
                             id = qpObj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null,
                             label = qpObj["label"]?.jsonPrimitive?.content ?: "",
-                            prompt = qpObj["prompt"]?.jsonPrimitive?.content ?: ""
+                            prompt = qpObj["prompt"]?.jsonPrimitive?.content ?: "",
                         )
-                    }
+                    },
             )
         }
     }
@@ -248,7 +285,7 @@ actual object SpressoBackend {
                 category = obj["category"]?.jsonPrimitive?.content ?: "",
                 description = obj["description"]?.jsonPrimitive?.content,
                 iconName = obj["iconName"]?.jsonPrimitive?.content ?: "",
-                promptExample = obj["promptExample"]?.jsonPrimitive?.content
+                promptExample = obj["promptExample"]?.jsonPrimitive?.content,
             )
         }
     }

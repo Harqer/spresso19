@@ -135,8 +135,8 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
           const getStripeConfig = httpsCallable(functions, "getStripeConfig");
           const configRes = await getStripeConfig();
           const pubKey = (configRes.data as any)?.publishableKey;
-          if (!pubKey || pubKey === 'pk_test_mock') {
-              throw new Error("Missing Backend API - Stripe Key Needs Implementation");
+          if (!pubKey) {
+              throw new Error("Missing Stripe Publishable Key from backend.");
           }
           if (!stripePromise) {
             setStripePromise(loadStripe(pubKey));
@@ -200,7 +200,27 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
             countryCode: "US"
           }
         };
-        await paymentsClient.loadPaymentData(paymentDataRequest).catch(() => {});
+        try {
+          await paymentsClient.loadPaymentData(paymentDataRequest);
+        } catch (e: any) {
+          throw new Error(e?.statusMessage || "Google Pay authorization failed or was canceled.");
+        }
+      }
+
+      if (paymentMethod === "crypto") {
+         const { functions } = await import("../lib/firebase");
+         const { httpsCallable } = await import("firebase/functions");
+         const processCryptoPayment = httpsCallable(functions, "processCryptoPayment");
+         
+         const cryptoRes = await processCryptoPayment({
+            amount: payload.totalAmount || (payload.product.price * payload.quantity)
+         }).catch((err: any) => {
+             throw new Error(err.message || "Crypto payment failed via Agentic Wallet");
+         });
+         
+         if (!(cryptoRes.data as any).success) {
+             throw new Error("Crypto transaction failed or was rejected on-chain.");
+         }
       }
 
       const selectedPaymentLabel =

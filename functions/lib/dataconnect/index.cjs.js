@@ -70,12 +70,12 @@ function deletePaymentMethod(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.deletePaymentMethod = deletePaymentMethod;
 
-function updateUserSubscription(dcOrVarsOrOptions, varsOrOptions, options) {
+function upsertUserSubscription(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
-  return dcInstance.executeMutation('UpdateUserSubscription', inputVars, inputOpts);
+  return dcInstance.executeMutation('UpsertUserSubscription', inputVars, inputOpts);
 }
-exports.updateUserSubscription = updateUserSubscription;
+exports.upsertUserSubscription = upsertUserSubscription;
 
 function upsertUserPreference(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);

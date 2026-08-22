@@ -5,15 +5,15 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import components.features.onboarding.OnboardingStepCard
+import kotlinx.coroutines.launch
 import network.ApiClient
 import network.Telemetry
-import kotlinx.coroutines.launch
 
 @Composable
 fun PasskeyRegistrationStep(
     isCompleted: Boolean,
     onPasskeyRegistered: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
     var isRegistering by remember { mutableStateOf(false) }
@@ -25,7 +25,18 @@ fun PasskeyRegistrationStep(
         description = "Highly Recommended: Register a Passkey for seamless, passwordless login.",
         icon = Icons.Default.Lock,
         isCompleted = isCompleted,
-        actionText = if (isCompleted) "Passkey Registered (+150 XP)" else if (isRegistering) "Registering..." else if (errorMessage != null) "Retry Registration" else "Register Passkey",
+        actionText =
+            if (isCompleted) {
+                "Passkey Registered (+150 XP)"
+            } else if (isRegistering) {
+                "Registering..."
+            } else if (errorMessage !=
+                null
+            ) {
+                "Retry Registration"
+            } else {
+                "Register Passkey"
+            },
         onActionClick = {
             if (!isCompleted && !isRegistering) {
                 isRegistering = true
@@ -45,6 +56,6 @@ fun PasskeyRegistrationStep(
                 }
             }
         },
-        modifier = modifier
+        modifier = modifier,
     )
 }

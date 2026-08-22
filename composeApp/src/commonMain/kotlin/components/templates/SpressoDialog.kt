@@ -1,11 +1,10 @@
 package components.templates
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,41 +32,43 @@ fun SpressoDialog(
     confirmButton: (@Composable () -> Unit)? = null,
     dismissButton: (@Composable () -> Unit)? = null,
     properties: DialogProperties = DialogProperties(),
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
-        properties = properties
+        properties = properties,
     ) {
         Surface(
-            modifier = modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
+            modifier =
+                modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
+            tonalElevation = 6.dp,
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // Header Area
                 Text(
                     text = title,
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
                 )
-                
+
                 if (subtitle != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                 }
 
@@ -75,7 +76,7 @@ fun SpressoDialog(
 
                 // Custom Content Area
                 Box(
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                 ) {
                     Column {
                         content()
@@ -88,7 +89,7 @@ fun SpressoDialog(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         if (dismissButton != null) {
                             Box(modifier = Modifier.weight(1f, fill = false)) {

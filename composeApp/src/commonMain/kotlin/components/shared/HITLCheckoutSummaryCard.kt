@@ -21,7 +21,11 @@ import network.models.HITLPayload
 
 @Composable
 fun HITLCheckoutSummaryCard(payload: HITLPayload) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Text(payload.product.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.weight(1f))
@@ -34,7 +38,12 @@ fun HITLCheckoutSummaryCard(payload: HITLPayload) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Text("Total Cost:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                Text("$${payload.totalAmount.toPriceString()}", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    "$${payload.totalAmount.toPriceString()}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }

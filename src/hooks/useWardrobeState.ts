@@ -97,7 +97,7 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
         if (schemaSnap.exists()) {
           setWardrobeCategories(schemaSnap.data().categories);
         } else {
-          throw new Error("Missing Backend API - Needs Implementation: Wardrobe categories schema not found in Firestore at system/wardrobeSchema");
+          throw new Error("Wardrobe categories schema not found in Firestore at system/wardrobeSchema");
         }
 
         if (preferences) {

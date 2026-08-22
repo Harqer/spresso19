@@ -32,7 +32,7 @@ import java.io.ByteArrayOutputStream
 @Composable
 actual fun LiveVisionCamera(
     onObjectDetected: (ByteArray, List<List<Float>>) -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -41,9 +41,10 @@ actual fun LiveVisionCamera(
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-        hasCameraPermission = isGranted
-    }
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            hasCameraPermission = isGranted
+        }
 
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
@@ -55,50 +56,55 @@ actual fun LiveVisionCamera(
         CameraPermissionDialog(
             onRequestPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
             onOpenSettings = {
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.fromParts("package", context.packageName, null)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
+                val intent =
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
                 context.startActivity(intent)
             },
-            onDismiss = { }
+            onDismiss = { },
         )
         return
     }
 
-    val cameraController = remember {
-        LifecycleCameraController(context).apply {
-            bindToLifecycle(lifecycleOwner)
-            cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-            setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
-            setImageAnalysisBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+    val cameraController =
+        remember {
+            LifecycleCameraController(context).apply {
+                bindToLifecycle(lifecycleOwner)
+                cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
+                setImageAnalysisBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            }
         }
-    }
 
-    val objectDetector = remember {
-        val options = ObjectDetectorOptions.Builder()
-            .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
-            .enableMultipleObjects()
-            .build()
-        ObjectDetection.getClient(options)
-    }
+    val objectDetector =
+        remember {
+            val options =
+                ObjectDetectorOptions
+                    .Builder()
+                    .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
+                    .enableMultipleObjects()
+                    .build()
+            ObjectDetection.getClient(options)
+        }
 
     var detectedObjects by remember { mutableStateOf<List<com.google.mlkit.vision.objects.DetectedObject>>(emptyList()) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var lastEmittedTime by remember { mutableStateOf(0L) }
 
-    LaunchedEffect(Unit) { 
+    LaunchedEffect(Unit) {
         cameraController.setImageAnalysisAnalyzer(
             ContextCompat.getMainExecutor(context),
             androidx.camera.mlkit.vision.MlKitAnalyzer(
                 listOf(objectDetector),
                 androidx.camera.core.ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
-                ContextCompat.getMainExecutor(context)
+                ContextCompat.getMainExecutor(context),
             ) { result ->
                 val objects = result?.getValue(objectDetector)
                 if (objects != null) {
                     detectedObjects = objects
-                    
+
                     if (objects.isNotEmpty()) {
                         val currentTime = System.currentTimeMillis()
                         // Throttle to 1 frame every 3 seconds to avoid spamming the backend
@@ -107,10 +113,11 @@ actual fun LiveVisionCamera(
                             previewView?.bitmap?.let { bmp ->
                                 val stream = ByteArrayOutputStream()
                                 bmp.compress(Bitmap.CompressFormat.JPEG, 60, stream)
-                                val boundingBoxes = objects.map { obj ->
-                                    val b = obj.boundingBox
-                                    listOf(b.left.toFloat(), b.top.toFloat(), b.right.toFloat(), b.bottom.toFloat())
-                                }
+                                val boundingBoxes =
+                                    objects.map { obj ->
+                                        val b = obj.boundingBox
+                                        listOf(b.left.toFloat(), b.top.toFloat(), b.right.toFloat(), b.bottom.toFloat())
+                                    }
                                 onObjectDetected(stream.toByteArray(), boundingBoxes)
                             }
                         }
@@ -118,14 +125,14 @@ actual fun LiveVisionCamera(
                 } else {
                     detectedObjects = emptyList()
                 }
-            }
+            },
         )
     }
-    
-    DisposableEffect(Unit) { 
-        onDispose { 
+
+    DisposableEffect(Unit) {
+        onDispose {
             objectDetector.close()
-        } 
+        }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -138,9 +145,9 @@ actual fun LiveVisionCamera(
                     previewView = this
                 }
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
         )
-        
+
         ObjectDetectionOverlay(detectedObjects = detectedObjects)
     }
 }

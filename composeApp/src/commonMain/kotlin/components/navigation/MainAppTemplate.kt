@@ -3,7 +3,6 @@ package components.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavEntry
-import components.navigation.AdaptiveNavigationScaffold
 import navigation.NavKey
 import navigation.NavigationState
 import navigation.Navigator
@@ -19,7 +18,7 @@ fun MainAppTemplate(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChange: (ThemeMode) -> Unit = {},
     onAskAI: (String) -> Unit = {},
-    entryProvider: (NavKey) -> NavEntry<NavKey>
+    entryProvider: (NavKey) -> NavEntry<NavKey>,
 ) {
     AdaptiveNavigationScaffold(
         navigationState = navigationState,
@@ -30,6 +29,6 @@ fun MainAppTemplate(
         onThemeModeChange = onThemeModeChange,
         onAskAI = onAskAI,
         modifier = modifier,
-        entryProvider = entryProvider
+        entryProvider = entryProvider,
     )
 }

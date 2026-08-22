@@ -7,11 +7,9 @@ import platform.Foundation.languageCode
 actual class LocaleHelper {
     actual fun setLocale(languageTag: String) {
         // In iOS, per-app language settings are managed in the Settings app natively.
-        // We can't programmatically override it easily without swizzling NSBundle, 
+        // We can't programmatically override it easily without swizzling NSBundle,
         // so for now this is a no-op or requires a restart approach.
     }
 
-    actual fun getCurrentLocale(): String {
-        return NSLocale.currentLocale.languageCode ?: "en"
-    }
+    actual fun getCurrentLocale(): String = NSLocale.currentLocale.languageCode ?: "en"
 }

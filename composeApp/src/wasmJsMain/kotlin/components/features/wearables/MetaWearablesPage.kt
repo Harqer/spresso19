@@ -16,7 +16,7 @@ actual fun MetaWearablesPage(
     onPairClick: () -> Unit,
     onStartHandsFreeCheckout: () -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text("Meta Smart Glasses integration is only supported on Android.")

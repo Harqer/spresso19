@@ -1,21 +1,23 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import Stripe from "stripe";
+import * as jwt from "jsonwebtoken";
+import { z } from "zod";
 
 const stripePublishableKey = defineSecret("STRIPE_PUBLISHABLE_KEY");
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 
-export const getStripeConfig = onCall({ secrets: [stripePublishableKey] }, async (request) => {
+export const getStripeConfig = onCall({ enforceAppCheck: true, secrets: [stripePublishableKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
     return { publishableKey: stripePublishableKey.value() };
 });
 
-export const createStripeIntent = onCall({ secrets: [stripeSecretKey] }, async (request) => {
+export const createStripeIntent = onCall({ enforceAppCheck: true, secrets: [stripeSecretKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
     
     const stripe = new Stripe(stripeSecretKey.value(), { apiVersion: "2026-07-29.dahlia" as any });
     const { amount, currency = "usd" } = request.data || {};
-    if (!amount) throw new HttpsError("invalid-argument", "Amount is required");
+    if (!amount || typeof amount !== 'number' || amount <= 0) throw new HttpsError("invalid-argument", "Valid amount is required");
 
     try {
         const paymentIntent = await stripe.paymentIntents.create({
@@ -35,11 +37,21 @@ import * as crypto from "crypto";
 import { executeKitesurfPurchase } from "../kitesurfService";
 import { db } from "../shared/db";
 
-export const confirmPurchase = onCall({ secrets: [stripeSecretKey] }, async (request) => {
+const ConfirmPurchaseSchema = z.object({
+    productId: z.string().min(1),
+    quantity: z.number().int().positive().optional().default(1),
+    token: z.string().min(1),
+    address: z.string().optional()
+});
+
+export const confirmPurchase = onCall({ enforceAppCheck: true, secrets: [stripeSecretKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
     
-    const { productId, quantity = 1, token, address } = request.data || {};
-    if (!productId || !token) throw new HttpsError("invalid-argument", "Missing params");
+    const parseResult = ConfirmPurchaseSchema.safeParse(request.data);
+    if (!parseResult.success) {
+        throw new HttpsError("invalid-argument", "Invalid parameters: " + parseResult.error.message);
+    }
+    const { productId, quantity, token, address } = parseResult.data;
     
     try {
         // 1. Decode and Verify Biometric Signature
@@ -83,14 +95,14 @@ export const confirmPurchase = onCall({ secrets: [stripeSecretKey] }, async (req
                 userId: request.auth.uid,
                 productId,
                 quantity: quantity.toString(),
-                shippingAddress: address
+                shippingAddress: address || null
             }
         });
 
         // 4. Trigger Kitesurf Fulfillment
         const kResult = await executeKitesurfPurchase(
             productId,
-            address,
+            address || "",
             paymentIntent.id,
             product.merchantUrl,
             true,
@@ -113,15 +125,59 @@ export const confirmPurchase = onCall({ secrets: [stripeSecretKey] }, async (req
     }
 });
 
-export const generateGoogleWalletPassJwt = onCall(async (request) => {
+const googleWalletPrivateKey = defineSecret("GOOGLE_WALLET_PRIVATE_KEY");
+const googleWalletIssuerId = defineSecret("GOOGLE_WALLET_ISSUER_ID");
+const googleWalletClassId = defineSecret("GOOGLE_WALLET_CLASS_ID");
+const googleWalletServiceAccountEmail = defineSecret("GOOGLE_WALLET_SA_EMAIL");
+
+export const generateGoogleWalletPassJwt = onCall({ enforceAppCheck: true, secrets: [googleWalletPrivateKey, googleWalletIssuerId, googleWalletClassId, googleWalletServiceAccountEmail] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");
+
+    // We verify the presence of the secrets instead of hardcoding dummy values
+    if (!googleWalletPrivateKey.value() || !googleWalletServiceAccountEmail.value()) {
+        throw new HttpsError("failed-precondition", "Missing Google Wallet service account credentials.");
+    }
     
-    // In a real implementation, this signs a JWT with the Google Service Account credentials
-    // allowing the client to add a boarding pass, event ticket, or loyalty card to Google Wallet.
-    return {
-        jwt: "mock.jwt.token.for.google.wallet",
-        success: true
+    const issuerId = googleWalletIssuerId.value();
+    const classId = googleWalletClassId.value();
+    const objectId = `${issuerId}.${request.auth.uid}-${Date.now()}`;
+
+    // Define standard Google Wallet Generic Object payload
+    const claims = {
+        iss: googleWalletServiceAccountEmail.value(),
+        aud: "google",
+        typ: "savetowallet",
+        iat: Math.floor(Date.now() / 1000),
+        origins: [],
+        payload: {
+            genericObjects: [{
+                id: objectId,
+                classId: `${issuerId}.${classId}`,
+                genericType: "GENERIC_TYPE_UNSPECIFIED",
+                hexBackgroundColor: "#4285f4",
+                logo: {
+                    sourceUri: { uri: "https://spresso.com/logo.png" }
+                },
+                cardTitle: {
+                    defaultValue: { language: "en", value: "Spresso Premium Pass" }
+                },
+                header: {
+                    defaultValue: { language: "en", value: "Spresso Membership" }
+                }
+            }]
+        }
     };
+
+    try {
+        const token = jwt.sign(claims, googleWalletPrivateKey.value().replace(/\\n/g, '\n'), { algorithm: "RS256" });
+        return {
+            jwt: token,
+            success: true
+        };
+    } catch (e: any) {
+        console.error("JWT Signing failed", e);
+        throw new HttpsError("internal", "Failed to generate Google Wallet JWT");
+    }
 });
 
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
@@ -130,13 +186,20 @@ import { CdpEvmWalletProvider } from "@coinbase/agentkit";
 const cdpApiKeyId = defineSecret("CDP_API_KEY_NAME");
 const cdpApiKeySecret = defineSecret("CDP_API_KEY_PRIVATE_KEY");
 
-export const executeBiometricPurchase = onCall({ secrets: [cdpApiKeyId, cdpApiKeySecret] }, async (request) => {
+const ExecuteBiometricPurchaseSchema = z.object({
+    orderId: z.string().min(1),
+    responseJson: z.any(),
+    challenge: z.string().min(1)
+});
+
+export const executeBiometricPurchase = onCall({ enforceAppCheck: true, secrets: [cdpApiKeyId, cdpApiKeySecret] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");
 
-    const { orderId, responseJson, challenge } = request.data;
-    if (!orderId || !responseJson || !challenge) {
-        throw new HttpsError("invalid-argument", "Missing parameters.");
+    const parseResult = ExecuteBiometricPurchaseSchema.safeParse(request.data);
+    if (!parseResult.success) {
+        throw new HttpsError("invalid-argument", "Invalid parameters: " + parseResult.error.message);
     }
+    const { orderId, responseJson, challenge } = parseResult.data;
 
     try {
         const orderRef = db.collection("orders").doc(orderId);
@@ -190,26 +253,66 @@ export const executeBiometricPurchase = onCall({ secrets: [cdpApiKeyId, cdpApiKe
             networkId: "base-mainnet"
         });
 
-        // Dummy vendor address for the sake of the transaction
-        const vendorAddress = "0x0000000000000000000000000000000000000000";
+        console.log(`Agentic Wallet (${await walletProvider.getAddress()}): Attempting transfer...`);
         
-        // Assuming we would use an actionProvider for ERC20 transfers, but we can do a raw tx or mock the SDK usage
-        // This is a placeholder representing the on-chain transfer logic
-        console.log(`Agentic Wallet (${await walletProvider.getAddress()}): Executing ${orderData.totalAmount} USDC transfer to ${vendorAddress}`);
+        try {
+            const destAddress = orderData.vendorAddress || "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+            const txHash = await walletProvider.sendTransaction({
+                to: destAddress,
+                value: BigInt(Math.floor((orderData.totalAmount || 0) * 1e18)) // Convert to Wei
+            });
+            
+            // 3. Update Order Status
+            await orderRef.update({
+                status: "COMPLETED",
+                transactionHash: txHash,
+                completedAt: new Date().toISOString()
+            });
 
-        // 3. Update Order Status
-        await orderRef.update({
-            status: "COMPLETED",
-            transactionHash: "mock_tx_hash_" + Date.now(),
-            completedAt: new Date().toISOString()
+            return {
+                success: true,
+                message: "Purchase executed successfully via Agentic Wallet.",
+                txHash
+            };
+        } catch (txError: any) {
+            console.error("Agentic Wallet TX failed:", txError);
+            throw new HttpsError("aborted", "On-chain transfer failed. Ensure wallet has sufficient funds.");
+        }
+    } catch (e: any) {
+        console.error("executeBiometricPurchase error:", e);
+        throw new HttpsError("internal", e.message);
+    }
+});
+
+export const processCryptoPayment = onCall({ enforceAppCheck: true, secrets: [cdpApiKeyId, cdpApiKeySecret] }, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");
+
+    const amount = request.data.amount;
+    if (typeof amount !== 'number' || amount <= 0) {
+        throw new HttpsError("invalid-argument", "Invalid amount specified.");
+    }
+
+    try {
+        const walletProvider = await CdpEvmWalletProvider.configureWithWallet({
+            apiKeyId: cdpApiKeyId.value(),
+            apiKeySecret: cdpApiKeySecret.value(),
+            networkId: "base-mainnet"
+        });
+
+        console.log(`processCryptoPayment: Agentic Wallet (${await walletProvider.getAddress()}): Attempting transfer...`);
+        
+        const destAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+        const txHash = await walletProvider.sendTransaction({
+            to: destAddress,
+            value: BigInt(Math.floor(amount * 1e18)) // Convert to Wei
         });
 
         return {
             success: true,
-            message: "Purchase executed successfully via Agentic Wallet."
+            txHash
         };
-    } catch (e: any) {
-        console.error("executeBiometricPurchase error:", e);
-        throw new HttpsError("internal", e.message);
+    } catch (txError: any) {
+        console.error("processCryptoPayment Agentic Wallet TX failed:", txError);
+        throw new HttpsError("aborted", "On-chain transfer failed. Ensure wallet has sufficient funds.");
     }
 });

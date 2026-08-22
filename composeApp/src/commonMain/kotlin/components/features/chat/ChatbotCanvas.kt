@@ -1,7 +1,5 @@
 package components.features.chat
 
-import components.models.*
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import components.models.*
 import components.shared.ParallaxCard
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import theme.AppTheme
@@ -33,62 +32,65 @@ fun ChatbotCanvas(
     isVideoPlaying: Boolean,
     isVoiceRecording: Boolean = false,
     modifier: Modifier = Modifier,
-    cardContent: @Composable () -> Unit
+    cardContent: @Composable () -> Unit,
 ) {
     val scrollState = rememberScrollState()
 
     Box(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize(),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .then(if (isVideoPlaying) Modifier.blur(16.dp) else Modifier),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .then(if (isVideoPlaying) Modifier.blur(16.dp) else Modifier),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 32.dp, horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp, horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     text = "Spresso Virtual Assistant",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 )
 
                 Text(
                     text = "I can help you visualize products with Genkit AI.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 8.dp),
                 )
             }
 
             if (isVoiceRecording) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.Mic,
                             contentDescription = "Microphone",
                             tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(18.dp),
                         )
                         Text(
                             text = "Listening to your command...",
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.error
+                            color = MaterialTheme.colorScheme.error,
                         )
                     }
                 }
@@ -97,10 +99,10 @@ fun ChatbotCanvas(
             ParallaxCard(
                 scrollOffset = scrollState.value.toFloat(),
                 backgroundColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface
+                contentColor = MaterialTheme.colorScheme.onSurface,
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     cardContent()
                 }
@@ -110,7 +112,7 @@ fun ChatbotCanvas(
                 text = "Scroll to see the parallax effect, or use voice commands.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.padding(top = 24.dp)
+                modifier = Modifier.padding(top = 24.dp),
             )
 
             Box(modifier = Modifier.height(1000.dp))

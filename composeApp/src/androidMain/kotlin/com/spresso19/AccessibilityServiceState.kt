@@ -8,10 +8,11 @@ import android.text.TextUtils
 internal object AccessibilityServiceState {
     fun isExactServiceEnabled(context: Context): Boolean {
         val expectedComponent = ComponentName(context, SpressoAccessibilityService::class.java)
-        val enabledServices = Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
+        val enabledServices =
+            Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+            ) ?: return false
 
         val splitter = TextUtils.SimpleStringSplitter(':')
         splitter.setString(enabledServices)

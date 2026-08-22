@@ -1,7 +1,6 @@
 package components.features.profile
 
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import com.spresso19.MainActivity
@@ -20,17 +19,18 @@ object CoinbaseWalletManager {
     private var pendingCallback: ((Boolean, String?) -> Unit)? = null
     private var pendingApiClient: ApiClient? = null
 
-    suspend fun connectWallet(activity: Activity?): String = withContext(Dispatchers.Main) {
-        val targetActivity = activity ?: MainActivity.currentActivity ?: return@withContext ""
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://keys.coinbase.com/connect?callback=$CALLBACK_URL"))
-            intent.setPackage(WALLET_PACKAGE)
-            targetActivity.startActivity(intent)
-            "0x" + (1..40).map { "0123456789abcdef".random() }.joinToString("")
-        } catch (e: Exception) {
-            ""
+    suspend fun connectWallet(activity: Activity?): String =
+        withContext(Dispatchers.Main) {
+            val targetActivity = activity ?: MainActivity.currentActivity ?: return@withContext ""
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://keys.coinbase.com/connect?callback=$CALLBACK_URL"))
+                intent.setPackage(WALLET_PACKAGE)
+                targetActivity.startActivity(intent)
+                "0x" + (1..40).map { "0123456789abcdef".random() }.joinToString("")
+            } catch (e: Exception) {
+                ""
+            }
         }
-    }
 
     /**
      * Initiates the handshake connection with Coinbase Wallet.
@@ -39,7 +39,7 @@ object CoinbaseWalletManager {
     fun connect(
         activity: Activity? = null,
         apiClient: ApiClient? = null,
-        onResult: ((Boolean, String?) -> Unit)? = null
+        onResult: ((Boolean, String?) -> Unit)? = null,
     ) {
         val targetActivity = activity ?: MainActivity.currentActivity
         if (targetActivity == null) {
@@ -52,18 +52,21 @@ object CoinbaseWalletManager {
 
         try {
             // Build the Mobile Wallet Protocol Handshake URI
-            val handshakeUri = Uri.Builder()
-                .scheme("cbwallet")
-                .authority("w")
-                .appendPath("handshake")
-                .appendQueryParameter("dapp_name", "Spresso")
-                .appendQueryParameter("callback_url", CALLBACK_URL)
-                .appendQueryParameter("chain_id", "8453") // Base Mainnet
-                .build()
+            val handshakeUri =
+                Uri
+                    .Builder()
+                    .scheme("cbwallet")
+                    .authority("w")
+                    .appendPath("handshake")
+                    .appendQueryParameter("dapp_name", "Spresso")
+                    .appendQueryParameter("callback_url", CALLBACK_URL)
+                    .appendQueryParameter("chain_id", "8453") // Base Mainnet
+                    .build()
 
-            val intent = Intent(Intent.ACTION_VIEW, handshakeUri).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
+            val intent =
+                Intent(Intent.ACTION_VIEW, handshakeUri).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
 
             // Check if Coinbase Wallet app is installed
             val packageManager = targetActivity.packageManager
@@ -101,10 +104,12 @@ object CoinbaseWalletManager {
         val host = uri.host
 
         // Check if the URI matches our registered callback scheme/host or contains wallet response parameters
-        val isCallback = (scheme == CALLBACK_SCHEME && (host == CALLBACK_HOST || host == "callback" || host == null)) ||
+        val isCallback =
+            (scheme == CALLBACK_SCHEME && (host == CALLBACK_HOST || host == "callback" || host == null)) ||
                 uri.toString().startsWith(CALLBACK_URL)
 
-        val hasWalletParams = uri.getQueryParameter("address") != null ||
+        val hasWalletParams =
+            uri.getQueryParameter("address") != null ||
                 uri.getQueryParameter("account") != null ||
                 uri.getQueryParameter("result") != null ||
                 uri.getQueryParameter("error") != null
@@ -122,10 +127,11 @@ object CoinbaseWalletManager {
             return true
         }
 
-        val address = uri.getQueryParameter("address")
-            ?: uri.getQueryParameter("account")
-            ?: uri.getQueryParameter("result")
-            ?: uri.fragment?.takeIf { it.startsWith("0x") }
+        val address =
+            uri.getQueryParameter("address")
+                ?: uri.getQueryParameter("account")
+                ?: uri.getQueryParameter("result")
+                ?: uri.fragment?.takeIf { it.startsWith("0x") }
 
         if (address != null && address.isNotBlank()) {
             val callback = pendingCallback
@@ -148,15 +154,14 @@ object CoinbaseWalletManager {
     /**
      * Handles an incoming Intent for the Coinbase Wallet response.
      */
-    fun handleResponse(intent: Intent?): Boolean {
-        return handleResponse(intent?.data)
-    }
+    fun handleResponse(intent: Intent?): Boolean = handleResponse(intent?.data)
 }
 
-actual class CoinbaseWalletHelper actual constructor(private val context: Any?) {
+actual class CoinbaseWalletHelper actual constructor(
+    private val context: Any?,
+) {
     actual suspend fun connectWallet(): String {
         val activity = (context as? Activity) ?: MainActivity.currentActivity
         return CoinbaseWalletManager.connectWallet(activity)
     }
 }
-

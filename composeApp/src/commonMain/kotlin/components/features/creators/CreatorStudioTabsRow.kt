@@ -16,11 +16,14 @@ import components.shared.elements.SpressoButton
 import components.shared.elements.SpressoButtonVariant
 
 @Composable
-fun CreatorStudioTabsRow(activeTab: Int, onTabSelected: (Int) -> Unit) {
+fun CreatorStudioTabsRow(
+    activeTab: Int,
+    onTabSelected: (Int) -> Unit,
+) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(modifier = Modifier.padding(4.dp)) {
             SpressoButton(
@@ -29,7 +32,7 @@ fun CreatorStudioTabsRow(activeTab: Int, onTabSelected: (Int) -> Unit) {
                 variant = if (activeTab == 0) SpressoButtonVariant.PRIMARY else SpressoButtonVariant.GHOST,
                 onClick = { onTabSelected(0) },
                 trackingId = "creator_tab_community",
-                trackingAction = "click"
+                trackingAction = "click",
             )
             SpressoButton(
                 text = "GenAI Agent Workspaces",
@@ -37,7 +40,7 @@ fun CreatorStudioTabsRow(activeTab: Int, onTabSelected: (Int) -> Unit) {
                 variant = if (activeTab == 1) SpressoButtonVariant.PRIMARY else SpressoButtonVariant.GHOST,
                 onClick = { onTabSelected(1) },
                 trackingId = "creator_tab_agents",
-                trackingAction = "click"
+                trackingAction = "click",
             )
         }
     }

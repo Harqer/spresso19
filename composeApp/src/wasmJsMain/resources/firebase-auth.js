@@ -1,22 +1,34 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "dummy_api_key_for_local_build",
-  authDomain: "spresso-5561f.firebaseapp.com",
-  projectId: "spresso-5561f",
-  storageBucket: "spresso-5561f.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:0000000000000000000000"
-};
+try {
+    const configResponse = await fetch("/firebase-applet-config.json");
+    if (!configResponse.ok) {
+        throw new Error("Failed to load Firebase config from /firebase-applet-config.json");
+    }
+    const firebaseConfig = await configResponse.json();
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const googleProvider = new GoogleAuthProvider();
+    
+    window._firebaseApp = app;
+    window._firebaseAuth = auth;
+    window._googleProvider = googleProvider;
+} catch (error) {
+    console.error("Critical Firebase Initialization Error:", error);
+    throw error;
+}
+
+const getAuthInstance = () => {
+    if (!window._firebaseAuth) throw new Error("Firebase Auth is not initialized yet.");
+    return window._firebaseAuth;
+};
+const getProvider = () => window._googleProvider;
 
 window.signInWithGoogle = async function() {
     try {
-        const result = await signInWithPopup(auth, googleProvider);
+        const result = await signInWithPopup(getAuthInstance(), getProvider());
         console.log("Signed in with Google", result.user);
     } catch (error) {
         console.error("Google Sign-In Error", error);
@@ -25,12 +37,12 @@ window.signInWithGoogle = async function() {
 };
 
 window.getFirebaseUserUid = function() {
-    const user = auth.currentUser;
+    const user = getAuthInstance().currentUser;
     return user ? user.uid : null;
 };
 
 window.getFirebaseUserIdToken = async function() {
-    const user = auth.currentUser;
+    const user = getAuthInstance().currentUser;
     if (user) {
         return await user.getIdToken(false);
     }
@@ -38,25 +50,25 @@ window.getFirebaseUserIdToken = async function() {
 };
 
 window.signOutFirebase = function() {
-    signOut(auth);
+    signOut(getAuthInstance());
 };
 
 window.signInWithEmailAndPasswordFirebase = async function(email, password) {
-    return await signInWithEmailAndPassword(auth, email, password);
+    return await signInWithEmailAndPassword(getAuthInstance(), email, password);
 };
 
 window.createUserWithEmailAndPasswordFirebase = async function(email, password) {
-    return await createUserWithEmailAndPassword(auth, email, password);
+    return await createUserWithEmailAndPassword(getAuthInstance(), email, password);
 };
 
 window.signInWithPhone = async function(phoneNumber) {
     if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        window.recaptchaVerifier = new RecaptchaVerifier(getAuthInstance(), 'recaptcha-container', {
           'size': 'invisible'
         });
     }
     try {
-        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier);
+        const confirmationResult = await signInWithPhoneNumber(getAuthInstance(), phoneNumber, window.recaptchaVerifier);
         window.confirmationResult = confirmationResult;
         return true;
     } catch (error) {

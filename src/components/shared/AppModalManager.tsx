@@ -1,6 +1,5 @@
 import React from "react";
 import { ProductItem, HITLPayload } from "../../types";
-import { VirtualTryOnModal } from "../VirtualTryOnModal";
 import { HITLCheckoutModal } from "../HITLCheckoutModal";
 import { ProductDetailsModal } from "../ProductDetailsModal";
 import { GoogleLensScreenWidgetModal } from "../GoogleLensScreenWidgetModal";

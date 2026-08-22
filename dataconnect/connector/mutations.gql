@@ -106,8 +106,9 @@ mutation DeletePaymentMethod($id: UUID!) @auth(level: USER) {
   paymentMethod_delete(id: $id)
 }
 
-mutation UpdateUserSubscription($id: UUID!, $tier: String!) @auth(level: USER) {
-  userSubscription_update(id: $id, data: {
+mutation UpsertUserSubscription($tier: String!) @auth(level: USER) {
+  userSubscription_upsert(data: {
+    userId_expr: "auth.uid"
     tier: $tier
   })
 }

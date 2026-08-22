@@ -27,46 +27,48 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
-private val REACTION_ICONS = listOf(
-    Icons.Filled.Favorite,
-    Icons.Filled.ThumbUp,
-    Icons.Filled.LocalFireDepartment,
-    Icons.Filled.Star,
-    Icons.Filled.SentimentSatisfied
-)
+private val REACTION_ICONS =
+    listOf(
+        Icons.Filled.Favorite,
+        Icons.Filled.ThumbUp,
+        Icons.Filled.LocalFireDepartment,
+        Icons.Filled.Star,
+        Icons.Filled.SentimentSatisfied,
+    )
 
 @Composable
 fun ExpressiveReactionPalette(
     visible: Boolean,
     onReactionSelected: (ImageVector) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn() + scaleIn(initialScale = 0.8f),
         exit = fadeOut() + scaleOut(targetScale = 0.8f),
-        modifier = modifier
+        modifier = modifier,
     ) {
         Surface(
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
             shadowElevation = 8.dp,
-            modifier = Modifier.clip(RoundedCornerShape(24.dp))
+            modifier = Modifier.clip(RoundedCornerShape(24.dp)),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 REACTION_ICONS.forEach { icon ->
                     Icon(
                         imageVector = icon,
                         contentDescription = icon.name,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clickable { onReactionSelected(icon) }
-                            .padding(12.dp)
+                        modifier =
+                            Modifier
+                                .size(48.dp)
+                                .clickable { onReactionSelected(icon) }
+                                .padding(12.dp),
                     )
                 }
             }

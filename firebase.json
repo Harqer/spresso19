@@ -8,6 +8,16 @@
     ],
     "headers": [
       {
+        "source": "**",
+        "headers": [
+          { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "X-Frame-Options", "value": "DENY" },
+          { "key": "X-XSS-Protection", "value": "1; mode=block" },
+          { "key": "Content-Security-Policy", "value": "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' https://apis.google.com;" }
+        ]
+      },
+      {
         "source": "/api/products",
         "headers": [
           { "key": "Cache-Control", "value": "public, max-age=300, s-maxage=3600" }
@@ -63,10 +73,7 @@
         "source": "/api/genkit/**",
         "run": { "serviceId": "spresso-go-api", "region": "us-central1" }
       },
-      {
-        "source": "/api/live-chef",
-        "run": { "serviceId": "spresso-api", "region": "us-central1" }
-      },
+
       {
         "source": "/api/**",
         "run": {

@@ -1,13 +1,13 @@
 package network.models
 
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import network.ProductItem
 
 @Serializable
 data class GroundingSource(
     val title: String,
-    val uri: String
+    val uri: String,
 )
 
 @Serializable
@@ -17,27 +17,27 @@ data class ToolCallResult(
     val error: String? = null,
     val spinVideoUrl: String? = null,
     val tryOnMeta: TryOnResult? = null,
-    val genMediaKit: GenMediaResult? = null
+    val genMediaKit: GenMediaResult? = null,
 )
 
 @Serializable
 data class TryOnResult(
     val success: Boolean,
     val mediaType: String,
-    val renderedImageUrl: String? = null
+    val renderedImageUrl: String? = null,
 )
 
 @Serializable
 data class GenMediaResult(
     val success: Boolean,
-    val genMediaKit: GenMediaKitDetails? = null
+    val genMediaKit: GenMediaKitDetails? = null,
 )
 
 @Serializable
 data class GenMediaKitDetails(
     val materials: List<String> = emptyList(),
     val sustainabilityScore: String? = null,
-    val videoUrl: String? = null
+    val videoUrl: String? = null,
 )
 
 @Serializable
@@ -52,5 +52,5 @@ data class ChatStreamChunk(
     val name: String? = null,
     val args: Map<String, String>? = null,
     val result: ToolCallResult? = null,
-    val widget: String? = null
+    val widget: String? = null,
 )

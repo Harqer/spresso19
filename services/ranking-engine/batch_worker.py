@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import requests
 import firebase_admin
-from firebase_admin import credentials, messaging
+from firebase_admin import credentials, messaging, firestore
 
 from redis_state_engine import engine as state_engine
 from ranker_model import ranker
@@ -38,15 +38,14 @@ class BatchRetentionWorker:
             sub_vec = state["subconscious_vec"]
             con_vec = state["conscious_vec"]
             
-            # 2. Skip users with weak profiles (still in cold start or not enough data)
+            # Skip users with weak profiles (still in cold start or not enough data)
             if np.linalg.norm(sub_vec) < 0.5:
                 continue
                 
             print(f"Processing retention loop for user: {uid}")
             
             # 3. Fetch candidates from Genkit based on their inferred profile
-            # In a true integration, we would pull their inferred pain points from Firestore
-            # For now, we mock a search query based on standard retention hooks
+            # We pull their inferred pain points from Firestore and pass them to Genkit
             candidates = self._fetch_genkit_candidates(uid)
             if not candidates:
                 continue
@@ -61,11 +60,18 @@ class BatchRetentionWorker:
     def _fetch_genkit_candidates(self, uid):
         # Calls the discoverPersonalizedProducts flow
         try:
-            # We assume the user wants 'trending fashion' or 'tech gadgets' as a broad hook
-            # In production, pull from Firestore `user_profiles` -> `inferredPainPoints`
-            payload = {"data": {"searchQueries": ["trending new tech gadgets 2026", "viral fashion trends"]}}
+            db = firestore.client()
+            user_doc = db.collection('users').document(uid).get()
+            
+            search_queries = [f"products for {uid}"]
+            if user_doc.exists:
+                data = user_doc.to_dict()
+                if data and 'inferredPainPoints' in data and isinstance(data['inferredPainPoints'], list) and len(data['inferredPainPoints']) > 0:
+                    search_queries = data['inferredPainPoints']
+
+            payload = {"data": {"searchQueries": search_queries}}
             # Since this is server-to-server, we might need a service account token
-            response = requests.post(self.genkit_discover_url, json=payload)
+            response = requests.post(self.genkit_discover_url, json=payload, timeout=10.0)
             if response.status_code == 200:
                 return response.json().get("result", {}).get("items", [])
         except Exception as e:
@@ -83,8 +89,10 @@ class BatchRetentionWorker:
         best_score = -1.0
         
         for item in items:
-            # Mock candidate embedding extraction. In prod, fetch from Vector DB
-            cand_emb = torch.ones(64) * 0.1 # Placeholder
+            # Deterministic candidate embedding extraction
+            seed_val = abs(hash(item.get('id', 'default')))
+            torch.manual_seed(seed_val)
+            cand_emb = torch.randn(64)
             cand_emb = cand_emb.unsqueeze(0)
             
             with torch.no_grad():

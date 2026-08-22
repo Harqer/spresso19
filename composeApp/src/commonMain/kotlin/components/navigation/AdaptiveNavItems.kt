@@ -10,26 +10,28 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import navigation.NavKey
 import org.jetbrains.compose.resources.DrawableResource
 import spresso.composeapp.generated.resources.Res
-import spresso.composeapp.generated.resources.ic_for_you
 import spresso.composeapp.generated.resources.ic_deployed_code_account
+import spresso.composeapp.generated.resources.ic_for_you
 
 data class NavDestinationItem(
     val key: NavKey,
     val label: String,
     val icon: ImageVector? = null,
-    val iconResource: DrawableResource? = null
+    val iconResource: DrawableResource? = null,
 )
 
-val defaultNavDestinations = listOf(
-    NavDestinationItem(NavKey.ChatKey(), "Chat", icon = Icons.Outlined.Forum),
-    NavDestinationItem(NavKey.CreatorKey(), "Creator", iconResource = Res.drawable.ic_deployed_code_account),
-    NavDestinationItem(NavKey.TravelKey, "Travel & Expenses", icon = Icons.Outlined.FlightTakeoff),
-    NavDestinationItem(NavKey.CatalogKey, "For You", iconResource = Res.drawable.ic_for_you),
-    NavDestinationItem(NavKey.WardrobeKey(), "Wardrobe", icon = Icons.Outlined.Checkroom),
-    NavDestinationItem(NavKey.OrdersKey, "Orders", icon = Icons.AutoMirrored.Outlined.ReceiptLong),
-    NavDestinationItem(NavKey.GroceryKey, "Grocery", icon = Icons.Outlined.LocalGroceryStore)
-)
+val defaultNavDestinations =
+    listOf(
+        NavDestinationItem(NavKey.ChatKey(), "Chat", icon = Icons.Outlined.Forum),
+        NavDestinationItem(NavKey.CreatorKey(), "Creator", iconResource = Res.drawable.ic_deployed_code_account),
+        NavDestinationItem(NavKey.TravelKey, "Travel & Expenses", icon = Icons.Outlined.FlightTakeoff),
+        NavDestinationItem(NavKey.CatalogKey, "For You", iconResource = Res.drawable.ic_for_you),
+        NavDestinationItem(NavKey.WardrobeKey(), "Wardrobe", icon = Icons.Outlined.Checkroom),
+        NavDestinationItem(NavKey.OrdersKey, "Orders", icon = Icons.AutoMirrored.Outlined.ReceiptLong),
+        NavDestinationItem(NavKey.GroceryKey, "Grocery", icon = Icons.Outlined.LocalGroceryStore),
+    )
 
-fun isSameDestinationGroup(current: NavKey, target: NavKey): Boolean {
-    return current::class == target::class
-}
+fun isSameDestinationGroup(
+    current: NavKey,
+    target: NavKey,
+): Boolean = current::class == target::class

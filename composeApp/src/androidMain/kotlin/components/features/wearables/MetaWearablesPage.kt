@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,7 +38,7 @@ actual fun MetaWearablesPage(
     onPairClick: () -> Unit,
     onStartHandsFreeCheckout: () -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -48,58 +47,65 @@ actual fun MetaWearablesPage(
 
     val registrationState by Wearables.registrationState.collectAsState(initial = null)
     val deviceIdentifiers by Wearables.devices.collectAsState(initial = emptySet())
-    
-    // In production we would observe ProjectedContextHelper.isProjectedDeviceConnected.
-    val displayCapableDevices = deviceIdentifiers.mapNotNull { id ->
-        Wearables.devicesMetadata[id]?.value
-    }.filter { it.isDisplayCapable() }
 
-    val permissions = buildList {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            add(Manifest.permission.BLUETOOTH_CONNECT)
-        } else {
-            add(Manifest.permission.BLUETOOTH)
-            add(Manifest.permission.BLUETOOTH_ADMIN)
+    // In production we would observe ProjectedContextHelper.isProjectedDeviceConnected.
+    val displayCapableDevices =
+        deviceIdentifiers
+            .mapNotNull { id ->
+                Wearables.devicesMetadata[id]?.value
+            }.filter { it.isDisplayCapable() }
+
+    val permissions =
+        buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(Manifest.permission.BLUETOOTH_CONNECT)
+            } else {
+                add(Manifest.permission.BLUETOOTH)
+                add(Manifest.permission.BLUETOOTH_ADMIN)
+            }
+            add(Manifest.permission.CAMERA)
+            add(Manifest.permission.RECORD_AUDIO)
         }
-        add(Manifest.permission.CAMERA)
-        add(Manifest.permission.RECORD_AUDIO)
-    }
 
     var hasPermissions by remember {
         mutableStateOf(permissions.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED })
     }
 
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { results ->
-        hasPermissions = results.values.all { it }
-    }
+    val launcher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions(),
+        ) { results ->
+            hasPermissions = results.values.all { it }
+        }
 
     var datPermissionsGranted by remember { mutableStateOf(false) }
 
-    val datPermissionLauncher = rememberLauncherForActivityResult(
-        Wearables.RequestPermissionContract()
-    ) { result ->
-        result.onSuccess { status ->
-            if (status == PermissionStatus.Granted) {
-                datPermissionsGranted = true
-            }
-        }.onFailure { error, _ ->
-            // Handle error, maybe show toast
-            datPermissionsGranted = false
+    val datPermissionLauncher =
+        rememberLauncherForActivityResult(
+            Wearables.RequestPermissionContract(),
+        ) { result ->
+            result
+                .onSuccess { status ->
+                    if (status == PermissionStatus.Granted) {
+                        datPermissionsGranted = true
+                    }
+                }.onFailure { error, _ ->
+                    // Handle error, maybe show toast
+                    datPermissionsGranted = false
+                }
         }
-    }
 
     LaunchedEffect(Unit) {
         if (!hasPermissions) {
             launcher.launch(permissions.toTypedArray())
         }
     }
-    
+
     val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(registrationState?.name) {
         if (registrationState?.name == "REGISTERED") {
-            Wearables.checkPermissionStatus(Permission.CAMERA)
+            Wearables
+                .checkPermissionStatus(Permission.CAMERA)
                 .onSuccess { status ->
                     if (status == PermissionStatus.Granted) {
                         datPermissionsGranted = true
@@ -110,31 +116,44 @@ actual fun MetaWearablesPage(
 
     LazyVerticalGrid(
         columns = GridCells.Adaptive(300.dp),
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest),
-        contentPadding = PaddingValues(
-            start = 20.dp + safeDrawingPadding.calculateStartPadding(layoutDirection),
-            top = 20.dp + safeDrawingPadding.calculateTopPadding(),
-            end = 20.dp + safeDrawingPadding.calculateEndPadding(layoutDirection),
-            bottom = 20.dp + safeDrawingPadding.calculateBottomPadding()
-        ),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest),
+        contentPadding =
+            PaddingValues(
+                start = 20.dp + safeDrawingPadding.calculateStartPadding(layoutDirection),
+                top = 20.dp + safeDrawingPadding.calculateTopPadding(),
+                end = 20.dp + safeDrawingPadding.calculateEndPadding(layoutDirection),
+                bottom = 20.dp + safeDrawingPadding.calculateBottomPadding(),
+            ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column {
-                    Text("Meta Smart Glasses", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
-                    val statusText = when (registrationState?.name) {
-                        "REGISTERED" -> "Connected"
-                        "UNREGISTERED" -> "Not Connected"
-                        else -> "Unknown"
-                    }
-                    Text("Connection Status: $statusText", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Meta Smart Glasses",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    val statusText =
+                        when (registrationState?.name) {
+                            "REGISTERED" -> "Connected"
+                            "UNREGISTERED" -> "Not Connected"
+                            else -> "Unknown"
+                        }
+                    Text(
+                        "Connection Status: $statusText",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface)
@@ -147,10 +166,14 @@ actual fun MetaWearablesPage(
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                     shape = RoundedCornerShape(18.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Text("No display capable devices found.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                        Text(
+                            "No display capable devices found.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
                     }
                 }
             }
@@ -175,9 +198,10 @@ actual fun MetaWearablesPage(
                         datPermissionLauncher.launch(Permission.CAMERA)
                         return@Button
                     }
-                    val intent = Intent(context, com.spresso19.SpressoWearablesService::class.java).apply {
-                        action = "com.spresso19.action.HANDS_FREE_CHECKOUT"
-                    }
+                    val intent =
+                        Intent(context, com.spresso19.SpressoWearablesService::class.java).apply {
+                            action = "com.spresso19.action.HANDS_FREE_CHECKOUT"
+                        }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         context.startForegroundService(intent)
                     } else {
@@ -186,9 +210,20 @@ actual fun MetaWearablesPage(
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             ) {
-                Text(if (registrationState?.name != "REGISTERED") "Register Smart Glasses" else "Start Hands-Free Voice Checkout", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    if (registrationState?.name !=
+                        "REGISTERED"
+                    ) {
+                        "Register Smart Glasses"
+                    } else {
+                        "Start Hands-Free Voice Checkout"
+                    },
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
 
@@ -207,9 +242,10 @@ actual fun MetaWearablesPage(
                         datPermissionLauncher.launch(Permission.CAMERA)
                         return@Button
                     }
-                    val intent = Intent(context, com.spresso19.SpressoWearablesService::class.java).apply {
-                        action = "com.spresso19.action.GROCERY_SCANNER"
-                    }
+                    val intent =
+                        Intent(context, com.spresso19.SpressoWearablesService::class.java).apply {
+                            action = "com.spresso19.action.GROCERY_SCANNER"
+                        }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         context.startForegroundService(intent)
                     } else {
@@ -218,9 +254,14 @@ actual fun MetaWearablesPage(
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
             ) {
-                Text("Start Grocery Scanner", color = MaterialTheme.colorScheme.onSecondary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "Start Grocery Scanner",
+                    color = MaterialTheme.colorScheme.onSecondary,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
 
@@ -239,9 +280,10 @@ actual fun MetaWearablesPage(
                         datPermissionLauncher.launch(Permission.CAMERA)
                         return@Button
                     }
-                    val intent = Intent(context, com.spresso19.SpressoWearablesService::class.java).apply {
-                        action = "com.spresso19.action.BARGAIN_CHEF"
-                    }
+                    val intent =
+                        Intent(context, com.spresso19.SpressoWearablesService::class.java).apply {
+                            action = "com.spresso19.action.BARGAIN_CHEF"
+                        }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         context.startForegroundService(intent)
                     } else {
@@ -250,9 +292,14 @@ actual fun MetaWearablesPage(
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
             ) {
-                Text("Start Bargain Chef", color = MaterialTheme.colorScheme.onSecondary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "Start Bargain Chef",
+                    color = MaterialTheme.colorScheme.onSecondary,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
     }

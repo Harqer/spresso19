@@ -1,8 +1,5 @@
 package components.features.grocery
 
-import components.features.grocery.toPriceString
-import components.models.*
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,7 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import components.features.grocery.toPriceString
+import components.models.*
 import network.models.GroceryItem
 
 @Composable
@@ -27,34 +24,45 @@ fun IngredientChecklistCard(
     onToggle: (String) -> Unit,
     onDelete: (String) -> Unit,
     onAskAI: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, if (item.checked) Color.Transparent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-        shadowElevation = if (item.checked) 0.dp else 1.dp
+        shadowElevation = if (item.checked) 0.dp else 1.dp,
     ) {
         Row(
             modifier = Modifier.padding(12.dp).alpha(if (item.checked) 0.5f else 1.0f),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             IconButton(onClick = { onToggle(item.id) }, modifier = Modifier.size(24.dp)) {
-                Icon(if (item.checked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked, null, tint = MaterialTheme.colorScheme.primary)
+                Icon(
+                    if (item.checked) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = item.name,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            textDecoration = if (item.checked) TextDecoration.LineThrough else null
-                        )
+                        style =
+                            MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                textDecoration = if (item.checked) TextDecoration.LineThrough else null,
+                            ),
                     )
                     Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(4.dp)) {
-                        Text(item.category, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                        Text(
+                            item.category,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                        )
                     }
                 }
                 if (item.storeNote != null) {
@@ -64,12 +72,27 @@ fun IngredientChecklistCard(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (!item.checked) {
                     IconButton(onClick = onAskAI, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
-                Text("$${(item.estimatedPrice * item.quantity).toPriceString()}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
+                Text(
+                    "$${(item.estimatedPrice * item.quantity).toPriceString()}",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 14.sp,
+                )
                 IconButton(onClick = { onDelete(item.id) }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.DeleteOutline, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.outlineVariant)
+                    Icon(
+                        Icons.Default.DeleteOutline,
+                        null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.outlineVariant,
+                    )
                 }
             }
         }

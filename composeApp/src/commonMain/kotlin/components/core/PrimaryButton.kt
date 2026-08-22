@@ -15,17 +15,18 @@ import theme.AppTheme
 fun PrimaryButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge
+            style = MaterialTheme.typography.labelLarge,
         )
     }
 }
@@ -36,7 +37,7 @@ fun PrimaryButtonPreview() {
     AppTheme {
         PrimaryButton(
             text = "Explore Catalog",
-            onClick = {}
+            onClick = { println("Preview Explore Catalog clicked") },
         )
     }
 }

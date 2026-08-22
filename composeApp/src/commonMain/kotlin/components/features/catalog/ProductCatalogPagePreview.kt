@@ -1,8 +1,7 @@
 package components.features.catalog
 
-import components.models.*
-
 import androidx.compose.runtime.Composable
+import components.models.*
 import io.ktor.client.HttpClient
 import network.ApiClient
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -17,7 +16,7 @@ fun ProductCatalogPagePreview() {
             httpClient = HttpClient(),
             onProductSelected = {},
             onTryOnRequested = {},
-            userLocation = "New York, NY"
+            userLocation = "New York, NY",
         )
     }
 }

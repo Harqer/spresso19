@@ -1,5 +1,9 @@
 package components.shared.elements
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -19,15 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.graphics.graphicsLayer
-import kotlinx.coroutines.launch
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import network.ApiClient
 
 enum class SpressoButtonVariant {
@@ -35,7 +35,7 @@ enum class SpressoButtonVariant {
     SECONDARY,
     OUTLINE,
     GHOST,
-    DANGER
+    DANGER,
 }
 
 @Composable
@@ -48,16 +48,16 @@ fun SpressoButton(
     enabled: Boolean = true,
     isLoading: Boolean = false,
     trackingId: String? = null,
-    trackingAction: String? = null
+    trackingAction: String? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val apiClient = remember { ApiClient() }
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    
+
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = tween(durationMillis = 150)
+        animationSpec = tween(durationMillis = 150),
     )
 
     val trackedOnClick = {
@@ -68,22 +68,26 @@ fun SpressoButton(
         }
         onClick()
     }
-    val buttonColors = when (variant) {
-        SpressoButtonVariant.PRIMARY -> ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
-        )
-        SpressoButtonVariant.SECONDARY -> ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-        )
-        SpressoButtonVariant.OUTLINE -> ButtonDefaults.outlinedButtonColors()
-        SpressoButtonVariant.GHOST -> ButtonDefaults.textButtonColors()
-        SpressoButtonVariant.DANGER -> ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.error,
-            contentColor = MaterialTheme.colorScheme.onError
-        )
-    }
+    val buttonColors =
+        when (variant) {
+            SpressoButtonVariant.PRIMARY ->
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                )
+            SpressoButtonVariant.SECONDARY ->
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            SpressoButtonVariant.OUTLINE -> ButtonDefaults.outlinedButtonColors()
+            SpressoButtonVariant.GHOST -> ButtonDefaults.textButtonColors()
+            SpressoButtonVariant.DANGER ->
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                )
+        }
 
     val shape = RoundedCornerShape(12.dp)
     val contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
@@ -92,18 +96,20 @@ fun SpressoButton(
         if (isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
-                color = if (variant == SpressoButtonVariant.OUTLINE || variant == SpressoButtonVariant.GHOST) 
-                            MaterialTheme.colorScheme.primary 
-                        else 
-                            MaterialTheme.colorScheme.onPrimary,
-                strokeWidth = 2.dp
+                color =
+                    if (variant == SpressoButtonVariant.OUTLINE || variant == SpressoButtonVariant.GHOST) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onPrimary
+                    },
+                strokeWidth = 2.dp,
             )
         } else {
             if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(20.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
@@ -115,37 +121,49 @@ fun SpressoButton(
         SpressoButtonVariant.OUTLINE -> {
             OutlinedButton(
                 onClick = trackedOnClick,
-                modifier = modifier.heightIn(min = 48.dp).graphicsLayer { scaleX = scale; scaleY = scale },
+                modifier =
+                    modifier.heightIn(min = 48.dp).graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    },
                 enabled = enabled && !isLoading,
                 shape = shape,
                 colors = buttonColors,
                 interactionSource = interactionSource,
                 contentPadding = contentPadding,
-                content = content
+                content = content,
             )
         }
         SpressoButtonVariant.GHOST -> {
             TextButton(
                 onClick = trackedOnClick,
-                modifier = modifier.heightIn(min = 48.dp).graphicsLayer { scaleX = scale; scaleY = scale },
+                modifier =
+                    modifier.heightIn(min = 48.dp).graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    },
                 enabled = enabled && !isLoading,
                 shape = shape,
                 colors = buttonColors,
                 interactionSource = interactionSource,
                 contentPadding = contentPadding,
-                content = content
+                content = content,
             )
         }
         else -> {
             Button(
                 onClick = trackedOnClick,
-                modifier = modifier.heightIn(min = 48.dp).graphicsLayer { scaleX = scale; scaleY = scale },
+                modifier =
+                    modifier.heightIn(min = 48.dp).graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    },
                 enabled = enabled && !isLoading,
                 shape = shape,
                 colors = buttonColors,
                 interactionSource = interactionSource,
                 contentPadding = contentPadding,
-                content = content
+                content = content,
             )
         }
     }

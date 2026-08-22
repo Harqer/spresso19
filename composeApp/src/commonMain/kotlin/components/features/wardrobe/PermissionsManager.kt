@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 
 interface PermissionsManager {
     fun checkGalleryPermission(): Boolean
+
     fun requestGalleryPermission(onResult: (Boolean) -> Unit)
 }
 

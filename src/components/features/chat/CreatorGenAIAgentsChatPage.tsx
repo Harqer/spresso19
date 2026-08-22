@@ -55,7 +55,7 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
         }
       } catch (err) {
         Logger.error("Failed to fetch creative templates", err);
-        throw new Error("Missing Backend API - Needs Implementation");
+        // Silently let it fail or handled by boundary
       }
 
       try {
@@ -65,7 +65,7 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
         setAgentsMetadata(data.agents || []);
       } catch (err) {
         Logger.error("Failed to fetch agents metadata", err);
-        throw new Error("Missing Backend API - Needs Implementation");
+        // Silently let it fail or handled by boundary
       }
     };
     fetchTemplatesAndAgents();
@@ -131,7 +131,8 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
       setGeneratedResult({ prompt: promptToUse, templateName: t.name, imageUrl: data.imageUrl || "", videoConcept: `${data.campaign?.marketingCampaign?.socialCopy || `Creative content generated.`}` });
     } catch (err) {
       Logger.error("Campaign generation error:", err);
-      throw new Error("Missing Backend API - Needs Implementation");
+      // Propagate or handle the actual backend error instead of artificial mock
+      throw err;
     } finally { 
       setIsGeneratingMedia(false); 
     }

@@ -20,21 +20,24 @@ object CameraCaptureActions {
         isFrontLens: Boolean,
         onShutter: () -> Unit,
         onImageCaptured: (ByteArray) -> Unit,
-        onComplete: () -> Unit
+        onComplete: () -> Unit,
     ) {
         onShutter()
         val tempFile = File.createTempFile("spresso_capture", ".jpg", context.cacheDir)
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(tempFile)
-            .setMetadata(ImageCapture.Metadata().apply { isReversedHorizontal = isFrontLens })
-            .build()
+        val outputOptions =
+            ImageCapture.OutputFileOptions
+                .Builder(tempFile)
+                .setMetadata(ImageCapture.Metadata().apply { isReversedHorizontal = isFrontLens })
+                .build()
 
         cameraController.takePicture(
-            outputOptions, cameraExecutor,
+            outputOptions,
+            cameraExecutor,
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                     val bytes = tempFile.readBytes()
                     tempFile.delete()
-                    ContextCompat.getMainExecutor(context).execute { 
+                    ContextCompat.getMainExecutor(context).execute {
                         onImageCaptured(bytes)
                         onComplete()
                     }
@@ -44,7 +47,7 @@ object CameraCaptureActions {
                     tempFile.delete()
                     ContextCompat.getMainExecutor(context).execute { onComplete() }
                 }
-            }
+            },
         )
     }
 
@@ -57,7 +60,7 @@ object CameraCaptureActions {
         hasAudioPermission: Boolean,
         onRecordingStarted: () -> Unit,
         onRecordingStopped: () -> Unit,
-        onVideoCaptured: (ByteArray) -> Unit
+        onVideoCaptured: (ByteArray) -> Unit,
     ): Recording? {
         if (isRecording) {
             activeRecording?.stop()
@@ -66,11 +69,11 @@ object CameraCaptureActions {
             val tempFile = File.createTempFile("spresso_video", ".mp4", context.cacheDir)
             val outputOptions = FileOutputOptions.Builder(tempFile).build()
             val audioConfig = AudioConfig.create(hasAudioPermission)
-            
+
             return cameraController.startRecording(
                 outputOptions,
                 audioConfig,
-                ContextCompat.getMainExecutor(context)
+                ContextCompat.getMainExecutor(context),
             ) { event ->
                 when (event) {
                     is VideoRecordEvent.Start -> {

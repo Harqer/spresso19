@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 @Composable
 fun ObjectDetectionOverlay(
     detectedObjects: List<com.google.mlkit.vision.objects.DetectedObject>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     Canvas(modifier = modifier.fillMaxSize()) {
@@ -23,7 +23,7 @@ fun ObjectDetectionOverlay(
                 topLeft = Offset(box.left.toFloat(), box.top.toFloat()),
                 size = Size(box.width().toFloat(), box.height().toFloat()),
                 style = Stroke(width = 6f),
-                alpha = 0.8f
+                alpha = 0.8f,
             )
         }
     }

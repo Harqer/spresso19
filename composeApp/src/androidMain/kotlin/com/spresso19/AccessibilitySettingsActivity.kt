@@ -34,7 +34,7 @@ class AccessibilitySettingsActivity : ComponentActivity() {
             AppTheme {
                 Column(
                     modifier = Modifier.fillMaxSize().padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Text("Spresso screen search", style = MaterialTheme.typography.headlineSmall)
                     Text(
@@ -43,7 +43,7 @@ class AccessibilitySettingsActivity : ComponentActivity() {
                         } else {
                             "Screen search consent is off. Spresso will not capture a screen."
                         },
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
                     )
                     if (hasConsent) {
                         TextButton(onClick = ::revokeConsent) {
@@ -63,7 +63,7 @@ class AccessibilitySettingsActivity : ComponentActivity() {
         hasConsent = false
         sendBroadcast(
             Intent(AccessibilityServiceCommands.ACTION_REVOKE_CONSENT)
-                .setPackage(packageName)
+                .setPackage(packageName),
         )
         Toast.makeText(this, "Screen search consent revoked", Toast.LENGTH_SHORT).show()
     }

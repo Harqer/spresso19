@@ -1,7 +1,5 @@
 package components.features.chat
 
-import components.models.*
-
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -12,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import components.models.*
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import theme.AppTheme
 
@@ -20,20 +19,24 @@ fun ChatSuggestionChip(
     label: String,
     onClick: (String) -> Unit,
     icon: ImageVector? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     AssistChip(
         onClick = { onClick(label) },
         label = { Text(label, style = MaterialTheme.typography.labelMedium) },
-        leadingIcon = if (icon != null) {
-            { Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp)) }
-        } else null,
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            leadingIconContentColor = MaterialTheme.colorScheme.primary
-        ),
-        modifier = modifier
+        leadingIcon =
+            if (icon != null) {
+                { Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp)) }
+            } else {
+                null
+            },
+        colors =
+            AssistChipDefaults.assistChipColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                leadingIconContentColor = MaterialTheme.colorScheme.primary,
+            ),
+        modifier = modifier,
     )
 }
 
@@ -43,7 +46,7 @@ fun ChatSuggestionChipPreview() {
     AppTheme {
         ChatSuggestionChip(
             label = "Summer Outfits",
-            onClick = { }
+            onClick = { println("Preview Summer Outfits clicked") },
         )
     }
 }

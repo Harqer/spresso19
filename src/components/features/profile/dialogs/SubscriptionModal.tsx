@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Logger from "../../../../lib/Logger";
 import { MaterialIcon } from "../../../MaterialIcon";
 import { auth } from "../../../../lib/firebase";
-import { updateUserSubscription } from "@firebasegen/spresso-connector";
+import { upsertUserSubscription } from "@firebasegen/spresso-connector";
 
 interface SubscriptionModalProps {
   onClose: () => void;
@@ -18,7 +18,7 @@ export function SubscriptionModal({ onClose, subscriptionTier, vipPrice, execPri
     try {
       const uid = auth.currentUser?.uid;
       if (!uid) throw new Error("User not authenticated.");
-      await updateUserSubscription({ id: uid, tier });
+      await upsertUserSubscription({ tier });
       onClose(); // Optional: close on success or handle state update
     } catch (err: any) {
       Logger.error("Failed to update subscription:", err);

@@ -13,21 +13,22 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SmartVisionScanningOverlay(modifier: Modifier = Modifier) {
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
-        contentAlignment = Alignment.Center
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
+        contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator(
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(48.dp),
             )
             Text(
                 "Scanning frame...",
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(top = 12.dp)
+                modifier = Modifier.padding(top = 12.dp),
             )
         }
     }

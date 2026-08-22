@@ -156,8 +156,7 @@ type PaymentMethod @table {
   createdAt: Timestamp! @default(expr: "request.time")
 }
 
-type UserSubscription @table {
-  id: UUID! @default(expr: "uuidV4()")
+type UserSubscription @table(key: "userId") {
   userId: String!
   tier: String @default(value: "VIP Member")
   status: String @default(value: "active")

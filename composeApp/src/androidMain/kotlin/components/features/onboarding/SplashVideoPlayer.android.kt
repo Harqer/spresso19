@@ -19,6 +19,6 @@ actual fun SplashVideoPlayer(modifier: Modifier) {
                     start()
                 }
             }
-        }
+        },
     )
 }

@@ -4,8 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.automirrored.outlined.AssignmentReturn
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,32 +24,40 @@ fun OrderRecordCard(
     apiClient: ApiClient,
     onSetReminder: (String) -> Unit,
     onInitiateReturn: (String) -> Unit,
-    onAskAI: (String) -> Unit
+    onAskAI: (String) -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 components.core.NetworkImage(
-                    url = order.items.firstOrNull()?.product?.imageUrl ?: "https://storage.googleapis.com/spresso-assets/default-product.png",
+                    url =
+                        order.items
+                            .firstOrNull()
+                            ?.product
+                            ?.imageUrl ?: "https://storage.googleapis.com/spresso-assets/default-product.png",
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
-                    client = apiClient.client
+                    client = apiClient.client,
                 )
                 Column {
                     Text("Order #${order.id.take(8)}", style = MaterialTheme.typography.titleMedium)
-                    Text("${order.status} • ${order.trackingStatus ?: "In Transit"}\nEst: ${order.estimatedDelivery ?: "Today"} • Total: $${order.totalAmount.toPriceString()}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "${order.status} • ${order.trackingStatus ?: "In Transit"}\nEst: ${order.estimatedDelivery ?: "Today"} • Total: $${order.totalAmount.toPriceString()}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
             FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp), 
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 itemVerticalAlignment = Alignment.Top,
-                overflow = androidx.compose.foundation.layout.FlowRowOverflow.Visible
+                overflow = androidx.compose.foundation.layout.FlowRowOverflow.Visible,
             ) {
                 SpressoButton(
                     text = "Reminder",
@@ -57,7 +65,7 @@ fun OrderRecordCard(
                     onClick = { onSetReminder(order.id) },
                     variant = SpressoButtonVariant.GHOST,
                     trackingId = "order_reminder_${order.id}",
-                    trackingAction = "click"
+                    trackingAction = "click",
                 )
                 SpressoButton(
                     text = "Return",
@@ -65,7 +73,7 @@ fun OrderRecordCard(
                     onClick = { onInitiateReturn(order.id) },
                     variant = SpressoButtonVariant.GHOST,
                     trackingId = "order_return_${order.id}",
-                    trackingAction = "click"
+                    trackingAction = "click",
                 )
                 SpressoButton(
                     text = "Ask AI",
@@ -73,7 +81,7 @@ fun OrderRecordCard(
                     onClick = { onAskAI("Where is order ${order.id}?") },
                     variant = SpressoButtonVariant.GHOST,
                     trackingId = "order_ask_ai_${order.id}",
-                    trackingAction = "click"
+                    trackingAction = "click",
                 )
             }
         }

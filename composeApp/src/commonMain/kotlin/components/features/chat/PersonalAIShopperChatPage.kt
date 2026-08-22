@@ -1,20 +1,14 @@
 package components.features.chat
 
-import components.models.*
-
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import components.features.chat.PersonalAIShopperChatPanel
-import viewmodels.ChatViewModel
-import kotlinx.coroutines.launch
-import network.ChatMessage
+import components.models.*
 import network.ProductItem
+import viewmodels.ChatViewModel
 
 @Composable
 fun PersonalAIShopperChatPage(
@@ -41,7 +35,7 @@ fun PersonalAIShopperChatPage(
     initialPrompt: String? = null,
     initialImage: String? = null,
     apiClient: network.ApiClient = remember { network.ApiClient() },
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val messages = chatViewModel.messages
     val isGenerating = chatViewModel.isGenerating
@@ -53,7 +47,6 @@ fun PersonalAIShopperChatPage(
             chatViewModel.sendMessage(prompt = initialPrompt, location = userLocation, agentType = "SHOPPING_CONCIERGE")
         }
     }
-
 
     if (showAccessibilityDisclosure) {
         var acknowledged by remember(showAccessibilityDisclosure) { mutableStateOf(false) }
@@ -69,24 +62,24 @@ fun PersonalAIShopperChatPage(
                     }
                 }
             },
-            confirmButton = { 
+            confirmButton = {
                 components.shared.elements.SpressoButton(
                     text = "I understand",
-                    enabled = acknowledged && onAccessibilityConsentAccepted != null, 
+                    enabled = acknowledged && onAccessibilityConsentAccepted != null,
                     onClick = { onAccessibilityConsentAccepted?.invoke() },
                     trackingId = "chat_accessibility_consent",
-                    trackingAction = "accept"
-                ) 
+                    trackingAction = "accept",
+                )
             },
-            dismissButton = { 
+            dismissButton = {
                 components.shared.elements.SpressoButton(
                     text = "Decline",
                     variant = components.shared.elements.SpressoButtonVariant.GHOST,
                     onClick = { onDismissAccessibilityDisclosure?.invoke() },
                     trackingId = "chat_accessibility_consent",
-                    trackingAction = "decline"
-                ) 
-            }
+                    trackingAction = "decline",
+                )
+            },
         )
     }
 
@@ -114,11 +107,11 @@ fun PersonalAIShopperChatPage(
             isGenerating = isGenerating,
             httpClient = apiClient.client,
             apiClient = apiClient,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .consumeWindowInsets(innerPadding)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding),
         )
     }
 }
-

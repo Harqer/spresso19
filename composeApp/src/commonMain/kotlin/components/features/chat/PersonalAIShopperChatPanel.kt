@@ -1,50 +1,30 @@
 package components.features.chat
 
-import components.models.*
-
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import components.features.chat.ChatBubbleText
-import components.features.chat.AIShopperInputBar
-import components.features.chat.ChatEmptyStateCard
-import components.features.chat.ChatMessageHeader
-import components.features.chat.ChatProductCard
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import components.models.*
 import network.ChatMessage
 import network.ProductItem
 
@@ -72,7 +52,7 @@ fun PersonalAIShopperChatPanel(
     isGenerating: Boolean = false,
     httpClient: io.ktor.client.HttpClient? = null,
     apiClient: network.ApiClient? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
 
@@ -82,18 +62,26 @@ fun PersonalAIShopperChatPanel(
 
     Column(
         modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         LazyColumn(
             state = listState,
-            modifier = Modifier
-                .weight(1f)
-                .widthIn(max = 840.dp)
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .widthIn(max = 840.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            item { ChatEmptyStateCard(userName = userName, userLocation = userLocation, onSelectSuggestion = onSendMessage, modifier = Modifier.padding(top = 24.dp)) }
+            item {
+                ChatEmptyStateCard(
+                    userName = userName,
+                    userLocation = userLocation,
+                    onSelectSuggestion = onSendMessage,
+                    modifier = Modifier.padding(top = 24.dp),
+                )
+            }
             items(messages) { message ->
                 components.features.chat.widgets.ChatMessageItem(
                     message = message,
@@ -102,7 +90,7 @@ fun PersonalAIShopperChatPanel(
                     onAddToCart = onAddToCart,
                     onSelectTryOn = onSelectTryOn,
                     httpClient = httpClient,
-                    apiClient = apiClient
+                    apiClient = apiClient,
                 )
             }
             item { Spacer(modifier = Modifier.height(24.dp)) }
@@ -114,12 +102,12 @@ fun PersonalAIShopperChatPanel(
                     text = errorMessage,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surfaceContainerLow
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
             ) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                     AIShopperInputBar(
@@ -132,15 +120,15 @@ fun PersonalAIShopperChatPanel(
                         onToggleVoice = onToggleVoiceRecording,
                         onStopVoice = onStopVoice,
                         isTyping = isGenerating,
-                        modifier = Modifier
-                            .widthIn(max = 840.dp)
-                            .padding(16.dp)
-                            .navigationBarsPadding()
-                            .imePadding()
+                        modifier =
+                            Modifier
+                                .widthIn(max = 840.dp)
+                                .padding(16.dp)
+                                .navigationBarsPadding()
+                                .imePadding(),
                     )
                 }
             }
         }
     }
 }
-

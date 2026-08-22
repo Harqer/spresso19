@@ -23,7 +23,7 @@ fun SmartVisionViewport(
     apiClient: ApiClient,
     onSelectProduct: (String) -> Unit,
     onHitlCheckout: (HITLPayload) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     if (activeImage == null) return
 
@@ -33,9 +33,10 @@ fun SmartVisionViewport(
             bitmap = activeImageBitmap,
             contentDescription = "Camera Stream",
             contentScale = ContentScale.Crop,
-            modifier = modifier
-                .fillMaxSize()
-                .then(if (isScanning) Modifier.blur(1.dp) else Modifier)
+            modifier =
+                modifier
+                    .fillMaxSize()
+                    .then(if (isScanning) Modifier.blur(1.dp) else Modifier),
         )
     }
 
@@ -54,7 +55,7 @@ fun SmartVisionViewport(
                     height = height,
                     apiClient = apiClient,
                     onSelectProduct = onSelectProduct,
-                    onHitlCheckout = onHitlCheckout
+                    onHitlCheckout = onHitlCheckout,
                 )
             }
         }

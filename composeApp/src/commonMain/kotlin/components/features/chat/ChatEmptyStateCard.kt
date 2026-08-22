@@ -1,13 +1,6 @@
 package components.features.chat
 
-import components.models.*
-import components.features.chat.cards.DiscoveryCard
-
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -15,16 +8,14 @@ import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
-import network.ApiClient
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import components.features.chat.cards.DiscoveryCard
+import components.models.*
 import utils.GreetingManager
 
 @Composable
@@ -32,7 +23,7 @@ fun ChatEmptyStateCard(
     userName: String? = null,
     userLocation: String? = null,
     onSelectSuggestion: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val greetingHeader = GreetingManager.getGreeting(userName)
     val locationContext = if (userLocation != null) " near $userLocation" else ""
@@ -40,7 +31,7 @@ fun ChatEmptyStateCard(
     Column(
         modifier = modifier.fillMaxWidth().padding(vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         Text(
             text = greetingHeader,
@@ -48,12 +39,12 @@ fun ChatEmptyStateCard(
             fontFamily = FontFamily.Serif,
             fontWeight = FontWeight.Normal,
             color = MaterialTheme.colorScheme.onSurface,
-            letterSpacing = (-0.5).sp
+            letterSpacing = (-0.5).sp,
         )
 
         Column(
             modifier = Modifier.widthIn(max = 672.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 DiscoveryCard(
@@ -66,7 +57,7 @@ fun ChatEmptyStateCard(
                     onClick = onSelectSuggestion,
                     modifier = Modifier.weight(1f),
                     trackingId = "hot_drop",
-                    trackingAction = "click_suggestion"
+                    trackingAction = "click_suggestion",
                 )
                 DiscoveryCard(
                     id = "sale_20",
@@ -78,7 +69,7 @@ fun ChatEmptyStateCard(
                     onClick = onSelectSuggestion,
                     modifier = Modifier.weight(1f),
                     trackingId = "sale_20",
-                    trackingAction = "click_suggestion"
+                    trackingAction = "click_suggestion",
                 )
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -92,7 +83,7 @@ fun ChatEmptyStateCard(
                     onClick = onSelectSuggestion,
                     modifier = Modifier.weight(1f),
                     trackingId = "market_steals",
-                    trackingAction = "click_suggestion"
+                    trackingAction = "click_suggestion",
                 )
                 DiscoveryCard(
                     id = "trending",
@@ -104,10 +95,9 @@ fun ChatEmptyStateCard(
                     onClick = onSelectSuggestion,
                     modifier = Modifier.weight(1f),
                     trackingId = "trending",
-                    trackingAction = "click_suggestion"
+                    trackingAction = "click_suggestion",
                 )
             }
         }
     }
 }
-
