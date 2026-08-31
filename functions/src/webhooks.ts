@@ -1,101 +1,59 @@
-import { onRequest } from 'firebase-functions/v2/https';
-import { defineSecret } from 'firebase-functions/params';
-import Stripe from 'stripe';
-import { executeKitesurfPurchase } from './kitesurfService';
+import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
+import Stripe from "stripe";
+import { z } from "zod";
 
-const stripeSecretKey = defineSecret('STRIPE_SECRET_KEY');
-const stripeWebhookSecret = defineSecret('STRIPE_WEBHOOK_SECRET');
+const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
+const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 
-export const stripeWebhook = onRequest({ secrets: [stripeSecretKey, stripeWebhookSecret] }, async (req, res) => {
-  const stripe = new Stripe(stripeSecretKey.value(), {
-    apiVersion: '2025-01-27.acacia' as any
-  });
+const MerchantHandoffSchema = z.object({
+  listingId: z.string().min(1).max(256).optional(),
+  quantity: z.number().int().positive().max(25).optional(),
+  idempotencyKey: z.string().uuid().optional(),
+}).strict();
 
-  const sig = req.headers['stripe-signature'];
-  if (!sig) {
-    res.status(400).send('Missing signature');
-    return;
-  }
-
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(
-      req.rawBody,
-      sig as string,
-      stripeWebhookSecret.value()
+export const createCheckoutIntent = onCall(
+  { enforceAppCheck: true },
+  async (request) => {
+    if (!request.auth || request.auth.token.firebase?.sign_in_provider === "anonymous") {
+      throw new HttpsError("unauthenticated", "You must be signed in to checkout.");
+    }
+    if (!MerchantHandoffSchema.safeParse(request.data).success) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Merchant checkout does not accept client prices, currency, merchant URLs, or payment amounts.",
+      );
+    }
+    throw new HttpsError(
+      "failed-precondition",
+      "Complete checkout on the merchant site. Spresso does not create merchant payment intents.",
     );
-  } catch (err: any) {
-    console.error('Webhook signature verification failed.', err.message);
-    res.status(400).send(`Webhook Error: ${err.message}`);
-    return;
-  }
+  },
+);
 
-  if (event.type === 'payment_intent.succeeded') {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    const { productId, shippingAddress, merchantUrl, userApprovedPaywall, biometricAuthorized } = paymentIntent.metadata || {};
-    
-    // Autonomous Kitesurf Trigger
-    if (productId) {
-      try {
-        const kResult = await executeKitesurfPurchase(
-          productId, 
-          shippingAddress || "",
-          paymentIntent.id,
-          merchantUrl || undefined,
-          userApprovedPaywall === 'true',
-          biometricAuthorized === 'true'
-        );
-        console.log("Kitesurf purchase triggered via webhook", kResult);
-      } catch(err) {
-        console.error("Failed to execute kitesurf on webhook:", err);
-      }
+// No merchant payment operation is approved while checkout remains
+// user-completed. Verify Stripe signatures so invalid calls fail closed, then
+// acknowledge the event without creating orders or financial references.
+export const stripeWebhook = onRequest(
+  { secrets: [stripeSecretKey, stripeWebhookSecret] },
+  async (request, response) => {
+    const signature = request.headers["stripe-signature"];
+    if (typeof signature !== "string") {
+      response.status(400).send("Missing signature");
+      return;
     }
-  }
 
-  res.send();
-});
-
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
-
-export const createStripeIntent = onCall({ secrets: [stripeSecretKey] }, async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "You must be signed in to checkout.");
-  }
-
-  const { productId, quantity = 1, shippingAddress, merchantUrl, userApprovedPaywall = false, biometricAuthorized = false } = request.data || {};
-  if (!productId) {
-    throw new HttpsError("invalid-argument", "Missing productId");
-  }
-
-  try {
-    const { db } = await import('./shared/db');
-    const productDoc = await db.collection('products').doc(productId).get();
-    if (!productDoc.exists) {
-        throw new HttpsError('not-found', 'Product not found');
+    try {
+      const stripe = new Stripe(stripeSecretKey.value(), {
+        apiVersion: "2025-01-27.acacia" as any,
+      });
+      stripe.webhooks.constructEvent(request.rawBody, signature, stripeWebhookSecret.value());
+    } catch (error: any) {
+      console.error("Stripe webhook signature verification failed.", { error: error?.message });
+      response.status(400).send("Invalid signature");
+      return;
     }
-    const product = productDoc.data();
-    const amount = Math.round((product?.price || 0) * 100 * quantity);
 
-    const stripe = new Stripe(stripeSecretKey.value(), {
-      apiVersion: '2025-01-27.acacia' as any
-    });
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount,
-      currency: 'usd',
-      metadata: {
-        productId,
-        quantity: quantity.toString(),
-        shippingAddress,
-        merchantUrl,
-        userApprovedPaywall: userApprovedPaywall.toString(),
-        biometricAuthorized: biometricAuthorized.toString()
-      }
-    });
-
-    return { clientSecret: paymentIntent.client_secret };
-  } catch (err: any) {
-    console.error("Failed to create stripe intent:", err);
-    throw new HttpsError("internal", "Failed to create secure checkout session.");
-  }
-});
+    response.status(200).send("Ignored: merchant checkout is user-completed");
+  },
+);
