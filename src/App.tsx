@@ -21,7 +21,8 @@ import { doc, setDoc } from "firebase/firestore";
 import { MainAppPage } from "./components/shared/MainAppPage";
 const AppModalManager = lazy(() => import("./routes/ModalManagerRoute"));
 const ProfilePage = lazy(() => import("./routes/ProfileRoute"));
-import { createCartListingSnapshot, DiscoveryRepository, firebaseDiscoveryCallable } from "./lib/discoveryRepository";
+import { DiscoveryRepository, firebaseDiscoveryCallable } from "./lib/discoveryRepository";
+import { createCartItem, withCartQuantity } from "./lib/cartState";
 import { assertCartPersistence, requestMerchantCheckout } from "./lib/merchantCheckout";
 
 export default function App() {
@@ -156,14 +157,14 @@ export default function App() {
       Logger.warn("Ignoring cart request without a verified merchant listing.");
       return;
     }
-    const newCart = [...cart];
-    const existingIndex = newCart.findIndex(item => item.product.id === product.id);
-    if (existingIndex >= 0) {
-      newCart[existingIndex] = { ...newCart[existingIndex], quantity: newCart[existingIndex].quantity + quantity };
-    } else {
-      newCart.push({ product, listing: createCartListingSnapshot(product.listing, quantity), quantity });
-    }
     try {
+      const newCart = [...cart];
+      const existingIndex = newCart.findIndex(item => item.product.id === product.id);
+      if (existingIndex >= 0) {
+        newCart[existingIndex] = withCartQuantity(newCart[existingIndex], newCart[existingIndex].quantity + quantity);
+      } else {
+        newCart.push(createCartItem(product, quantity));
+      }
       if (user) {
         const response = await authFetch("/api/cart", {
           method: "POST",
@@ -208,7 +209,7 @@ export default function App() {
     const newCart = cart.map(item => {
       if (item.product.id === productId) {
         const newQty = item.quantity + delta;
-        return newQty > 0 ? { ...item, quantity: newQty } : null;
+        return newQty > 0 ? withCartQuantity(item, newQty) : null;
       }
       return item;
     }).filter(Boolean) as CartItem[];
