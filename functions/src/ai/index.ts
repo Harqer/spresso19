@@ -101,10 +101,17 @@ export const analyzeUserBehavior = onCall({ enforceAppCheck: true, secrets: [gem
 
 export const discoverPersonalizedProducts = onCall({ enforceAppCheck: true, secrets: [geminiApiKey, parallelApiKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
+    const configuredParallelApiKey = parallelApiKey.value();
+    if (!configuredParallelApiKey) {
+        throw new HttpsError(
+            "failed-precondition",
+            "Product discovery is unavailable because PARALLEL_API_KEY is not configured for this environment.",
+        );
+    }
     try {
         const queries = Array.isArray(request.data?.searchQueries) ? request.data.searchQueries.filter((q: unknown): q is string => typeof q === "string" && Boolean(q.trim())).slice(0, 3) : [];
         if (queries.length === 0) throw new HttpsError("invalid-argument", "At least one search query is required.");
-        const parallel = new Parallel({ apiKey: parallelApiKey.value() });
+        const parallel = new Parallel({ apiKey: configuredParallelApiKey });
         const research = await parallel.search({
             objective: `Find current merchant product listings for ${queries.join(", ")}. Return listing pages with title, merchant, price when shown, image when shown, and direct product URL. Do not claim inventory or availability.`,
             search_queries: queries,

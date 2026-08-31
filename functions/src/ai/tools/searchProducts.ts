@@ -39,7 +39,9 @@ export const searchProductsTool = ai.defineTool(
       const { value } = await withCache("productSearch", { searchQuery }, async () => {
         await consumeBudget(uid, "search");
         const apiKey = serpapiKey.value();
-        if (!apiKey) throw new Error("Missing SERPAPI_API_KEY configuration.");
+        if (!apiKey) {
+          throw new Error("DISCOVERY_INFRASTRUCTURE_UNAVAILABLE: SERPAPI_API_KEY is not configured for this environment.");
+        }
         const url = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(searchQuery)}&api_key=${apiKey}`;
         const response = await fetch(url);
         if (!response.ok) throw new Error(`SerpApi responded with status: ${response.status}`);
