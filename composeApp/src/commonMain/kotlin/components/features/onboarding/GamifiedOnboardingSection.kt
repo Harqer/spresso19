@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.Recommend
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,8 +18,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import components.features.auth.PasskeyRegistrationResult
 import components.models.*
-import kotlinx.coroutines.launch
 
 /**
  * GamifiedOnboardingSection (78 lines).
@@ -33,15 +32,13 @@ fun GamifiedOnboardingSection(
     tryOnTested: Boolean,
     cardSaved: Boolean,
     wardrobeSynced: Boolean,
-    passkeyRegistered: Boolean,
     onTestTryOn: () -> Unit,
     onSaveCard: () -> Unit,
     onSyncWardrobe: () -> Unit,
-    onRegisterPasskey: () -> Unit,
+    onRegisterPasskey: suspend () -> PasskeyRegistrationResult,
     onSelectInterests: (List<String>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     var isInterestsCompleted by remember { mutableStateOf(false) }
     var selectedInterests by remember { mutableStateOf<List<String>>(emptyList()) }
 
@@ -54,7 +51,7 @@ fun GamifiedOnboardingSection(
             enter = fadeIn(),
             exit = fadeOut(),
         ) {
-            OnboardingXpBadge(
+            OnboardingProgressHeader(
                 currentStep = currentStep,
                 totalSteps = 5,
                 totalXp = totalXp,
@@ -69,38 +66,37 @@ fun GamifiedOnboardingSection(
             when (targetStep) {
                 1 ->
                     OnboardingStepCard(
-                        title = "Virtual Try-On Quest",
-                        description = "Visualize garments & 3D outfits on your custom AR avatar before buying.",
+                        title = "Virtual try-on",
+                        description = "See how a product looks before buying.",
                         icon = Icons.Default.AccessibilityNew,
                         isCompleted = tryOnTested,
-                        actionText = if (tryOnTested) "Try-On Verified (+150 XP)" else "Launch Virtual Try-On",
+                        actionText = "Try it on",
                         onActionClick = onTestTryOn,
                     )
 
                 2 ->
                     OnboardingStepCard(
-                        title = "Fast Checkout & Wallet Quest",
-                        description = "Add credit card or link Google Wallet for 1-tap fast checkouts.",
+                        title = "Payment options",
+                        description = "Choose a payment method for checkout.",
                         icon = Icons.Default.CreditCard,
                         isCompleted = cardSaved,
-                        actionText = if (cardSaved) "Payment Method Saved (+150 XP)" else "Save Payment Wallet",
+                        actionText = "Open payment options",
                         onActionClick = onSaveCard,
                     )
 
                 3 ->
                     OnboardingStepCard(
-                        title = "Wardrobe & Gallery Quest",
-                        description = "Connect photo gallery to auto-sync closet items & match styles.",
+                        title = "Wardrobe",
+                        description = "Add a photo to your wardrobe for styling and try-on.",
                         icon = Icons.Default.PhotoLibrary,
                         isCompleted = wardrobeSynced,
-                        actionText = if (wardrobeSynced) "Photo Gallery Synced (+150 XP)" else "Connect Photo Gallery",
+                        actionText = "Add wardrobe photo",
                         onActionClick = onSyncWardrobe,
                     )
 
                 4 ->
                     components.features.auth.PasskeyRegistrationStep(
-                        isCompleted = passkeyRegistered,
-                        onPasskeyRegistered = onRegisterPasskey,
+                        onRegistrationRequested = onRegisterPasskey,
                     )
 
                 5 -> {
@@ -129,26 +125,7 @@ fun GamifiedOnboardingSection(
                     )
                 }
 
-                else -> {
-                    val scope = androidx.compose.runtime.rememberCoroutineScope()
-                    OnboardingStepCard(
-                        title = "Spresso VIP Activation",
-                        description = "Your Genkit-powered AI Personal Shopper is now activated and ready to hunt down the best exclusive deals.",
-                        icon = Icons.Default.Recommend,
-                        isCompleted = true,
-                        actionText = if (errorMessage != null) errorMessage!! else "Claim SPRESSO10 VIP Pass",
-                        onActionClick = {
-                            scope.launch {
-                                try {
-                                    network.SpressoBackend.updateOnboardingStatus(currentStep = 5, isCompleted = true)
-                                } catch (e: Exception) {
-                                    errorMessage = "Failed to claim VIP pass. Please try again."
-                                    network.Telemetry.recordError("Failed to claim VIP pass", e)
-                                }
-                            }
-                        },
-                    )
-                }
+                else -> Unit
             }
         }
     }

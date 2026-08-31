@@ -1,61 +1,90 @@
 package components.features.auth
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import components.features.onboarding.OnboardingStepCard
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import network.ApiClient
-import network.Telemetry
+import androidx.compose.runtime.rememberCoroutineScope
+
+sealed interface PasskeyRegistrationRequest {
+    data class Ready(
+        val requestJson: String,
+        val completeRegistration: suspend (registrationResponseJson: String) -> PasskeyRegistrationResult,
+    ) : PasskeyRegistrationRequest
+
+    data object BackendUnavailable : PasskeyRegistrationRequest
+}
+
+sealed interface PasskeyRegistrationResult {
+    data object Registered : PasskeyRegistrationResult
+
+    data object Cancelled : PasskeyRegistrationResult
+
+    data object BackendUnavailable : PasskeyRegistrationResult
+
+    data class BackendFailure(
+        val message: String = "Passkey setup could not be completed. Try again later.",
+    ) : PasskeyRegistrationResult
+
+    data class ProviderFailure(
+        val message: String = "Passkey setup is unavailable on this device. Try again after checking your device credential settings.",
+    ) : PasskeyRegistrationResult
+}
+
+data class PasskeyRegistrationState(
+    val isRegistering: Boolean = false,
+    val isCompleted: Boolean = false,
+    val message: String? = null,
+) {
+    fun begin(): PasskeyRegistrationState = copy(isRegistering = true, message = null)
+
+    fun after(result: PasskeyRegistrationResult): PasskeyRegistrationState =
+        when (result) {
+            PasskeyRegistrationResult.Registered -> copy(isRegistering = false, isCompleted = true, message = null)
+            PasskeyRegistrationResult.Cancelled -> copy(isRegistering = false, message = "Passkey setup was canceled.")
+            PasskeyRegistrationResult.BackendUnavailable ->
+                copy(
+                    isRegistering = false,
+                    message = "Passkey setup is unavailable until secure registration is available.",
+                )
+            is PasskeyRegistrationResult.BackendFailure -> copy(isRegistering = false, message = result.message)
+            is PasskeyRegistrationResult.ProviderFailure -> copy(isRegistering = false, message = result.message)
+        }
+}
 
 @Composable
 fun PasskeyRegistrationStep(
-    isCompleted: Boolean,
-    onPasskeyRegistered: () -> Unit,
-    modifier: Modifier = Modifier,
+    onRegistrationRequested: suspend () -> PasskeyRegistrationResult,
 ) {
     val scope = rememberCoroutineScope()
-    var isRegistering by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    val passkeyRegistrar = rememberPasskeyRegistrar()
+    var state by remember { mutableStateOf(PasskeyRegistrationState()) }
 
-    OnboardingStepCard(
-        title = "Secure with Passkey",
-        description = "Highly Recommended: Register a Passkey for seamless, passwordless login.",
-        icon = Icons.Default.Lock,
-        isCompleted = isCompleted,
-        actionText =
-            if (isCompleted) {
-                "Passkey Registered (+150 XP)"
-            } else if (isRegistering) {
-                "Registering..."
-            } else if (errorMessage !=
-                null
-            ) {
-                "Retry Registration"
-            } else {
-                "Register Passkey"
-            },
-        onActionClick = {
-            if (!isCompleted && !isRegistering) {
-                isRegistering = true
-                errorMessage = null
-                scope.launch {
-                    try {
-                        val (credId, pubKey) = passkeyRegistrar.registerPasskey()
-                        val apiClient = ApiClient()
-                        apiClient.registerPasskey(credId, pubKey)
-                        onPasskeyRegistered()
-                    } catch (e: Exception) {
-                        errorMessage = "Registration failed"
-                        Telemetry.recordError("Failed to register passkey", e)
-                    } finally {
-                        isRegistering = false
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(if (state.isCompleted) "Passkey ready" else "Passkey setup")
+        Text("Use your device credential to protect checkout.")
+        if (!state.isCompleted) {
+            Button(
+                enabled = !state.isRegistering,
+                onClick = {
+                    scope.launch {
+                        state = state.begin()
+                        val result =
+                            runCatching { onRegistrationRequested() }
+                                .getOrElse { PasskeyRegistrationResult.BackendFailure() }
+                        state = state.after(result)
                     }
-                }
+                },
+            ) {
+                Text(if (state.isRegistering) "Setting up passkey" else "Set up passkey")
             }
-        },
-        modifier = modifier,
-    )
+        }
+        state.message?.let(::Text)
+    }
 }

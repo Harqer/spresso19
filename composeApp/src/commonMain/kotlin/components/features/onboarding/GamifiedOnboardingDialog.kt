@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import components.features.auth.PasskeyRegistrationResult
 import components.models.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.jsonArray
@@ -25,16 +26,16 @@ fun GamifiedOnboardingDialog(
     isOpen: Boolean,
     onDismiss: () -> Unit,
     onComplete: () -> Unit,
+    onLaunchVirtualTryOn: () -> Unit,
+    onOpenPaymentWallet: () -> Unit,
+    onOpenWardrobe: () -> Unit,
+    onRegisterPasskey: suspend () -> PasskeyRegistrationResult = { PasskeyRegistrationResult.BackendUnavailable },
 ) {
     if (!isOpen) return
 
     val scope = rememberCoroutineScope()
     var currentStep by remember { mutableStateOf(1) }
-    var totalXp by remember { mutableStateOf(100) }
-    var tryOnTested by remember { mutableStateOf(false) }
-    var cardSaved by remember { mutableStateOf(false) }
-    var wardrobeSynced by remember { mutableStateOf(false) }
-    var passkeyRegistered by remember { mutableStateOf(false) }
+    var totalXp by remember { mutableStateOf(0) }
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
@@ -52,26 +53,19 @@ fun GamifiedOnboardingDialog(
                 GamifiedOnboardingSection(
                     currentStep = currentStep,
                     totalXp = totalXp,
-                    tryOnTested = tryOnTested,
-                    cardSaved = cardSaved,
-                    wardrobeSynced = wardrobeSynced,
-                    passkeyRegistered = passkeyRegistered,
+                    tryOnTested = false,
+                    cardSaved = false,
+                    wardrobeSynced = false,
                     onTestTryOn = {
-                        tryOnTested = true
-                        totalXp += 150
+                        onLaunchVirtualTryOn()
                     },
                     onSaveCard = {
-                        cardSaved = true
-                        totalXp += 150
+                        onOpenPaymentWallet()
                     },
                     onSyncWardrobe = {
-                        wardrobeSynced = true
-                        totalXp += 150
+                        onOpenWardrobe()
                     },
-                    onRegisterPasskey = {
-                        passkeyRegistered = true
-                        totalXp += 150
-                    },
+                    onRegisterPasskey = onRegisterPasskey,
                     onSelectInterests = { interests ->
                         totalXp += 150
                         scope.launch {
@@ -98,9 +92,9 @@ fun GamifiedOnboardingDialog(
                                     // Seed the PyTorch ranking engine's Thompson Sampling Bandit with their choices
                                     apiClient.initializeOnboarding(uid, interests)
 
-                                    println("Analyzed & Persisted behavior for UID $uid: $behaviorResult")
+                                    network.Telemetry.recordInfo("Analyzed and persisted behavior for UID $uid")
                                 } else {
-                                    println("User is not signed in. Skipping profile update.")
+                                    network.Telemetry.recordInfo("User is not signed in. Skipping profile update.")
                                 }
                                 apiClient.close()
                             } catch (e: Exception) {
@@ -125,7 +119,7 @@ fun GamifiedOnboardingDialog(
                         Spacer(modifier = Modifier.width(1.dp))
                     }
 
-                    if (currentStep < 6) {
+                    if (currentStep < 5) {
                         Button(
                             onClick = {
                                 currentStep += 1
@@ -136,16 +130,8 @@ fun GamifiedOnboardingDialog(
                             Text("Continue", color = MaterialTheme.colorScheme.onPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     } else {
-                        Button(
-                            onClick = onComplete,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
-                        ) {
-                            Text(
-                                "Explore Spresso",
-                                color = MaterialTheme.colorScheme.onTertiary,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Black,
-                            )
+                        Button(onClick = onComplete) {
+                            Text("Continue", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
