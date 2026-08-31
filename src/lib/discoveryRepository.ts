@@ -28,7 +28,7 @@ export type DiscoveryCallableRequest = {
   searchQueries: string[];
 };
 
-export type DiscoveryCallableResponse = { items: CallableListing[] };
+export type DiscoveryCallableResponse = { listings?: CallableListing[]; items?: CallableListing[] };
 export type DiscoveryCallable = (
   request: DiscoveryCallableRequest,
   signal: AbortSignal,
@@ -178,7 +178,7 @@ export class DiscoveryRepository {
   private async run(request: Required<DiscoveryRequest>, key: string, controller: AbortController): Promise<DiscoveredListing[]> {
     await waitFor(this.debounceMs, controller.signal);
     const response = await abortable(this.discover({ searchQueries: [request.query] }, controller.signal), controller.signal);
-    const listings = response.items
+    const listings = (response.listings || response.items || [])
       .map(item => this.normalizeListing(item))
       .filter((listing): listing is DiscoveredListing => Boolean(listing));
     const canonicalListings = listings.map(listing => this.upsertListing(listing));
@@ -284,6 +284,6 @@ export const firebaseDiscoveryCallable: DiscoveryCallable = async (request, sign
   const body = await response.json();
   if (!response.ok) throw new Error(body?.error?.message || "Discovery is unavailable.");
   const result = body?.result;
-  if (!result || !Array.isArray(result.items)) throw new Error("Discovery returned an invalid listing response.");
-  return { items: result.items };
+  if (!result || (!Array.isArray(result.listings) && !Array.isArray(result.items))) throw new Error("Discovery returned an invalid listing response.");
+  return { listings: Array.isArray(result.listings) ? result.listings : undefined, items: Array.isArray(result.items) ? result.items : undefined };
 };

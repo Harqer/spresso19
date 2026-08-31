@@ -16,6 +16,7 @@ export const discoverPersonalizedProductsFlow = ai.defineFlow(
       providerListings: z.array(DiscoveredListingSchema).optional(),
     }),
     outputSchema: z.object({
+      listings: z.array(DiscoveredListingSchema),
       items: z.array(
         z.object({
           id: z.string(),
@@ -23,6 +24,7 @@ export const discoverPersonalizedProductsFlow = ai.defineFlow(
           brand: z.string().optional(),
           category: z.string().optional(),
           price: z.number().nullable(),
+          currency: z.string().optional(),
           imageUrl: z.string().url().optional(),
           merchantUrl: z.string().url(),
           source: z.string(),
@@ -36,7 +38,7 @@ export const discoverPersonalizedProductsFlow = ai.defineFlow(
       const { value } = await withCache("productResearch", { searchQueries }, async () => {
         if (requesterUid) await consumeBudget(requesterUid, "search");
         const validatedListings = providerListings || [];
-        if (validatedListings.length === 0) return { items: [] };
+        if (validatedListings.length === 0) return { listings: [], items: [] };
         const { GoogleGenAI } = await import("@google/genai");
         const client = new GoogleGenAI({ apiKey: geminiApiKey.value() });
         const response = await client.interactions.create({
@@ -52,12 +54,14 @@ export const discoverPersonalizedProductsFlow = ai.defineFlow(
         }
         const rankedListings = assertModelListingProvenance(modelOutput, validatedListings);
         return {
+          listings: rankedListings,
           items: rankedListings.map(listing => ({
             id: listing.id,
             name: listing.name,
             brand: listing.brand,
             category: listing.category,
             price: listing.observedPrice?.amount ?? null,
+            currency: listing.observedPrice?.currency,
             imageUrl: listing.imageUrl,
             merchantUrl: listing.merchantUrl,
             source: listing.source,
