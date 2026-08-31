@@ -1,13 +1,15 @@
 import { ai } from "../genkit";
 import { z } from "genkit";
 import { defineSecret } from "firebase-functions/params";
+import { consumeBudget, withCache } from "../costControls";
+import { normalizeSerpApiResults } from "../providers/serpApiAdapter";
 
 const serpapiKey = defineSecret("SERPAPI_API_KEY");
 
 export const searchProductsTool = ai.defineTool(
   {
     name: "searchProducts",
-    description: "Searches the Spresso store inventory and internet for products matching the user's query.",
+    description: "Discovers products and compares listings from the Spresso catalog and the internet. Spresso does not own or represent merchant inventory.",
     inputSchema: z.object({
       query: z.string().describe("The search query (e.g. 'espresso machine', 'dark roast beans')"),
       category: z.string().optional().describe("Optional category to filter by"),
@@ -16,10 +18,11 @@ export const searchProductsTool = ai.defineTool(
       results: z.array(z.object({
         id: z.string(),
         name: z.string(),
-        price: z.number(),
+        price: z.number().nullable(),
         description: z.string(),
         imageUrl: z.string().optional(),
-        source: z.string().optional(),
+        source: z.enum(["serpapi"]),
+        merchantUrl: z.string().url(),
       })),
     }),
   },
@@ -30,39 +33,32 @@ export const searchProductsTool = ai.defineTool(
       throw new Error("Application safeguard triggered: Unauthenticated AI tool execution attempt blocked.");
     }
     
-    console.log(`User ${uid} searching products for query: ${query}, category: ${category}`);
-    
+    console.log("Product search requested", { uid, category });
     try {
-      const apiKey = serpapiKey.value();
-      if (!apiKey) {
-        throw new Error("Missing SERPAPI_API_KEY configuration.");
-      }
-      
       const searchQuery = category ? `${category} ${query}` : query;
-      const url = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(searchQuery)}&api_key=${apiKey}`;
-      
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`SerpApi responded with status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      const shoppingResults = data.shopping_results || [];
-      
-      return {
-        results: shoppingResults.slice(0, 5).map((item: any, index: number) => {
-          const priceRaw = item.price || "0";
-          const priceValue = parseFloat(priceRaw.replace(/[^0-9.]/g, ""));
-          return {
-            id: item.product_id || `serp_${index}`,
-            name: item.title || item.source,
-            price: isNaN(priceValue) ? 0.0 : priceValue,
-            description: item.snippet || item.title || "",
-            imageUrl: item.thumbnail,
-            source: item.source,
-          };
-        })
-      };
+      const { value } = await withCache("productSearch", { searchQuery }, async () => {
+        await consumeBudget(uid, "search");
+        const apiKey = serpapiKey.value();
+        if (!apiKey) throw new Error("Missing SERPAPI_API_KEY configuration.");
+        const url = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(searchQuery)}&api_key=${apiKey}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`SerpApi responded with status: ${response.status}`);
+        const data = await response.json();
+        const shoppingResults = Array.isArray(data.shopping_results) ? data.shopping_results : [];
+        const listings = normalizeSerpApiResults(shoppingResults);
+        return {
+          results: listings.slice(0, 5).map(listing => ({
+            id: listing.id,
+            name: listing.name,
+            price: listing.observedPrice?.amount ?? null,
+            description: listing.category || listing.brand || listing.name,
+            imageUrl: listing.imageUrl,
+            source: "serpapi" as const,
+            merchantUrl: listing.merchantUrl,
+          })),
+        };
+      });
+      return value;
     } catch (e: any) {
       console.error("Search error:", e);
       // Native model fallback to generic web search if needed, but here we return standard search errors.

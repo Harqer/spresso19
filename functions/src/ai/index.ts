@@ -5,34 +5,83 @@ import { defineSecret } from "firebase-functions/params";
 
 const pubsub = new PubSub();
 import { GoogleGenAI } from "@google/genai";
-import { virtualTryOnFlow } from "./flows/virtualTryOnFlow";
-import { spin360Flow } from "./flows/spin360Flow";
 import { behavioralAnalysisFlow } from "./flows/behavioralAnalysisFlow";
 import { discoverPersonalizedProductsFlow } from "./flows/discoverPersonalizedProductsFlow";
 import { ai } from "./genkit";
-import { prepareCryptoPurchaseTool } from "./tools/prepareCryptoPurchase";
+import "./tools/addToCart";
+import "./tools/searchProducts";
+import "./tools/parallelWebSearch";
+import "./tools/parallelDeepResearch";
+import "./tools/chefAgent";
+import "./tools/ecommerceAgent";
+import "./tools/virtualTryOnAgent";
+import "./tools/marketResearchUKAgent";
+import "./tools/marketResearchUSAgent";
+import "./tools/kitesurfSearch";
+import "./tools/mediaGeneration";
 import { getAuth } from "firebase-admin/auth";
 import { getAppCheck } from "firebase-admin/app-check";
+import { z } from "zod";
+import { generateMediaWithFallback } from "./mediaGeneration";
+import { consumeBudget } from "./costControls";
+import { selectShopperModel } from "./modelRouting";
+import Parallel from "parallel-web";
+import { normalizeParallelResults } from "./providers/parallelAdapter";
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
+const higgsfieldKeyId = defineSecret("HIGGSFIELD_API_KEY_ID");
+const higgsfieldKeySecret = defineSecret("HIGGSFIELD_KEY_SECRET");
+const serpApiKey = defineSecret("SERPAPI_API_KEY");
+const parallelApiKey = defineSecret("PARALLEL_API_KEY");
+const cloudflareAccountId = defineSecret("CLOUDFLARE_ACCOUNT_ID");
+const cloudflareApiToken = defineSecret("CLOUDFLARE_API_TOKEN");
+const mediaSecrets = [geminiApiKey, higgsfieldKeyId, higgsfieldKeySecret];
+const shopperSecrets = [...mediaSecrets, serpApiKey, parallelApiKey, cloudflareAccountId, cloudflareApiToken];
 
-export const generateVirtualTryOn = onCall({ enforceAppCheck: true }, async (request) => {
+export const generateVirtualTryOn = onCall({ enforceAppCheck: true, secrets: mediaSecrets }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
     if (request.app == undefined) throw new HttpsError("failed-precondition", "The function must be called from an App Check verified app.");
     try {
-        const result = await virtualTryOnFlow(request.data);
-        return result;
+        const data = request.data || {};
+        const fitProfile = [
+            typeof data.height === "string" ? `height ${data.height}` : "",
+            typeof data.weight === "string" ? `weight ${data.weight}` : "",
+            typeof data.size === "string" ? `usual size ${data.size}` : "",
+            typeof data.fitPreference === "string" ? `preferred fit ${data.fitPreference}` : "",
+            typeof data.fabric === "string" ? `fabric ${data.fabric}` : "",
+        ].filter(Boolean).join(", ");
+        const result = await generateMediaWithFallback({
+            prompt: `Photorealistic ${data.mediaType === "video" ? "short fashion motion clip" : "virtual try-on image"}. Show ${data.productName || data.productId || "the selected product"} on the person in the reference image. Preserve the person's identity, body proportions, pose, garment construction, color, texture, seams, and logo placement. Use the supplied fit profile only as a visual fitting guide: ${fitProfile || "no measurements supplied"}. Respect the garment's likely drape and fabric weight without inventing measurements. Show natural lighting, realistic contact shadows, and a clean composition. ${data.locationContext ? `Use a subtle, recognizable setting appropriate to the user's coarse location: ${String(data.locationContext).slice(0, 120)}.` : "Use a neutral, softly lit setting."} ${data.customNotes || "Do not change the garment or body shape."}`,
+            mediaType: data.mediaType === "video" ? "video" : "image",
+            imageUrls: [data.productImage].filter((value): value is string => typeof value === "string" && value.startsWith("http")),
+            base64Images: typeof data.userPhotoBase64 === "string" && data.userPhotoBase64
+                ? [{ data: data.userPhotoBase64, mimeType: data.userPhotoBase64.match(/^data:([^;]+);/)?.[1] || "image/jpeg" }]
+                : [],
+            requesterUid: request.auth.uid,
+            geminiApiKey: geminiApiKey.value(),
+            higgsfieldKeyId: higgsfieldKeyId.value(),
+            higgsfieldKeySecret: higgsfieldKeySecret.value(),
+        });
+        return { tryOnMeta: result };
     } catch (e) {
         throw new HttpsError("internal", "Failed to run virtual try-on flow");
     }
 });
 
-export const generateSpin360 = onCall({ enforceAppCheck: true }, async (request) => {
+export const generateSpin360 = onCall({ enforceAppCheck: true, secrets: mediaSecrets }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
     if (request.app == undefined) throw new HttpsError("failed-precondition", "The function must be called from an App Check verified app.");
     try {
-        const result = await spin360Flow(request.data);
-        return result;
+        const data = request.data || {};
+        return await generateMediaWithFallback({
+            prompt: `Photorealistic product presentation video with a smooth 360-degree rotation for ${data.name || data.productId || "the selected product"}. Keep the product centered and fully visible. Preserve exact shape, materials, texture, color, construction, and proportions. Use consistent studio-quality lighting, realistic shadows, stable camera motion, and no invented parts or text. ${data.category ? `Category: ${data.category}.` : ""} ${data.locationContext ? `Use a tasteful environment inspired by the user's coarse location: ${String(data.locationContext).slice(0, 120)}.` : "Use a neutral studio environment."}`,
+            mediaType: "video",
+            imageUrls: [data.image].filter((value): value is string => typeof value === "string" && value.startsWith("http")),
+            requesterUid: request.auth.uid,
+            geminiApiKey: geminiApiKey.value(),
+            higgsfieldKeyId: higgsfieldKeyId.value(),
+            higgsfieldKeySecret: higgsfieldKeySecret.value(),
+        });
     } catch (e) {
         throw new HttpsError("internal", "Failed to run spin 360 flow");
     }
@@ -50,10 +99,20 @@ export const analyzeUserBehavior = onCall({ enforceAppCheck: true, secrets: [gem
     }
 });
 
-export const discoverPersonalizedProducts = onCall({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
+export const discoverPersonalizedProducts = onCall({ enforceAppCheck: true, secrets: [geminiApiKey, parallelApiKey] }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
     try {
-        const result = await discoverPersonalizedProductsFlow(request.data);
+        const queries = Array.isArray(request.data?.searchQueries) ? request.data.searchQueries.filter((q: unknown): q is string => typeof q === "string" && Boolean(q.trim())).slice(0, 3) : [];
+        if (queries.length === 0) throw new HttpsError("invalid-argument", "At least one search query is required.");
+        const parallel = new Parallel({ apiKey: parallelApiKey.value() });
+        const research = await parallel.search({
+            objective: `Find current merchant product listings for ${queries.join(", ")}. Return listing pages with title, merchant, price when shown, image when shown, and direct product URL. Do not claim inventory or availability.`,
+            search_queries: queries,
+            mode: "advanced",
+            max_chars_total: 12000,
+        });
+        const providerListings = normalizeParallelResults(Array.isArray(research.results) ? research.results : []);
+        const result = await discoverPersonalizedProductsFlow({ searchQueries: queries, requesterUid: request.auth.uid, providerListings });
         return result;
     } catch (e) {
         throw new HttpsError("internal", "Failed to run discover personalized products flow");
@@ -69,14 +128,21 @@ export const generateLiveApiToken = onCall({ secrets: [geminiApiKey], enforceApp
     }
 
     try {
-        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateEphemeralToken", {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "x-goog-api-key": geminiApiKey.value()
             },
             body: JSON.stringify({
-                ttl: "3600s"
+                uses: 1,
+                liveConnectConstraints: {
+                    model: "models/gemini-3.1-flash-live-preview",
+                    config: {
+                        responseModalities: ["AUDIO"],
+                        sessionResumption: {}
+                    }
+                }
             })
         });
 
@@ -84,8 +150,8 @@ export const generateLiveApiToken = onCall({ secrets: [geminiApiKey], enforceApp
             throw new Error(`Failed to generate token: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        return { token: data.ephemeralToken };
+        const data = z.object({ name: z.string().min(1) }).parse(await response.json());
+        return { token: data.name };
     } catch (error) {
         console.error("Token generation failed:", error);
         throw new HttpsError("internal", "Failed to generate ephemeral token");
@@ -109,7 +175,7 @@ export const identifyVisionObject = onCall({ enforceAppCheck: true, secrets: [ge
 
     try {
         const response = await ai.interactions.create({
-            model: "gemini-3.5-flash",
+            model: "gemini-3.1-flash-lite-preview",
             input: [
                 { type: "text", text: "Identify the primary product in this image. Respond with a JSON object containing the fields: 'productName' (string, short and clean name) and 'estimatedPrice' (number, reasonable estimate)." },
                 { type: "image", mime_type: "image/jpeg", data: imageBase64 }
@@ -189,7 +255,7 @@ export const generateCreatorCampaign = onCall({ enforceAppCheck: true, secrets: 
     try {
         const response = await ai.interactions.create({
             safety_settings: safetySettings as any,
-            model: "gemini-3.5-flash",
+            model: "gemini-3.1-flash-lite-preview",
             input: `You are an expert marketing AI. Generate a creator campaign for the product "${productName}". The goal is "${campaignGoal}" and the target audience is "${targetAudience || 'General'}". Return ONLY a JSON object with this exact structure: {"campaignTitle": "...", "socialMediaCopy": "...", "suggestedTags": ["...", "..."]}`,
             response_mime_type: "application/json"
         });
@@ -220,7 +286,7 @@ export const vitposeOrchestrateFit = onCall({ enforceAppCheck: true, secrets: [g
     try {
         const response = await ai.interactions.create({
             safety_settings: safetySettings as any,
-            model: "gemini-3.5-flash",
+            model: "gemini-3.1-flash-lite-preview",
             input: [
                 { type: "image", mime_type: "image/jpeg", data: imageBase64 },
                 { type: "text", text: "Analyze this image for virtual try-on fit orchestration. Identify the key body regions and garment fit profile. Return ONLY a JSON object with this exact structure: {\"fitScore\": 0.0-100.0, \"garmentType\": \"...\", \"postureDetected\": \"...\", \"confidence\": 0.0-100.0}" }
@@ -264,29 +330,10 @@ export const processSearchHistoryTelemetry = onMessagePublished("telemetry-searc
     console.log("Processing search history telemetry in background:", data);
 });
 
-export const createCatalogCache = onCall({ enforceAppCheck: true, secrets: [geminiApiKey] }, async (request) => {
-    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
-    
-    try {
-        const { db } = await import("../shared/db");
-        // Assume products collection holds the large catalog
-        const snapshot = await db.collection("products").get();
-        const catalog = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-        const catalogText = JSON.stringify(catalog);
-        
-        const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
-        const cachedContent = await (ai.caches as any).create({
-            model: "gemini-3.5-flash",
-            input: `Here is the full product catalog:\n${catalogText}`,
-            ttl: "3600s" // Cache for 1 hour
-        });
-        
-        return { success: true, cacheName: cachedContent.name, expireTime: cachedContent.expireTime };
-    } catch (e: any) {
-        throw new HttpsError("internal", `Failed to create catalog cache: ${e.message}`);
-    }
-});
-export const chatStream = onRequest({ secrets: [geminiApiKey], cors: true }, async (req, res) => {
+export const chatStream = onRequest({
+    secrets: shopperSecrets,
+    cors: ["https://get-spresso.web.app", "https://get-spresso.firebaseapp.com"]
+}, async (req, res) => {
     // Only allow POST
     if (req.method !== "POST") {
         res.status(405).send("Method Not Allowed");
@@ -299,15 +346,19 @@ export const chatStream = onRequest({ secrets: [geminiApiKey], cors: true }, asy
         return;
     }
 
-    let uid: string | undefined;
     const authHeader = req.header("Authorization");
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-        try {
-            const decodedToken = await getAuth().verifyIdToken(authHeader.split("Bearer ")[1]);
-            uid = decodedToken.uid;
-        } catch (err) {
-            console.error("Invalid auth token", err);
-        }
+    if (!authHeader?.startsWith("Bearer ") || authHeader.slice("Bearer ".length).trim().length === 0) {
+        res.status(401).send("Unauthorized");
+        return;
+    }
+    let uid: string;
+    try {
+        const decodedToken = await getAuth().verifyIdToken(authHeader.slice("Bearer ".length));
+        uid = decodedToken.uid;
+    } catch (err) {
+        console.error("Invalid auth token", err);
+        res.status(401).send("Unauthorized");
+        return;
     }
 
     try {
@@ -317,28 +368,37 @@ export const chatStream = onRequest({ secrets: [geminiApiKey], cors: true }, asy
         return;
     }
 
-    const { prompt, locale } = req.body;
+    const input = z.object({
+        prompt: z.string().trim().min(1).max(4000),
+        locale: z.string().trim().min(2).max(16).optional(),
+        location: z.string().trim().max(160).optional(),
+    }).safeParse(req.body);
+    if (!input.success) {
+        res.status(400).send("Prompt is required.");
+        return;
+    }
+    const { prompt, locale, location } = input.data;
+
+    try {
+        await consumeBudget(uid, "chat");
+    } catch {
+        res.status(429).send("Please try again later.");
+        return;
+    }
     
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
     try {
-        const { stream } = await ai.generateStream({
-            model: "googleai/gemini-1.5-flash",
-            prompt: prompt,
-            system: `You are Spresso Personal Shopper. Keep it brief. You must reply natively in this language locale: ${locale || 'en'}`,
-            tools: [prepareCryptoPurchaseTool],
+        const shopperPrompt = ai.prompt("shopperPrompt");
+        const { stream } = await shopperPrompt.stream(
+            { userPrompt: prompt, locale: locale || "en", locationContext: location || "" },
+            {
+            model: selectShopperModel(prompt),
             context: { auth: { uid } },
-            config: {
-                safetySettings: [
-                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
-                ] as any
-            }
-        });
+            },
+        );
 
         for await (const chunk of stream) {
             if (chunk.text) {
@@ -349,7 +409,7 @@ export const chatStream = onRequest({ secrets: [geminiApiKey], cors: true }, asy
         res.end();
     } catch (err) {
         console.error("Stream error", err);
-        res.write(`data: ${JSON.stringify({ text: "Error connecting to AI." })}\n\n`);
+        res.write(`data: ${JSON.stringify({ text: "I couldn't complete that request. Please try again." })}\n\n`);
         res.write(`data: [DONE]\n\n`);
         res.end();
     }
@@ -366,24 +426,25 @@ export const generateOutfit = onCall({ enforceAppCheck: true, secrets: [geminiAp
     const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
     try {
         const prompt = `
-You are a personal fashion stylist AI.
+You are a high-end personal fashion stylist AI.
 User Location: ${userLocation || "Unknown"}
 Weather: ${weatherCondition} - ${temperatureText}
-Available Items:
+Available Items (from User's Synchronized Photo Library / Closet):
 ${JSON.stringify(items.map((item: any) => ({ id: item.id, name: item.name, category: item.category, color: item.color, weather: item.weatherSuitability })), null, 2)}
 
-Create a stylish outfit using 2-4 items from the available list that perfectly matches the weather condition and temperature.
+Create a premium, stylish outfit using 2-4 items from the available list that perfectly matches the weather condition and temperature.
+Ensure the styling advice feels tailored and explains why these specific pieces from their personal closet work together as a cohesive look.
 Return a JSON object with the following schema:
 {
-  "title": "string (Catchy name for the outfit)",
-  "stylingAdvice": "string (Why these items work well together for the weather)",
+  "title": "string (Catchy, premium name for the outfit)",
+  "stylingAdvice": "string (Expert styling advice explaining why these items from their photo library work well together for the current weather)",
   "selectedItemIds": ["string (id of item 1)", "string (id of item 2)"],
   "weatherMatchScore": 95
 }
 `;
         
         const response = await ai.interactions.create({
-            model: "gemini-3.5-flash",
+            model: "gemini-3.1-flash-lite-preview",
             input: prompt,
             response_mime_type: "application/json",
             safety_settings: [
@@ -437,7 +498,7 @@ Return ONLY a JSON object with this exact structure:
         const cleanBase64 = imageBase64.includes("base64,") ? imageBase64.split("base64,")[1] : imageBase64;
 
         const response = await ai.interactions.create({
-            model: "gemini-3.5-flash",
+            model: "gemini-3.1-flash-lite-preview",
             input: [
                 { type: "image", mime_type: "image/jpeg", data: cleanBase64 },
                 { type: "text", text: prompt }
@@ -453,11 +514,21 @@ Return ONLY a JSON object with this exact structure:
 
         const responseText = response.output_text;
         if (!responseText) throw new Error("Empty response from Gemini");
-        const parsed = JSON.parse(responseText);
-        
-        return parsed; // Returns { regions: [...] }
-    } catch (e: any) {
+        const parsed = z.object({
+            regions: z.array(z.object({
+                id: z.number().int(),
+                label: z.string().min(1).max(160),
+                price: z.string().max(64).optional(),
+                category: z.string().max(80).optional(),
+                description: z.string().max(500).optional()
+            })).max(12)
+        }).parse(JSON.parse(responseText));
+
+        const regions = parsed.regions.map(region => ({ ...region, catalogMatched: false }));
+
+        return { regions };
+    } catch (e: unknown) {
         console.error("AI Lens error:", e);
-        throw new HttpsError("internal", `Failed to run lens analysis: ${e.message}`);
+        throw new HttpsError("internal", "Visual search is temporarily unavailable.");
     }
 });
