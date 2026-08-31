@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ProductItem, HITLPayload } from "../../../types";
+import { ProductItem } from "../../../types";
 import { ProductCatalogCard } from "@/src/components/features/catalog/ProductCatalogCard";
 import { MaterialIcon } from "../../MaterialIcon";
 
@@ -8,7 +8,7 @@ interface ProductCatalogGridProps {
   isLoading: boolean;
   onSelectTryOn: (p: ProductItem) => void;
   onAddToCart?: (p: ProductItem) => void;
-  onRequestHITLCheckout: (payload: HITLPayload) => void;
+  onRequestMerchantCheckout: (product: ProductItem) => void;
   onOpenLens?: (p: ProductItem) => void;
   setGenkitModalProduct: (p: ProductItem) => void;
   setSpin360Product: (p: ProductItem) => void;
@@ -16,7 +16,7 @@ interface ProductCatalogGridProps {
 }
 
 export const ProductCatalogGrid: React.FC<ProductCatalogGridProps> = ({
-  products, isLoading, onSelectTryOn, onAddToCart, onRequestHITLCheckout, onOpenLens, setGenkitModalProduct, setSpin360Product, fetchFeed
+  products, isLoading, onSelectTryOn, onAddToCart, onRequestMerchantCheckout, onOpenLens, setGenkitModalProduct, setSpin360Product, fetchFeed
 }) => {
   const [elevatedCardId, setElevatedCardId] = useState<string | null>(null);
   const [addedToCartId, setAddedToCartId] = useState<string | null>(null);
@@ -27,27 +27,13 @@ export const ProductCatalogGrid: React.FC<ProductCatalogGridProps> = ({
   };
 
   const handleCheckout = (product: ProductItem) => {
-    onRequestHITLCheckout({
-      authorizationId: `ORDER-${Date.now().toString(36).toUpperCase()}`,
-      product: { id: product.id, name: product.name, price: product.price, sku: product.sku, image: product.image },
-      quantity: 1,
-      totalAmount: product.price,
-      currency: product.currency || "USD",
-      deviceSource: "WEB",
-      inventoryConfirmed: product.stock > 0,
-      stockRemaining: product.stock,
-      humanInTheLoopChallenge: {
-        title: "Confirm Purchase",
-        message: `Authorize $${product.price.toFixed(2)} for ${product.name}?`,
-        safetyChecks: ["In stock and ready to ship", "Includes free express delivery", "Click confirm to place order"]
-      }
-    });
+    onRequestMerchantCheckout(product);
   };
 
   if (isLoading) {
     return (
-      <div className="p-4 bg-[#e8f3e8]/60 border border-[#d8ebd7] rounded-2xl flex items-center space-x-3 text-xs text-[#386633] font-medium animate-pulse">
-        <MaterialIcon icon="refresh" size={18} className="animate-spin text-[#386633]" />
+      <div className="p-4 bg-[#e8f3e8]/60 border border-[#d8ebd7] rounded-2xl flex items-center space-x-3 text-xs text-[#386633] font-medium">
+        <MaterialIcon icon="refresh" size={18} className="text-[#386633]" />
         <span>Loading products...</span>
       </div>
     );

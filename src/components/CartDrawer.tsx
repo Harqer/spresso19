@@ -1,6 +1,8 @@
 import React from "react";
-import { CartItem, HITLPayload } from "../types";
+import { CartItem } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
+import { displayListingPrice } from "../lib/discoveryRepository";
+import { verifiedMerchantUrl } from "../lib/merchantCheckout";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -9,7 +11,6 @@ interface CartDrawerProps {
   onUpdateQuantity: (productId: string, delta: number) => void;
   onRemoveItem: (productId: string) => void;
   onClearCart: () => void;
-  onRequestHITLCheckout: (payload: HITLPayload) => void;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -19,47 +20,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onUpdateQuantity,
   onRemoveItem,
   onClearCart,
-  onRequestHITLCheckout
 }) => {
   if (!isOpen) return null;
 
-  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-
-  const handleProceedToCheckout = () => {
-    if (cart.length === 0) return;
-
-    const firstProduct = cart[0].product;
-    const totalQuantity = cart.reduce((q, i) => q + i.quantity, 0);
-
-    const payload: HITLPayload = {
-      authorizationId: `CART-${crypto.randomUUID().replace(/-/g, '').substring(0, 8).toUpperCase()}`,
-      product: {
-        id: firstProduct.id,
-        name: cart.length === 1 ? firstProduct.name : `${cart.length} Marketplace Items (${firstProduct.name} & more)`,
-        price: subtotal / totalQuantity,
-        sku: firstProduct.sku,
-        image: firstProduct.image
-      },
-      quantity: totalQuantity,
-      totalAmount: subtotal,
-      currency: "USD",
-      deviceSource: "WEB",
-      inventoryConfirmed: true,
-      stockRemaining: firstProduct.stock ?? 0,
-      humanInTheLoopChallenge: {
-        title: "Confirm Cart Purchase",
-        message: `Authorize payment of $${subtotal.toFixed(2)} for ${cart.length} item(s) in your Spresso Cart?`,
-        safetyChecks: [
-          `Verified ${cart.length} item(s) reserved for checkout`,
-          "Includes free express delivery",
-          "Requires human confirmation token"
-        ]
-      }
-    };
-
-    onClose();
-    onRequestHITLCheckout(payload);
-  };
+  const subtotal = cart.reduce((sum, item) => sum + (item.listing.observedPrice?.amount || 0) * item.quantity, 0);
+  const hasUnknownPrice = cart.some(item => !item.listing.observedPrice);
+  const primaryMerchantUrl = verifiedMerchantUrl(cart[0]?.listing.merchantUrl);
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end">
@@ -94,12 +60,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               {/* High-quality shopping tote artwork image */}
               <div className="relative w-32 h-32 rounded-3xl overflow-hidden shadow-xs border border-[#d8ebd7] bg-[#f2f8f2] flex items-center justify-center">
                 <span className="material-symbols-outlined text-6xl text-[#446732] select-none">shopping_bag</span>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent flex items-end justify-center p-2">
-                  <span className="px-2 py-0.5 bg-white/90 backdrop-blur-md rounded-full text-[10px] font-mono font-bold text-[#18211e] flex items-center space-x-1 shadow-xs">
-                    <MaterialIcon icon="shopping_bag" size={12} className="text-[#386633]" />
-                    <span>Cart Ready</span>
-                  </span>
-                </div>
               </div>
 
               <div className="space-y-1.5 max-w-xs">
@@ -131,10 +91,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
                 <div className="flex-1 min-w-0 space-y-1">
                   <h4 className="text-xs font-bold text-[#18211e] truncate">{item.product.name}</h4>
-                  <p className="text-[10px] text-[#5e635f]">{item.product.brand}</p>
+                  <p className="text-[10px] text-[#5e635f]">{item.listing.brand || item.product.brand}</p>
                   <div className="text-xs font-bold font-mono text-[#386633]">
-                    ${item.product.price}
+                    {displayListingPrice(item.listing)}
                   </div>
+                  {verifiedMerchantUrl(item.listing.merchantUrl) && (
+                    <a
+                      href={verifiedMerchantUrl(item.listing.merchantUrl) || undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-[#386633] hover:underline inline-flex items-center gap-1"
+                    >
+                      <MaterialIcon icon="open_in_new" size={12} />
+                      Open merchant listing
+                    </a>
+                  )}
                 </div>
 
                 {/* Quantity Controls */}
@@ -178,15 +149,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between text-[#5e635f]">
                 <span>Subtotal</span>
-                <span className="font-mono font-bold text-[#18211e]">${subtotal.toFixed(2)}</span>
+                <span className="font-mono font-bold text-[#18211e]">{hasUnknownPrice ? "Price at merchant" : `$${subtotal.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between text-[#5e635f]">
-                <span>Express Shipping</span>
-                <span className="font-mono text-[#386633] font-bold">FREE</span>
+                <span>Merchant shipping</span>
+                <span className="font-mono text-[#386633] font-bold">Shown at checkout</span>
               </div>
               <div className="flex justify-between text-sm font-bold text-[#18211e] pt-2 border-t border-[#d8ebd7]">
                 <span>Total Amount</span>
-                <span className="font-mono text-[#386633] text-base">${subtotal.toFixed(2)}</span>
+                <span className="font-mono text-[#386633] text-base">{hasUnknownPrice ? "Price at merchant" : `$${subtotal.toFixed(2)}`}</span>
               </div>
             </div>
 
@@ -198,13 +169,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 Clear
               </button>
 
-              <button
-                onClick={handleProceedToCheckout}
-                className="flex-1 py-2.5 bg-[#386633] hover:bg-[#2c5227] text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-2 cursor-pointer"
-              >
-                <MaterialIcon icon="lock" size={16} />
-                <span>Express HITL Checkout (${subtotal.toFixed(2)})</span>
-              </button>
+              {primaryMerchantUrl ? (
+                <a
+                  href={primaryMerchantUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={onClose}
+                  className="flex-1 py-2.5 bg-[#386633] hover:bg-[#2c5227] text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center space-x-2 cursor-pointer"
+                >
+                  <MaterialIcon icon="open_in_new" size={16} />
+                  <span>Continue to merchant checkout</span>
+                </a>
+              ) : (
+                <span className="flex-1 py-2.5 text-center text-xs font-bold text-[#5e635f]">
+                  Merchant link unavailable
+                </span>
+              )}
             </div>
           </div>
         )}

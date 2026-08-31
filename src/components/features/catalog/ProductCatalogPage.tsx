@@ -1,8 +1,6 @@
 import Logger from "../../../lib/Logger";
 import React, { useState, useEffect, useMemo } from "react";
-import { ProductItem, HITLPayload } from "../../../types";
-import { dataConnect } from "../../../lib/firebase";
-import { listProducts } from "@/src/dataconnect";
+import { ProductItem } from "../../../types";
 import { MaterialIcon } from "../../MaterialIcon";
 import { GenkitCreativeStudioModal } from "../../GenkitCreativeStudioModal";
 import { AIShopperInputBar } from "../../AIShopperInputBar";
@@ -11,9 +9,11 @@ import { Product360SpinModal } from "@/src/components/features/catalog/Product36
 import { ProblemDetailsCard } from "@/src/components/shared/ProblemDetailsCard";
 import { AICurationFeed } from "@/src/components/features/catalog/AICurationFeed";
 import { ProductCatalogHeader } from "@/src/components/features/catalog/ProductCatalogHeader";
-export const ProductCatalogPage: React.FC<any> = ({ products: initialProducts, onSelectTryOn, onRequestHITLCheckout, onAddToCart, userLocation, searchRadius = 25, onRadiusChange, onRequestLocationPermission, onAskAI, onOpenLens }) => {
+import { DiscoveryRepository } from "../../../lib/discoveryRepository";
+
+export const ProductCatalogPage: React.FC<any> = ({ onSelectTryOn, onRequestMerchantCheckout, onAddToCart, userLocation, searchRadius = 25, onRadiusChange, onRequestLocationPermission, onAskAI, onOpenLens, discoveryRepository, onListingsChanged }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
-  const [personalizedProducts, setPersonalizedProducts] = useState<ProductItem[]>(initialProducts);
+  const [personalizedProducts, setPersonalizedProducts] = useState<ProductItem[]>([]);
   const [isLoadingPersonalized, setIsLoadingPersonalized] = useState<boolean>(false);
   const [genkitModalProduct, setGenkitModalProduct] = useState<ProductItem | null>(null);
   const [spin360Product, setSpin360Product] = useState<ProductItem | null>(null);
@@ -32,14 +32,11 @@ export const ProductCatalogPage: React.FC<any> = ({ products: initialProducts, o
     setIsLoadingPersonalized(true);
     setFetchError(null);
     try {
-      const response = await listProducts(dataConnect);
-      if (response.data && response.data.products) {
-        let dcProducts = response.data.products.map((p: any) => ({ ...p, virtualTryOnEligible: true, mcpServerId: "spresso-mcp-retail" })) as unknown as ProductItem[];
-        if (cat !== "ALL") dcProducts = dcProducts.filter(p => p.name.toLowerCase().includes(cat.toLowerCase()) || p.description?.toLowerCase().includes(cat.toLowerCase()));
-        setPersonalizedProducts(dcProducts.length === 0 ? [] : dcProducts);
-      } else {
-        setPersonalizedProducts([]);
-      }
+      const query = cat === "ALL" ? "current products matching my preferences" : `${cat} products`;
+      const listings = await (discoveryRepository as DiscoveryRepository).search({ query, location: userLocation, radius: searchRadius });
+      const items = (discoveryRepository as DiscoveryRepository).asProducts(listings);
+      setPersonalizedProducts(items);
+      onListingsChanged?.();
     } catch (err: any) {
       setFetchError("Unable to load product catalog. Please try again later.");
       setPersonalizedProducts([]);
@@ -130,7 +127,7 @@ export const ProductCatalogPage: React.FC<any> = ({ products: initialProducts, o
           className="mb-4"
         />
       )}
-      <ProductCatalogGrid products={personalizedProducts} isLoading={isLoadingPersonalized} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} onRequestHITLCheckout={onRequestHITLCheckout} onOpenLens={onOpenLens} setGenkitModalProduct={setGenkitModalProduct} setSpin360Product={setSpin360Product} fetchFeed={() => fetchPersonalizedFeed(selectedCategory)} />
+      <ProductCatalogGrid products={personalizedProducts} isLoading={isLoadingPersonalized} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} onRequestMerchantCheckout={onRequestMerchantCheckout} onOpenLens={onOpenLens} setGenkitModalProduct={setGenkitModalProduct} setSpin360Product={setSpin360Product} fetchFeed={() => fetchPersonalizedFeed(selectedCategory)} />
       {spin360Product && <Product360SpinModal spin360Product={spin360Product} spin360Angle={spin360Angle} isAutoSpinning={isAutoSpinning} tiltX={tiltX} tiltY={tiltY} active360AngleIdx={active360AngleIdx} setSpin360Product={setSpin360Product} setSpin360Angle={setSpin360Angle} setIsAutoSpinning={setIsAutoSpinning} setTiltX={setTiltX} setTiltY={setTiltY} setActive360AngleIdx={setActive360AngleIdx} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} />}
       {genkitModalProduct && <GenkitCreativeStudioModal product={genkitModalProduct} onClose={() => setGenkitModalProduct(null)} />}
       <AIShopperInputBar onSend={(t, img) => onAskAI?.(t, img)} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} placeholder="Ask Spresso AI about products..." className="mt-6" />

@@ -15,7 +15,6 @@ interface AppModalManagerProps {
   onUpdateCartQuantity: (productId: string, delta: number) => void;
   onRemoveCartItem: (productId: string) => void;
   onClearCart: () => void;
-  onRequestHITLCheckout: (payload: HITLPayload) => void;
 
   locationModalOpen: boolean;
   userLocation: string | null;
@@ -57,7 +56,6 @@ export const AppModalManager: React.FC<AppModalManagerProps> = ({
   onUpdateCartQuantity,
   onRemoveCartItem,
   onClearCart,
-  onRequestHITLCheckout,
   locationModalOpen,
   userLocation,
   searchRadius,
@@ -94,7 +92,6 @@ export const AppModalManager: React.FC<AppModalManagerProps> = ({
         onUpdateQuantity={onUpdateCartQuantity}
         onRemoveItem={onRemoveCartItem}
         onClearCart={onClearCart}
-        onRequestHITLCheckout={onRequestHITLCheckout}
       />
 
       {locationModalOpen && (
@@ -112,7 +109,6 @@ export const AppModalManager: React.FC<AppModalManagerProps> = ({
           product={productDetailsModalItem}
           onClose={onCloseProductDetailsModal}
           onAddToCart={onAddToCart}
-          onRequestHITLCheckout={onRequestHITLCheckout}
           onOpenLens={onOpenLens}
         />
       )}

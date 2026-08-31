@@ -1,39 +1,35 @@
 import Logger from "./lib/Logger";
-import React, { useState, useEffect } from "react";
+import React, { Suspense, lazy, useState, useEffect, useMemo } from "react";
 import { ProductItem, HITLPayload, OrderRecord, CartItem } from "./types";
-import { PersonalAIShopperChatPage as PersonalAIShopperChat } from "./components/features/chat/PersonalAIShopperChatPage";
-import { SmartVisionView } from "./components/SmartVisionView";
-import { ProductCatalogPage as ProductCatalog } from "./components/features/catalog/ProductCatalogPage";
-import { WardrobeViewPage as WardrobeView } from "./components/features/wardrobe/WardrobeViewPage";
-import { VirtualTryOnModal } from "./components/VirtualTryOnModal";
-import { HITLCheckoutModal } from "./components/HITLCheckoutModal";
-import { OrdersTracker } from "./components/OrdersTracker";
-import { GroceryListView } from "./components/GroceryListView";
-import { CreatorGenAIAgentsChatPage as CreatorGenAIAgentsChat } from "./components/features/chat/CreatorGenAIAgentsChatPage";
-import { TravelTripsPage } from "./components/features/travel/TravelTripsPage";
-import { CartDrawer } from "./components/CartDrawer";
-import { LocationPermissionModal } from "./components/LocationPermissionModal";
-import { ProductDetailsModal } from "./components/ProductDetailsModal";
-import { GoogleLensScreenWidgetModal } from "./components/GoogleLensScreenWidgetModal";
-import { GamifiedOnboardingModal } from "./components/GamifiedOnboardingModal";
+const PersonalAIShopperChat = lazy(() => import("./routes/ChatRoute"));
+const SmartVisionView = lazy(() => import("./routes/VisionRoute"));
+const ProductCatalog = lazy(() => import("./routes/CatalogRoute"));
+const WardrobeView = lazy(() => import("./routes/WardrobeRoute"));
+const OrdersTracker = lazy(() => import("./routes/OrdersRoute"));
+const GroceryListView = lazy(() => import("./routes/GroceryRoute"));
+const CreatorGenAIAgentsChat = lazy(() => import("./routes/CreatorRoute"));
+const TravelTripsPage = lazy(() => import("./routes/TravelRoute"));
 import { SplashScreen } from "./components/SplashScreen";
 import { SpressoLogo } from "./components/SpressoLogo";
 import { MaterialIcon } from "./components/MaterialIcon";
 import { AuthScreen } from "./components/features/auth/AuthScreen";
-import { DynamicThemePickerModal } from "./components/DynamicThemePickerModal";
 import { applyDynamicThemeToDocument } from "./lib/dynamicColorEngine";
 import { getCleanDisplayName } from "./lib/userUtils";
-import { auth, loginWithGoogle, loginAnonymously, logoutUser, db as firestoreDb, authFetch } from "./lib/firebase";
+import { auth, logoutUser, db as firestoreDb, authFetch } from "./lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { doc, setDoc, onSnapshot } from "firebase/firestore";
-import { dataConnect } from "./lib/firebase";
-import { listProducts } from "./dataconnect";
+import { doc, setDoc } from "firebase/firestore";
 import { MainAppPage } from "./components/shared/MainAppPage";
-import { AppModalManager } from "./components/shared/AppModalManager";
-import { ProfilePage } from "./components/features/profile/ProfilePage";
+const AppModalManager = lazy(() => import("./routes/ModalManagerRoute"));
+const ProfilePage = lazy(() => import("./routes/ProfileRoute"));
+import { createCartListingSnapshot, DiscoveryRepository, firebaseDiscoveryCallable } from "./lib/discoveryRepository";
+import { requestMerchantCheckout } from "./lib/merchantCheckout";
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"catalog" | "chat" | "wardrobe" | "travel" | "grocery" | "orders" | "profile" | "vision" | "products" | "creator">("catalog");
+  const discoveryRepository = useMemo(
+    () => new DiscoveryRepository({ discover: firebaseDiscoveryCallable }),
+    [],
+  );
+  const [activeTab, setActiveTab] = useState<"catalog" | "chat" | "wardrobe" | "travel" | "grocery" | "orders" | "profile" | "vision" | "products" | "creator">("products");
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [pendingChatQuery, setPendingChatQuery] = useState<{ query: string; image?: string | null } | null>(null);
@@ -49,7 +45,7 @@ export default function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace("#", "");
-      const validTabs = ["chat", "products", "scaffold", "vision", "wardrobe", "orders", "grocery", "creator", "profile"];
+      const validTabs = ["chat", "products", "vision", "wardrobe", "orders", "grocery", "creator", "profile", "travel"];
       if (validTabs.includes(hash)) {
         setActiveTab(hash as any);
       }
@@ -154,13 +150,17 @@ export default function App() {
     setProductDetailsModalItem(prod);
   };
 
-  const handleAddToCart = async (product: ProductItem) => {
+  const handleAddToCart = async (product: ProductItem, quantity = 1) => {
+    if (!product.listing) {
+      Logger.warn("Ignoring cart request without a verified merchant listing.");
+      return;
+    }
     const newCart = [...cart];
     const existingIndex = newCart.findIndex(item => item.product.id === product.id);
     if (existingIndex >= 0) {
-      newCart[existingIndex] = { ...newCart[existingIndex], quantity: newCart[existingIndex].quantity + 1 };
+      newCart[existingIndex] = { ...newCart[existingIndex], quantity: newCart[existingIndex].quantity + quantity };
     } else {
-      newCart.push({ product, quantity: 1 });
+      newCart.push({ product, listing: createCartListingSnapshot(product.listing, quantity), quantity });
     }
     setCart(newCart);
     if (user) {
@@ -171,6 +171,22 @@ export default function App() {
       });
     }
   };
+
+  // Purchase requests are intentionally downgraded to cart actions. The user
+  // must open the merchant listing and complete checkout themselves.
+  const handleRequestPurchase = async (payload: HITLPayload) => {
+    const product = discoveryRepository.getProducts().find(item => item.id === payload.product.id && item.listing);
+    if (product) {
+      await handleAddToCart(product, payload.quantity);
+      setCartDrawerOpen(true);
+    }
+    setHitlPayload(null);
+  };
+
+  const handleRequestMerchantCheckout = (product: ProductItem) => requestMerchantCheckout(product, {
+    addToCart: handleAddToCart,
+    openCart: () => setCartDrawerOpen(true),
+  });
 
   const handleUpdateCartQuantity = async (productId: string, delta: number) => {
     const newCart = cart.map(item => {
@@ -219,7 +235,9 @@ export default function App() {
       authFetch("/api/cart")
         .then(res => res.json())
         .then(data => {
-          if (data.cart) setCart(data.cart);
+          if (Array.isArray(data.cart)) {
+            setCart(data.cart.filter((item: CartItem) => item?.listing?.merchantUrl && item.product?.id));
+          }
         })
         .catch(err => Logger.error("Failed to load cart", err));
     } else {
@@ -231,59 +249,6 @@ export default function App() {
 
   // Load Inventory & Orders from Data Connect / Cloud SQL
   const fetchInventoryAndOrders = async (targetUid?: string) => {
-    try {
-      const res = await authFetch("/api/products");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.products && data.products.length > 0) {
-          const fetchedProducts = data.products.map((p: any) => ({
-            id: p.id,
-            name: p.name,
-            description: p.description || "",
-            price: p.price,
-            likesCount: p.likesCount || 0,
-            image: p.image || p.imageUrl || "",
-            category: p.category || "",
-            tags: p.tags || [],
-            brand: p.brand || "",
-            currency: p.currency || "",
-            sku: p.sku || `SKU-${p.id}`,
-            rating: p.rating || 5.0,
-            virtualTryOnEligible: true,
-            mcpServerId: "spresso-mcp-retail"
-          }));
-          setProducts(fetchedProducts);
-        }
-      }
-    } catch (err) {
-      Logger.warn("Express products fetch failed, attempting Firebase:", err);
-    }
-
-    try {
-      const response = await listProducts(dataConnect);
-      if (response.data && response.data.products) {
-        const dcProducts = response.data.products.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          description: p.description || "",
-          price: p.price,
-          likesCount: p.likesCount,
-          image: p.imageUrl || p.image || "",
-          category: p.category || "",
-          tags: p.tags || [],
-          brand: p.brand || "",
-          currency: p.currency || "",
-          sku: p.sku || `SKU-${p.id}`,
-          rating: p.rating || 0,
-          virtualTryOnEligible: true,
-          mcpServerId: "spresso-mcp-retail"
-        })) as unknown as ProductItem[];
-        setProducts(dcProducts);
-      }
-    } catch (_err) {
-      // Errors fetching products are logged by the Crashlytics sink in firebase.ts
-    }
-
     if (targetUid) {
       try {
         const orderRes = await authFetch(`/api/orders`);
@@ -439,13 +404,16 @@ export default function App() {
       hideTopNav={activeTab === 'vision' || lensModalOpen}
     >
       <div className="max-w-4xl mx-auto">
+          <Suspense fallback={<div className="min-h-96 flex items-center justify-center text-on-surface-variant">Loading…</div>}>
           {activeTab === "chat" && (
             <PersonalAIShopperChat
               user={user}
               userName={getCleanDisplayName(user)}
               products={products}
+              discoveryRepository={discoveryRepository}
+              onListingsChanged={() => setProducts(discoveryRepository.getProducts())}
               onSelectTryOn={handleSelectTryOn}
-              onRequestHITLCheckout={payload => setHitlPayload(payload)}
+              onRequestHITLCheckout={handleRequestPurchase}
               onAddToCart={handleAddToCart}
               onOpenVisionSearch={() => setActiveTab("vision")}
               onSelectTab={tabId => setActiveTab(tabId as any)}
@@ -469,8 +437,10 @@ export default function App() {
           {activeTab === "products" && (
             <ProductCatalog
               products={products}
+              discoveryRepository={discoveryRepository}
+              onListingsChanged={() => setProducts(discoveryRepository.getProducts())}
               onSelectTryOn={handleSelectTryOn}
-              onRequestHITLCheckout={(payload: any) => setHitlPayload(payload)}
+              onRequestMerchantCheckout={handleRequestMerchantCheckout}
               onAddToCart={handleAddToCart}
               userLocation={userLocation}
               searchRadius={searchRadius}
@@ -486,8 +456,11 @@ export default function App() {
             <SmartVisionView
               deviceMode="WEB"
               onSelectTryOn={handleSelectTryOn}
-              onRequestHITLCheckout={payload => setHitlPayload(payload)}
+              onRequestHITLCheckout={handleRequestPurchase}
               products={products}
+              discoveryRepository={discoveryRepository}
+              onListingsChanged={() => setProducts(discoveryRepository.getProducts())}
+              onAddToCart={handleAddToCart}
               onAskAI={handleAskAI}
             />
           )}
@@ -496,7 +469,7 @@ export default function App() {
             <WardrobeView
               products={products}
               onSelectTryOn={handleSelectTryOn}
-              onRequestHITLCheckout={payload => setHitlPayload(payload)}
+              onRequestHITLCheckout={handleRequestPurchase}
               onAskAI={handleAskAI}
             />
           )}
@@ -538,6 +511,7 @@ export default function App() {
               onLogout={() => logoutUser()}
             />
           )}
+          </Suspense>
         </div>
 
       <AppModalManager
@@ -547,7 +521,6 @@ export default function App() {
         onUpdateCartQuantity={handleUpdateCartQuantity}
         onRemoveCartItem={handleRemoveCartItem}
         onClearCart={handleClearCart}
-        onRequestHITLCheckout={payload => setHitlPayload(payload)}
         locationModalOpen={locationModalOpen}
         userLocation={userLocation}
         searchRadius={searchRadius}
