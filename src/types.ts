@@ -1,5 +1,8 @@
+import type { CartListingSnapshot, DiscoveredListing } from "./lib/discoveredListing";
+
 export interface CartItem {
   product: ProductItem;
+  listing: CartListingSnapshot;
   quantity: number;
 }
 
@@ -13,7 +16,9 @@ export interface ProductItem {
   price: number;
   originalPrice?: number;
   currency: string;
-  stock: number;
+  /** Merchant/listing availability is verified only at checkout. */
+  availabilityStatus?: "UNKNOWN" | "VERIFY_AT_MERCHANT_CHECKOUT" | "AVAILABLE" | "UNAVAILABLE";
+  merchantUrl?: string;
   sku: string;
   rating: number;
   description: string;
@@ -21,6 +26,7 @@ export interface ProductItem {
   virtualTryOnEligible: boolean;
   mcpServerId: string;
   matchScore?: number;
+  listing?: DiscoveredListing;
   personalizationReason?: string;
   genMediaKit?: {
     videoUrl?: string;
@@ -76,8 +82,7 @@ export interface HITLPayload {
   totalAmount: number;
   currency: string;
   deviceSource: DeviceMode;
-  inventoryConfirmed: boolean;
-  stockRemaining: number;
+  availabilityStatus: "UNKNOWN" | "VERIFY_AT_MERCHANT_CHECKOUT" | "AVAILABLE" | "UNAVAILABLE";
   humanInTheLoopChallenge: {
     title: string;
     message: string;
@@ -221,5 +226,3 @@ export interface VoiceNote {
   audioUrl?: string;
   createdAt: string;
 }
-
-

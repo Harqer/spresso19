@@ -3,7 +3,7 @@ import { test } from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CartDrawer } from "../components/CartDrawer";
-import { requestMerchantCheckout, verifiedMerchantUrl } from "../lib/merchantCheckout";
+import { assertCartPersistence, requestMerchantCheckout, verifiedMerchantUrl } from "../lib/merchantCheckout";
 import type { CartItem, ProductItem } from "../types";
 
 const product: ProductItem = {
@@ -60,6 +60,40 @@ test("catalog checkout adds the verified listing once before opening the cart", 
 test("verified merchant URLs accept HTTPS and reject other protocols", () => {
   assert.equal(verifiedMerchantUrl("https://merchant.example/products/coat"), "https://merchant.example/products/coat");
   assert.equal(verifiedMerchantUrl("http://merchant.example/products/coat"), null);
+});
+
+test("merchant checkout rejects missing or non-HTTPS listings before it mutates the cart", async () => {
+  const events: string[] = [];
+  const actions = {
+    addToCart: async () => {
+      events.push("add");
+    },
+    openCart: () => {
+      events.push("open");
+    },
+  };
+
+  await assert.rejects(() => requestMerchantCheckout({ ...product, listing: undefined }, actions));
+  await assert.rejects(() => requestMerchantCheckout({
+    ...product,
+    listing: { ...product.listing!, merchantUrl: "http://merchant.example/products/coat" },
+  }, actions));
+
+  assert.deepEqual(events, []);
+});
+
+test("rejected cart persistence keeps merchant checkout closed", async () => {
+  const events: string[] = [];
+
+  await assert.rejects(() => requestMerchantCheckout(product, {
+    addToCart: async () => {
+      events.push("add");
+      assertCartPersistence(new Response(null, { status: 503 }));
+    },
+    openCart: () => events.push("open"),
+  }), /Unable to save your cart\. Please try again\./);
+
+  assert.deepEqual(events, ["add"]);
 });
 
 test("cart checkout renders a direct HTTPS merchant handoff", () => {

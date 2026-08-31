@@ -22,7 +22,7 @@ import { MainAppPage } from "./components/shared/MainAppPage";
 const AppModalManager = lazy(() => import("./routes/ModalManagerRoute"));
 const ProfilePage = lazy(() => import("./routes/ProfileRoute"));
 import { createCartListingSnapshot, DiscoveryRepository, firebaseDiscoveryCallable } from "./lib/discoveryRepository";
-import { requestMerchantCheckout } from "./lib/merchantCheckout";
+import { assertCartPersistence, requestMerchantCheckout } from "./lib/merchantCheckout";
 
 export default function App() {
   const discoveryRepository = useMemo(
@@ -120,6 +120,7 @@ export default function App() {
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState<boolean>(false);
+  const [cartErrorMessage, setCartErrorMessage] = useState<string | null>(null);
 
   const [userLocation, setUserLocation] = useState<string | null>(null);
   const [userLatLng, setUserLatLng] = useState<{ lat: number; lng: number; latitude: number; longitude: number } | null>(null);
@@ -162,13 +163,21 @@ export default function App() {
     } else {
       newCart.push({ product, listing: createCartListingSnapshot(product.listing, quantity), quantity });
     }
-    setCart(newCart);
-    if (user) {
-      await authFetch("/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cart: newCart })
-      });
+    try {
+      if (user) {
+        const response = await authFetch("/api/cart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cart: newCart })
+        });
+        assertCartPersistence(response);
+      }
+      setCart(newCart);
+      setCartErrorMessage(null);
+    } catch (error) {
+      Logger.error("Failed to save cart", error);
+      setCartErrorMessage("Unable to save your cart. Please try again.");
+      throw error;
     }
   };
 
@@ -183,10 +192,17 @@ export default function App() {
     setHitlPayload(null);
   };
 
-  const handleRequestMerchantCheckout = (product: ProductItem) => requestMerchantCheckout(product, {
-    addToCart: handleAddToCart,
-    openCart: () => setCartDrawerOpen(true),
-  });
+  const handleRequestMerchantCheckout = async (product: ProductItem) => {
+    try {
+      await requestMerchantCheckout(product, {
+        addToCart: handleAddToCart,
+        openCart: () => setCartDrawerOpen(true),
+      });
+    } catch (error) {
+      Logger.error("Failed to prepare merchant checkout", error);
+      setCartErrorMessage("Unable to save your cart. Please try again.");
+    }
+  };
 
   const handleUpdateCartQuantity = async (productId: string, delta: number) => {
     const newCart = cart.map(item => {
@@ -403,6 +419,12 @@ export default function App() {
       hideSidebar={activeTab === 'vision' || lensModalOpen}
       hideTopNav={activeTab === 'vision' || lensModalOpen}
     >
+      {cartErrorMessage && (
+        <div role="alert" className="mx-auto mt-4 flex max-w-4xl items-center space-x-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-800">
+          <MaterialIcon icon="error" size={18} />
+          <span>{cartErrorMessage}</span>
+        </div>
+      )}
       <div className="max-w-4xl mx-auto">
           <Suspense fallback={<div className="min-h-96 flex items-center justify-center text-on-surface-variant">Loading…</div>}>
           {activeTab === "chat" && (

@@ -5,6 +5,12 @@ export type MerchantCheckoutActions = {
   openCart: () => void;
 };
 
+export function assertCartPersistence(response: Pick<Response, "ok">): void {
+  if (!response.ok) {
+    throw new Error("Unable to save your cart. Please try again.");
+  }
+}
+
 export function verifiedMerchantUrl(value: unknown): string | null {
   if (typeof value !== "string") return null;
 
