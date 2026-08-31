@@ -42,6 +42,24 @@ test("accepts a consistent cart item and returns only its rendering fields", () 
   assert.deepEqual(parsed, cartItem);
 });
 
+test("accepts unavailable product price and image renderings", () => {
+  const [parsed] = parseWebCart({
+    cart: [{
+      ...cartItem,
+      product: {
+        ...cartItem.product,
+        price: 0,
+        currency: "",
+        image: "",
+      },
+    }],
+  });
+
+  assert.equal(parsed.product.price, 0);
+  assert.equal(parsed.product.currency, "");
+  assert.equal(parsed.product.image, "");
+});
+
 test("rejects mismatched duplicated quantity", () => {
   assert.throws(() => parseWebCart({ cart: [{ ...cartItem, quantity: 2 }] }));
 });

@@ -152,6 +152,24 @@ export default function App() {
     setProductDetailsModalItem(prod);
   };
 
+  const persistCart = async (nextCart: CartItem[]) => {
+    if (user) {
+      const response = await authFetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cart: nextCart }),
+      });
+      assertCartPersistence(response);
+    }
+    setCart(nextCart);
+    setCartErrorMessage(null);
+  };
+
+  const handleCartPersistenceFailure = (error: unknown) => {
+    Logger.error("Failed to save cart", error);
+    setCartErrorMessage("Unable to save your cart. Please try again.");
+  };
+
   const handleAddToCart = async (product: ProductItem, quantity = 1) => {
     if (!product.listing) {
       Logger.warn("Ignoring cart request without a verified merchant listing.");
@@ -165,19 +183,9 @@ export default function App() {
       } else {
         newCart.push(createCartItem(product, quantity));
       }
-      if (user) {
-        const response = await authFetch("/api/cart", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cart: newCart })
-        });
-        assertCartPersistence(response);
-      }
-      setCart(newCart);
-      setCartErrorMessage(null);
+      await persistCart(newCart);
     } catch (error) {
-      Logger.error("Failed to save cart", error);
-      setCartErrorMessage("Unable to save your cart. Please try again.");
+      handleCartPersistenceFailure(error);
       throw error;
     }
   };
@@ -206,44 +214,35 @@ export default function App() {
   };
 
   const handleUpdateCartQuantity = async (productId: string, delta: number) => {
-    const newCart = cart.map(item => {
-      if (item.product.id === productId) {
-        const newQty = item.quantity + delta;
-        return newQty > 0 ? withCartQuantity(item, newQty) : null;
-      }
-      return item;
-    }).filter(Boolean) as CartItem[];
-    
-    setCart(newCart);
-    if (user) {
-      await authFetch("/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cart: newCart })
-      });
+    try {
+      const newCart = cart.map(item => {
+        if (item.product.id === productId) {
+          const newQty = item.quantity + delta;
+          return newQty > 0 ? withCartQuantity(item, newQty) : null;
+        }
+        return item;
+      }).filter(Boolean) as CartItem[];
+
+      await persistCart(newCart);
+    } catch (error) {
+      handleCartPersistenceFailure(error);
     }
   };
 
   const handleRemoveCartItem = async (productId: string) => {
     const newCart = cart.filter(item => item.product.id !== productId);
-    setCart(newCart);
-    if (user) {
-      await authFetch("/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cart: newCart })
-      });
+    try {
+      await persistCart(newCart);
+    } catch (error) {
+      handleCartPersistenceFailure(error);
     }
   };
 
   const handleClearCart = async () => {
-    setCart([]);
-    if (user) {
-      await authFetch("/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cart: [] })
-      });
+    try {
+      await persistCart([]);
+    } catch (error) {
+      handleCartPersistenceFailure(error);
     }
   };
 
