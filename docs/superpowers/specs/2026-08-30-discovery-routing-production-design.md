@@ -111,6 +111,12 @@ The release gate requires:
 
 Cloud credentials and external deployment state must be reported separately from repository test results.
 
+## No placeholder completion rule
+
+Test fixtures may model provider responses for deterministic unit tests. Production handlers must call the real configured provider, database, payment, and browser boundaries. A placeholder adapter, no-op callback, hardcoded success response, unreachable success branch, or fake fallback fails the release gate even when its surrounding tests pass.
+
+Every required capability must have a reachable production entrypoint, a deployed dependency, an explicit failure state, and an integration check that exercises the real boundary when credentials and environment access are available. Missing credentials or unavailable infrastructure must fail closed and be reported as an environment blocker. They must not be converted into a successful test result.
+
 ## Parallel delivery model
 
 The contract, state machine, and failing fixtures land first. Independent workstreams then implement discovery, cart and payment boundaries, Kitesurf staging, infrastructure checks, client state, Android support, and verification. Integration starts only after each workstream passes its local tests and conforms to the canonical contract.
