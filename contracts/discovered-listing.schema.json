@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://get-spresso.web.app/contracts/discovered-listing.schema.json",
+  "title": "DiscoveredListing",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "merchantUrl", "source", "discoveredAt"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "brand": { "type": "string", "minLength": 1 },
+    "category": { "type": "string", "minLength": 1 },
+    "imageUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "merchantUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "source": { "enum": ["parallel", "serpapi", "apify", "kitesurf"] },
+    "providerListingId": { "type": "string", "minLength": 1 },
+    "observedPrice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["amount", "currency", "evidenceUrl"],
+      "properties": {
+        "amount": { "type": "number", "exclusiveMinimum": 0 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "evidenceUrl": { "type": "string", "format": "uri", "pattern": "^https://" }
+      }
+    },
+    "discoveredAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}
