@@ -3,9 +3,13 @@ import React from "react";
 interface ProductPriceTagProps {
   price: number;
   originalPrice?: number;
+  isObserved?: boolean;
 }
 
-export const ProductPriceTag: React.FC<ProductPriceTagProps> = ({ price, originalPrice }) => {
+export const ProductPriceTag: React.FC<ProductPriceTagProps> = ({ price, originalPrice, isObserved = true }) => {
+  if (!isObserved) {
+    return <span className="text-sm font-semibold text-[#5e635f] dark:text-[#94a3b8]">Price at merchant</span>;
+  }
   const origPrice = originalPrice || price;
   const discountPct = Math.round(((origPrice - price) / origPrice) * 100);
 

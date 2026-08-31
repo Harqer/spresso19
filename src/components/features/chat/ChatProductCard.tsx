@@ -1,6 +1,7 @@
 import React from 'react';
 import { ProductItem } from '../../../types';
 import { MaterialIcon } from '../../MaterialIcon';
+import { displayListingPrice } from "../../../lib/discoveryRepository";
 
 interface ChatProductCardProps {
   product: ProductItem;
@@ -33,7 +34,7 @@ export const ChatProductCard: React.FC<ChatProductCardProps> = ({
                   <span>{product.rating.toFixed(1)}</span>
                 </div>
               ) : null}
-              <span className="text-xs font-bold text-[var(--md-sys-color-on-surface)]">${product.price.toFixed(2)}</span>
+              <span className="text-xs font-bold text-[var(--md-sys-color-on-surface)]">{product.listing ? displayListingPrice(product.listing) : "Price at merchant"}</span>
             </div>
           </div>
           <h4 className="text-sm font-semibold mt-1 text-[var(--md-sys-color-on-surface)] line-clamp-2">{product.name}</h4>
