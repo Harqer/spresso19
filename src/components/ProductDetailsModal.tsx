@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem, HITLPayload } from "../types";
 import { VideoReviewItem } from "@/src/components/shared/VideoReviewItem";
+import { verifiedMerchantUrl } from "../lib/merchantCheckout";
 
 interface ProductDetailsModalProps {
   isOpen?: boolean;
@@ -55,8 +56,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
 
   if (!isOpen || !product) return null;
 
-  const basePrice = product.price || 0;
-  const updatedTotalPrice = (basePrice * quantity).toFixed(2);
+  const observedAmount = product.listing?.observedPrice?.amount;
+  const basePrice = observedAmount ?? 0;
+  const updatedTotalPrice = observedAmount === undefined ? null : (basePrice * quantity).toFixed(2);
 
   // Available size arrays based on product category
   const isFootwear = product.category?.toLowerCase().includes("footwear") || product.category?.toLowerCase().includes("shoe") || product.category?.toLowerCase().includes("sneaker");
@@ -90,6 +92,8 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   };
 
   const handleBuyNowClick = () => {
+    const merchantUrl = verifiedMerchantUrl(product.merchantUrl);
+    if (merchantUrl) window.open(merchantUrl, "_blank", "noopener,noreferrer");
     if (onRequestHITLCheckout) {
       const authId = `AUTH-${Date.now().toString(36).toUpperCase()}`;
       onRequestHITLCheckout({
@@ -97,12 +101,12 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
         product: {
           id: product.id,
           name: `${product.name} (Size: ${selectedSize})`,
-          price: parseFloat(updatedTotalPrice),
+          price: basePrice,
           sku: product.sku || `SKU-${product.id}`,
           image: product.image
         },
         quantity: quantity,
-        totalAmount: parseFloat(updatedTotalPrice),
+        totalAmount: basePrice * quantity,
         currency: product.currency || "USD",
         deviceSource: "WEB",
         availabilityStatus: product.availabilityStatus || "VERIFY_AT_MERCHANT_CHECKOUT",
@@ -245,9 +249,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 <span className="text-xs font-mono font-bold text-[#446732] dark:text-[#a9d291] uppercase tracking-wider">
                   {product.brand || "Spresso Verified Merchant"}
                 </span>
-                <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-[#e8efe0] dark:bg-[#20261b] text-xs font-bold text-[#446732] dark:text-[#a9d291]">
+                <span className="inline-flex items-center space-x-1 text-xs font-bold text-[#446732] dark:text-[#a9d291]">
                   <MaterialIcon icon="star" size={14} className="text-amber-500 fill-amber-500" />
-                  <span>4.9 (128 reviews)</span>
+                  <span>{product.rating || "No rating yet"}</span>
                 </span>
               </div>
 
@@ -255,14 +259,14 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 {product.name}
               </h1>
 
-              <div className="flex items-baseline justify-between pt-1">
+          <div className="flex items-baseline justify-between pt-1">
                 <div className="flex items-baseline space-x-2">
                   <span className="text-3xl font-black text-[#446732] dark:text-[#a9d291] font-mono">
-                    ${updatedTotalPrice}
+                    {updatedTotalPrice ? new Intl.NumberFormat(undefined, { style: "currency", currency: product.currency || "USD" }).format(basePrice * quantity) : "Price at merchant"}
                   </span>
-                  {quantity > 1 && (
+                  {quantity > 1 && updatedTotalPrice && (
                     <span className="text-xs text-[#43483e] dark:text-[#c3c8bb] font-mono">
-                      (${basePrice.toFixed(2)} × {quantity})
+                      ({new Intl.NumberFormat(undefined, { style: "currency", currency: product.currency || "USD" }).format(basePrice)} × {quantity})
                     </span>
                   )}
                 </div>
@@ -406,6 +410,11 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             </div>
 
           </div>
+          {verifiedMerchantUrl(product.merchantUrl) && (
+            <a href={verifiedMerchantUrl(product.merchantUrl) || undefined} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-[#386633] underline underline-offset-2">
+              <MaterialIcon icon="open_in_new" size={14} /> View retailer listing
+            </a>
+          )}
         </div>
 
         {/* Added to Cart Feedback Toast Notification */}
@@ -413,7 +422,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           <div className="absolute top-16 inset-x-5 z-40 bg-[#446732] text-white font-extrabold text-xs py-2.5 px-4 rounded-xl shadow-xl flex items-center justify-between animate-bounce">
             <span className="flex items-center space-x-2">
               <MaterialIcon icon="check_circle" size={18} />
-              <span>Added to Cart ({quantity}× Size {selectedSize} - ${updatedTotalPrice})</span>
+              <span>Added to Cart ({quantity}× Size {selectedSize})</span>
             </span>
           </div>
         )}
@@ -424,7 +433,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             onClick={handleBuyNowClick}
             className="flex-1 py-3.5 bg-[#446732] hover:bg-[#385428] dark:bg-[#a9d291] dark:hover:bg-[#96c47c] text-white dark:text-[#191d16] font-extrabold text-sm uppercase tracking-wider rounded-2xl transition shadow-md cursor-pointer flex items-center justify-center space-x-2"
           >
-            <span>Buy Now (${updatedTotalPrice})</span>
+            <span>View merchant listing</span>
             <MaterialIcon icon="bolt" size={18} />
           </button>
 

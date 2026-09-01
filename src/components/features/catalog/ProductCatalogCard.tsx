@@ -58,15 +58,16 @@ export const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
         {isElevated && (
           <div className="p-3 bg-[#f2f8f2] rounded-2xl border border-[#d8ebd7] space-y-2 text-xs">
             <div className="flex items-center justify-between text-[#2d4d29] font-semibold border-b border-[#d8ebd7] pb-1.5">
-              <span className="flex items-center space-x-1"><MaterialIcon icon="inventory_2" size={14} /><span>In Stock ({product.stock})</span></span>
+              <span className="flex items-center space-x-1"><MaterialIcon icon="storefront" size={14} /><span>Verify price and availability at merchant</span></span>
               <span className="text-[#ff5e1a]">SKU: {product.sku}</span>
             </div>
+            {product.merchantUrl && <a href={product.merchantUrl} target="_blank" rel="noopener noreferrer" className="text-[#386633] underline underline-offset-2">View retailer listing</a>}
           </div>
         )}
       </div>
       <div className="pt-3 border-t border-[#f2f8f2] space-y-3">
         <div className="flex items-center justify-between">
-          <ProductPriceTag price={product.price} originalPrice={product.originalPrice} />
+          <ProductPriceTag price={product.price} originalPrice={product.originalPrice} observedPrice={product.listing?.observedPrice} merchantUrl={product.merchantUrl} />
           <div className="flex items-center space-x-1.5">
             <button onClick={onGenkitModal} className="px-2.5 py-2 rounded-xl border"><MaterialIcon icon="auto_awesome" size={16} /></button>
             <button onClick={onSelectTryOn} className="px-3 py-2 rounded-xl bg-[#e8f3e8] border"><MaterialIcon icon="animation" size={18} /></button>

@@ -1,6 +1,7 @@
 import React from "react";
 import { ProductItem } from "../../../types";
 import { MaterialIcon } from "../../MaterialIcon";
+import { displayListingPrice } from "../../../lib/discoveryRepository";
 
 interface AICurationFeedProps {
   curatedPersonalizedProducts: ProductItem[];
@@ -37,7 +38,7 @@ export const AICurationFeed: React.FC<AICurationFeedProps> = ({ curatedPersonali
               </div>
               <div className="min-w-0 flex-1">
                 <h4 className="text-xs font-bold text-white line-clamp-1 group-hover:text-emerald-400 transition">{p.name}</h4>
-                <span className="text-[10px] text-stone-400 font-mono block">${p.price.toFixed(2)}</span>
+                {p.listing?.merchantUrl ? <a href={p.listing.merchantUrl} target="_blank" rel="noopener noreferrer" onClick={(event) => event.stopPropagation()} className="text-[10px] text-emerald-300 underline underline-offset-2 font-mono block">{displayListingPrice(p.listing)} · View retailer</a> : <span className="text-[10px] text-stone-400 font-mono block">Price at merchant</span>}
                 {p.rating ? (
                 <div className="flex items-center space-x-1 text-[10px] font-bold text-[#191d16] dark:text-[#f8fafc] bg-[#eef3ea] dark:bg-[#283228] px-1.5 py-0.5 rounded-full">
                   <MaterialIcon icon="star" size={10} className="text-[#386633] dark:text-[#9cd695]" />
