@@ -1,7 +1,7 @@
 import Logger from "./Logger";
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, PhoneAuthCredential } from 'firebase/auth';
-import { getFirestore, collection, addDoc, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc, getDocFromServer, serverTimestamp } from 'firebase/firestore';
 import { getDatabase } from 'firebase/database';
 import { getFunctions } from 'firebase/functions';
 import { getToken as getAppCheckToken, initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from 'firebase/app-check';
@@ -107,11 +107,8 @@ export async function logToCrashlytics(
 ) {
   const logPayload = {
     level,
-    message,
-    extra: extraData ? JSON.stringify(extraData) : null,
-    userId: auth.currentUser?.uid || "anonymous",
-    timestamp: new Date().toISOString(),
-    userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "server"
+    message: extraData ? `${message} ${JSON.stringify(extraData)}`.slice(0, 2000) : message.slice(0, 2000),
+    timestamp: serverTimestamp(),
   };
 
   // Write to Firestore logs collection (acts as the Crashlytics sink for the web platform)
