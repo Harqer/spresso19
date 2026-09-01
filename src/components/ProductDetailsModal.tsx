@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem, HITLPayload } from "../types";
-import { VideoReviewItem } from "@/src/components/shared/VideoReviewItem";
 import { verifiedMerchantUrl } from "../lib/merchantCheckout";
 
 interface ProductDetailsModalProps {
@@ -363,21 +362,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             <div className="space-y-3 text-left pt-2">
               <h3 className="font-bold text-[#43483e] dark:text-[#c3c8bb] font-mono text-xs tracking-wider uppercase flex items-center space-x-1.5">
                 <MaterialIcon icon="videocam" size={16} className="text-[#446732] dark:text-[#a9d291]" />
-                <span>Customer Video Reviews</span>
+                <span>Product Video Preview</span>
               </h3>
-
-              <div className="space-y-2 border-none bg-transparent p-0">
-                <VideoReviewItem
-                  review={{
-                    id: `rev-v1-${product.id}`,
-                    authorName: "Elena Rostova",
-                    rating: 5.0,
-                    commentText: `Unbelievable quality and fit! The material feels super premium and fits true to size.`,
-                    thumbnailUrl: product.image,
-                    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-in-a-front-pose-40344-large.mp4"
-                  }}
-                />
-              </div>
+              {product.genMediaKit?.videoUrl ? <video src={product.genMediaKit.videoUrl} controls playsInline className="w-full rounded-xl" aria-label={`${product.name} product video`} /> : <p className="text-xs text-[#5e635f]">No generated product video is available yet.</p>}
             </div>
 
             {/* PRODUCT DESCRIPTION Narrative Section (Jetsnack scroll experience) */}

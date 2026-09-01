@@ -10,6 +10,8 @@ import { ProblemDetailsCard } from "@/src/components/shared/ProblemDetailsCard";
 import { AICurationFeed } from "@/src/components/features/catalog/AICurationFeed";
 import { ProductCatalogHeader } from "@/src/components/features/catalog/ProductCatalogHeader";
 import { DiscoveryRepository } from "../../../lib/discoveryRepository";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../../lib/firebase";
 
 export const ProductCatalogPage: React.FC<any> = ({ onSelectTryOn, onRequestMerchantCheckout, onAddToCart, userLocation, searchRadius = 25, onRadiusChange, onRequestLocationPermission, onAskAI, onOpenLens, discoveryRepository, onListingsChanged }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
@@ -22,6 +24,28 @@ export const ProductCatalogPage: React.FC<any> = ({ onSelectTryOn, onRequestMerc
   const [tiltX, setTiltX] = useState<number>(0);
   const [tiltY, setTiltY] = useState<number>(0);
   const [active360AngleIdx, setActive360AngleIdx] = useState<number>(0);
+  const [spinMediaError, setSpinMediaError] = useState<string | null>(null);
+  const handleSpin360 = async (product: ProductItem) => {
+    setSpinMediaError(null);
+    setSpin360Product(product);
+    try {
+      const generateSpin360 = httpsCallable(functions, "generateSpin360");
+      const response = await generateSpin360({
+        productId: product.id,
+        name: product.name,
+        category: product.category,
+        image: product.image,
+      });
+      const media = response.data as { mediaUrl?: string; mediaType?: "image" | "video" };
+      if (!media.mediaUrl) throw new Error("No generated product media was returned.");
+      setSpin360Product(current => current && current.id === product.id
+        ? { ...current, genMediaKit: { ...current.genMediaKit, videoUrl: media.mediaType === "video" ? media.mediaUrl : current.genMediaKit?.videoUrl } }
+        : current);
+    } catch (error) {
+      Logger.error("Failed to generate product rotation media", error);
+      setSpinMediaError("Product media could not be generated right now. You can still view the merchant listing.");
+    }
+  };
   useEffect(() => {
     if (!spin360Product || !isAutoSpinning) return;
     const interval = setInterval(() => setSpin360Angle(prev => (prev + 1.5) % 360), 30);
@@ -127,7 +151,8 @@ export const ProductCatalogPage: React.FC<any> = ({ onSelectTryOn, onRequestMerc
           className="mb-4"
         />
       )}
-      <ProductCatalogGrid products={personalizedProducts} isLoading={isLoadingPersonalized} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} onRequestMerchantCheckout={onRequestMerchantCheckout} onOpenLens={onOpenLens} setGenkitModalProduct={setGenkitModalProduct} setSpin360Product={setSpin360Product} fetchFeed={() => fetchPersonalizedFeed(selectedCategory)} />
+      <ProductCatalogGrid products={personalizedProducts} isLoading={isLoadingPersonalized} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} onRequestMerchantCheckout={onRequestMerchantCheckout} onOpenLens={onOpenLens} setGenkitModalProduct={setGenkitModalProduct} setSpin360Product={handleSpin360} fetchFeed={() => fetchPersonalizedFeed(selectedCategory)} />
+      {spinMediaError && <p className="text-xs text-[#a84a32]" role="alert">{spinMediaError}</p>}
       {spin360Product && <Product360SpinModal spin360Product={spin360Product} spin360Angle={spin360Angle} isAutoSpinning={isAutoSpinning} tiltX={tiltX} tiltY={tiltY} active360AngleIdx={active360AngleIdx} setSpin360Product={setSpin360Product} setSpin360Angle={setSpin360Angle} setIsAutoSpinning={setIsAutoSpinning} setTiltX={setTiltX} setTiltY={setTiltY} setActive360AngleIdx={setActive360AngleIdx} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} />}
       {genkitModalProduct && <GenkitCreativeStudioModal product={genkitModalProduct} onClose={() => setGenkitModalProduct(null)} />}
       <AIShopperInputBar onSend={(t, img) => onAskAI?.(t, img)} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} placeholder="Ask Spresso AI about products..." className="mt-6" />

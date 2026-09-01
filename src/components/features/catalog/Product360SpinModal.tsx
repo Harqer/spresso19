@@ -37,7 +37,11 @@ export const Product360SpinModal: React.FC<Product360SpinModalProps> = ({
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,102,51,0.25)_0%,transparent_70%)] pointer-events-none"></div>
         <div className="relative transition-transform duration-75 ease-out max-w-md w-full flex items-center justify-center" style={{ perspective: "1200px", transformStyle: "preserve-3d" }}>
           <div className="relative transition-all duration-100 ease-out flex items-center justify-center" style={{ transform: `perspective(1000px) rotateY(${spin360Angle}deg) rotateX(${tiltY}deg) rotateZ(${tiltX * 0.3}deg) scale(1.05)`, filter: "drop-shadow(0 25px 25px rgba(0, 0, 0, 0.7))" }}>
-            <img src={(spin360Product.genMediaKit?.angles && spin360Product.genMediaKit.angles[active360AngleIdx]) || spin360Product.image} alt={spin360Product.name} className="max-h-[320px] object-contain rounded-2xl pointer-events-none" />
+            {spin360Product.genMediaKit?.videoUrl ? (
+              <video src={spin360Product.genMediaKit.videoUrl} controls playsInline className="max-h-[320px] object-contain rounded-2xl" aria-label={`${spin360Product.name} generated product video`} />
+            ) : (
+              <img src={(spin360Product.genMediaKit?.angles && spin360Product.genMediaKit.angles[active360AngleIdx]) || spin360Product.image} alt={spin360Product.name} className="max-h-[320px] object-contain rounded-2xl pointer-events-none" />
+            )}
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent rounded-2xl pointer-events-none"></div>
           </div>
           <div className="absolute -bottom-8 w-64 h-8 bg-black/60 rounded-[100%] blur-xl pointer-events-none" style={{ transform: `scale(${1 + Math.sin((spin360Angle * Math.PI) / 180) * 0.15})` }}></div>
