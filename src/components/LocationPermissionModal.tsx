@@ -178,7 +178,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                   <p className="text-[11px] text-[#446732] dark:text-[#a9d291] leading-tight pt-0.5">
                     {selectedRadius >= 25
                       ? `Searching ${selectedRadius} miles captures deals across regional outlets & major stores.`
-                      : `Searching ${selectedRadius} miles strictly focuses on immediate local store stock.`}
+                      : `Searching ${selectedRadius} miles focuses on nearby merchant listings.`}
                   </p>
                 </div>
 
@@ -268,4 +268,3 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
     </AnimatePresence>
   );
 };
-

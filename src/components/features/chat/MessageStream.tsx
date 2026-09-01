@@ -39,7 +39,7 @@ export const MessageStream: React.FC<MessageStreamProps> = ({ messages, onSelect
                       category: "Location",
                       description: m.locationData.sectionTitle || "",
                       image: m.locationData.heroImage || "",
-                      stock: 0,
+                      availabilityStatus: "VERIFY_AT_MERCHANT_CHECKOUT",
                       sku: "LOC",
                       rating: 5.0,
                       virtualTryOnEligible: true,

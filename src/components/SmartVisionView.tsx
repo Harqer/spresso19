@@ -58,23 +58,15 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
       const res = await identifyVisionObject({
         imageBase64: targetImage,
         deviceContext: "WEB",
-        promptText: "Identify product and match catalog stock."
+        promptText: "Identify the product or garment shown. Do not estimate price or claim inventory; merchant listings are verified separately."
       });
-      
-      const data = { success: true, result: { detectedItems: [res.data as any], hudAnnotationText: "Item located" } }; // Map to expected structure
-      if (data.success && data.result) {
+      const response = res.data as { success?: boolean; detectedResult?: { hudAnnotationText?: string } };
+      const result = response.detectedResult;
+      if (response.success && result) {
         setDetectedResult({
-          detectedItems: data.result.detectedItems,
-          hudAnnotationText: data.result.hudAnnotationText || "Detected items"
+          detectedItems: [],
+          hudAnnotationText: result.hudAnnotationText || "Item identified"
         });
-
-        const items: DetectedItem[] = data.result.detectedItems || [];
-        const crops: Record<number, string> = {};
-        for (let i = 0; i < items.length; i++) {
-          const crop = await cropImageSnippet(targetImage, items[i].boundingBox);
-          crops[i] = crop;
-        }
-        setItemThumbnails(crops);
       }
     } catch (err) {
       // Ignored
@@ -198,9 +190,7 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
                             {item.detectedName}
                           </h4>
                           <div className="flex items-center space-x-2 mt-0.5">
-                            <span className="text-sm font-extrabold text-[#386633]">
-                              ${(item.priceEstimate && item.priceEstimate > 0 ? item.priceEstimate : (matchedCatalogItem?.price || 0)).toFixed(2)}
-                            </span>
+                            <span className="text-sm font-extrabold text-[#386633]">Price at merchant</span>
                           </div>
                         </div>
 

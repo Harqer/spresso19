@@ -1,6 +1,8 @@
 import { ai } from "../genkit";
 import { z } from "genkit";
 import { getFirestore } from "firebase-admin/firestore";
+import { DiscoveredListingSchema } from "../../contracts/discoveredListing";
+import { createCartListingSnapshot } from "../../cart/cartListingSnapshot";
 
 export const addToCartTool = ai.defineTool(
   {
@@ -22,21 +24,31 @@ export const addToCartTool = ai.defineTool(
       throw new Error("Application safeguard triggered: Unauthenticated AI tool execution attempt blocked.");
     }
     
-    console.log(`User ${uid} adding ${quantity} of product ${productId} to cart`);
-    
     const db = getFirestore();
+    const listingDoc = await db.collection("discovered_listings").doc(productId).get();
+    if (!listingDoc.exists) {
+      throw new Error("The selected merchant listing is no longer available.");
+    }
+    const parsedListing = DiscoveredListingSchema.safeParse({ id: listingDoc.id, ...(listingDoc.data() || {}) });
+    if (!parsedListing.success) {
+      throw new Error("The selected merchant listing is invalid or incomplete.");
+    }
     const cartRef = db.collection("carts").doc(uid);
     
     await db.runTransaction(async (transaction: any) => {
       const cartDoc = await transaction.get(cartRef);
       const data = cartDoc.exists ? cartDoc.data() : { items: [] };
-      const items = data?.items || [];
+      const items = Array.isArray(data?.items) ? [...data.items] : [];
       
-      const existingItemIndex = items.findIndex((item: any) => item.productId === productId);
+      const existingItemIndex = items.findIndex((item: any) => item?.id === productId);
+      const nextQuantity = (existingItemIndex >= 0 ? Number(items[existingItemIndex].quantity) : 0) + quantity;
+      if (!Number.isInteger(nextQuantity) || nextQuantity > 25) {
+        throw new Error("A cart item cannot exceed 25 units.");
+      }
       if (existingItemIndex > -1) {
-        items[existingItemIndex].quantity += quantity;
+        items[existingItemIndex] = createCartListingSnapshot(parsedListing.data, nextQuantity);
       } else {
-        items.push({ productId, quantity, addedAt: new Date().toISOString() });
+        items.push(createCartListingSnapshot(parsedListing.data, quantity));
       }
       
       transaction.set(cartRef, { items }, { merge: true });
@@ -45,6 +57,7 @@ export const addToCartTool = ai.defineTool(
     return {
       success: true,
       message: `Successfully added ${quantity} item(s) to your cart.`,
+      cartTotal: undefined,
     };
   }
 );

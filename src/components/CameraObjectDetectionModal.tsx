@@ -584,34 +584,6 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
                       <span>{addedToListings ? "Added to Spresso Products!" : "Generate Spresso Listing"}</span>
                     </button>
 
-                    {onSelectTryOn && (
-                      <button
-                        onClick={() => {
-                          const activeItem = detectedItems[selectedIndex];
-                          onSelectTryOn({
-                            id: activeItem.matchingCatalogId || `prod-custom-${Date.now()}`,
-                            name: activeItem.detectedName,
-                            brand: activeItem.brandGuess || "",
-                            price: activeItem.priceEstimate || null as any,
-                            currency: "USD",
-                            category: activeItem.category || "",
-                            description: activeItem.detectedName,
-                            image: croppedThumbnail || capturedPhoto || "",
-                            stock: null as any,
-                            sku: (activeItem as any).sku || null,
-                            rating: null as any,
-                            virtualTryOnEligible: true,
-                            mcpServerId: "spresso-mcp-bargain-chef"
-                          });
-                          onClose();
-                        }}
-                        className="py-2.5 px-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1 cursor-pointer"
-                        title="Virtual Try-On"
-                      >
-                        <MaterialIcon icon="styler" size={16} />
-                        <span>Try On</span>
-                      </button>
-                    )}
                   </div>
                 </div>
               )}

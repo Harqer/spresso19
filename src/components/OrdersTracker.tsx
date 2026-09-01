@@ -6,7 +6,6 @@ import { OrderRecord } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { AIShopperInputBar } from "./AIShopperInputBar";
 import { GoogleWalletButton } from "@/src/components/features/profile/GoogleWalletButton";
-import { AnimatedTicketCard } from "@/src/components/features/orders/AnimatedTicketCard";
 import { ErrorStateFallback, EmptyStateFallback } from "./shared/Fallbacks";
 import { GetOrdersResponseSchema } from "../lib/schema";
 
@@ -44,22 +43,27 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
   const [returnReason, setReturnReason] = useState("");
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
+  const [actionErrorMsg, setActionErrorMsg] = useState<string | null>(null);
 
   const handleSetReminder = async (orderId: string) => {
     setLoadingAction(`reminder-${orderId}`);
+    setActionErrorMsg(null);
     try {
       const setOrderReminder = httpsCallable(functions, "setOrderReminder");
       const res = await setOrderReminder({ orderId, reminderTime: "Today at 5:00 PM (Arrival Alert)" });
       const data = res.data as any;
       if (data.success) {
         setActionSuccessMsg(`Delivery arrival reminder set for ${orderId}!`);
+        window.setTimeout(() => setActionSuccessMsg(null), 5000);
         queryClient.invalidateQueries({ queryKey: ["userOrders"] });
         if (onRefreshOrders) onRefreshOrders();
+      } else {
+        setActionErrorMsg("Unable to set the arrival reminder right now. Please try again.");
       }
-    } catch (e) {
+    } catch {
+      setActionErrorMsg("Unable to set the arrival reminder right now. Please try again.");
     } finally {
       setLoadingAction(null);
-      setActionSuccessMsg(null);
     }
   };
 
@@ -68,55 +72,39 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
     if (!returnModalOrderId) return;
 
     setLoadingAction(`return-${returnModalOrderId}`);
+    setActionErrorMsg(null);
     try {
       const initiateOrderReturn = httpsCallable(functions, "initiateOrderReturn");
       const res = await initiateOrderReturn({ orderId: returnModalOrderId, reason: returnReason || "Customer return request" });
       const data = res.data as any;
       if (data.success) {
         setActionSuccessMsg(`Return initiated for ${returnModalOrderId}. Prepaid shipping label dispatched.`);
+        window.setTimeout(() => setActionSuccessMsg(null), 5000);
         setReturnModalOrderId(null);
         setReturnReason("");
         queryClient.invalidateQueries({ queryKey: ["userOrders"] });
         if (onRefreshOrders) onRefreshOrders();
+      } else {
+        setActionErrorMsg("Unable to initiate the return right now. Please try again.");
       }
-    } catch (e) {
+    } catch {
+      setActionErrorMsg("Unable to initiate the return right now. Please try again.");
     } finally {
       setLoadingAction(null);
-      setActionSuccessMsg(null);
     }
   };
 
-  const getStatusBadge = (order: OrderRecord) => {
+  const getStatusLabel = (order: OrderRecord) => {
     if (order.status === "RETURN_REQUESTED" || order.returnStatus === "REQUESTED") {
-      return (
-        <span className="px-2.5 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded-full flex items-center space-x-1">
-          <MaterialIcon icon="undo" size={14} className="text-amber-600" />
-          <span>RETURN REQUESTED</span>
-        </span>
-      );
+      return "Return requested";
     }
     if (order.status === "DELIVERED") {
-      return (
-        <span className="px-2.5 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center space-x-1">
-          <MaterialIcon icon="mark_email_read" size={14} className="text-emerald-600" />
-          <span>DELIVERED</span>
-        </span>
-      );
+      return "Delivered";
     }
     if (order.status === "IN_TRANSIT") {
-      return (
-        <span className="px-2.5 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 rounded-full flex items-center space-x-1">
-          <MaterialIcon icon="local_shipping" size={14} className="text-blue-600" />
-          <span>IN TRANSIT</span>
-        </span>
-      );
+      return "In transit";
     }
-    return (
-      <span className="px-2.5 py-0.5 text-[10px] font-bold bg-[#e8f3e8] text-[#386633] border border-[#d8ebd7] rounded-full flex items-center space-x-1">
-        <MaterialIcon icon="check_circle" size={14} className="text-[#386633]" />
-        <span>CONFIRMED</span>
-      </span>
-    );
+    return order.status.replaceAll("_", " ").toLowerCase();
   };
 
   return (
@@ -149,6 +137,11 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
         <div className="p-4 bg-[#e8f3e8] border border-[#386633] text-[#386633] rounded-2xl text-xs font-semibold flex items-center space-x-2 animate-fade-in">
           <MaterialIcon icon="check_circle" size={18} />
           <span>{actionSuccessMsg}</span>
+        </div>
+      )}
+      {actionErrorMsg && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-2xl text-xs font-semibold" role="alert">
+          {actionErrorMsg}
         </div>
       )}
 
@@ -184,13 +177,13 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#f2f8f2] pb-3">
                   <div className="flex items-center space-x-3">
                     <span className="text-sm font-bold text-[#18211e] font-mono">{order.id}</span>
-                    {getStatusBadge(order)}
+                    <span className="text-xs font-semibold text-[#5e635f]">{getStatusLabel(order)}</span>
                   </div>
 
                   <div className="flex items-center space-x-3 text-xs text-[#5e635f] font-mono">
                     <span className="flex items-center space-x-1">
                       <MaterialIcon icon="schedule" size={16} />
-                      <span>{new Date(order.humanConfirmedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>{order.humanConfirmedAt ? new Date(order.humanConfirmedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Time unavailable"}</span>
                     </span>
                     {order.mcpTransactionHash && (
                       <span className="hidden md:inline-block text-[10px] text-[#8a928c]">
@@ -213,11 +206,11 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                         <span className="text-[10px] font-bold text-[#5e635f] uppercase">{item.product.brand}</span>
                         <h4 className="text-xs font-bold text-[#18211e] truncate">{item.product.name}</h4>
                         <p className="text-[10px] text-[#5e635f]">
-                          Qty: {item.quantity} • Unit Price: ${item.product.price.toFixed(2)}
+                          Qty: {item.quantity} • Unit Price: {item.product.listing?.observedPrice ? new Intl.NumberFormat(undefined, { style: "currency", currency: item.product.listing.observedPrice.currency }).format(item.product.listing.observedPrice.amount) : "Price at merchant"}
                         </p>
                       </div>
                       <span className="text-sm font-bold text-[#386633] font-mono shrink-0">
-                        ${(item.product.price * item.quantity).toFixed(2)}
+                        {item.product.listing?.observedPrice ? new Intl.NumberFormat(undefined, { style: "currency", currency: item.product.listing.observedPrice.currency }).format(item.product.listing.observedPrice.amount * item.quantity) : "Price at merchant"}
                       </span>
                     </div>
                   ))}
@@ -232,7 +225,7 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                     </div>
                     {order.carrier && (
                       <span className="text-[11px] font-mono text-[#5e635f] font-bold">
-                        {order.carrier} • {order.trackingNumber || "FX-8492019"}
+                        {order.carrier}{order.trackingNumber ? ` • ${order.trackingNumber}` : ""}
                       </span>
                     )}
                   </div>
@@ -241,14 +234,14 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                     <div className="bg-white p-3 rounded-xl border border-[#d8ebd7]">
                       <span className="text-[10px] text-[#5e635f] font-bold uppercase block">Current Location / Status</span>
                       <span className="font-semibold text-[#18211e]">
-                        {order.trackingStatus || "In Transit - Out for Delivery Vehicle"}
+                        {order.trackingStatus || "Tracking unavailable"}
                       </span>
                     </div>
 
                     <div className="bg-white p-3 rounded-xl border border-[#d8ebd7]">
                       <span className="text-[10px] text-[#5e635f] font-bold uppercase block">Estimated Arrival</span>
                       <span className="font-bold text-[#386633] font-mono">
-                        {order.estimatedDelivery || "Today, 5:00 PM"}
+                        {order.estimatedDelivery || "Not provided by merchant"}
                       </span>
                     </div>
                   </div>
@@ -258,19 +251,6 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                       <strong>Return Note:</strong> {order.returnReason}
                     </div>
                   )}
-                </div>
-
-                {/* Animated Ticket Ripple Pass */}
-                <div className="pt-2">
-                  <AnimatedTicketCard
-                    variant={order.paymentMethod === "Coinbase USDC" ? "coinbase_usdc" : order.paymentMethod === "Google Pay" ? "google_pay" : "startup_school"}
-                    title={order.paymentMethod === "Coinbase USDC" ? "COINBASE USDC PAYMENT PASS" : order.paymentMethod === "Google Pay" ? "GOOGLE PAY ORDER TICKET" : "SPRESSO VIP ORDER PASS"}
-                    subtitle={`ORDER #${order.id.substring(0, 8)}`}
-                    attendeeName={order.userUid ? `UID: ${order.userUid.substring(0, 10)}` : "VIP CUSTOMER"}
-                    location={order.items[0]?.product.name || "SPRESSO STORE"}
-                    date={new Date(order.humanConfirmedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    ticketCode={`PASS-${order.id}`}
-                  />
                 </div>
 
                 {/* Post-Purchase Agent Control Bar */}
@@ -291,9 +271,7 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                     </button>
 
                     {/* Google Wallet Save Pass Button */}
-                    <GoogleWalletButton
-                      passUrl={`https://pay.google.com/gp/v/save/eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzcHJlc3NvLXdhbGxldEBzcHJlc3NvLTU1NjFmLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiaWF0IjoxNzU0NzA1MjAwLCJwYXlsb2FkIjp7ImdlbmVyaWNPYmplY3RzIjpbeyJpZCI6IjMzODgwMDAwMDAwMjIzODcxOTIuc3ByZXNzb19vcmRlcl8${order.id}"}`}
-                    />
+                    {(order as OrderRecord & { walletPassUrl?: string }).walletPassUrl && <GoogleWalletButton passUrl={(order as OrderRecord & { walletPassUrl?: string }).walletPassUrl!} />}
 
                     {/* Initiate Return Button */}
                     {!isReturnRequested ? (

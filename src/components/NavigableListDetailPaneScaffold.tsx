@@ -367,8 +367,8 @@ export const NavigableListDetailPaneScaffold: React.FC<NavigableListDetailPaneSc
 
                   <div className="p-3.5 bg-[#f2f5ea] dark:bg-[#282b24] border border-[#dfe4d7] dark:border-[#43483e] rounded-xl space-y-2 text-xs">
                     <div className="flex justify-between font-medium">
-                      <span className="text-[#43483e] dark:text-[#c3c8bb]">In Stock</span>
-                      <span className="font-bold text-[#446732] dark:text-[#a9d291]">{selectedProduct.stock} units available</span>
+                      <span className="text-[#43483e] dark:text-[#c3c8bb]">Availability</span>
+                      <span className="font-bold text-[#446732] dark:text-[#a9d291]">Verify at merchant checkout</span>
                     </div>
                     <div className="flex justify-between font-medium">
                       <span className="text-[#43483e] dark:text-[#c3c8bb]">Virtual Try-On</span>

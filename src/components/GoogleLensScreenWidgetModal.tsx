@@ -50,7 +50,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
         const initItem = {
           id: 0,
           label: initialProduct.name || "",
-          price: initialProduct.price != null ? `$${initialProduct.price.toFixed(2)}` : "",
+          price: initialProduct.listing?.observedPrice ? new Intl.NumberFormat(undefined, { style: "currency", currency: initialProduct.listing.observedPrice.currency }).format(initialProduct.listing.observedPrice.amount) : "Price at merchant",
           source: initialProduct.brand || "",
           thumbnail: initialProduct.image || "",
           category: initialProduct.category || "",
@@ -363,7 +363,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
 
                         <div className="flex-1 min-w-0 space-y-1">
                           <h4 className="text-xs font-bold text-white truncate">{region.label}</h4>
-                          <p className="text-[10px] text-stone-300 font-semibold truncate">{region.price || "Contact Seller"}</p>
+                          <p className="text-[10px] text-stone-300 font-semibold truncate">{region.price || "Price at merchant"}</p>
                           <p className="text-[9px] text-stone-400 truncate">{region.source}</p>
                           
                           <div className="flex items-center space-x-2 pt-1">

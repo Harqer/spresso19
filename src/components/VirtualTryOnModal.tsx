@@ -105,14 +105,16 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       const [resTryOn, resVitpose] = await Promise.all([
         generateVirtualTryOn({
           productId: product?.id,
+          productName: product?.name,
+          productImage: product?.image,
           userPhotoBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
           customNotes: `Render in ${selectedBg.name} using ${selectedAnimation.name}`,
-          mediaType
+          mediaType,
+          fitPreference: selectedAnimation.name,
+          fabric: product?.description
         }),
         vitposeOrchestrateFit({
-          userImageBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
-          desiredFitStyle: selectedAnimation.name,
-          preferredCategory: product?.category || ""
+          imageBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : "")
         }).catch((err) => {
           if (err.name !== "AbortError") Logger.error("Vitpose error:", err);
           return null;
@@ -123,8 +125,9 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       let fitReason = "";
       if (resVitpose && resVitpose.data) {
         const vitData: any = resVitpose.data;
-        if (vitData.orchestratorOutput?.fitAnalysis) {
-          fitReason = vitData.orchestratorOutput.fitAnalysis;
+        if (vitData.fitAnalysis) {
+          const analysis = vitData.fitAnalysis;
+          fitReason = typeof analysis === "string" ? analysis : [analysis.garmentType, analysis.postureDetected].filter(Boolean).join("; ");
         }
       }
 

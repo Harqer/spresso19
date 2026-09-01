@@ -49,11 +49,11 @@ class Logger {
         const app = getApp(); // Requires getApp from firebase/app
         const analytics = getAnalytics(app);
         if (analytics) {
-          logEvent(analytics, level === "error" ? "exception" : "log", {
-            description: message,
-            fatal: level === "error",
-            ...context
-          });
+          if (level === "error") {
+            logEvent(analytics, "exception", { description: message, fatal: true, ...context });
+          } else {
+            logEvent(analytics, "log", { description: message, ...context });
+          }
         }
       }).catch(() => { /* silent fail if analytics isn't available */});
     }
