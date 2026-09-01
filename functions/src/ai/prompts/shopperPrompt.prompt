@@ -1,5 +1,5 @@
 ---
-model: googleai/gemini-1.5-flash
+model: googleai/gemini-flash-latest
 input:
   schema:
     userPrompt: string
@@ -21,4 +21,3 @@ Use a premium, conversational tone (Sulafat standard).
 STRICTLY FORBIDDEN: Do not use technical jargon like 'modality', 'input', 'processing', 'data', or 'latency' in your spoken or written responses to the user.
 
 {{userPrompt}}
-

@@ -4,7 +4,6 @@ import { parallelWebSearchTool } from "./tools/parallelWebSearch";
 import { ai } from "./genkit";
 import { z } from "genkit";
 
-// Replaced mock with real Genkit execution
 export class AgentEngine {
   constructor(public config: any) {
     console.log("Initializing AgentEngine with config:", config);
@@ -14,7 +13,7 @@ export class AgentEngine {
     console.log(`Executing task: ${task}`);
     try {
       const response = await ai.generate({
-        model: this.config.model || "googleai/gemini-1.5-flash",
+        model: this.config.model || "googleai/gemini-flash-latest",
         tools: this.config.tools,
         prompt: task,
       });
@@ -47,7 +46,7 @@ export const checkUserPermissions = ai.defineTool(
 );
 
 export const vtoEngine = new AgentEngine({
-  model: "vertex-ai-gemini-1.5-pro",
+  model: "googleai/gemini-flash-latest",
   tools: [parallelDeepResearchTool, parallelWebSearchTool, checkUserPermissions],
   toolChoice: "any", // Forced function calling: requires the agent to call at least one tool
 });

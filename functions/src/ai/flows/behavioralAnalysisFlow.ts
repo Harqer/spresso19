@@ -16,7 +16,7 @@ export const behavioralAnalysisFlow = ai.defineFlow(
   async ({ explicitInterests, chatHistory }) => {
     // We will use gemini to analyze the interests and chat history
     const { text } = await ai.generate({
-      model: "gemini-1.5-flash",
+      model: "googleai/gemini-flash-latest",
       prompt: `Analyze the following user data to generate a behavioral profile.
       Explicit Interests: ${explicitInterests.join(", ")}
       Chat History: ${chatHistory?.join(" | ") || "None"}

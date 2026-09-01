@@ -7,6 +7,6 @@ enableGoogleCloudTelemetry();
 
 export const ai = genkit({
   plugins: [googleAI()],
-  model: "googleai/gemini-1.5-flash",
+  model: "googleai/gemini-flash-latest",
   promptDir: "src/ai/prompts",
 });

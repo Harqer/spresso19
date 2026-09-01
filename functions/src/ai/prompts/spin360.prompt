@@ -1,5 +1,5 @@
 ---
-model: googleai/gemini-3.5-flash
+model: googleai/gemini-flash-latest
 input:
   schema:
     name?: string
