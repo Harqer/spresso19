@@ -18,7 +18,7 @@ export const initPool = () => {
   if (pool) return pool;
 
   const isProduction = process.env.NODE_ENV === "production";
-  const connectionName = process.env.CLOUD_SQL_CONNECTION_NAME || process.env.INSTANCE_CONNECTION_NAME || "spresso-5561f:us-central1:spresso-db";
+  const connectionName = process.env.CLOUD_SQL_CONNECTION_NAME || process.env.INSTANCE_CONNECTION_NAME;
   const user = process.env.SQL_USER || process.env.PGUSER;
   const password = process.env.SQL_PASSWORD || process.env.PGPASSWORD;
   const database = process.env.SQL_DB_NAME || process.env.PGDATABASE;
@@ -29,6 +29,10 @@ export const initPool = () => {
     idleTimeoutMillis: 30000,
     statement_timeout: 10000, // 10s statement timeout
   };
+
+  if (isProduction && !connectionName) {
+    throw new Error("CLOUD_SQL_CONNECTION_NAME must be supplied by the deployment environment.");
+  }
 
   if (isProduction && connectionName) {
     // Unix Socket connection path for Google Cloud SQL in Cloud Run target runtime
@@ -208,4 +212,3 @@ export async function initDbSchema() {
     Logger.error("Database schema validation notification:", err.message);
   }
 }
-

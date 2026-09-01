@@ -114,6 +114,31 @@ export const webApi = onRequest(
         return;
       }
 
+      if (parts[0] === "products" && req.method === "GET" && parts.length <= 2) {
+        const snapshot = await db.collection("discovered_listings").limit(100).get();
+        const visibleListings: Array<Record<string, unknown> & { id: string }> = snapshot.docs
+          .map((document) => ({ id: document.id, ...document.data() }) as Record<string, unknown> & { id: string })
+          .filter((listing) => typeof listing.userId !== "string" || listing.userId === uid);
+
+        res.setHeader("Cache-Control", "private, no-store");
+        if (parts.length === 2) {
+          const productId = parts[1];
+          if (!/^[A-Za-z0-9_-]{1,128}$/.test(productId)) {
+            writeJson(res, 400, { success: false, error: "A valid product ID is required." });
+            return;
+          }
+          const product = visibleListings.find((listing) => listing.id === productId);
+          if (!product) {
+            writeJson(res, 404, { success: false, error: "Product listing not found." });
+            return;
+          }
+          writeJson(res, 200, { product });
+          return;
+        }
+        writeJson(res, 200, { products: visibleListings });
+        return;
+      }
+
       res.status(404).json({ success: false, error: "not found" });
     } catch {
       res.status(401).json({ success: false, error: "unauthorized" });

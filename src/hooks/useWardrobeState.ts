@@ -1,69 +1,12 @@
 import Logger from "../lib/Logger";
 import { useState, useEffect } from "react";
-import { authFetch, db, auth } from "../lib/firebase";
+import { db, auth } from "../lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { ProductItem, HITLPayload } from "../types";
 import { CustomWardrobeItem, GeneratedOutfit, WardrobeCategory, WeatherSuitability } from "../types";
 
 const INITIAL_PHOTO_GALLERY_ITEMS: CustomWardrobeItem[] = [];
 
-const SEED_PHOTO_GALLERY_ITEMS: CustomWardrobeItem[] = [
-  {
-    id: "gallery-seed-1",
-    type: "user_upload",
-    name: "Classic Beige Cable Knit Sweater",
-    category: "SWEATER_OUTERWEAR",
-    weatherSuitability: "COLD_WINTER",
-    image: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=600&q=80",
-    brand: "Zara Vault",
-    price: 89.00,
-    addedAt: Date.now() - 4000
-  },
-  {
-    id: "gallery-seed-2",
-    type: "user_upload",
-    name: "Urban Relaxed Cargo Pants",
-    category: "BOTTOM",
-    weatherSuitability: "ALL_WEATHER",
-    image: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=600&q=80",
-    brand: "Levi's Gallery",
-    price: 110.00,
-    addedAt: Date.now() - 3000
-  },
-  {
-    id: "gallery-seed-3",
-    type: "user_upload",
-    name: "Retro Court Leather Sneakers",
-    category: "SHOES",
-    weatherSuitability: "ALL_WEATHER",
-    image: "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=600&q=80",
-    brand: "Nike Premium",
-    price: 120.00,
-    addedAt: Date.now() - 2000
-  },
-  {
-    id: "gallery-seed-4",
-    type: "user_upload",
-    name: "Casual Breathable Linen Tee",
-    category: "TOP",
-    weatherSuitability: "HOT_SUMMER",
-    image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80",
-    brand: "Everlane Gallery",
-    price: 35.00,
-    addedAt: Date.now() - 1000
-  },
-  {
-    id: "gallery-seed-5",
-    type: "user_upload",
-    name: "Classic Heavy Wool Trench Coat",
-    category: "SWEATER_OUTERWEAR",
-    weatherSuitability: "COLD_WINTER",
-    image: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=600&q=80",
-    brand: "Burberry Vault",
-    price: 650.00,
-    addedAt: Date.now()
-  }
-];
 
 export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout: (payload: HITLPayload) => void) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -218,11 +161,11 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
         id: product.id, name: product.name, price: product.price, sku: product.sku, image: product.image
       },
       quantity: 1, totalAmount: product.price, currency: product.currency,
-      deviceSource: "WEB", inventoryConfirmed: product.stock > 0, stockRemaining: product.stock,
+      deviceSource: "WEB", availabilityStatus: product.availabilityStatus || "VERIFY_AT_MERCHANT_CHECKOUT",
       humanInTheLoopChallenge: {
-        title: "Confirm Purchase",
-        message: `Authorize $${product.price.toFixed(2)} for ${product.name}?`,
-        safetyChecks: ["Reserved from personal closet wardrobe", "Includes free express shipping", "Click confirm to place order"]
+        title: "Review this listing",
+        message: `Review ${product.name} on the merchant site before checkout.`,
+        safetyChecks: ["Merchant price and availability are checked at checkout."]
       }
     };
     onRequestHITLCheckout(payload);
@@ -230,13 +173,6 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
 
   const grantGalleryPermission = () => {
     setPhotoGalleryPermission("GRANTED");
-    setUserUploadedItems(prev => {
-      const hasSeeds = prev.some(item => item.id.startsWith("gallery-seed-"));
-      if (!hasSeeds) {
-        return [...SEED_PHOTO_GALLERY_ITEMS, ...prev];
-      }
-      return prev;
-    });
   };
 
   const denyGalleryPermission = () => {

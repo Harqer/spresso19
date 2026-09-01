@@ -179,12 +179,7 @@ open class LiveApiClient {
                 connectionState = if (attempt == 0) ConnectionState.CONNECTING else ConnectionState.RECONNECTING
                 onStateChanged(connectionState)
 
-                val functionsUrl =
-                    try {
-                        SpressoConfig.cloudFunctionsBaseUrl
-                    } catch (_: Exception) {
-                        "https://us-central1-spresso-5561f.cloudfunctions.net"
-                    }
+                val functionsUrl = SpressoConfig.cloudFunctionsBaseUrl
                 val tokenResponse =
                     client
                         .post("$functionsUrl/generateLiveApiToken") {

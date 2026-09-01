@@ -463,16 +463,11 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
                               totalAmount: p.price,
                               currency: p.currency,
                               deviceSource: "WEB",
-                              inventoryConfirmed: true,
-                              stockRemaining: p.stock,
+                              availabilityStatus: p.availabilityStatus || "VERIFY_AT_MERCHANT_CHECKOUT",
                               humanInTheLoopChallenge: {
-                                title: "Confirm Purchase",
-                                message: `Authorize $${p.price.toFixed(2)} for ${p.name}?`,
-                                safetyChecks: [
-                                  "Reserved from personal closet wardrobe",
-                                  "Includes free express shipping",
-                                  "Click confirm to place order"
-                                ]
+                                title: "Review this listing",
+                                message: `Review ${p.name} on the merchant site before checkout.`,
+                                safetyChecks: ["Merchant price and availability are checked at checkout."]
                               }
                             });
                           }

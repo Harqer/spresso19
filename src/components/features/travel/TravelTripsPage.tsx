@@ -93,38 +93,7 @@ export const TravelTripsPage: React.FC<TravelTripsPageProps> = ({ onAskAI }) => 
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    setIsScanningReceipt(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64Data = (reader.result as string).split(",")[1];
-        const res = await fetch("https://us-central1-spresso-5561f.cloudfunctions.net/parseReceipt", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageBase64: base64Data })
-        });
-        const data = await res.json();
-        if (data.parsed) {
-          const parsedExp: TravelExpense = {
-            id: `exp-receipt-${Date.now()}`,
-            tripId: activeTripId,
-            amount: data.parsed.total || 0,
-            currency: data.parsed.currency || "USD",
-            category: (data.parsed.category as any) || "Other",
-            merchant: data.parsed.merchant || "",
-            date: new Date().toISOString().split("T")[0],
-            items: data.parsed.lineItems || []
-          };
-          setExpenses(prev => [parsedExp, ...prev]);
-        }
-      };
-      reader.readAsDataURL(file);
-    } catch (err) {
-      Logger.error("Receipt parsing error:", err);
-    } finally {
-      setIsScanningReceipt(false);
-    }
+    setError("Receipt scanning is unavailable right now. Add the expense details manually.");
   };
 
   const toggleRecording = async () => {

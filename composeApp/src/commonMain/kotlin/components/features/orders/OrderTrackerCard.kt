@@ -46,7 +46,7 @@ fun OrderTrackerCard(
                     fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                 )
                 AssistChip(onClick = {
-                    uriHandler.openUri("https://spresso-5561f.web.app/tracking/${order.id}")
+                    uriHandler.openUri("https://get-spresso.web.app/tracking/${order.id}")
                 }, label = {
                     Text(order.status, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }, leadingIcon = { Icon(Icons.Outlined.LocalShipping, null, modifier = Modifier.size(14.dp)) })

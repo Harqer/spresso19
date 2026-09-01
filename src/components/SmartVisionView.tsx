@@ -13,6 +13,9 @@ interface SmartVisionViewProps {
   onRequestHITLCheckout: (payload: HITLPayload) => void;
   products: ProductItem[];
   onAskAI?: (text: string, image?: string | null) => void;
+  discoveryRepository?: unknown;
+  onListingsChanged?: () => void;
+  onAddToCart?: (product: ProductItem) => void;
 }
 
 
@@ -81,33 +84,27 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
   };
 
   const handleTriggerHITL = (item: DetectedItem, thumbnail?: string) => {
-    const prod = products.find(p => p.id === item.matchingCatalogId) || products[0];
-    const finalPrice = item.priceEstimate && item.priceEstimate > 0 ? item.priceEstimate : (prod?.price || 0);
-    const finalImage = thumbnail || prod?.image || activeImage;
+    const prod = products.find(p => p.id === item.matchingCatalogId);
+    if (!prod) return;
 
     const payload: HITLPayload = {
       authorizationId: `ORDER-${Date.now().toString(36).toUpperCase()}`,
       product: {
-        id: prod?.id || `prod-detected-${Date.now()}`,
-        name: item.detectedName || prod?.name || "",
-        price: finalPrice,
-        sku: prod?.sku || `VIS-${Date.now()}`,
-        image: finalImage
+        id: prod.id,
+        name: prod.name,
+        price: prod.price,
+        sku: prod.sku,
+        image: thumbnail || prod.image || activeImage
       },
       quantity: 1,
-      totalAmount: finalPrice,
+      totalAmount: prod.price,
       currency: "USD",
       deviceSource: "WEB",
-      inventoryConfirmed: true,
-      stockRemaining: prod?.stock ?? 0,
+      availabilityStatus: prod.availabilityStatus || "VERIFY_AT_MERCHANT_CHECKOUT",
       humanInTheLoopChallenge: {
-        title: "Confirm Purchase",
-        message: `Confirm purchase of ${item.detectedName} for $${finalPrice.toFixed(2)}?`,
-        safetyChecks: [
-          "In stock and reserved",
-          "Includes free express delivery",
-          "Click confirm to place order"
-        ]
+        title: "Review this listing",
+        message: `Review ${prod.name} on the merchant site before checkout.`,
+        safetyChecks: ["Merchant price and availability are checked at checkout."]
       }
     };
 

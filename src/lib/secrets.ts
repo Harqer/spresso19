@@ -20,7 +20,7 @@ export async function getSecret(secretName: string): Promise<string> {
     return cachedSecrets.get(secretName)!;
   }
 
-  const projectId = process.env.GOOGLE_CLOUD_PROJECT || "spresso-5561f";
+  const projectId = process.env.GOOGLE_CLOUD_PROJECT || "get-spresso";
   
   // Dynamic version override support (e.g. GEMINI_API_KEY_VERSION)
   const envVersionKey = `${secretName}_VERSION`;

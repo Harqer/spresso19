@@ -105,16 +105,11 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
         totalAmount: parseFloat(updatedTotalPrice),
         currency: product.currency || "USD",
         deviceSource: "WEB",
-        inventoryConfirmed: true,
-        stockRemaining: product.stock || 10,
+        availabilityStatus: product.availabilityStatus || "VERIFY_AT_MERCHANT_CHECKOUT",
         humanInTheLoopChallenge: {
-          title: "Verify Order & Payment",
-          message: `Confirm purchase of ${product.name} (Size ${selectedSize}, Qty ${quantity}) for $${updatedTotalPrice}`,
-          safetyChecks: [
-            "User identity & biometric token validated",
-            "Sufficient wallet balance confirmed",
-            "Inventory reserved at merchant"
-          ]
+          title: "Review this listing",
+          message: `Review ${product.name} on the merchant site before checkout.`,
+          safetyChecks: ["Merchant price and availability are checked at checkout."]
         }
       });
       onClose();
@@ -446,4 +441,3 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     </div>
   );
 };
-

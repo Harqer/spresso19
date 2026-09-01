@@ -1,7 +1,7 @@
 import { Spanner } from '@google-cloud/spanner';
 
 // Hardcoded or ENV driven project values
-const projectId = process.env.GCLOUD_PROJECT || 'spresso-19';
+const projectId = process.env.GCLOUD_PROJECT || 'get-spresso';
 const instanceId = process.env.SPANNER_INSTANCE || 'spresso-global-instance';
 const databaseId = process.env.SPANNER_DATABASE || 'spresso-catalog';
 

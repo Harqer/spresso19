@@ -190,15 +190,13 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       totalAmount: product.price,
       currency: product.currency,
       deviceSource: "WEB",
-      inventoryConfirmed: product.stock > 0,
-      stockRemaining: product.stock,
+      availabilityStatus: product.availabilityStatus || "VERIFY_AT_MERCHANT_CHECKOUT",
       humanInTheLoopChallenge: {
-        title: "Confirm Purchase",
-        message: `Authorize $${product.price.toFixed(2)} for ${product.name}?`,
+        title: "Review this listing",
+        message: `Review ${product.name} on the merchant site before checkout.`,
         safetyChecks: [
-          `Virtual Try-On 001 fit verified in ${selectedMediaType.toUpperCase()} mode`,
-          "In stock and ready to ship",
-          "Includes free express delivery & returns"
+          "Virtual try-on is a visual preview, not a fit guarantee.",
+          "Merchant price and availability are checked at checkout."
         ]
       }
     };
@@ -602,5 +600,4 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     </AnimatePresence>
   );
 };
-
 

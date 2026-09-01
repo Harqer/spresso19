@@ -5,6 +5,7 @@ export * from "./payments";
 export * from "./catalog";
 export * from "./interactions";
 export * from "./users";
+export { webApi } from "./webapi";
 import * as webhooks from "./webhooks";
 export { webhooks };
 

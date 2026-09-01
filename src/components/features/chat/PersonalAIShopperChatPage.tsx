@@ -8,7 +8,7 @@ import { CameraObjectDetectionModal } from "../../CameraObjectDetectionModal";
 import { GoogleLensScreenWidgetModal } from "../../GoogleLensScreenWidgetModal";
 import { functions } from "../../../lib/firebase";
 import { httpsCallable } from "firebase/functions";
-import { GoogleGenAI } from "@google/genai";
+import { streamSpressoChat } from "../../../lib/chatStream";
 import { QuickPromptsGrid } from "@/src/components/features/chat/QuickPromptsGrid";
 import { MessageStream } from "@/src/components/features/chat/MessageStream";
 import { generateDynamicGreeting } from "../../../lib/greeting";
@@ -42,6 +42,8 @@ interface PersonalAIShopperChatPageProps {
   onClearPendingQuery?: () => void;
   showcaseProduct?: ProductItem | null;
   onClearShowcaseProduct?: () => void;
+  discoveryRepository?: unknown;
+  onListingsChanged?: () => void;
 }
 
 export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps> = ({
@@ -112,29 +114,14 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
     abortControllerRef.current = new AbortController();
 
     try {
-      const generateLiveApiToken = httpsCallable(functions, "generateLiveApiToken");
-      const tokenRes = await generateLiveApiToken();
-      const token = (tokenRes.data as any).token;
-
-      const ai = new GoogleGenAI({
-        apiKey: "none",
-        httpOptions: { headers: { Authorization: `Bearer ${token}` } }
-      });
-
-      const responseStream = await ai.models.generateContentStream({
-        model: "gemini-3.5-flash",
-        contents: text,
-        config: {
-          systemInstruction: "You are the Spresso Personal Shopper. Provide helpful advice and recommend products using JSON blocks formatted like ```json { \"recommendedProducts\": [ { \"id\": \"...\" } ] } ```.",
-        }
-      });
-
       let accumulatedText = "";
 
-      for await (const chunk of responseStream) {
-        if (abortControllerRef.current?.signal.aborted) break;
-        if (chunk.text) {
-          accumulatedText += chunk.text;
+      await streamSpressoChat({
+        prompt: text,
+        locale: typeof navigator === "undefined" ? "en-US" : navigator.language,
+        signal: abortControllerRef.current.signal,
+        onText: (chunkText) => {
+          accumulatedText += chunkText;
 
           const jsonBlock = extractJsonBlock(accumulatedText);
           let recommendedItems: ProductItem[] | undefined = undefined;
@@ -142,35 +129,9 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
 
           if (jsonBlock) {
             if (Array.isArray(jsonBlock.recommendedProducts)) {
-              // Collect unknown product IDs
-              const unknownIds = jsonBlock.recommendedProducts
-                .filter((p: any) => !products.some(cp => cp.id === p.id))
-                .map((p: any) => p.id);
-              
-              if (unknownIds.length > 0) {
-                // Fetch full product details for unknown IDs
-                try {
-                  const fetchProducts = httpsCallable(functions, "fetchProductsByIds");
-                  const res = await fetchProducts({ ids: unknownIds });
-                  const fetchedProducts = (res.data as any).products || [];
-                  
-                  recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
-                    const match = products.find(cp => cp.id === p.id) || fetchedProducts.find((cp: any) => cp.id === p.id);
-                    return match || null;
-                  }).filter(Boolean);
-                } catch (e) {
-                  Logger.warn("Failed to fetch full product details", e);
-                  recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
-                    const match = products.find(cp => cp.id === p.id);
-                    return match;
-                  }).filter(Boolean);
-                }
-              } else {
-                recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
-                  const match = products.find(cp => cp.id === p.id);
-                  return match;
-                }).filter(Boolean);
-              }
+              recommendedItems = jsonBlock.recommendedProducts
+                .map((p: any) => products.find(cp => cp.id === p.id))
+                .filter(Boolean);
             }
             if (jsonBlock.locationData) {
               locationData = jsonBlock.locationData;
@@ -184,15 +145,15 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
               m.id === aiMsgId
                 ? {
                     ...m,
-                    text: cleanText || "Analysis complete.",
+                    text: cleanText,
                     products: recommendedItems,
                     locationData
                   }
                 : m
             )
           );
-        }
-      }
+        },
+      });
 
       setMessages(prev =>
         prev.map(m => (m.id === aiMsgId ? { ...m, isStreaming: false } : m))
@@ -204,7 +165,7 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
           m.id === aiMsgId
             ? {
                 ...m,
-                text: "Sorry, I am unable to connect to the Spresso Service right now.",
+                text: "I’m unable to help with that right now. Please try again.",
                 isStreaming: false
               }
             : m

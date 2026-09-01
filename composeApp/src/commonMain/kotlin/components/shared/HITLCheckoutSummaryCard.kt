@@ -33,7 +33,7 @@ fun HITLCheckoutSummaryCard(payload: HITLPayload) {
             }
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Text("SKU: ${payload.product.sku}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Free Express Delivery", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("Verify with merchant", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {

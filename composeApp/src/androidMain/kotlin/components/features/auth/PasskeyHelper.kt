@@ -35,12 +35,12 @@ actual fun rememberPasskeyRegistrar(): PasskeyRegistrar {
                         {
                             "challenge": "$dynamicChallenge",
                                 "rp": {
-                                    "id": "spresso-5561f.web.app",
+                                    "id": "get-spresso.web.app",
                                     "name": "Spresso"
                                 },
                                 "user": {
                                     "id": "12345678",
-                                    "name": "user@spresso-5561f.web.app",
+                                    "name": "user@get-spresso.web.app",
                                     "displayName": "User"
                                 },
                             "pubKeyCredParams": [

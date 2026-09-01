@@ -34,12 +34,7 @@ class CatalogViewModel(
     fun initiateCheckout(product: ProductItem) {
         scope.launch {
             try {
-                val (confirmed, stock) = apiClient.checkInventory(product.id)
-                _hitlCheckoutPayload.value =
-                    product.toHITLPayload(
-                        inventoryConfirmed = confirmed,
-                        stockRemaining = stock,
-                    )
+                _hitlCheckoutPayload.value = product.toHITLPayload()
             } catch (e: Exception) {
                 _checkoutStatus.value = "Failed to initiate checkout: ${e.message}"
             }

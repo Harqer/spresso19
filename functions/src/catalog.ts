@@ -1,45 +1,83 @@
-import { onCall } from "firebase-functions/v2/https";
-import { getTrips } from "./dataconnect"; // Generated Admin SDK
+import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { z } from "zod";
+import { createOperationalReads } from "./operationalReads";
+import { db } from "./shared/db";
 
-export const getInventoryProxy = onCall(async (request) => {
-    // Products are discovered via web search, so we assume they are available.
-    // This proxy returns the structural payload expected by the Kotlin client.
-    if (!request.auth) {
-        throw new Error("Unauthenticated: User must be logged in to check inventory.");
-    }
-    
-    // You could integrate real-time web search validation here if necessary.
-    // For now, products found via AI discovery are assumed in-stock.
-    return {
-        inventoryConfirmed: true,
-        stockRemaining: 10
-    };
+const callableOptions = { enforceAppCheck: true } as const;
+const idSchema = z.string().regex(/^[A-Za-z0-9_-]{1,128}$/);
+
+const reads = createOperationalReads({
+  async readCollection(path) {
+    const snapshot = await db.collection(path).get();
+    return snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
+  },
+  async readDocument(path) {
+    const snapshot = await db.doc(path).get();
+    return snapshot.exists ? { id: snapshot.id, ...snapshot.data() } : null;
+  },
 });
 
-export const getTravelTrips = onCall(async (request) => {
-    if (!request.auth) {
-        throw new Error("Unauthenticated: User must be logged in to fetch travel trips.");
-    }
-    
-    try {
-        const response = await getTrips();
-        const trips = response.data?.trips || [];
-        
-        // Map to match the frontend expectations (snake_case/camelCase keys)
-        const mappedTrips = trips.map((t: any) => ({
-            id: t.id,
-            title: t.title,
-            destination: t.destination || "",
-            start_date: t.startDate || "",
-            end_date: t.endDate || "",
-            status: t.status || "UPCOMING",
-            cover_image: t.coverImage || "",
-            budget_total: "0.0", // Schema doesn't have budget, frontend handles double parsing
-            spent_total: "0.0"
-        }));
-        
-        return { trips: mappedTrips };
-    } catch (error: any) {
-        throw new Error("Failed to fetch trips from Data Connect: " + error.message);
-    }
+function requireUid(request: { auth?: { uid: string } | null }): string {
+  if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
+  return request.auth.uid;
+}
+
+function readId(data: unknown, key: string): string {
+  const value = z.object({ [key]: idSchema }).safeParse(data);
+  if (!value.success) throw new HttpsError("invalid-argument", `A valid ${key} is required.`);
+  return value.data[key];
+}
+
+export const getInventoryProxy = onCall(callableOptions, async (request) => {
+  requireUid(request);
+  throw new HttpsError(
+    "failed-precondition",
+    "Price and availability must be verified with the merchant before checkout.",
+  );
+});
+
+export const getTravelTrips = onCall(callableOptions, async (request) => ({
+  trips: await reads.getTravelTrips(requireUid(request)),
+}));
+
+export const getTravelEvents = onCall(callableOptions, async (request) => ({
+  events: await reads.getTravelEvents(requireUid(request), readId(request.data, "tripId")),
+}));
+
+export const getTravelExpenses = onCall(callableOptions, async (request) => ({
+  expenses: await reads.getTravelExpenses(requireUid(request), readId(request.data, "tripId")),
+}));
+
+export const getVoiceNotes = onCall(callableOptions, async (request) => ({
+  voiceNotes: await reads.getVoiceNotes(requireUid(request), readId(request.data, "tripId")),
+}));
+
+export const getGroceryItems = onCall(callableOptions, async (request) => ({
+  items: await reads.getGroceryItems(requireUid(request), readId(request.data, "listId")),
+}));
+
+export const getVisionDetection = onCall(callableOptions, async (request) => ({
+  detection: await reads.getVisionDetection(requireUid(request), readId(request.data, "detectionId")),
+}));
+
+export const getSavedRecipe = onCall(callableOptions, async (request) => ({
+  recipe: await reads.getSavedRecipe(requireUid(request), readId(request.data, "recipeId")),
+}));
+
+export const fetchProductsByIds = onCall(callableOptions, async (request) => {
+  const uid = requireUid(request);
+  const parsed = z.object({ ids: z.array(idSchema).min(1).max(50) }).safeParse(request.data);
+  if (!parsed.success) throw new HttpsError("invalid-argument", "One or more valid product IDs are required.");
+
+  const products = (
+    await Promise.all(parsed.data.ids.map(async (id) => {
+      const snapshot = await db.collection("discovered_listings").doc(id).get();
+      if (!snapshot.exists) return null;
+      const data = snapshot.data() ?? {};
+      if (typeof data.userId === "string" && data.userId !== uid) return null;
+      return { id: snapshot.id, ...data };
+    }))
+  ).filter((product): product is Record<string, unknown> & { id: string } => product !== null);
+
+  return { products };
 });

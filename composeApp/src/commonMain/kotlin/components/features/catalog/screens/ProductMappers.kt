@@ -8,8 +8,6 @@ import network.models.HITLProduct
 fun ProductItem.toHITLPayload(
     quantity: Int = 1,
     authorizationId: String = "AUTH-${id.uppercase()}",
-    inventoryConfirmed: Boolean = true,
-    stockRemaining: Int = 10,
 ): HITLPayload {
     val safePrice = price ?: 0.0
     return HITLPayload(
@@ -19,8 +17,6 @@ fun ProductItem.toHITLPayload(
         totalAmount = safePrice * quantity,
         currency = "USD",
         deviceSource = "WEARABLE",
-        inventoryConfirmed = inventoryConfirmed,
-        stockRemaining = stockRemaining,
         humanInTheLoopChallenge =
             HITLChallenge(
                 title = "Biometric Verification Required",

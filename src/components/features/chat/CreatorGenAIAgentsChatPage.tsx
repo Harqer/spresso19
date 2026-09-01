@@ -3,11 +3,9 @@ import React, { useState } from "react";
 import { User } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../../lib/firebase";
-import { GoogleGenAI } from "@google/genai";
+import { streamSpressoChat } from "../../../lib/chatStream";
 import { MaterialIcon } from "../../MaterialIcon";
 import { ProductItem } from "../../../types";
-import { AgentTemplateCard } from "@/src/components/features/chat/AgentTemplateCard";
-import { AgentAvatarBadge } from "@/src/components/features/chat/AgentAvatarBadge";
 import { CreatorAgentChatPanel } from "@/src/components/features/chat/CreatorAgentChatPanel";
 
 import { CreativeStudioTemplatesTab } from "@/src/components/features/chat/CreativeStudioTemplatesTab";
@@ -82,30 +80,15 @@ export const CreatorGenAIAgentsChatPage: React.FC<CreatorGenAIAgentsChatPageProp
     if (!customText) setInputPrompt("");
     setIsGenerating(true);
     try {
-      const generateLiveApiToken = httpsCallable(functions, "generateLiveApiToken");
-      const tokenRes = await generateLiveApiToken();
-      const token = (tokenRes.data as any).token;
-
-      const ai = new GoogleGenAI({
-        apiKey: "none",
-        httpOptions: { headers: { Authorization: `Bearer ${token}` } }
-      });
-
-      const responseStream = await ai.models.generateContentStream({
-        model: "gemini-3.5-flash",
-        contents: textToSend,
-        config: {
-          systemInstruction: `You are the ${activeAgentMeta.title}. Provide helpful advice for the Creator based on their request.`,
-        }
-      });
-
       let accumulatedText = "";
-      for await (const chunk of responseStream) {
-        if (chunk.text) {
-          accumulatedText += chunk.text;
+      await streamSpressoChat({
+        prompt: textToSend,
+        locale: typeof navigator === "undefined" ? "en-US" : navigator.language,
+        onText: (chunkText) => {
+          accumulatedText += chunkText;
           setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: accumulatedText } : m));
-        }
-      }
+        },
+      });
       setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, isStreaming: false } : m));
     } catch (err) {
       Logger.warn("Error streaming creator response:", err);
