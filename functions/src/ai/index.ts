@@ -485,14 +485,13 @@ export const lensSearch = onCall({ enforceAppCheck: true, secrets: [geminiApiKey
         const prompt = `
 You are an AI personal shopper. 
 Analyze the provided image snippet of a product or object.
-Identify the item, assign it an estimated price, a high-level category, and a short description.
+Identify the item, a high-level category, and a short description. Do not estimate or invent price, availability, merchant, or product URLs.
 Return ONLY a JSON object with this exact structure:
 {
   "regions": [
     {
       "id": 1,
       "label": "string",
-      "price": "string",
       "category": "string",
       "description": "string"
     }
@@ -525,7 +524,6 @@ Return ONLY a JSON object with this exact structure:
             regions: z.array(z.object({
                 id: z.number().int(),
                 label: z.string().min(1).max(160),
-                price: z.string().max(64).optional(),
                 category: z.string().max(80).optional(),
                 description: z.string().max(500).optional()
             })).max(12)

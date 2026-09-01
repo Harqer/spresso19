@@ -54,25 +54,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [tryOnMeta, setTryOnMeta] = useState({
-    mediaType: "video",
-    fitScore: 98,
-    sizeRecommendation: "Medium / Standard Fit",
-    styleMatchAnalysis: "Optimal fit, ViTPose plain vision transformer body keypoint tracking with FP16 FlashAttention.",
-    pipelineModel: "virtual-try-on-001 (Google Model Garden & ViTPose Transformer)",
-    genMediaMode: "GenMedia Commerce Studio Enabled",
-    vitPoseTracking: {
-      backbone: "ViTPose Plain Vision Transformer",
-      precision: "FP16 + FlashAttention",
-      inferenceFPS: 190,
-      baselineFPS: 58,
-      latencyMs: 5.2,
-      decoders: "Lightweight single-pass spatial decoders",
-      scalability: "Non-hierarchical edge to 1B parameter setup",
-      dreambeansUrl: "https://labs.google/dreambeans",
-      status: "Active (190+ FPS Ultra-Low Latency)"
-    }
-  });
+  const [tryOnMeta, setTryOnMeta] = useState<any>(null);
 
   useEffect(() => {
     if (product) {
@@ -81,6 +63,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       setSelectedAnimation(PRODUCT_ANIMATION_OPTIONS[0]);
       setSelectedMediaType("video");
       setModeChosen(true);
+      setTryOnMeta(null);
     }
   }, [product?.id]);
 
@@ -110,6 +93,11 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
 
     setIsProcessing(true);
     setError(null);
+    if (!customAvatar && !selectedAvatar?.url) {
+      setIsProcessing(false);
+      setError("Upload a personal photo before starting a virtual try-on.");
+      return;
+    }
     try {
       const generateVirtualTryOn = httpsCallable(functions, "generateVirtualTryOn");
       const vitposeOrchestrateFit = httpsCallable(functions, "vitposeOrchestrateFit");
@@ -141,8 +129,8 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       }
 
       if (data.tryOnMeta) {
-        setTryOnMeta(prev => ({
-          ...prev,
+        setTryOnMeta((prev: any) => ({
+          ...(prev || {}),
           ...data.tryOnMeta,
           ...(fitReason ? { styleMatchAnalysis: `${data.tryOnMeta.styleMatchAnalysis} ViTPose Dimensions: ${fitReason}` } : {})
         }));
@@ -404,12 +392,6 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     </span>
                   </div>
 
-                  {/* Fit Status Badge */}
-                  <div className="absolute top-3 left-3 px-3 py-1 bg-white/90 backdrop-blur-md border border-[#d8ebd7] text-[#386633] text-xs font-bold rounded-full flex items-center space-x-1.5 shadow-xs">
-                    <MaterialIcon icon="check_circle" size={16} className="text-[#386633]" />
-                    <span>3D Avatar Fitted</span>
-                  </div>
-
                   {/* Active Animation Style Badge Overlay */}
                   {selectedMediaType === "video" && (
                     <div className="absolute top-11 left-3 px-2.5 py-1 bg-emerald-900/80 backdrop-blur-md text-emerald-100 text-[10px] font-mono rounded-full flex items-center space-x-1 shadow-xs border border-emerald-500/30">
@@ -446,7 +428,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                         size={64}
                         icon={selectedMediaType === "video" ? "videocam" : "photo_camera"}
                         label={`Generating ${selectedMediaType === "video" ? "3D Video Runway" : "Image"} Try-On...`}
-                        sublabel="ViTPose FP16 Keypoint Mesh & Lighting Pipeline"
+                        sublabel="Preparing your preview..."
                       />
                     </div>
                   )}
@@ -557,11 +539,13 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
 
                   {/* Fit & Garment Analysis Card */}
                   <div className="p-4 bg-[#f2f8f2] rounded-2xl border border-[#d8ebd7] text-xs space-y-2.5">
-                    <div className="flex justify-between items-center text-[#18211e] font-bold border-b border-[#d8ebd7] pb-2">
-                      <span>Recommended Size:</span>
-                      <span className="text-[#386633] font-extrabold">{tryOnMeta.sizeRecommendation}</span>
-                    </div>
-                    <p className="text-[#5e635f] text-xs leading-relaxed">{tryOnMeta.styleMatchAnalysis}</p>
+                    {tryOnMeta ? <>
+                      <div className="flex justify-between items-center text-[#18211e] font-bold border-b border-[#d8ebd7] pb-2">
+                        <span>Recommended Size:</span>
+                        <span className="text-[#386633] font-extrabold">{tryOnMeta.sizeRecommendation || "See merchant size guide"}</span>
+                      </div>
+                      <p className="text-[#5e635f] text-xs leading-relaxed">{tryOnMeta.styleMatchAnalysis || "Preview generated. Use the merchant size guide to confirm fit."}</p>
+                    </> : <p className="text-[#5e635f] text-xs leading-relaxed">Upload a personal photo to receive a visual preview. This is not a fit guarantee.</p>}
                   </div>
                 </div>
 
@@ -572,7 +556,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                       <span className="block text-xs font-normal text-[#5e635f]">Selected Product</span>
                       <span>{product.name}</span>
                     </div>
-                    <span className="text-lg font-mono text-[#386633]">${product.price.toFixed(2)}</span>
+                    <span className="text-lg font-mono text-[#386633]">{product.listing?.observedPrice ? new Intl.NumberFormat(undefined, { style: "currency", currency: product.listing.observedPrice.currency }).format(product.listing.observedPrice.amount) : "Price at merchant"}</span>
                   </div>
 
                   <button
@@ -600,4 +584,3 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     </AnimatePresence>
   );
 };
-

@@ -20,26 +20,6 @@ interface GoogleLensScreenWidgetModalProps {
   initialProduct?: any;
 }
 
-const parsePrice = (priceStr?: string) => {
-  if (!priceStr) return 0;
-  const cleanStr = priceStr.replace(/[^\d.,]/g, '');
-  if (!cleanStr) return 0;
-  if (cleanStr.includes(',') && cleanStr.includes('.')) {
-    if (cleanStr.lastIndexOf(',') > cleanStr.lastIndexOf('.')) {
-      return parseFloat(cleanStr.replace(/\./g, '').replace(',', '.'));
-    }
-    return parseFloat(cleanStr.replace(/,/g, ''));
-  }
-  if (cleanStr.includes(',')) {
-    const parts = cleanStr.split(',');
-    if (parts[parts.length - 1].length === 2 || parts[parts.length - 1].length === 1) {
-      return parseFloat(cleanStr.replace(',', '.'));
-    }
-    return parseFloat(cleanStr.replace(/,/g, ''));
-  }
-  return parseFloat(cleanStr) || 0;
-};
-
 export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalProps> = ({
   isOpen,
   onClose,
@@ -52,7 +32,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
   const [isCapturingScreen, setIsCapturingScreen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [activeCategoryTab, setActiveCategoryTab] = useState<string>("all");
-  const [detectedRegions, setDetectedRegions] = useState<Array<{ id: number; label: string; price?: string; source?: string; thumbnail?: string; category?: string; description?: string; isLocation?: boolean }>>([]);
+  const [detectedRegions, setDetectedRegions] = useState<Array<{ id: number; label: string; price?: string; source?: string; thumbnail?: string; category?: string; description?: string; merchantUrl?: string; product?: any; isLocation?: boolean }>>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<number>(0);
   const [showLocationDetails, setShowLocationDetails] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -74,7 +54,9 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
           source: initialProduct.brand || "",
           thumbnail: initialProduct.image || "",
           category: initialProduct.category || "",
-          description: initialProduct.description || ""
+          description: initialProduct.description || "",
+          merchantUrl: initialProduct.merchantUrl,
+          product: initialProduct
         };
         setDetectedRegions([initItem]);
         setSelectedRegionId(0);
@@ -271,27 +253,12 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                     <div className="pt-2 flex flex-wrap items-center gap-3">
                       <button
                         onClick={() => {
-                          if (onAddToCart) {
-                            onAddToCart({
-                              id: `lens-item-${currentItem.id}-${Date.now()}`,
-                              name: currentItem.label,
-                              brand: currentItem.source || "Unknown Brand",
-                              price: parsePrice(currentItem.price),
-                              currency: "USD",
-                              category: currentItem.category || "General",
-                              description: currentItem.description || `Identified via Google Lens: ${currentItem.label}`,
-                              image: currentItem.thumbnail || "",
-                              stock: 10,
-                              sku: `LENS-BUY-${currentItem.id}`,
-                              rating: 5.0,
-                              virtualTryOnEligible: true,
-                              mcpServerId: "spresso-retail"
-                            });
-                          }
+                          if (onAddToCart && currentItem.product) onAddToCart(currentItem.product);
                         }}
+                        disabled={!currentItem.product}
                         className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-stone-950 font-black text-xs uppercase tracking-wider rounded-full transition shadow-xl shadow-orange-500/30 cursor-pointer flex items-center space-x-2 transform hover:scale-105"
                       >
-                        <span>Buy Now ({currentItem.price || "Contact"})</span>
+                        <span>{currentItem.product ? "Add to cart" : "Merchant listing unavailable"}</span>
                         <MaterialIcon icon="arrow_forward" size={16} />
                       </button>
 
@@ -400,57 +367,29 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                           <p className="text-[9px] text-stone-400 truncate">{region.source}</p>
                           
                           <div className="flex items-center space-x-2 pt-1">
-                            <button
+                            {region.product && <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (onAddToCart) {
-                                  onAddToCart({
-                                    id: `lens-item-${region.id}-${Date.now()}`,
-                                    name: region.label,
-                                    brand: region.source || "Unknown Brand",
-                                    price: parsePrice(region.price),
-                                    currency: "USD",
-                                    category: region.category || "General",
-                                    description: region.description || `Identified via Google Lens: ${region.label}`,
-                                    image: region.thumbnail || "",
-                                    stock: 10,
-                                    sku: `LENS-CART-${region.id}`,
-                                    rating: 5.0,
-                                    virtualTryOnEligible: true,
-                                    mcpServerId: "spresso-retail"
-                                  });
+                                  onAddToCart(region.product);
                                 }
                               }}
                               className="px-2.5 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-stone-950 font-black text-[9px] rounded-full transition uppercase tracking-wider"
                             >
                               Buy
-                            </button>
-                            <button
+                            </button>}
+                            {region.product && <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (onSelectTryOn) {
-                                  onSelectTryOn({
-                                    id: `lens-item-${region.id}-${Date.now()}`,
-                                    name: region.label,
-                                    brand: region.source || "Unknown Brand",
-                                    price: parsePrice(region.price),
-                                    currency: "USD",
-                                    category: region.category || "General",
-                                    description: region.description || `Identified via Google Lens: ${region.label}`,
-                                    image: region.thumbnail || "",
-                                    stock: 10,
-                                    sku: `LENS-TRYON-${region.id}`,
-                                    rating: 5.0,
-                                    virtualTryOnEligible: true,
-                                    mcpServerId: "spresso-retail"
-                                  });
+                                  onSelectTryOn(region.product);
                                 }
                                 onClose();
                               }}
                               className="px-2.5 py-0.5 bg-white/15 hover:bg-white/25 border border-white/20 text-white font-bold text-[9px] rounded-full transition uppercase tracking-wider"
                             >
                               Try-On
-                            </button>
+                            </button>}
                           </div>
                         </div>
                       </div>
@@ -505,27 +444,7 @@ export const GoogleLensScreenWidgetModal: React.FC<GoogleLensScreenWidgetModalPr
                     items: []
                   }}
                   onClose={() => setShowLocationDetails(false)}
-                  onSelectReviewItem={(item) => {
-                    if (onSelectTryOn) {
-                      onSelectTryOn({
-                        id: item.id || `loc-item-${Date.now()}`,
-                        name: item.title,
-                        brand: currentItem.label,
-                        price: parsePrice(item.priceLevel),
-                        currency: "USD",
-                        category: item.category,
-                        description: item.snippet,
-                        image: item.image,
-                        stock: 10,
-                        sku: `SKU-LOC-${item.id || Date.now()}`,
-                        rating: item.rating,
-                        virtualTryOnEligible: true,
-                        mcpServerId: "spresso-mcp-retail"
-                      });
-                    }
-                    setShowLocationDetails(false);
-                    onClose();
-                  }}
+                  onSelectReviewItem={() => setShowLocationDetails(false)}
                 />
               </div>
             </div>
