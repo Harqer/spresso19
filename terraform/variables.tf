@@ -11,7 +11,13 @@ variable "region" {
 }
 
 variable "tool_server_image" {
-  description = "Immutable container image for the optional Cloud Run tool-server boundary."
+  description = "Container image for the optional Cloud Run tool-server boundary."
   type        = string
-  default     = "us-central1-docker.pkg.dev/get-spresso/spresso/tool-server:latest"
+  default     = ""
+}
+
+variable "enable_tool_server" {
+  description = "Deploy the Cloud Run provider/tool boundary after its image and secrets are ready."
+  type        = bool
+  default     = false
 }

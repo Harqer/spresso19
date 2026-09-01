@@ -5,7 +5,7 @@ output "project_id" {
 
 output "tool_server_uri" {
   description = "Cloud Run URI for the provider/tool boundary."
-  value       = google_cloud_run_v2_service.tool_server.uri
+  value       = var.enable_tool_server ? google_cloud_run_v2_service.tool_server[0].uri : null
 }
 
 output "catalog_database" {
