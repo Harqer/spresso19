@@ -64,6 +64,17 @@ plugins {
     jacoco
 }
 
+// Kotlin/Wasm currently hits an IR compiler crash while intrinsic remember
+// memoization handles function references in the shared application entrypoint.
+// Disable only that optimization; runtime Compose semantics remain unchanged.
+composeCompiler {
+    featureFlags.set(
+        setOf(
+            org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag.IntrinsicRemember.disabled(),
+        ),
+    )
+}
+
 kotlin {
     targets.configureEach {
         compilations.configureEach {
