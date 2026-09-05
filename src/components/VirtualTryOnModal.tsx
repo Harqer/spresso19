@@ -68,6 +68,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       setSelectedAnimation(PRODUCT_ANIMATION_OPTIONS[0]);
       setSelectedMediaType("video");
       setModeChosen(true);
+      setTryOnMeta(null);
     }
   }, [product?.id]);
 
@@ -97,6 +98,11 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
 
     setIsProcessing(true);
     setError(null);
+    if (!customAvatar && !selectedAvatar?.url) {
+      setIsProcessing(false);
+      setError("Upload a personal photo before starting a virtual try-on.");
+      return;
+    }
     try {
       const generateVirtualTryOn = httpsCallable(functions, "generateVirtualTryOn");
       const vitposeOrchestrateFit = httpsCallable(functions, "vitposeOrchestrateFit");
@@ -116,7 +122,9 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
           productImage: product?.image,
           userPhotoBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
           customNotes: `Render in ${selectedBg.name} using ${selectedAnimation.name}`,
-          mediaType
+          mediaType,
+          fitPreference: selectedAnimation.name,
+          fabric: product?.description
         }),
         resVitposePromise
       ]);
@@ -125,8 +133,9 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       let fitReason = "";
       if (resVitpose && resVitpose.data) {
         const vitData: any = resVitpose.data;
-        if (vitData.orchestratorOutput?.fitAnalysis) {
-          fitReason = vitData.orchestratorOutput.fitAnalysis;
+        if (vitData.fitAnalysis) {
+          const analysis = vitData.fitAnalysis;
+          fitReason = typeof analysis === "string" ? analysis : [analysis.garmentType, analysis.postureDetected].filter(Boolean).join("; ");
         }
       }
 
@@ -183,8 +192,8 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       deviceSource: "WEB",
       availabilityStatus: "VERIFY_AT_MERCHANT_CHECKOUT",
       humanInTheLoopChallenge: {
-        title: "Confirm Purchase",
-        message: `Authorize $${product.price.toFixed(2)} for ${product.name}?`,
+        title: "Review this listing",
+        message: `Review ${product.name} on the merchant site before checkout.`,
         safetyChecks: [
           `Virtual Try-On 001 fit verified in ${selectedMediaType.toUpperCase()} mode`,
           "Merchant availability will be verified at checkout",
@@ -440,7 +449,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                         size={64}
                         icon={selectedMediaType === "video" ? "videocam" : "photo_camera"}
                         label={`Generating ${selectedMediaType === "video" ? "3D Video Runway" : "Image"} Try-On...`}
-                        sublabel="ViTPose FP16 Keypoint Mesh & Lighting Pipeline"
+                        sublabel="Preparing your preview..."
                       />
                     </div>
                   )}
@@ -551,11 +560,13 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
 
                   {/* Fit & Garment Analysis Card */}
                   <div className="p-4 bg-[#f2f8f2] rounded-2xl border border-[#d8ebd7] text-xs space-y-2.5">
-                    <div className="flex justify-between items-center text-[#18211e] font-bold border-b border-[#d8ebd7] pb-2">
-                      <span>Recommended Size:</span>
-                      <span className="text-[#386633] font-extrabold">{tryOnMeta.sizeRecommendation}</span>
-                    </div>
-                    <p className="text-[#5e635f] text-xs leading-relaxed">{tryOnMeta.styleMatchAnalysis}</p>
+                    {tryOnMeta ? <>
+                      <div className="flex justify-between items-center text-[#18211e] font-bold border-b border-[#d8ebd7] pb-2">
+                        <span>Recommended Size:</span>
+                        <span className="text-[#386633] font-extrabold">{tryOnMeta.sizeRecommendation || "See merchant size guide"}</span>
+                      </div>
+                      <p className="text-[#5e635f] text-xs leading-relaxed">{tryOnMeta.styleMatchAnalysis || "Preview generated. Use the merchant size guide to confirm fit."}</p>
+                    </> : <p className="text-[#5e635f] text-xs leading-relaxed">Upload a personal photo to receive a visual preview. This is not a fit guarantee.</p>}
                   </div>
                 </div>
 
@@ -566,7 +577,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                       <span className="block text-xs font-normal text-[#5e635f]">Selected Product</span>
                       <span>{product.name}</span>
                     </div>
-                    <span className="text-lg font-mono text-[#386633]">${product.price.toFixed(2)}</span>
+                    <span className="text-lg font-mono text-[#386633]">{product.listing?.observedPrice ? new Intl.NumberFormat(undefined, { style: "currency", currency: product.listing.observedPrice.currency }).format(product.listing.observedPrice.amount) : "Price at merchant"}</span>
                   </div>
 
                   <button

@@ -133,10 +133,6 @@ export const AppModalManager: React.FC<AppModalManagerProps> = ({
         <HITLCheckoutModal
           payload={hitlPayload}
           onClose={onCloseHITLCheckout}
-          onOrderConfirmed={() => {
-            onCloseHITLCheckout();
-            onClearCart();
-          }}
         />
       )}
 

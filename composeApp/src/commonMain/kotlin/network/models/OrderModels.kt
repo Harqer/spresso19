@@ -15,20 +15,20 @@ data class OrderRecord(
     val id: String,
     val items: List<OrderItem>,
     val totalAmount: Double,
-    val status: String = "DELIVERED",
-    val deviceSource: String = "WEB",
+    val status: String = "",
+    val deviceSource: String = "",
     val humanConfirmedAt: String = "",
     val mcpTransactionHash: String = "",
     val shippingAddress: String = "",
-    val trackingStatus: String? = "In Transit - Out for Delivery",
-    val carrier: String? = "FedEx",
-    val trackingNumber: String? = "FX-8492019",
-    val estimatedDelivery: String? = "Today, 5:00 PM",
-    val returnStatus: String? = "NONE",
+    val trackingStatus: String? = null,
+    val carrier: String? = null,
+    val trackingNumber: String? = null,
+    val estimatedDelivery: String? = null,
+    val returnStatus: String? = null,
     val returnReason: String? = null,
     val reminderSet: Boolean = false,
     val reminderTime: String? = null,
-    val paymentMethod: String? = "Google Pay",
+    val paymentMethod: String? = null,
     val userUid: String? = null,
 )
 
@@ -44,8 +44,8 @@ data class HITLProduct(
 
 @Serializable
 data class HITLChallenge(
-    val title: String = "Biometric Verification Required",
-    val message: String = "Confirm purchase with fingerprint or passkey",
+    val title: String = "Review merchant listing",
+    val message: String = "Review price, availability, and delivery details with the merchant.",
     val safetyChecks: List<String> = emptyList(),
 )
 

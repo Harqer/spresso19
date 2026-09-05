@@ -304,10 +304,16 @@ export const vitposeOrchestrateFit = onCall({ enforceAppCheck: true, secrets: [g
 
         const responseText = response.output_text;
         if (!responseText) throw new Error("Empty response from Gemini");
-        const parsed = JSON.parse(responseText);
+        const parsed = z.object({
+            fitScore: z.number().min(0).max(100),
+            garmentType: z.string().min(1),
+            postureDetected: z.string().min(1),
+            confidence: z.number().min(0).max(100),
+        }).parse(JSON.parse(responseText));
         return { success: true, fitAnalysis: parsed };
-    } catch (e: any) {
-        throw new HttpsError("internal", `Failed to orchestrate fit: ${e.message}`);
+    } catch (e) {
+        if (e instanceof HttpsError) throw e;
+        throw new HttpsError("internal", "Failed to orchestrate fit");
     }
 });
 

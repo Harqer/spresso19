@@ -6,7 +6,6 @@ import { OrderRecord } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { AIShopperInputBar } from "./AIShopperInputBar";
 import { GoogleWalletButton } from "@/src/components/features/profile/GoogleWalletButton";
-import { AnimatedTicketCard } from "@/src/components/features/orders/AnimatedTicketCard";
 import { ErrorStateFallback, EmptyStateFallback } from "./shared/Fallbacks";
 import { GetOrdersResponseSchema } from "../lib/schema";
 
@@ -63,6 +62,8 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
         showSuccess(`We’ll remind you when order ${orderId} is close.`);
         queryClient.invalidateQueries({ queryKey: ["userOrders"] });
         if (onRefreshOrders) onRefreshOrders();
+      } else {
+        setActionErrorMsg("Unable to set the arrival reminder right now. Please try again.");
       }
     } catch {
       setActionErrorMsg("I couldn’t set that reminder. Please try again.");
@@ -91,6 +92,8 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
         setReturnReason("");
         queryClient.invalidateQueries({ queryKey: ["userOrders"] });
         if (onRefreshOrders) onRefreshOrders();
+      } else {
+        setActionErrorMsg("Unable to initiate the return right now. Please try again.");
       }
     } catch {
       setActionErrorMsg("I couldn’t start that return. Please try again.");
@@ -236,11 +239,11 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                         <span className="text-[10px] font-bold text-[#5e635f] uppercase">{item.product.brand}</span>
                         <h4 className="text-xs font-bold text-[#18211e] truncate">{item.product.name}</h4>
                         <p className="text-[10px] text-[#5e635f]">
-                          Qty: {item.quantity} • Unit Price: ${item.product.price.toFixed(2)}
+                          Qty: {item.quantity} • Unit Price: {item.product.listing?.observedPrice ? new Intl.NumberFormat(undefined, { style: "currency", currency: item.product.listing.observedPrice.currency }).format(item.product.listing.observedPrice.amount) : "Price at merchant"}
                         </p>
                       </div>
                       <span className="text-sm font-bold text-[#386633] font-mono shrink-0">
-                        ${(item.product.price * item.quantity).toFixed(2)}
+                        {item.product.listing?.observedPrice ? new Intl.NumberFormat(undefined, { style: "currency", currency: item.product.listing.observedPrice.currency }).format(item.product.listing.observedPrice.amount * item.quantity) : "Price at merchant"}
                       </span>
                     </div>
                   ))}

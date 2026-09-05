@@ -20,7 +20,7 @@ export function MembershipPlansWidget({ subscriptionTier, autoRenewDate, vipPric
         <span className="text-xs text-[var(--md-sys-color-on-surface-variant)] font-medium">{autoRenewDate}</span>
       </div>
       <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] leading-relaxed">
-        Enjoy unlimited free express delivery, 5% cash back rewards, and priority AI shopping assistance with your active membership.
+        Review your current plan and billing details here. Benefits and pricing are shown from your account.
       </p>
       <button
         onClick={onManage}

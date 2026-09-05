@@ -16,6 +16,9 @@ interface SmartVisionViewProps {
   onListingsChanged: () => void;
   onAddToCart: (product: ProductItem) => void;
   onAskAI?: (text: string, image?: string | null) => void;
+  discoveryRepository?: unknown;
+  onListingsChanged?: () => void;
+  onAddToCart?: (product: ProductItem) => void;
 }
 
 

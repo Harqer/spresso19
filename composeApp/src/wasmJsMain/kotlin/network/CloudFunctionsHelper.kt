@@ -39,7 +39,7 @@ actual suspend fun callFirebaseFunction(
             if (!authToken.isNullOrEmpty()) {
                 header(HttpHeaders.Authorization, "Bearer $authToken")
             }
-            setBody(dataJson)
+            setBody("{\"data\":$dataJson}")
         }
     return response.bodyAsText()
 }

@@ -33,6 +33,10 @@ export const initPool = () => {
     statement_timeout: 10000, // 10s statement timeout
   };
 
+  if (isProduction && !connectionName) {
+    throw new Error("CLOUD_SQL_CONNECTION_NAME must be supplied by the deployment environment.");
+  }
+
   if (isProduction && connectionName) {
     // Unix Socket connection path for Google Cloud SQL in Cloud Run target runtime
     // OR Cloud Spanner PGAdapter running as a sidecar via localhost

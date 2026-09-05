@@ -61,6 +61,7 @@ export const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
               <span className="flex items-center space-x-1"><MaterialIcon icon="verified" size={14} /><span>Verify availability at checkout</span></span>
               <span className="text-[#ff5e1a]">SKU: {product.sku}</span>
             </div>
+            {product.merchantUrl && <a href={product.merchantUrl} target="_blank" rel="noopener noreferrer" className="text-[#386633] underline underline-offset-2">View retailer listing</a>}
           </div>
         )}
       </div>

@@ -54,8 +54,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
 
   if (!isOpen || !product) return null;
 
-  const basePrice = product.price || 0;
-  const updatedTotalPrice = (basePrice * quantity).toFixed(2);
+  const observedAmount = product.listing?.observedPrice?.amount;
+  const basePrice = observedAmount ?? 0;
+  const updatedTotalPrice = observedAmount === undefined ? null : (basePrice * quantity).toFixed(2);
 
   // Available size arrays based on product category
   const isFootwear = product.category?.toLowerCase().includes("footwear") || product.category?.toLowerCase().includes("shoe") || product.category?.toLowerCase().includes("sneaker");
@@ -231,14 +232,14 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                 {product.name}
               </h1>
 
-              <div className="flex items-baseline justify-between pt-1">
+          <div className="flex items-baseline justify-between pt-1">
                 <div className="flex items-baseline space-x-2">
                   <span className="text-3xl font-black text-[#446732] dark:text-[#a9d291] font-mono">
-                    ${updatedTotalPrice}
+                    {updatedTotalPrice ? new Intl.NumberFormat(undefined, { style: "currency", currency: product.currency || "USD" }).format(basePrice * quantity) : "Price at merchant"}
                   </span>
-                  {quantity > 1 && (
+                  {quantity > 1 && updatedTotalPrice && (
                     <span className="text-xs text-[#43483e] dark:text-[#c3c8bb] font-mono">
-                      (${basePrice.toFixed(2)} × {quantity})
+                      ({new Intl.NumberFormat(undefined, { style: "currency", currency: product.currency || "USD" }).format(basePrice)} × {quantity})
                     </span>
                   )}
                 </div>
@@ -348,6 +349,11 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             </div>
 
           </div>
+          {verifiedMerchantUrl(product.merchantUrl) && (
+            <a href={verifiedMerchantUrl(product.merchantUrl) || undefined} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-[#386633] underline underline-offset-2">
+              <MaterialIcon icon="open_in_new" size={14} /> View retailer listing
+            </a>
+          )}
         </div>
 
         {/* Added to Cart Feedback Toast Notification */}
@@ -355,7 +361,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           <div className="absolute top-16 inset-x-5 z-40 bg-[#446732] text-white font-extrabold text-xs py-2.5 px-4 rounded-xl shadow-xl flex items-center justify-between animate-bounce">
             <span className="flex items-center space-x-2">
               <MaterialIcon icon="check_circle" size={18} />
-              <span>Added to Cart ({quantity}× Size {selectedSize} - ${updatedTotalPrice})</span>
+              <span>Added to Cart ({quantity}× Size {selectedSize})</span>
             </span>
           </div>
         )}

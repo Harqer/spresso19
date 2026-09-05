@@ -5,12 +5,18 @@
 # be provisioned without a documented requirement and migration plan.
 resource "google_project_service" "services" {
   for_each = toset([
+    "firebase.googleapis.com",
+    "firebasehosting.googleapis.com",
+    "firestore.googleapis.com",
+    "cloudfunctions.googleapis.com",
+    "identitytoolkit.googleapis.com",
+    "storage.googleapis.com",
+    "pubsub.googleapis.com",
+    "logging.googleapis.com",
     "run.googleapis.com",
     "vpcaccess.googleapis.com",
     "secretmanager.googleapis.com",
     "artifactregistry.googleapis.com",
-    "compute.googleapis.com",
-    "servicenetworking.googleapis.com",
     "spanner.googleapis.com",
     "aiplatform.googleapis.com" # Vertex AI for Genkit and Agent Engine
   ])
@@ -131,23 +137,26 @@ resource "google_project_iam_member" "sa_spanner_user" {
 # ----------------------------------------------------------------------
 
 resource "google_service_account" "tool_server_sa" {
+  count        = var.enable_tool_server ? 1 : 0
   account_id   = "spresso-tool-server-sa"
   display_name = "Spresso Tool Server Service Account"
 }
 
 resource "google_project_iam_member" "tool_server_secret_accessor" {
+  count   = var.enable_tool_server ? 1 : 0
   project = var.project_id
   role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.tool_server_sa.email}"
+  member  = "serviceAccount:${google_service_account.tool_server_sa[0].email}"
 }
 
 resource "google_cloud_run_v2_service" "tool_server" {
+  count    = var.enable_tool_server ? 1 : 0
   name     = "spresso-tool-server"
   location = var.region
   ingress  = "INGRESS_TRAFFIC_ALL"
 
   template {
-    service_account = google_service_account.tool_server_sa.email
+    service_account = google_service_account.tool_server_sa[0].email
     containers {
       image = var.tool_server_image
       env {

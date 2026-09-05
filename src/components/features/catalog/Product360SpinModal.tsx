@@ -54,7 +54,7 @@ export const Product360SpinModal: React.FC<Product360SpinModalProps> = ({
       <div className="p-5 border-b border-stone-800 flex items-center justify-between bg-stone-900/50">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-2xl bg-[#386633] text-white flex items-center justify-center shadow-lg"><MaterialIcon icon="360" size={22} /></div>
-          <div><div className="flex items-center space-x-2"><h2 className="font-bold text-base text-white">{spin360Product.name}</h2></div><p className="text-xs text-stone-400">{spin360Product.brand} · ${(spin360Product.price || 0).toFixed(2)} · Cinematic Parallax View</p></div>
+          <div><div className="flex items-center space-x-2"><h2 className="font-bold text-base text-white">{spin360Product.name}</h2></div><p className="text-xs text-stone-400">{spin360Product.brand} · {spin360Product.listing ? displayListingPrice(spin360Product.listing) : "Price at merchant"} · Cinematic Parallax View</p>{spin360Product.merchantUrl && <a href={spin360Product.merchantUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-300 underline underline-offset-2">View retailer listing</a>}</div>
         </div>
         <button onClick={() => setSpin360Product(null)} className="w-9 h-9 rounded-full bg-stone-800 border border-stone-700 hover:bg-stone-700 text-stone-300 flex items-center justify-center transition cursor-pointer"><MaterialIcon icon="close" size={18} /></button>
       </div>
@@ -62,7 +62,11 @@ export const Product360SpinModal: React.FC<Product360SpinModalProps> = ({
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,102,51,0.25)_0%,transparent_70%)] pointer-events-none"></div>
         <div className="relative transition-transform duration-75 ease-out max-w-md w-full flex items-center justify-center" style={{ perspective: "1200px", transformStyle: "preserve-3d" }}>
           <div className="relative transition-all duration-100 ease-out flex items-center justify-center" style={{ transform: `perspective(1000px) rotateY(${spin360Angle}deg) rotateX(${tiltY}deg) rotateZ(${tiltX * 0.3}deg) scale(1.05)`, filter: "drop-shadow(0 25px 25px rgba(0, 0, 0, 0.7))" }}>
-            <img src={(spin360Product.genMediaKit?.angles && spin360Product.genMediaKit.angles[active360AngleIdx]) || spin360Product.image} alt={spin360Product.name} className="max-h-[320px] object-contain rounded-2xl pointer-events-none" />
+            {spin360Product.genMediaKit?.videoUrl ? (
+              <video src={spin360Product.genMediaKit.videoUrl} controls playsInline className="max-h-[320px] object-contain rounded-2xl" aria-label={`${spin360Product.name} generated product video`} />
+            ) : (
+              <img src={(spin360Product.genMediaKit?.angles && spin360Product.genMediaKit.angles[active360AngleIdx]) || spin360Product.image} alt={spin360Product.name} className="max-h-[320px] object-contain rounded-2xl pointer-events-none" />
+            )}
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent rounded-2xl pointer-events-none"></div>
           </div>
           <div className="absolute -bottom-8 w-64 h-8 bg-black/60 rounded-[100%] blur-xl pointer-events-none" style={{ transform: `scale(${1 + Math.sin((spin360Angle * Math.PI) / 180) * 0.15})` }}></div>

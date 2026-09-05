@@ -45,6 +45,8 @@ interface PersonalAIShopperChatPageProps {
   onClearPendingQuery?: () => void;
   showcaseProduct?: ProductItem | null;
   onClearShowcaseProduct?: () => void;
+  discoveryRepository?: unknown;
+  onListingsChanged?: () => void;
 }
 
 export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps> = ({
@@ -192,7 +194,7 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
           m.id === aiMsgId
             ? {
                 ...m,
-                text: "Sorry, I am unable to connect to the Spresso Service right now.",
+                text: "I’m unable to help with that right now. Please try again.",
                 isStreaming: false
               }
             : m

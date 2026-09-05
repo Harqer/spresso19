@@ -55,7 +55,7 @@ const StripeCheckoutForm = ({ onSuccess, onCancel, totalAmount }: any) => {
 interface HITLCheckoutModalProps {
   payload: HITLPayload | null;
   onClose: () => void;
-  onSuccess?: (order: any) => void;
+  onSuccess?: (order: unknown) => void;
   onOrderConfirmed?: () => void;
 }
 
@@ -448,9 +448,10 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
           </Elements>
         ) : (
           <button
-            onClick={handleConfirmPurchase}
-            disabled={isSubmitting || !biometricVerified}
-            className="w-full py-3.5 bg-[#386633] hover:bg-[#2c5227] text-white font-bold text-sm rounded-xl transition shadow-xs flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50"
+            type="button"
+            onClick={onClose}
+            aria-label="Close checkout information"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full hover:bg-[#f2f8f2]"
           >
             {isSubmitting ? (
               <div className="flex items-center space-x-2">
@@ -470,7 +471,20 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
               </>
             )}
           </button>
-        )}
+        </div>
+
+        <div className="mt-6 space-y-4 text-sm text-[#48524d]">
+          <p>Your item is in the Spresso cart. Open the merchant listing to confirm the current price, availability, delivery options, and payment there.</p>
+          <p>Spresso does not reserve retailer inventory or submit payment on your behalf.</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-6 w-full cursor-pointer rounded-xl bg-[#386633] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#2c5227]"
+        >
+          Back to cart
+        </button>
       </div>
     </div>
   );

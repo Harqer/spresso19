@@ -5,9 +5,9 @@ import { functions } from "../lib/firebase";
 import { auth, storage } from "../lib/firebase";
 import { getDownloadURL, ref, uploadString } from "firebase/storage";
 import { httpsCallable } from "firebase/functions";
+import { auth, functions } from "../lib/firebase";
 import { MaterialIcon } from "./MaterialIcon";
 import { SpressoLogo } from "./SpressoLogo";
-import { AnimatedTicketCard } from "@/src/components/features/orders/AnimatedTicketCard";
 
 interface GamifiedOnboardingModalProps {
   isOpen?: boolean;
@@ -27,17 +27,16 @@ interface AvatarProfile {
 }
 
 const STYLE_VIBES = [
-  { id: "gourmet", label: "Organic Gourmet", icon: "restaurant", color: "from-green-600 to-emerald-800" },
-  { id: "streetwear", label: "Streetwear Drops", icon: "checkroom", color: "from-amber-500 to-orange-600" },
-  { id: "luxury", label: "Minimalist Luxury", icon: "diamond", color: "from-teal-600 to-cyan-700" },
-  { id: "tech", label: "Wearables & Tech", icon: "smart_toy", color: "from-blue-600 to-indigo-700" },
+  { id: "gourmet", label: "Food and kitchen", icon: "restaurant" },
+  { id: "streetwear", label: "Streetwear", icon: "checkroom" },
+  { id: "luxury", label: "Luxury", icon: "diamond" },
+  { id: "tech", label: "Wearables and tech", icon: "devices" },
 ];
 
 export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = ({
   isOpen,
   onClose,
   onComplete,
-  onSelectTryOn
 }) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [selectedVibes, setSelectedVibes] = useState<string[]>(["streetwear", "luxury"]);
@@ -54,12 +53,6 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
   const [fitPreference, setFitPreference] = useState<AvatarProfile["fitPreference"]>("regular");
 
   if (!isOpen) return null;
-
-  const triggerXpGain = (amount: number) => {
-    setTotalXp((prev) => prev + amount);
-    setFloatingXpText(`+${amount} XP!`);
-    setTimeout(() => setFloatingXpText(null), 1800);
-  };
 
   const toggleVibe = (id: string) => {
     if (selectedVibes.includes(id)) {
@@ -88,6 +81,17 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
   };
 
   const handleFinishOnboarding = async () => {
+    if (selectedVibes.length === 0) {
+      setErrorMessage("Choose at least one interest to continue.");
+      return;
+    }
+    if (!auth.currentUser) {
+      setErrorMessage("Please sign in to save your interests.");
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage("");
     try {
       const updateUserPreferences = httpsCallable(functions, "updateUserPreferences");
       let avatarUrl: string | undefined;
@@ -157,10 +161,12 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
           </div>
 
           <button
-            onClick={handleFinishOnboarding}
-            className="text-xs font-bold text-[#43483e] dark:text-[#c3c8bb] hover:text-[#191d16] dark:hover:text-white px-3 py-1.5 rounded-full hover:bg-[#dfe4d7] dark:hover:bg-[#43483e] transition cursor-pointer"
+            type="button"
+            onClick={onClose}
+            aria-label="Close onboarding"
+            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full hover:bg-[#f2f8f2] dark:hover:bg-[#30352d]"
           >
-            Skip Intro
+            <MaterialIcon icon="close" size={20} />
           </button>
         </div>
 
@@ -263,17 +269,23 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
                   </div>
                 </div>
 
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {STYLE_VIBES.map((vibe) => {
+              const selected = selectedVibes.includes(vibe.id);
+              return (
                 <button
+                  key={vibe.id}
                   type="button"
-                  onClick={handleTestTryOn}
-                  className={`w-full py-3 rounded-xl font-bold text-xs transition cursor-pointer flex items-center justify-center space-x-2 ${
-                    tryOnTested
-                      ? "bg-green-700 text-white shadow-xs"
-                      : "bg-[#446732] hover:bg-[#385428] text-white shadow-md"
+                  aria-pressed={selected}
+                  onClick={() => toggleVibe(vibe.id)}
+                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 text-left transition ${
+                    selected
+                      ? "border-[#446732] bg-[#eef7e9] text-[#29491d]"
+                      : "border-[#dfe4d7] bg-white text-[#18211e] hover:bg-[#f7faf5]"
                   }`}
                 >
-                  <MaterialIcon icon={tryOnTested ? "task_alt" : "view_in_ar"} size={18} />
-                  <span>{tryOnTested ? "Virtual Try-On Verified (+150 XP)" : "Launch Virtual Try-On Studio"}</span>
+                  <MaterialIcon icon={vibe.icon} size={22} />
+                  <span className="text-sm font-semibold">{vibe.label}</span>
                 </button>
               </div>
             </motion.div>
@@ -380,44 +392,20 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
             </motion.div>
           )}
 
+          {errorMessage && <p role="alert" className="text-sm text-red-700">{errorMessage}</p>}
         </div>
 
-        {/* Footer Actions Bar */}
-        <div className="p-4 bg-white/95 dark:bg-[#191d16]/95 border-t border-[#dfe4d7] dark:border-[#43483e] flex items-center justify-between space-x-3">
-          {currentStep > 1 ? (
-            <button
-              onClick={() => setCurrentStep((prev) => prev - 1)}
-              className="px-4 py-3 rounded-xl border border-[#dfe4d7] dark:border-[#43483e] text-xs font-bold text-[#43483e] dark:text-[#c3c8bb] hover:bg-[#dfe4d7] dark:hover:bg-[#43483e] transition cursor-pointer flex items-center space-x-1"
-            >
-              <MaterialIcon icon="arrow_back" size={16} />
-              <span>Back</span>
-            </button>
-          ) : (
-            <div />
-          )}
-
-          {currentStep < 5 ? (
-            <button
-              onClick={() => {
-                triggerXpGain(100);
-                setCurrentStep((prev) => prev + 1);
-              }}
-              className="px-6 py-3 bg-[#446732] hover:bg-[#385428] dark:bg-[#a9d291] dark:hover:bg-[#96c47c] text-white dark:text-[#191d16] font-extrabold text-xs rounded-xl transition shadow-md cursor-pointer flex items-center space-x-2"
-            >
-              <span>Continue</span>
-              <MaterialIcon icon="arrow_forward" size={16} />
-            </button>
-          ) : (
-            <button
-              onClick={handleFinishOnboarding}
-              className="flex-1 py-3.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-stone-950 font-black text-xs uppercase tracking-wider rounded-xl transition shadow-lg cursor-pointer flex items-center justify-center space-x-2"
-            >
-              <span>Explore Spresso Commerce</span>
-              <MaterialIcon icon="rocket_launch" size={18} />
-            </button>
-          )}
+        <div className="flex justify-end border-t border-[#dfe4d7] p-4 dark:border-[#43483e]">
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={handleFinishOnboarding}
+            className="flex cursor-pointer items-center gap-2 rounded-xl bg-[#446732] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#385428] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span>{isSaving ? "Saving..." : "Continue"}</span>
+            {!isSaving && <MaterialIcon icon="arrow_forward" size={18} />}
+          </button>
         </div>
-
       </div>
     </div>
   );

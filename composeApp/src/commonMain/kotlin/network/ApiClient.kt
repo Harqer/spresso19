@@ -150,8 +150,11 @@ open class ApiClient {
     val client: HttpClient
         get() = sharedClient
 
-    private val backendBaseUrl = SpressoConfig.backendBaseUrl
     private val json = Json { ignoreUnknownKeys = true }
+
+    private fun JsonObject.string(key: String): String = this[key]?.jsonPrimitive?.content ?: ""
+    private fun JsonObject.double(key: String): Double = this[key]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0
+    private fun JsonObject.jsonArray(key: String) = this[key]?.jsonArray ?: emptyList<kotlinx.serialization.json.JsonElement>()
 
     suspend fun discoverPersonalizedProducts(): List<ProductItem> {
         discoverCache?.let { cached ->
@@ -226,15 +229,11 @@ open class ApiClient {
     }
 
     open suspend fun streamTelemetry(event: VideoInteractionEvent): Boolean {
-        // Post asynchronously to the new Python FastAPI /telemetry/ingest endpoint
-        // Using dynamic config host:
-        val url = "${SpressoConfig.backendBaseUrl}/telemetry/ingest"
-        val response =
-            client.post(url) {
-                contentType(ContentType.Application.Json)
-                setBody(event)
-            }
-        if (response.status.value !in 200..299) throw Exception("Telemetry streaming failed")
+        val payload = buildJsonObject {
+            put("productId", event.itemId)
+            put("action", "video_interaction")
+        }
+        callFirebaseFunction(FirebaseRoutes.INGEST_INTERACTION, payload.toString())
         return true
     }
 
@@ -419,14 +418,14 @@ open class ApiClient {
             val obj = item.jsonObject
             TripRecord(
                 id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null,
-                title = obj["title"]?.jsonPrimitive?.content ?: "Untitled Trip",
-                destination = obj["destination"]?.jsonPrimitive?.content ?: "",
-                startDate = obj["start_date"]?.jsonPrimitive?.content ?: "",
-                endDate = obj["end_date"]?.jsonPrimitive?.content ?: "",
-                status = obj["status"]?.jsonPrimitive?.content ?: "UPCOMING",
-                coverImage = obj["cover_image"]?.jsonPrimitive?.content ?: "",
-                budgetTotal = obj["budget_total"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0,
-                spentTotal = obj["spent_total"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0,
+                title = obj.string("title"),
+                destination = obj.string("destination"),
+                startDate = obj.string("start_date").ifEmpty { obj.string("startDate") },
+                endDate = obj.string("end_date").ifEmpty { obj.string("endDate") },
+                status = obj.string("status"),
+                coverImage = obj.string("cover_image").ifEmpty { obj.string("coverImage") },
+                budgetTotal = obj.double("budget_total"),
+                spentTotal = obj.double("spent_total"),
             )
         } ?: emptyList()
     }
@@ -460,24 +459,13 @@ open class ApiClient {
                 put("uid", uid)
                 put("interests", buildJsonArray { interests.forEach { add(it) } })
             }
-        callFirebaseFunction("initializeOnboarding", payload.toString())
+        callFirebaseFunction(FirebaseRoutes.INITIALIZE_ONBOARDING, payload.toString())
     }
 
     suspend fun connectCoinbaseWallet(address: String): Boolean {
-        val authToken = getCurrentUserIdToken()
-        return try {
-            val response =
-                client.post("${SpressoConfig.backendBaseUrl}/api/user/wallet/coinbase") {
-                    contentType(ContentType.Application.Json)
-                    if (authToken != null) {
-                        header(HttpHeaders.Authorization, "Bearer $authToken")
-                    }
-                    setBody(mapOf("address" to address, "network" to "base"))
-                }
-            response.status.value in 200..299
-        } catch (e: Exception) {
-            false
-        }
+        val payload = buildJsonObject { put("address", address); put("network", "base") }
+        val response = json.parseToJsonElement(callFirebaseFunction(FirebaseRoutes.CONNECT_COINBASE_WALLET, payload.toString())).jsonObject
+        return (response["result"]?.jsonObject ?: response)["success"]?.jsonPrimitive?.boolean == true
     }
 
     fun close() {
@@ -530,39 +518,13 @@ open class ApiClient {
 
         val payload =
             buildJsonObject {
-                put(
-                    "data",
-                    buildJsonObject {
-                        put("prompt", prompt)
-                        put("audioBase64", Base64.encode(audioData))
-                        put("mimeType", mimeType)
-                    },
-                )
+                put("prompt", prompt)
+                put("audioBase64", Base64.encode(audioData))
+                put("mimeType", mimeType)
             }
-
-        val responseText =
-            client
-                .post("$functionsUrl/generateResponseFromAudio") {
-                    header(HttpHeaders.Authorization, "Bearer $token")
-                    contentType(ContentType.Application.Json)
-                    setBody(payload)
-                }.bodyAsText()
-
-        val responseJson = Json.parseToJsonElement(responseText).jsonObject
-        if (responseJson.containsKey("error")) {
-            throw Exception(
-                responseJson["error"]
-                    ?.jsonObject
-                    ?.get("message")
-                    ?.jsonPrimitive
-                    ?.content ?: "Unknown error",
-            )
-        }
-        return responseJson["result"]
-            ?.jsonObject
-            ?.get("text")
-            ?.jsonPrimitive
-            ?.content ?: throw Exception("Invalid response format")
+        val response = json.parseToJsonElement(callFirebaseFunction(FirebaseRoutes.GENERATE_RESPONSE_FROM_AUDIO, payload.toString())).jsonObject
+        return (response["result"]?.jsonObject ?: response)["text"]?.jsonPrimitive?.content
+            ?: throw Exception("Invalid response format")
     }
 
     suspend fun createPaymentMethod(stripePaymentMethodId: String): Boolean {
