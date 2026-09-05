@@ -12,20 +12,13 @@ class Navigator(
         val topLevelMatch = state.topLevelRoutes.firstOrNull { isSameDestinationGroup(it, route) }
 
         if (topLevelMatch != null) {
-            // This is a top level route or belongs to one, just switch to it.
-            // (Wait, if it's the exact top level route, we switch. If it's a sub-route
-            // we switch to the tab and push it.)
-            if (state.topLevelRoute != topLevelMatch) {
-                state.topLevelRoute = topLevelMatch
-            }
-
-            // If they clicked the bottom tab again (which passes the exact topLevelMatch key),
-            // we could pop back to root. For now, we push or reset if needed.
-            // Navigation3 multiple backstacks recipe normally adds sub-routes to the active stack.
+            // A tab destination: switch to its tab, matching the multiple-back-stacks
+            // recipe. A top-level key carrying extra data (e.g. ChatKey with an initial
+            // prompt) is pushed on the tab's stack so the data reaches its screen;
+            // tapping the tab bar itself (the canonical key) only switches.
+            state.topLevelRoute = topLevelMatch
             if (route != topLevelMatch) {
-                state.backStacks[state.topLevelRoute]?.add(route)
-            } else if (state.backStacks[state.topLevelRoute]?.lastOrNull() != route) {
-                state.backStacks[state.topLevelRoute]?.add(route)
+                state.backStacks[topLevelMatch]?.add(route)
             }
         } else {
             // It's a deep route, add it to the active stack.
@@ -39,6 +32,12 @@ class Navigator(
             currentStack.removeLastOrNull()
         }
         currentStack.add(route)
+    }
+
+    fun resetTo(key: NavKey) {
+        state.backStacks.values.forEach { it.clear() }
+        state.backStacks[state.startRoute]?.add(key)
+        state.topLevelRoute = state.startRoute
     }
 
     fun goBack() {

@@ -9,7 +9,6 @@ import androidx.compose.runtime.setValue
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
-import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import components.navigation.isSameDestinationGroup
 
@@ -27,7 +26,11 @@ fun rememberNavigationState(
     val backStacks =
         buildMap<NavKey, NavBackStack<androidx.navigation3.runtime.NavKey>> {
             topLevelRoutes.forEach { route ->
-                put(route, rememberNavBackStack(route))
+                // The Android-only convenience overload is unavailable on
+                // Wasm. Keep the stack in Compose state; a shared
+                // SavedStateConfiguration can be added once all route
+                // serializers are registered for cross-platform restoration.
+                put(route, remember { androidx.navigation3.runtime.NavBackStack(route) })
             }
         }
 

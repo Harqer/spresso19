@@ -1,50 +1,51 @@
 import { ai } from "../genkit";
 import { z } from "genkit";
-import { getFirestore } from "firebase-admin/firestore";
+import { DiscoveredListingSchema } from "../../contracts/discoveredListing";
+import { addListingToCart } from "../../cart/addListingToCart";
 
 export const addToCartTool = ai.defineTool(
   {
     name: "addToCart",
-    description: "Adds a specific product to the user's shopping cart.",
+    description: "Adds a discovered merchant listing to the user's cart. This records shopping intent only; merchant price and availability are verified during checkout.",
     inputSchema: z.object({
-      productId: z.string().describe("The ID of the product to add to the cart"),
-      quantity: z.number().optional().default(1).describe("The number of items to add"),
+      listing: z.object({
+        id: z.string(),
+        name: z.string(),
+        brand: z.string().optional(),
+        category: z.string().optional(),
+        imageUrl: z.string().optional(),
+        merchantUrl: z.string(),
+        source: z.enum(["parallel", "serpapi", "apify", "kitesurf"]),
+        providerListingId: z.string().optional(),
+        observedPrice: z.object({ amount: z.number(), currency: z.string(), evidenceUrl: z.string() }).optional(),
+        videoUrl: z.string().optional(),
+        rating: z.number().optional(),
+        reviewCount: z.number().optional(),
+        reviewSummary: z.string().optional(),
+        discoveredAt: z.string(),
+        expiresAt: z.string().optional(),
+        confidence: z.number().optional(),
+      }).describe("The complete discovered merchant listing to add"),
+      quantity: z.number().int().positive().max(25).describe("The number of items to add"),
+      idempotencyKey: z.string().uuid().describe("A unique request key for safe retries"),
     }),
     outputSchema: z.object({
       success: z.boolean(),
       message: z.string(),
-      cartTotal: z.number().optional(),
+      totalItems: z.number(),
     }),
   },
-  async ({ productId, quantity }, ctx) => {
+  async ({ listing, quantity, idempotencyKey }, ctx) => {
     const uid = ctx.context?.auth?.uid;
     if (!uid) {
       throw new Error("Application safeguard triggered: Unauthenticated AI tool execution attempt blocked.");
     }
     
-    console.log(`User ${uid} adding ${quantity} of product ${productId} to cart`);
-    
-    const db = getFirestore();
-    const cartRef = db.collection("carts").doc(uid);
-    
-    await db.runTransaction(async (transaction: any) => {
-      const cartDoc = await transaction.get(cartRef);
-      const data = cartDoc.exists ? cartDoc.data() : { items: [] };
-      const items = data?.items || [];
-      
-      const existingItemIndex = items.findIndex((item: any) => item.productId === productId);
-      if (existingItemIndex > -1) {
-        items[existingItemIndex].quantity += quantity;
-      } else {
-        items.push({ productId, quantity, addedAt: new Date().toISOString() });
-      }
-      
-      transaction.set(cartRef, { items }, { merge: true });
-    });
-    
+    const result = await addListingToCart(uid, DiscoveredListingSchema.parse(listing), quantity, idempotencyKey);
     return {
       success: true,
-      message: `Successfully added ${quantity} item(s) to your cart.`,
+      message: "Added to your cart.",
+      totalItems: result.totalItems,
     };
   }
 );

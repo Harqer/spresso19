@@ -10,6 +10,10 @@ import androidx.compose.material.icons.outlined.Policy
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -23,6 +27,7 @@ fun LegalSecuritySection(
     onShowPrivacyTerms: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
+    var unavailableMessage by remember { mutableStateOf<String?>(null) }
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -42,22 +47,30 @@ fun LegalSecuritySection(
                 icon = Icons.AutoMirrored.Outlined.AssignmentReturn,
                 title = "Refunds & Return Policy",
                 subtitle = "30-day money-back guarantee details",
-                onClick = onShowRefundPolicy,
+                onClick = onShowRefundPolicy ?: { unavailableMessage = "The refunds and returns policy is unavailable right now." },
             )
 
             ProfileListItem(
                 icon = Icons.Outlined.Gavel,
-                title = "Google Play Developer Policy",
-                subtitle = "Google Play Store Standards",
-                onClick = onShowPlayPolicy,
+                title = "App policies",
+                subtitle = "Review store and service policies",
+                onClick = onShowPlayPolicy ?: { unavailableMessage = "App policies are unavailable right now." },
             )
 
             ProfileListItem(
                 icon = Icons.Outlined.Policy,
                 title = "Privacy Statement & Terms",
-                subtitle = "Data protection & zero-trust auth disclosures",
-                onClick = onShowPrivacyTerms,
+                subtitle = "How Spresso protects and uses your information",
+                onClick = onShowPrivacyTerms ?: { unavailableMessage = "Privacy and terms are unavailable right now." },
             )
+
+            unavailableMessage?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
     }
 }

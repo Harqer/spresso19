@@ -1,0 +1,14 @@
+/home/shaolin/Spresso/composeApp/src/commonMain/kotlin/components/core/PrimaryButton.kt:39
+            onClick = { println("Preview Explore Catalog clicked") }
+        )
+    }
+}
+
+
+/home/shaolin/Spresso/composeApp/src/commonMain/kotlin/components/features/chat/ChatSuggestionChip.kt:46
+            onClick = { println("Preview Summer Outfits clicked") }
+        )
+    }
+}
+
+

@@ -8,6 +8,7 @@ const genkit_1 = require("../genkit");
 const genkit_2 = require("genkit");
 const params_1 = require("firebase-functions/params");
 const parallel_web_1 = __importDefault(require("parallel-web"));
+const costControls_1 = require("../costControls");
 const parallelApiKey = (0, params_1.defineSecret)("PARALLEL_API_KEY");
 exports.parallelDeepResearchTool = genkit_1.ai.defineTool({
     name: "parallelDeepResearch",
@@ -26,36 +27,33 @@ exports.parallelDeepResearchTool = genkit_1.ai.defineTool({
     if (!uid) {
         throw new Error("Application safeguard triggered: Unauthenticated AI tool execution attempt blocked.");
     }
-    console.log(`User ${uid} executing parallel deep research: ${query}`);
     try {
         const apiKey = parallelApiKey.value();
         if (!apiKey) {
             throw new Error("Missing PARALLEL_API_KEY configuration. Add it via Firebase secrets.");
         }
-        const client = new parallel_web_1.default({ apiKey });
-        // Create the research task
-        const enhancedQuery = `${query}\n\nIMPORTANT: Explicitly include high-resolution visual and lighting references (critical for cinematic VTO integration).`;
-        const taskRun = await client.taskRun.create({
-            input: enhancedQuery,
-            processor: processor || "ultra",
+        const { value } = await (0, costControls_1.withCache)("productResearch", { query, processor: processor || "ultra" }, async () => {
+            await (0, costControls_1.consumeBudget)(uid, "research");
+            const client = new parallel_web_1.default({ apiKey });
+            const taskRun = await client.taskRun.create({
+                input: query,
+                processor: processor || "ultra",
+            });
+            let runResult;
+            for (let i = 0; i < 12; i++) {
+                try {
+                    runResult = await client.taskRun.result(taskRun.run_id, { timeout: 25 });
+                    break;
+                }
+                catch (error) {
+                    if (i === 11)
+                        throw new Error(`Research task timed out after multiple attempts. Error: ${error.message}`);
+                    await new Promise((resolve) => setTimeout(resolve, Math.min(8000, 1000 * 2 ** i)));
+                }
+            }
+            return { research: runResult };
         });
-        console.log(`Task created: ${taskRun.run_id}`);
-        // Poll for results (25s per poll, up to 12 attempts to fit in cloud function timeout)
-        let runResult;
-        for (let i = 0; i < 12; i++) {
-            try {
-                // This will block up to 25 seconds waiting for result
-                runResult = await client.taskRun.result(taskRun.run_id, { timeout: 25 });
-                break;
-            }
-            catch (error) {
-                if (i === 11)
-                    throw new Error(`Research task timed out after multiple attempts. ID: ${taskRun.run_id}. Error: ${error.message}`);
-                // Wait briefly before retrying if not a timeout error from SDK
-                await new Promise((resolve) => setTimeout(resolve, 2000));
-            }
-        }
-        return { research: runResult };
+        return value;
     }
     catch (e) {
         console.error("Parallel deep research error:", e);

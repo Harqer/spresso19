@@ -9,6 +9,8 @@ import androidx.compose.ui.unit.dp
 import components.features.chat.ChatBubbleText
 import components.features.chat.ChatMessageHeader
 import components.features.chat.ChatProductCard
+import components.features.chat.VideoReviewCard
+import components.core.NetworkImage
 import components.models.*
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.launch
@@ -63,6 +65,10 @@ fun ChatMessageItem(
                     message.text
                 }
 
+            val videoUrlRegex = "(https?://(?:www\\.)?(?:tiktok\\.com|youtube\\.com|youtu\\.be)[^\\s]+)".toRegex()
+            val videoMatch = videoUrlRegex.find(displayText)
+            val videoUrl = videoMatch?.value
+
             ChatBubbleText(
                 text = displayText,
                 isUser = isUser,
@@ -74,34 +80,28 @@ fun ChatMessageItem(
                 httpClient = httpClient,
             )
 
-            if (orderId != null && !isGenerating) {
-                val passkeyRegistrar = components.features.auth.rememberPasskeyRegistrar()
-                val coroutineScope = rememberCoroutineScope()
-                var purchaseStatus by remember { mutableStateOf<String?>(null) }
-
-                val authenticatingStr = stringResource(Res.string.auth_authenticating)
-                val confirmedStr = stringResource(Res.string.auth_purchase_confirmed)
-                val failedStr = stringResource(Res.string.auth_failed_to_confirm)
-                val errorStr = stringResource(Res.string.auth_error)
-                val confirmPasskeyStr = stringResource(Res.string.auth_confirm_purchase_passkey)
-
-                Box(modifier = Modifier.padding(start = 32.dp, top = 8.dp).fillMaxWidth()) {
-                    androidx.compose.material3.Button(
-                        onClick = {
-                            coroutineScope.launch {
-                                purchaseStatus = authenticatingStr
-                                try {
-                                    val success = passkeyRegistrar.authenticateWithPasskey(orderId)
-                                    purchaseStatus = if (success) confirmedStr else failedStr
-                                } catch (e: Exception) {
-                                    purchaseStatus = "$errorStr${e.message}"
-                                }
-                            }
-                        },
-                        enabled = purchaseStatus == null || purchaseStatus == failedStr || purchaseStatus?.startsWith(errorStr) == true,
-                    ) {
-                        androidx.compose.material3.Text(purchaseStatus ?: confirmPasskeyStr)
+            message.mediaUrl?.takeIf { it.isNotBlank() }?.let { mediaUrl ->
+                Box(
+                    modifier = Modifier
+                        .padding(start = if (isUser) 0.dp else 32.dp, top = 8.dp)
+                        .fillMaxWidth(),
+                ) {
+                    if (message.mediaType?.startsWith("video", ignoreCase = true) == true) {
+                        VideoReviewCard(videoUrl = mediaUrl, modifier = Modifier.fillMaxWidth())
+                    } else if (httpClient != null) {
+                        NetworkImage(
+                            url = mediaUrl,
+                            client = httpClient,
+                            contentDescription = "Generated result",
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
+                        )
                     }
+                }
+            }
+
+            if (videoUrl != null && !isGenerating) {
+                Box(modifier = Modifier.padding(start = if (isUser) 0.dp else 32.dp, top = 8.dp).fillMaxWidth()) {
+                    VideoReviewCard(videoUrl = videoUrl)
                 }
             }
 
@@ -112,8 +112,6 @@ fun ChatMessageItem(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         maxItemsInEachRow = 2,
-                        itemVerticalAlignment = Alignment.Top,
-                        overflow = androidx.compose.foundation.layout.FlowRowOverflow.Visible,
                     ) {
                         message.products.forEach { product ->
                             Box(modifier = Modifier.widthIn(max = 240.dp).fillMaxWidth(0.48f)) {

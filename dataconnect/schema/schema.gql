@@ -255,10 +255,3 @@ type CoinbaseWallet @table(key: "userId") {
   chainType: String! @default(value: "base")
   createdAt: Timestamp! @default(expr: "request.time")
 }
-
-type PasskeyCredential @table(key: "userId") {
-  userId: String!
-  credentialId: String!
-  publicKey: String!
-  createdAt: Timestamp! @default(expr: "request.time")
-}

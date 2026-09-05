@@ -114,12 +114,8 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                 </div>
 
                 {item.count !== undefined && item.count > 0 && (
-                  <span
-                    className={`px-1.5 py-0.5 text-[10px] font-mono rounded-full font-bold ${
-                      isActive ? "bg-[#ff5e1a] dark:bg-[#ff6b00] text-white" : "bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)]"
-                    } ${sidebarOpen ? "md:inline-block" : "md:hidden"}`}
-                  >
-                    {item.count}
+                  <span className={`text-[11px] font-medium ${sidebarOpen ? "md:inline-block" : "md:hidden"}`}>
+                    ({item.count})
                   </span>
                 )}
               </button>

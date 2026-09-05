@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -26,11 +29,16 @@ fun GroceryCategoryFilter(
     ) {
         items(categories) { cat ->
             val isSelected = selectedCategory == cat
-            FilterChip(
-                selected = isSelected,
+            TextButton(
                 onClick = { onCategorySelected(cat) },
-                label = { Text(cat, fontWeight = FontWeight.SemiBold) },
-            )
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.textButtonColors(
+                    containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+                    contentColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+            ) {
+                Text(cat, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
+            }
         }
     }
 }

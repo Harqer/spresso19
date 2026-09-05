@@ -4,7 +4,7 @@ const client = new SecretManagerServiceClient();
 
 export async function getRuntimeSecret(secretName: string): Promise<string | null> {
   try {
-    const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'spresso-5561f';
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'get-spresso';
     const name = `projects/${projectId}/secrets/${secretName}/versions/latest`;
     const [version] = await client.accessSecretVersion({ name });
     const payload = version.payload?.data?.toString();

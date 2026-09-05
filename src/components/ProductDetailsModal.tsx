@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem, HITLPayload } from "../types";
-import { VideoReviewItem } from "@/src/components/shared/VideoReviewItem";
 
 interface ProductDetailsModalProps {
   isOpen?: boolean;
@@ -90,35 +89,7 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
   };
 
   const handleBuyNowClick = () => {
-    if (onRequestHITLCheckout) {
-      const authId = `AUTH-${Date.now().toString(36).toUpperCase()}`;
-      onRequestHITLCheckout({
-        authorizationId: authId,
-        product: {
-          id: product.id,
-          name: `${product.name} (Size: ${selectedSize})`,
-          price: parseFloat(updatedTotalPrice),
-          sku: product.sku || `SKU-${product.id}`,
-          image: product.image
-        },
-        quantity: quantity,
-        totalAmount: parseFloat(updatedTotalPrice),
-        currency: product.currency || "USD",
-        deviceSource: "WEB",
-        inventoryConfirmed: true,
-        stockRemaining: product.stock || 10,
-        humanInTheLoopChallenge: {
-          title: "Verify Order & Payment",
-          message: `Confirm purchase of ${product.name} (Size ${selectedSize}, Qty ${quantity}) for $${updatedTotalPrice}`,
-          safetyChecks: [
-            "User identity & biometric token validated",
-            "Sufficient wallet balance confirmed",
-            "Inventory reserved at merchant"
-          ]
-        }
-      });
-      onClose();
-    } else handleAddToCartClick();
+    handleAddToCartClick();
   };
 
   const handleShare = () => {
@@ -248,11 +219,11 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono font-bold text-[#446732] dark:text-[#a9d291] uppercase tracking-wider">
-                  {product.brand || "Spresso Verified Merchant"}
+                  {product.brand || "Merchant"}
                 </span>
-                <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-[#e8efe0] dark:bg-[#20261b] text-xs font-bold text-[#446732] dark:text-[#a9d291]">
+                <span className="inline-flex items-center space-x-1 text-xs font-medium text-[#446732] dark:text-[#a9d291]">
                   <MaterialIcon icon="star" size={14} className="text-amber-500 fill-amber-500" />
-                  <span>4.9 (128 reviews)</span>
+                  <span>{product.rating.toFixed(1)}</span>
                 </span>
               </div>
 
@@ -342,43 +313,9 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
 
             <hr className="border-[#dfe4d7] dark:border-[#43483e]" />
 
-            {/* Jetsnack Feature Highlights Badges */}
-            <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
-              <div className="p-2.5 bg-white dark:bg-[#191d16] border border-[#dfe4d7] dark:border-[#43483e] rounded-xl flex flex-col items-center justify-center space-y-1">
-                <MaterialIcon icon="local_shipping" size={20} className="text-[#446732] dark:text-[#a9d291]" />
-                <span className="font-bold">Free Shipping</span>
-                <span className="text-[9px] text-[#43483e] dark:text-[#c3c8bb]">2-Day Express</span>
-              </div>
-              <div className="p-2.5 bg-white dark:bg-[#191d16] border border-[#dfe4d7] dark:border-[#43483e] rounded-xl flex flex-col items-center justify-center space-y-1">
-                <MaterialIcon icon="verified" size={20} className="text-[#446732] dark:text-[#a9d291]" />
-                <span className="font-bold">Authentic</span>
-                <span className="text-[9px] text-[#43483e] dark:text-[#c3c8bb]">100% Guaranteed</span>
-              </div>
-              <div className="p-2.5 bg-white dark:bg-[#191d16] border border-[#dfe4d7] dark:border-[#43483e] rounded-xl flex flex-col items-center justify-center space-y-1">
-                <MaterialIcon icon="replay" size={20} className="text-[#446732] dark:text-[#a9d291]" />
-                <span className="font-bold">Easy Returns</span>
-                <span className="text-[9px] text-[#43483e] dark:text-[#c3c8bb]">30 Days Policy</span>
-              </div>
-            </div>
-            {/* CUSTOMER VIDEO REVIEWS (Zero Card / Zero Container Box Styling) */}
-            <div className="space-y-3 text-left pt-2">
-              <h3 className="font-bold text-[#43483e] dark:text-[#c3c8bb] font-mono text-xs tracking-wider uppercase flex items-center space-x-1.5">
-                <MaterialIcon icon="videocam" size={16} className="text-[#446732] dark:text-[#a9d291]" />
-                <span>Customer Video Reviews</span>
-              </h3>
-
-              <div className="space-y-2 border-none bg-transparent p-0">
-                <VideoReviewItem
-                  review={{
-                    id: `rev-v1-${product.id}`,
-                    authorName: "Elena Rostova",
-                    rating: 5.0,
-                    commentText: `Unbelievable quality and fit! The material feels super premium and fits true to size.`,
-                    thumbnailUrl: product.image,
-                    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-fashion-model-in-a-front-pose-40344-large.mp4"
-                  }}
-                />
-              </div>
+            <div className="flex items-start gap-2 text-xs text-[#43483e] dark:text-[#c3c8bb]">
+              <MaterialIcon icon="info" size={18} className="text-[#446732] dark:text-[#a9d291]" />
+              <span>Shipping, delivery estimates, and the merchant’s return terms are shown before you confirm checkout.</span>
             </div>
 
             {/* PRODUCT DESCRIPTION Narrative Section (Jetsnack scroll experience) */}
@@ -423,20 +360,20 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           </div>
         )}
 
-        {/* Jetsnack Sticky Bottom Action Bar with Buy Now & Add to Cart */}
+        {/* User-completed checkout: stage the item, then let the user finish at the merchant. */}
         <div className="p-4 bg-white/95 dark:bg-[#191d16]/95 border-t border-[#dfe4d7] dark:border-[#43483e] backdrop-blur-md flex items-center space-x-3 z-30">
           <button
             onClick={handleBuyNowClick}
             className="flex-1 py-3.5 bg-[#446732] hover:bg-[#385428] dark:bg-[#a9d291] dark:hover:bg-[#96c47c] text-white dark:text-[#191d16] font-extrabold text-sm uppercase tracking-wider rounded-2xl transition shadow-md cursor-pointer flex items-center justify-center space-x-2"
           >
-            <span>Buy Now (${updatedTotalPrice})</span>
-            <MaterialIcon icon="bolt" size={18} />
+            <span>Add to Cart (${updatedTotalPrice})</span>
+            <MaterialIcon icon="shopping_cart" size={18} />
           </button>
 
           <button
             onClick={handleAddToCartClick}
             className="w-13 h-13 bg-[#e8efe0] dark:bg-[#282b24] hover:bg-[#dfe4d7] text-[#446732] dark:text-[#a9d291] border border-[#dfe4d7] dark:border-[#43483e] rounded-2xl transition shadow-xs flex items-center justify-center cursor-pointer shrink-0"
-            title="Add to Cart"
+            title="Add another to Cart"
           >
             <MaterialIcon icon="shopping_cart" size={22} />
           </button>
@@ -446,4 +383,3 @@ export const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
     </div>
   );
 };
-

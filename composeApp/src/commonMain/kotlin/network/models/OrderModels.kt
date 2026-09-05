@@ -39,6 +39,7 @@ data class HITLProduct(
     val price: Double,
     val sku: String,
     val image: String,
+    val merchantUrl: String? = null,
 )
 
 @Serializable
@@ -56,15 +57,12 @@ data class HITLPayload(
     val totalAmount: Double,
     val currency: String = "USD",
     val deviceSource: String = "WEB",
-    val inventoryConfirmed: Boolean = true,
-    val stockRemaining: Int = 10,
+    val availabilityStatus: String = "VERIFY_AT_MERCHANT_CHECKOUT",
     val humanInTheLoopChallenge: HITLChallenge? = null,
 )
 
 fun DetectedItem.toHITLPayload(
     authorizationId: String = "AUTH-LENS-${this.hashCode()}",
-    inventoryConfirmed: Boolean = true,
-    stockRemaining: Int = 10,
 ): HITLPayload {
     val safePrice = priceEstimate ?: 0.0
     return HITLPayload(
@@ -81,8 +79,7 @@ fun DetectedItem.toHITLPayload(
         totalAmount = safePrice,
         currency = "USD",
         deviceSource = "WEARABLE_CAMERA",
-        inventoryConfirmed = inventoryConfirmed,
-        stockRemaining = stockRemaining,
+        availabilityStatus = "VERIFY_AT_MERCHANT_CHECKOUT",
         humanInTheLoopChallenge =
             HITLChallenge(
                 title = "Approve Lens Purchase",

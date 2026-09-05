@@ -84,6 +84,15 @@ class PlatformPasskeyRegistrarTest {
         assertFalse(handoff.purchaseConfirmed)
     }
 
+    @Test
+    fun merchantHandoffExposesOnlyVerifiedHttpsListing() {
+        val handoff = MerchantHandoffState(listing = listing)
+
+        assertEquals("https://merchant.example/products/travel-mug", handoff.verifiedMerchantUrl)
+        assertTrue(handoff.canOpenMerchant)
+        assertFalse(MerchantHandoffState(listing.copy(merchantUrl = "http://merchant.example/item")).canOpenMerchant)
+    }
+
     private companion object {
         val activity = Robolectric.buildActivity(android.app.Activity::class.java).setup().get()
 

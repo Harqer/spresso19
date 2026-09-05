@@ -44,7 +44,7 @@ fun WardrobePage(
                         )
                     }
             } catch (e: Exception) {
-                snackbarHostState.showSnackbar("Wardrobe Error: ${e.message}")
+                snackbarHostState.showSnackbar("Unable to load your wardrobe. Please try again.")
             }
         }
     }
@@ -54,11 +54,15 @@ fun WardrobePage(
             if (bytes != null) {
                 scope.launch {
                     try {
-                        val userUid = network.getCurrentUserUid() ?: "anon"
+                        val userUid = network.getCurrentUserUid()
+                        if (userUid == null) {
+                            snackbarHostState.showSnackbar("Sign in to add a wardrobe photo.")
+                            return@launch
+                        }
                         val uuid = "wardrobe_${userUid}_${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}"
                         val path = "users/me/wardrobe/$uuid.jpg"
 
-                        snackbarHostState.showSnackbar("Uploading photo...")
+                        snackbarHostState.showSnackbar("Adding photo…")
                         val uploadedUrl = network.SpressoBackend.uploadImage(bytes, path)
 
                         network.SpressoBackend.addWardrobeItem(
@@ -70,9 +74,9 @@ fun WardrobePage(
                         )
 
                         refreshWardrobe()
-                        snackbarHostState.showSnackbar("Photo added to wardrobe successfully!")
+                        snackbarHostState.showSnackbar("Photo added to your wardrobe.")
                     } catch (e: Exception) {
-                        snackbarHostState.showSnackbar("Unable to add photo: ${e.message}")
+                        snackbarHostState.showSnackbar("Unable to add this photo. Please try again.")
                     }
                 }
             }
@@ -82,7 +86,7 @@ fun WardrobePage(
         refreshWardrobe()
     }
 
-    val weatherSummary = "Cold 32°F Winter Season — Tailored thermal cashmere layering & shearling outerwear curated for your fashion profile."
+    val weatherSummary = "Sign in and enable location for weather-matched outfit ideas."
 
     val layoutDirection = LocalLayoutDirection.current
     val insetsPadding = WindowInsets.safeDrawing.asPaddingValues()
@@ -111,12 +115,12 @@ fun WardrobePage(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "My Digital Wardrobe & Fits",
+                        text = "My wardrobe",
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "AI curated fits based on your styling preferences, weather forecasts, and occasion wear history.",
+                        text = "Explore your saved looks and try items on before you buy.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

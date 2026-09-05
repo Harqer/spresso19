@@ -1,0 +1,14 @@
+{
+  "clientCallableNames": [
+    "creatorAgentsMetadata",
+    "seasonalStyling",
+    "generateRecipeBargainChef",
+    "updateUserProfile",
+    "generateVirtualTryOn",
+    "discoverPersonalizedProducts",
+    "createStripeIntent",
+    "confirmPurchase",
+    "getUserOrders",
+    "getTravelTrips"
+  ]
+}

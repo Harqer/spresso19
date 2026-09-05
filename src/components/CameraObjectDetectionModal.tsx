@@ -194,26 +194,34 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
     setHudStatusText("Analyzing item at selected location...");
 
     try {
-      const identifyVisionObject = httpsCallable(functions, "identifyVisionObject");
-      const res = await identifyVisionObject({
+      const lensSearch = httpsCallable(functions, "lensSearch");
+      const res = await lensSearch({
         imageBase64: photoDataUrl,
-        deviceContext: "MOBILE_CAMERA_OBJECT_DETECTION",
-        promptText: `Analyze object at location X: ${point.x}%, Y: ${point.y}%. CRITICAL: Ignore any person or human model in background. Identify the exact clothing item, footwear, accessory, or object at this specific location for an e-commerce product listing.`
       });
-
-      const data = { success: true, result: { detectedItems: [res.data as any], hudAnnotationText: "Object isolated. Product listing ready!" } };
-      if (data.success && data.result) {
-        const items = data.result.detectedItems || [];
-        setDetectedItems(items);
-        setHudStatusText(data.result.hudAnnotationText || "Object isolated. Product listing ready!");
-
-        if (items.length > 0) {
-          const crop = await cropImageSnippet(photoDataUrl, items[0].boundingBox, point).catch(() => null);
-          setCroppedThumbnail(crop);
-        }
-      } else {
-        throw new Error("Failed to parse vision response");
-      }
+      const data = ((res.data as any)?.result ?? res.data) as { listings?: Array<any> };
+      const listings = Array.isArray(data.listings) ? data.listings : [];
+      if (listings.length === 0) throw new Error("Visual search returned no listings.");
+      setDetectedItems([]);
+      setHudStatusText(`${listings.length} matching listings found. Select a merchant result to continue.`);
+      const first = listings[0];
+      const observedPrice = first?.observedPrice?.amount;
+      onSelectProductListing?.({
+        id: String(first.id),
+        name: String(first.name),
+        brand: typeof first.brand === "string" ? first.brand : "",
+        category: typeof first.category === "string" ? first.category : "",
+        price: typeof observedPrice === "number" ? observedPrice : 0,
+        currency: typeof first.observedPrice?.currency === "string" ? first.observedPrice.currency : "USD",
+        availabilityStatus: "VERIFY_AT_MERCHANT_CHECKOUT",
+        merchantUrl: String(first.merchantUrl),
+        sku: String(first.providerListingId ?? first.id),
+        rating: 0,
+        description: "Found by Spresso visual search.",
+        image: typeof first.imageUrl === "string" ? first.imageUrl : "",
+        virtualTryOnEligible: true,
+        mcpServerId: "spresso-discovery",
+        listing: first,
+      });
     } catch (err) {
       logToCrashlytics("error", "Camera object detection error", { error: String(err) });
       setHudStatusText("Object detection failed.");
@@ -235,7 +243,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
       category: item.category || "",
       description: `Camera Detected Product: ${item.detectedName}. Identified from object scan.`,
       image: finalImage,
-      stock: null,
+      availabilityStatus: "VERIFY_AT_MERCHANT_CHECKOUT",
       sku: (item as any).sku || `SKU-SCAN-${Date.now()}`,
       rating: null,
       virtualTryOnEligible: true,
@@ -504,11 +512,9 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
           ) : (
             /* Post-Capture Object Detection Results & Listing Card */
             <div className="w-full space-y-3 max-w-md">
-              {/* Tap Instruction Pill */}
-              <div className="bg-emerald-950/60 backdrop-blur-md border border-emerald-500/30 px-3.5 py-1.5 rounded-xl text-center text-emerald-200 text-xs font-medium shadow-md flex items-center justify-center space-x-1.5">
-                <MaterialIcon icon="lightbulb" size={14} className="text-emerald-400 shrink-0" />
-                <span><span className="font-bold">Touch or click anywhere</span> on clothing/item in photo to isolate product.</span>
-              </div>
+              <p className="text-center text-emerald-200 text-xs font-medium">
+                Select an item in the photo.
+              </p>
 
               {/* Multiple Item Selector Tabs if more than 1 item */}
               {detectedItems.length > 1 && (
@@ -597,7 +603,7 @@ export const CameraObjectDetectionModal: React.FC<CameraObjectDetectionModalProp
                             category: activeItem.category || "",
                             description: activeItem.detectedName,
                             image: croppedThumbnail || capturedPhoto || "",
-                            stock: null as any,
+                            availabilityStatus: "VERIFY_AT_MERCHANT_CHECKOUT",
                             sku: (activeItem as any).sku || null,
                             rating: null as any,
                             virtualTryOnEligible: true,

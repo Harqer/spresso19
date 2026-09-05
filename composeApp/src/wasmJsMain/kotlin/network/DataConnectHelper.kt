@@ -115,15 +115,3 @@ actual suspend fun connectCoinbaseWallet(address: String) {
     val payload = buildJsonObject { put("walletAddress", address) }
     SpressoDataConnect.connectCoinbaseWallet(parseJsonToJsAny(payload.toString())).await<JsAny?>()
 }
-
-actual suspend fun registerPasskey(
-    credentialId: String,
-    publicKey: String,
-) {
-    val payload =
-        buildJsonObject {
-            put("credentialId", credentialId)
-            put("publicKey", publicKey)
-        }
-    SpressoDataConnect.registerPasskey(parseJsonToJsAny(payload.toString())).await<JsAny?>()
-}

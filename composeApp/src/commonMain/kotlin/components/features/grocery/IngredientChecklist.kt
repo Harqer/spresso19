@@ -55,15 +55,11 @@ fun IngredientChecklistCard(
                                 textDecoration = if (item.checked) TextDecoration.LineThrough else null,
                             ),
                     )
-                    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(4.dp)) {
-                        Text(
-                            item.category,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                        )
-                    }
+                    Text(
+                        item.category,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 if (item.storeNote != null) {
                     Text(item.storeNote, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

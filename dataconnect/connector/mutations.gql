@@ -186,11 +186,3 @@ mutation ConnectCoinbaseWallet($walletAddress: String!) @auth(level: USER) {
     walletAddress: $walletAddress
   })
 }
-
-mutation RegisterPasskey($credentialId: String!, $publicKey: String!) @auth(level: USER) {
-  passkeyCredential_upsert(data: {
-    userId_expr: "auth.uid"
-    credentialId: $credentialId
-    publicKey: $publicKey
-  })
-}

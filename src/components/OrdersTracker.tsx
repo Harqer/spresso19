@@ -44,22 +44,30 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
   const [returnReason, setReturnReason] = useState("");
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
+  const [actionErrorMsg, setActionErrorMsg] = useState<string | null>(null);
+
+  const showSuccess = (message: string) => {
+    setActionErrorMsg(null);
+    setActionSuccessMsg(message);
+    window.setTimeout(() => setActionSuccessMsg(null), 5000);
+  };
 
   const handleSetReminder = async (orderId: string) => {
     setLoadingAction(`reminder-${orderId}`);
+    setActionErrorMsg(null);
     try {
       const setOrderReminder = httpsCallable(functions, "setOrderReminder");
       const res = await setOrderReminder({ orderId, reminderTime: "Today at 5:00 PM (Arrival Alert)" });
       const data = res.data as any;
       if (data.success) {
-        setActionSuccessMsg(`Delivery arrival reminder set for ${orderId}!`);
+        showSuccess(`We’ll remind you when order ${orderId} is close.`);
         queryClient.invalidateQueries({ queryKey: ["userOrders"] });
         if (onRefreshOrders) onRefreshOrders();
       }
-    } catch (e) {
+    } catch {
+      setActionErrorMsg("I couldn’t set that reminder. Please try again.");
     } finally {
       setLoadingAction(null);
-      setActionSuccessMsg(null);
     }
   };
 
@@ -68,55 +76,60 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
     if (!returnModalOrderId) return;
 
     setLoadingAction(`return-${returnModalOrderId}`);
+    setActionErrorMsg(null);
     try {
       const initiateOrderReturn = httpsCallable(functions, "initiateOrderReturn");
-      const res = await initiateOrderReturn({ orderId: returnModalOrderId, reason: returnReason || "Customer return request" });
+      const res = await initiateOrderReturn({
+        orderId: returnModalOrderId,
+        reason: returnReason || "Customer return request",
+        idempotencyKey: crypto.randomUUID(),
+      });
       const data = res.data as any;
       if (data.success) {
-        setActionSuccessMsg(`Return initiated for ${returnModalOrderId}. Prepaid shipping label dispatched.`);
+        showSuccess(`Your return for ${returnModalOrderId} has been started.`);
         setReturnModalOrderId(null);
         setReturnReason("");
         queryClient.invalidateQueries({ queryKey: ["userOrders"] });
         if (onRefreshOrders) onRefreshOrders();
       }
-    } catch (e) {
+    } catch {
+      setActionErrorMsg("I couldn’t start that return. Please try again.");
     } finally {
       setLoadingAction(null);
-      setActionSuccessMsg(null);
     }
   };
 
-  const getStatusBadge = (order: OrderRecord) => {
+  const handleAddToWallet = async (orderId: string) => {
+    setLoadingAction(`wallet-${orderId}`);
+    setActionErrorMsg(null);
+    try {
+      const generatePass = httpsCallable(functions, "generateGoogleWalletPassJwt");
+      const response = await generatePass({ orderId });
+      const jwt = (response.data as { jwt?: unknown }).jwt;
+      if (typeof jwt !== "string" || jwt.length === 0) throw new Error("Missing Wallet pass");
+      window.location.assign(`https://pay.google.com/gp/v/save/${encodeURIComponent(jwt)}`);
+    } catch {
+      setActionErrorMsg("I couldn’t prepare the Wallet pass. Please try again.");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const getStatusText = (order: OrderRecord) => {
     if (order.status === "RETURN_REQUESTED" || order.returnStatus === "REQUESTED") {
-      return (
-        <span className="px-2.5 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded-full flex items-center space-x-1">
-          <MaterialIcon icon="undo" size={14} className="text-amber-600" />
-          <span>RETURN REQUESTED</span>
-        </span>
-      );
+      return { icon: "undo", label: "Return requested", color: "text-amber-700" };
     }
     if (order.status === "DELIVERED") {
-      return (
-        <span className="px-2.5 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center space-x-1">
-          <MaterialIcon icon="mark_email_read" size={14} className="text-emerald-600" />
-          <span>DELIVERED</span>
-        </span>
-      );
+      return { icon: "mark_email_read", label: "Delivered", color: "text-emerald-700" };
     }
     if (order.status === "IN_TRANSIT") {
-      return (
-        <span className="px-2.5 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 rounded-full flex items-center space-x-1">
-          <MaterialIcon icon="local_shipping" size={14} className="text-blue-600" />
-          <span>IN TRANSIT</span>
-        </span>
-      );
+      return { icon: "local_shipping", label: "In transit", color: "text-blue-700" };
     }
-    return (
-      <span className="px-2.5 py-0.5 text-[10px] font-bold bg-[#e8f3e8] text-[#386633] border border-[#d8ebd7] rounded-full flex items-center space-x-1">
-        <MaterialIcon icon="check_circle" size={14} className="text-[#386633]" />
-        <span>CONFIRMED</span>
-      </span>
-    );
+    return {
+      icon: "check_circle",
+      label: order.status.toLowerCase().replace(/_/g, " "),
+      color: "text-[#386633]",
+    };
   };
 
   return (
@@ -129,17 +142,17 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
               <MaterialIcon icon="receipt_long" size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#18211e] font-headline">Order History & Post-Purchase Concierge</h2>
+              <h2 className="text-xl font-bold text-[#18211e] font-headline">Your orders</h2>
               <p className="text-xs text-[#5e635f] mt-0.5">
-                Track live package status, schedule arrival reminders & manage hassle-free returns
+                Track deliveries, set reminders, and start a return when you need to.
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
-            <span className="text-xs font-mono font-bold text-[#386633] bg-[#f2f8f2] px-3 py-1.5 rounded-xl border border-[#d8ebd7] flex items-center space-x-1.5">
+            <span className="text-xs font-medium text-[#386633] flex items-center space-x-1.5">
               <MaterialIcon icon="smart_toy" size={16} />
-              <span>Shopping Concierge Active</span>
+              <span>Ask Spresso anytime</span>
             </span>
           </div>
         </div>
@@ -149,6 +162,12 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
         <div className="p-4 bg-[#e8f3e8] border border-[#386633] text-[#386633] rounded-2xl text-xs font-semibold flex items-center space-x-2 animate-fade-in">
           <MaterialIcon icon="check_circle" size={18} />
           <span>{actionSuccessMsg}</span>
+        </div>
+      )}
+      {actionErrorMsg && (
+        <div role="alert" className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-2xl text-xs font-semibold flex items-center space-x-2">
+          <MaterialIcon icon="error" size={18} />
+          <span>{actionErrorMsg}</span>
         </div>
       )}
 
@@ -174,6 +193,7 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
           {liveOrders.map(order => {
             const isReminderSet = order.reminderSet;
             const isReturnRequested = order.status === "RETURN_REQUESTED" || order.returnStatus === "REQUESTED";
+            const status = getStatusText(order);
 
             return (
               <div
@@ -184,13 +204,16 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#f2f8f2] pb-3">
                   <div className="flex items-center space-x-3">
                     <span className="text-sm font-bold text-[#18211e] font-mono">{order.id}</span>
-                    {getStatusBadge(order)}
+                    <span className={`text-xs font-semibold flex items-center space-x-1 ${status.color}`}>
+                      <MaterialIcon icon={status.icon} size={14} />
+                      <span className="capitalize">{status.label}</span>
+                    </span>
                   </div>
 
                   <div className="flex items-center space-x-3 text-xs text-[#5e635f] font-mono">
                     <span className="flex items-center space-x-1">
                       <MaterialIcon icon="schedule" size={16} />
-                      <span>{new Date(order.humanConfirmedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>{order.humanConfirmedAt ? new Date(order.humanConfirmedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Time unavailable"}</span>
                     </span>
                     {order.mcpTransactionHash && (
                       <span className="hidden md:inline-block text-[10px] text-[#8a928c]">
@@ -228,11 +251,11 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center space-x-2">
                       <MaterialIcon icon="local_shipping" size={20} className="text-[#386633]" />
-                      <span className="text-xs font-bold text-[#18211e]">Logistics & Delivery Tracking</span>
+                      <span className="text-xs font-bold text-[#18211e]">Delivery tracking</span>
                     </div>
                     {order.carrier && (
                       <span className="text-[11px] font-mono text-[#5e635f] font-bold">
-                        {order.carrier} • {order.trackingNumber || "FX-8492019"}
+                        {order.carrier}{order.trackingNumber ? ` • ${order.trackingNumber}` : ""}
                       </span>
                     )}
                   </div>
@@ -241,14 +264,14 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                     <div className="bg-white p-3 rounded-xl border border-[#d8ebd7]">
                       <span className="text-[10px] text-[#5e635f] font-bold uppercase block">Current Location / Status</span>
                       <span className="font-semibold text-[#18211e]">
-                        {order.trackingStatus || "In Transit - Out for Delivery Vehicle"}
+                        {order.trackingStatus || "Tracking details aren’t available yet."}
                       </span>
                     </div>
 
                     <div className="bg-white p-3 rounded-xl border border-[#d8ebd7]">
                       <span className="text-[10px] text-[#5e635f] font-bold uppercase block">Estimated Arrival</span>
                       <span className="font-bold text-[#386633] font-mono">
-                        {order.estimatedDelivery || "Today, 5:00 PM"}
+                        {order.estimatedDelivery || "Waiting for the carrier"}
                       </span>
                     </div>
                   </div>
@@ -268,7 +291,7 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                     subtitle={`ORDER #${order.id.substring(0, 8)}`}
                     attendeeName={order.userUid ? `UID: ${order.userUid.substring(0, 10)}` : "VIP CUSTOMER"}
                     location={order.items[0]?.product.name || "SPRESSO STORE"}
-                    date={new Date(order.humanConfirmedAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    date={order.humanConfirmedAt ? new Date(order.humanConfirmedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : "DATE UNAVAILABLE"}
                     ticketCode={`PASS-${order.id}`}
                   />
                 </div>
@@ -292,7 +315,8 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
 
                     {/* Google Wallet Save Pass Button */}
                     <GoogleWalletButton
-                      passUrl={`https://pay.google.com/gp/v/save/eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzcHJlc3NvLXdhbGxldEBzcHJlc3NvLTU1NjFmLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiaWF0IjoxNzU0NzA1MjAwLCJwYXlsb2FkIjp7ImdlbmVyaWNPYmplY3RzIjpbeyJpZCI6IjMzODgwMDAwMDAwMjIzODcxOTIuc3ByZXNzb19vcmRlcl8${order.id}"}`}
+                      onClick={() => handleAddToWallet(order.id)}
+                      className={loadingAction === `wallet-${order.id}` ? "opacity-60 pointer-events-none" : ""}
                     />
 
                     {/* Initiate Return Button */}
@@ -305,9 +329,9 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                         <span>Initiate Return</span>
                       </button>
                     ) : (
-                      <span className="px-3 py-1.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold flex items-center space-x-1">
+                      <span className="px-1 text-amber-800 text-xs font-semibold flex items-center space-x-1">
                         <MaterialIcon icon="pending_actions" size={16} />
-                        <span>Return Processing</span>
+                        <span>Return in progress</span>
                       </span>
                     )}
 
@@ -317,7 +341,7 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
                       className="px-3.5 py-2 bg-[#f2f8f2] text-[#386633] border border-[#d8ebd7] hover:bg-[#e8f3e8] rounded-xl text-xs font-bold transition cursor-pointer flex items-center space-x-1.5"
                     >
                       <MaterialIcon icon="auto_awesome" size={16} />
-                      <span>Ask AI Concierge</span>
+                      <span>Ask Spresso</span>
                     </button>
                   </div>
 
@@ -396,7 +420,7 @@ export const OrdersTracker: React.FC<OrdersTrackerProps> = ({ orders, onAskAI, o
       {/* Global AI Communication Input Bar */}
       <AIShopperInputBar
         onSend={(t, img) => onAskAI?.(t, img)}
-        placeholder="Ask AI Assistant about order status, returns or support..."
+        placeholder="Ask about an order, delivery, or return..."
         className="mt-6"
       />
     </div>

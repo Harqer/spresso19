@@ -218,7 +218,7 @@ export function useWardrobeState(products: ProductItem[], onRequestHITLCheckout:
         id: product.id, name: product.name, price: product.price, sku: product.sku, image: product.image
       },
       quantity: 1, totalAmount: product.price, currency: product.currency,
-      deviceSource: "WEB", inventoryConfirmed: product.stock > 0, stockRemaining: product.stock,
+      deviceSource: "WEB", availabilityStatus: "VERIFY_AT_MERCHANT_CHECKOUT",
       humanInTheLoopChallenge: {
         title: "Confirm Purchase",
         message: `Authorize $${product.price.toFixed(2)} for ${product.name}?`,

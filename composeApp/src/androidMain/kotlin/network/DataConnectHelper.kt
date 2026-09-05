@@ -148,17 +148,3 @@ actual suspend fun connectCoinbaseWallet(address: String) {
         throw e
     }
 }
-
-actual suspend fun registerPasskey(
-    credentialId: String,
-    publicKey: String,
-) {
-    try {
-        com.spresso.dataconnect.SpressoConnectorConnector.instance.registerPasskey.execute(
-            credentialId = credentialId,
-            publicKey = publicKey,
-        )
-    } catch (e: Exception) {
-        throw e
-    }
-}

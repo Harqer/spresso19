@@ -24,7 +24,7 @@ import components.models.*
 fun HeroBannerSection(
     title: String,
     subtitle: String,
-    ratingText: String = "★ 4.8",
+    ratingText: String = "4.8",
     onBannerClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {

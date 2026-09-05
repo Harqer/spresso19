@@ -23,7 +23,7 @@ export const WardrobeHeaderToolbar: React.FC<WardrobeHeaderToolbarProps> = ({
         <div>
           <div className="flex items-center space-x-2">
             <h2 className="text-xl font-bold text-[#18211e] font-headline">My Smart Wardrobe & Camera Gallery</h2>
-            <span className="px-2.5 py-0.5 bg-[#e8f3e8] text-[#386633] text-[10px] font-mono font-bold rounded-full border border-[#d8ebd7]">
+            <span className="text-[11px] font-medium text-[#386633]">
               {isLoading ? "Syncing..." : `${itemCount} Closet Items`}
             </span>
           </div>

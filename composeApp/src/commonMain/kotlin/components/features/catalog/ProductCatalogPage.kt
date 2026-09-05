@@ -19,11 +19,13 @@ fun ProductCatalogPage(
     httpClient: HttpClient,
     onProductSelected: (String) -> Unit,
     onTryOnRequested: (ProductItem) -> Unit,
+    onMediaGenerated: (String, String) -> Unit,
     userLocation: String? = null,
     searchRadius: Int = 25,
     onRequestLocationPermission: () -> Unit = {},
     onShareRequested: (String) -> Unit = {},
     onAskAI: (String) -> Unit = {},
+    onCheckoutRequested: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var products by remember { mutableStateOf<List<ProductItem>>(emptyList()) }
@@ -31,7 +33,7 @@ fun ProductCatalogPage(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    val catalogViewModel = remember { viewmodels.CatalogViewModel(apiClient, scope) }
+    val catalogViewModel = remember { viewmodels.CatalogViewModel(scope) }
 
     LaunchedEffect(Unit) {
         isLoading = true
@@ -69,11 +71,13 @@ fun ProductCatalogPage(
         httpClient = httpClient,
         onProductSelected = onProductSelected,
         onTryOnRequested = onTryOnRequested,
+        onMediaGenerated = onMediaGenerated,
         userLocation = userLocation,
         searchRadius = searchRadius,
         onRequestLocationPermission = onRequestLocationPermission,
         onShareRequested = onShareRequested,
         onAskAI = onAskAI,
+        onCheckoutRequested = onCheckoutRequested,
         apiClient = apiClient,
         onRetry = { retry() },
         catalogViewModel = catalogViewModel,

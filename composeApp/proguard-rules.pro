@@ -1,14 +1,8 @@
 # Keep Kotlin reflection, coroutines, and serialization metadata
 -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
 
-# Kotlin Multiplatform / Jetpack Compose keep rules
--keep class androidx.compose.ui.platform.** { *; }
--keepclassmembers class * extends androidx.compose.ui.platform.AbstractComposeView {
-    public <init>(...);
-}
-
-# Ktor generic keep rules
--keep class io.ktor.** { *; }
+# Ktor publishes consumer rules. Suppress optional engine warnings without retaining
+# the entire networking stack.
 -dontwarn io.ktor.**
 
 # Kotlinx Serialization rules
@@ -21,8 +15,8 @@
     *** Companion;
 }
 
-# Firebase & Play Services Wallet generic keep rules
--keep class com.google.firebase.** { *; }
+# Firebase and Play Services publish consumer rules; broad app-level keep rules would
+# disable release shrinking and obfuscation.
 -dontwarn com.google.firebase.**
 -keep class com.google.android.gms.wallet.** { *; }
 -keep class com.google.pay.button.** { *; }

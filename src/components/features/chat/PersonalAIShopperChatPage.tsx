@@ -8,10 +8,11 @@ import { CameraObjectDetectionModal } from "../../CameraObjectDetectionModal";
 import { GoogleLensScreenWidgetModal } from "../../GoogleLensScreenWidgetModal";
 import { functions } from "../../../lib/firebase";
 import { httpsCallable } from "firebase/functions";
-import { GoogleGenAI } from "@google/genai";
+import { authFetch } from "../../../lib/firebase";
 import { QuickPromptsGrid } from "@/src/components/features/chat/QuickPromptsGrid";
 import { MessageStream } from "@/src/components/features/chat/MessageStream";
 import { generateDynamicGreeting } from "../../../lib/greeting";
+import { DiscoveryRepository } from "../../../lib/discoveryRepository";
 
 interface PersonalChatMsg {
   id: string;
@@ -25,6 +26,8 @@ interface PersonalChatMsg {
 
 interface PersonalAIShopperChatPageProps {
   products: ProductItem[];
+  discoveryRepository: DiscoveryRepository;
+  onListingsChanged: () => void;
   user?: any;
   userName?: string;
   onSelectTryOn: (product: ProductItem) => void;
@@ -46,6 +49,8 @@ interface PersonalAIShopperChatPageProps {
 
 export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps> = ({
   products,
+  discoveryRepository,
+  onListingsChanged,
   userName = "Guest Member",
   onSelectTryOn,
   onAddToCart,
@@ -106,92 +111,75 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
     setMessages(prev => [...prev, userMsg, aiMsg]);
     setIsGenerating(true);
 
+    discoveryRepository.search({ query: text, location: userLocation })
+      .then(listings => {
+        const verifiedProducts = discoveryRepository.asProducts(listings);
+        onListingsChanged();
+        setMessages(prev => prev.map(message => message.id === aiMsgId ? { ...message, products: verifiedProducts } : message));
+      })
+      .catch(error => {
+        if (error?.name !== "AbortError") Logger.warn("Verified product discovery failed", error);
+      });
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
 
     try {
-      const generateLiveApiToken = httpsCallable(functions, "generateLiveApiToken");
-      const tokenRes = await generateLiveApiToken();
-      const token = (tokenRes.data as any).token;
-
-      const ai = new GoogleGenAI({
-        apiKey: "none",
-        httpOptions: { headers: { Authorization: `Bearer ${token}` } }
+      const response = await authFetch("https://us-central1-get-spresso.cloudfunctions.net/chatStream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: text, locale: navigator.language }),
+        signal: abortControllerRef.current.signal,
       });
-
-      const responseStream = await ai.models.generateContentStream({
-        model: "gemini-3.5-flash",
-        contents: text,
-        config: {
-          systemInstruction: "You are the Spresso Personal Shopper. Provide helpful advice and recommend products using JSON blocks formatted like ```json { \"recommendedProducts\": [ { \"id\": \"...\" } ] } ```.",
-        }
-      });
+      if (!response.ok || !response.body) throw new Error(`Chat request failed (${response.status})`);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let pending = "";
 
       let accumulatedText = "";
 
-      for await (const chunk of responseStream) {
+      while (true) {
         if (abortControllerRef.current?.signal.aborted) break;
-        if (chunk.text) {
+        const { value, done } = await reader.read();
+        pending += value ? decoder.decode(value, { stream: !done }) : "";
+        const events = pending.split("\n\n");
+        pending = events.pop() || "";
+        for (const event of events) {
+          const line = event.split("\n").find(item => item.startsWith("data: "));
+          if (!line || line === "data: [DONE]") continue;
+          let chunk: any;
+          try { chunk = JSON.parse(line.slice(6)); } catch { continue; }
+          if (chunk.text) {
           accumulatedText += chunk.text;
 
           const jsonBlock = extractJsonBlock(accumulatedText);
-          let recommendedItems: ProductItem[] | undefined = undefined;
           let locationData: any = undefined;
 
           if (jsonBlock) {
-            if (Array.isArray(jsonBlock.recommendedProducts)) {
-              // Collect unknown product IDs
-              const unknownIds = jsonBlock.recommendedProducts
-                .filter((p: any) => !products.some(cp => cp.id === p.id))
-                .map((p: any) => p.id);
-              
-              if (unknownIds.length > 0) {
-                // Fetch full product details for unknown IDs
-                try {
-                  const fetchProducts = httpsCallable(functions, "fetchProductsByIds");
-                  const res = await fetchProducts({ ids: unknownIds });
-                  const fetchedProducts = (res.data as any).products || [];
-                  
-                  recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
-                    const match = products.find(cp => cp.id === p.id) || fetchedProducts.find((cp: any) => cp.id === p.id);
-                    return match || null;
-                  }).filter(Boolean);
-                } catch (e) {
-                  Logger.warn("Failed to fetch full product details", e);
-                  recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
-                    const match = products.find(cp => cp.id === p.id);
-                    return match;
-                  }).filter(Boolean);
-                }
-              } else {
-                recommendedItems = jsonBlock.recommendedProducts.map((p: any) => {
-                  const match = products.find(cp => cp.id === p.id);
-                  return match;
-                }).filter(Boolean);
-              }
-            }
             if (jsonBlock.locationData) {
               locationData = jsonBlock.locationData;
             }
           }
 
-          const cleanText = accumulatedText.replace(/```json\s*[\s\S]*?```/g, "").trim();
+          const metadataStart = accumulatedText.search(/```json|\{\s*\"(?:recommendedProducts|locationData)\"/);
+          const cleanText = (metadataStart >= 0 ? accumulatedText.slice(0, metadataStart) : accumulatedText).trim();
 
           setMessages(prev =>
             prev.map(m =>
               m.id === aiMsgId
                 ? {
                     ...m,
-                    text: cleanText || "Analysis complete.",
-                    products: recommendedItems,
+                    text: cleanText,
                     locationData
                   }
                 : m
             )
           );
+          }
         }
+        if (done) break;
       }
 
       setMessages(prev =>

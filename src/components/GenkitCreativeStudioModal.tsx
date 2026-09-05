@@ -104,9 +104,7 @@ Output STRICTLY in this JSON format:
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="font-bold text-lg text-[#18211e]">Brand Creative & Product Ideation Studio</h2>
-                <span className="px-2 py-0.5 bg-[#386633] text-white text-[10px] font-mono font-bold rounded-full">
-                  Brand Studio
-                </span>
+                <span className="text-[11px] font-medium text-[#386633]">Brand studio</span>
               </div>
               <p className="text-xs text-[#5e635f]">
                 {product.brand} · {product.name}
@@ -370,7 +368,7 @@ Output STRICTLY in this JSON format:
                             <p className="text-[11px] text-[#5e635f]">{step.output}</p>
                           </div>
                         </div>
-                        <span className="px-2.5 py-1 bg-emerald-100 text-[#386633] text-[10px] font-mono font-bold rounded-full">
+                        <span className="text-[11px] font-medium text-[#386633]">
                           {step.status}
                         </span>
                       </div>

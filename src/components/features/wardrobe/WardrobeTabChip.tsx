@@ -20,11 +20,7 @@ export const WardrobeTabChip: React.FC<WardrobeTabChipProps> = ({ label, count, 
     >
       <span>{label}</span>
       {count !== null && (
-        <span className={`px-2 py-0.5 text-[10px] rounded-full font-mono font-bold ${
-          isActive ? "bg-white/20 text-white" : "bg-[#e8f3e8] text-[#386633]"
-        }`}>
-          {count}
-        </span>
+        <span className="text-[10px] font-medium">({count})</span>
       )}
     </button>
   );

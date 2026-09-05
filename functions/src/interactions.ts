@@ -11,7 +11,7 @@ const interactionSchema = z.object({
   timestamp: z.string().optional(),
 });
 
-export const ingestInteraction = onCall(async (request) => {
+export const ingestInteraction = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be logged in to log interactions.");
   }

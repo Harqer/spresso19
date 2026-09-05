@@ -1,18 +1,10 @@
 package components.features.wardrobe
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import components.models.*
 import components.shared.elements.SpressoButton
 import components.shared.elements.SpressoButtonVariant
@@ -36,20 +28,7 @@ fun WardrobePhotoCard(
         imageUrl = photo.photoUrl,
         title = photo.title,
         modifier = modifier,
-        badgeContent = {
-            Text(
-                text = photo.category.uppercase(),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.surface,
-                modifier =
-                    Modifier
-                        .padding(8.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-            )
-        },
+        subtitle = photo.category,
         actionRow = {
             SpressoButton(
                 text = "Try On",

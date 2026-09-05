@@ -23,6 +23,7 @@ data class CuratedFit(
     val season: String,
     val stylingNotes: String,
     val items: List<String>,
+    val styleTips: List<String> = emptyList(),
 )
 
 data class WardrobePhoto(
@@ -38,10 +39,11 @@ data class WardrobePhoto(
 fun WardrobeViewPage(
     displayMediaUrl: String? = null,
     httpClient: HttpClient? = null,
+    currentLatLng: Pair<Double, Double>? = null,
     onPickImageRequested: () -> Unit = {},
     onShareRequested: ((String) -> Unit)? = null,
     products: List<ProductItem> = emptyList(),
-    onSelectTryOn: (ProductItem?) -> Unit = {},
+    onSelectTryOn: (WardrobePhoto) -> Unit = {},
     onRequestHITLCheckout: (Any) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -55,17 +57,18 @@ fun WardrobeViewPage(
                 items.map { item ->
                     WardrobePhoto(
                         id = item.id,
-                        title = item.brand ?: "Unknown",
-                        category = item.category ?: "Unknown",
-                        photoUrl = item.imageUrl ?: "",
+                        title = item.brand?.takeIf { it.isNotBlank() } ?: item.category,
+                        category = item.category,
+                        photoUrl = item.imageUrl,
                     )
                 }
         } catch (e: Exception) {
-            snackbarHostState.showSnackbar("Error: ${e.message}")
+            snackbarHostState.showSnackbar("Unable to load your wardrobe. Please try again.")
         }
     }
 
-    var activeSeason by remember { mutableStateOf("Winter") }
+    var activeSeason by remember { mutableStateOf<String?>(null) }
+    var temperatureText by remember { mutableStateOf<String?>(null) }
     var stylingLoading by remember { mutableStateOf(false) }
     val apiClient = remember { network.ApiClient() }
 
@@ -80,28 +83,65 @@ fun WardrobeViewPage(
 
     LaunchedEffect(Unit) {
         try {
-            val climate = apiClient.getWeatherContext()
+            val coordinates = currentLatLng ?: return@LaunchedEffect
+            val climate = apiClient.getWeatherContext(coordinates)
             activeSeason = climate
+            temperatureText = apiClient.getTemperatureText(coordinates)
         } catch (e: Exception) {
-            // keep default
+            snackbarHostState.showSnackbar("Weather-based suggestions are unavailable right now.")
         }
     }
 
-    var curatedFits by remember(activeSeason) { mutableStateOf<List<CuratedFit>>(emptyList()) }
-    LaunchedEffect(activeSeason) {
+    var curatedFits by remember(activeSeason, photos, temperatureText) { mutableStateOf<List<CuratedFit>>(emptyList()) }
+    LaunchedEffect(activeSeason, photos, temperatureText) {
+        if (photos.isEmpty()) return@LaunchedEffect
         try {
             stylingLoading = true
+            val outfit =
+                apiClient.generateOutfit(
+                    items = photos.map { photo ->
+                        network.WardrobeItemData(
+                            id = photo.id,
+                            category = photo.category,
+                            brand = photo.title,
+                            imageUrl = photo.photoUrl,
+                            color = null,
+                        )
+                    },
+                    weatherCondition = activeSeason ?: "All seasons",
+                    temperatureText = temperatureText ?: "",
+                    userLocation = currentLatLng?.let { "${it.first},${it.second}" },
+                )
             curatedFits =
-                network.SpressoBackend.getWardrobeOutfits().map { outfit ->
-                    CuratedFit(
-                        fitName = outfit.title,
-                        season = activeSeason, // fallback since it's missing in backend data
-                        stylingNotes = outfit.description ?: "",
-                        items = outfit.items.map { it.id },
+                if (outfit != null) {
+                    val idToName =
+                        photos.associate { photo ->
+                            photo.id to photo.title
+                        }
+                    listOf(
+                        CuratedFit(
+                            fitName = outfit.title ?: "Your styled look",
+                            season = activeSeason ?: "All seasons",
+                            stylingNotes = outfit.stylingAdvice ?: "",
+                            items =
+                                outfit.selectedItemIds.mapNotNull { id ->
+                                    idToName[id] ?: "Item"
+                                },
+                            styleTips = outfit.styleTips,
+                        ),
                     )
+                } else {
+                    emptyList()
                 }
         } catch (e: Exception) {
-            snackbarHostState.showSnackbar("Error: ${e.message}")
+            val message = e.message.orEmpty()
+            snackbarHostState.showSnackbar(
+                if (message.contains("limit reached", ignoreCase = true)) {
+                    "You've hit your daily styling limit. Check back tomorrow for more outfit ideas."
+                } else {
+                    "Unable to load outfit suggestions. Please try again."
+                },
+            )
         } finally {
             stylingLoading = false
         }
@@ -139,10 +179,10 @@ fun WardrobeViewPage(
                 )
             }
 
-            // 2. Genkit AI Styling Engine
+            // 2. Outfit suggestions
             item(span = { GridItemSpan(maxLineSpan) }) {
                 WardrobeStylingEngineSection(
-                    activeSeason = activeSeason,
+                    activeSeason = activeSeason ?: "All seasons",
                     seasons = dynamicSeasons,
                     onSeasonSelected = { activeSeason = it },
                     stylingLoading = stylingLoading,

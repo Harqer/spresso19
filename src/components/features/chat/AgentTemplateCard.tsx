@@ -23,7 +23,7 @@ export const AgentTemplateCard: React.FC<AgentTemplateCardProps> = ({ tmpl, isAc
           <div className="w-9 h-9 rounded-xl bg-[#e8f3e8] text-[#386633] flex items-center justify-center font-bold">
             <MaterialIcon icon={tmpl.icon} size={20} />
           </div>
-          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#f2f8f2] text-[#386633] border border-[#d8ebd7]">
+          <span className="text-[10px] font-medium text-[#386633]">
             {tmpl.category}
           </span>
         </div>

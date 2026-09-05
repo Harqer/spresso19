@@ -1,16 +1,16 @@
 import * as crypto from 'crypto';
 
 /**
- * AgentIdentityManager handles the lifecycle of the AI Agent's Decentralized Identifier (DID)
- * and its cryptographic keys, providing Hybrid Signatures (Ed25519 + ML-DSA).
+ * AgentIdentityManager handles the classical half of an agent identity.
+ * PQC signatures must be supplied by an approved FIPS 204 provider; this class
+ * deliberately refuses to substitute Ed25519 for ML-DSA.
  */
 export class AgentIdentityManager {
   private ed25519PublicKey!: string;
   private ed25519PrivateKey!: string;
 
   // ML-KEM / ML-DSA (FIPS 204) Post-Quantum Identities
-  private mldsaPublicKey!: string;
-  private mldsaPrivateKey!: string;
+  private pqcConfigured = false;
 
   constructor() {
     this.initializeKeys();
@@ -31,19 +31,10 @@ export class AgentIdentityManager {
       this.ed25519PrivateKey = edPriv;
     }
 
-    // 2. Generate or Load ML-DSA (Dilithium) Key Pair (Simulated for Node until native support)
-    if (process.env.AGENT_MLDSA_PRIVATE_KEY && process.env.AGENT_MLDSA_PUBLIC_KEY) {
-      this.mldsaPrivateKey = process.env.AGENT_MLDSA_PRIVATE_KEY.replace(/\\n/g, '\n');
-      this.mldsaPublicKey = process.env.AGENT_MLDSA_PUBLIC_KEY.replace(/\\n/g, '\n');
-    } else {
-      console.warn("Generating ephemeral ML-DSA cryptographic simulation keys. Identity will be lost on restart.");
-      const { publicKey: mlPub, privateKey: mlPriv } = crypto.generateKeyPairSync('ed25519', {
-        publicKeyEncoding: { type: 'spki', format: 'pem' },
-        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-      });
-      this.mldsaPublicKey = mlPub;
-      this.mldsaPrivateKey = mlPriv;
-    }
+    // Node's built-in crypto does not provide ML-DSA in this runtime. Do not
+    // generate an Ed25519 key and label it ML-DSA: that would be a false PQC
+    // assurance. An approved external provider must be wired before signing.
+    this.pqcConfigured = process.env.AGENT_PQC_PROVIDER === 'fips-204';
   }
 
   /**
@@ -51,19 +42,10 @@ export class AgentIdentityManager {
    * Format: base64(ed25519_sig) + '.' + base64(mldsa_sig)
    */
   public signPayload(payload: string): string {
-    const signer = crypto.createSign('ed25519');
-    signer.update(payload);
-    signer.end();
-    
-    const ed25519Signature = signer.sign(this.ed25519PrivateKey, 'base64');
-    
-    // Simulate ML-DSA Signature using secondary ed25519 key
-    const mlSigner = crypto.createSign('ed25519');
-    mlSigner.update(payload);
-    mlSigner.end();
-    const mldsaSignature = mlSigner.sign(this.mldsaPrivateKey, 'base64');
-
-    return `${ed25519Signature}.${mldsaSignature}`;
+    void payload;
+    throw new Error(this.pqcConfigured
+      ? 'FIPS 204 provider integration is not wired into the signing path.'
+      : 'PQC signature provider is not configured; refusing a non-PQC hybrid signature.');
   }
 
   /**
@@ -71,6 +53,7 @@ export class AgentIdentityManager {
    */
   public verifySignature(payload: string, hybridSignature: string): boolean {
     try {
+      if (!this.pqcConfigured) return false;
       const [edSig, mlSig] = hybridSignature.split('.');
       if (!edSig || !mlSig) return false;
 
@@ -80,13 +63,10 @@ export class AgentIdentityManager {
 
       const edValid = verifier.verify(this.ed25519PublicKey, edSig, 'base64');
       
-      // Simulated ML-DSA validation
-      const mlVerifier = crypto.createVerify('ed25519');
-      mlVerifier.update(payload);
-      mlVerifier.end();
-      const mlValid = mlVerifier.verify(this.mldsaPublicKey, mlSig, 'base64');
-
-      return edValid && mlValid;
+      // No ML-DSA verifier is available in Node 22. Never treat the classical
+      // signature as a PQC signature; an external provider must verify `mlSig`.
+      void mlSig;
+      return false;
     } catch (e) {
       return false;
     }

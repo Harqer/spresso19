@@ -99,7 +99,7 @@ export const TravelTripsPage: React.FC<TravelTripsPageProps> = ({ onAskAI }) => 
       const reader = new FileReader();
       reader.onload = async () => {
         const base64Data = (reader.result as string).split(",")[1];
-        const res = await fetch("https://us-central1-spresso-5561f.cloudfunctions.net/parseReceipt", {
+        const res = await fetch("https://us-central1-get-spresso.cloudfunctions.net/parseReceipt", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageBase64: base64Data })

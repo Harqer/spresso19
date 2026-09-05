@@ -4,4 +4,4 @@
     android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows|flagRequestAccessibilityButton|flagRequestFilterKeyEvents"
     android:canRetrieveWindowContent="true"
     android:canTakeScreenshot="true"
-    android:settingsActivity="com.spresso19.AccessibilitySettingsActivity" />
+    android:settingsActivity="com.spresso.AccessibilitySettingsActivity" />

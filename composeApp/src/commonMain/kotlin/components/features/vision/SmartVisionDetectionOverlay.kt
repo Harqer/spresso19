@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import components.models.*
@@ -24,7 +23,9 @@ import kotlinx.coroutines.launch
 import network.ApiClient
 import network.DetectedItem
 import network.ProductItem
+import network.models.HITLChallenge
 import network.models.HITLPayload
+import network.models.HITLProduct
 
 @Composable
 fun SmartVisionDetectionOverlay(
@@ -76,55 +77,28 @@ fun SmartVisionDetectionOverlay(
                             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(4.dp)),
                 )
             }
-            if (matchedProduct != null && (matchedProduct.rating ?: 0.0) > 0.0) {
-                Row(
-                    modifier =
-                        Modifier
-                            .offset(x = (-4).dp, y = (-12).dp)
-                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(6.dp))
-                            .padding(horizontal = 8.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Icon(Icons.Default.Star, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(12.dp))
-                    Text(
-                        text = matchedProduct.rating.toString().take(3),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                    )
-                }
-            }
-
             MediaActionCard(
                 imageUrl = matchedProduct?.imageUrl ?: "",
                 title = item.detectedName,
-                subtitle = "${item.brandGuess} · ${item.category}".uppercase(),
+                subtitle = "${item.brandGuess} · ${item.category}",
                 modifier =
                     Modifier
                         .align(Alignment.BottomCenter)
                         .padding(8.dp),
                 trackingId = "vision_product_${item.detectedName.replace(" ", "_")}",
                 trackingAction = "view",
-                badgeContent = {
-                    if (matchedProduct != null && (matchedProduct.rating ?: 0.0) > 0.0) {
-                        Row(
-                            modifier =
-                                Modifier
-                                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Icon(Icons.Default.Star, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(12.dp))
-                            Text(
-                                text = matchedProduct.rating.toString().take(3),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                actionRow = {
+                    matchedProduct?.rating?.takeIf { it > 0.0 }?.let { rating ->
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(16.dp),
                             )
+                            Text(rating.toString().take(3), style = MaterialTheme.typography.bodySmall)
                         }
                     }
-                },
-                actionRow = {
                     if (matchedProduct != null) {
                         SpressoButton(
                             text = "Style",
@@ -135,27 +109,61 @@ fun SmartVisionDetectionOverlay(
                             trackingAction = "click_style",
                         )
                     }
-                    val price = if (item.priceEstimate > 0) item.priceEstimate else (matchedProduct?.price ?: 0.0)
-                    SpressoButton(
-                        text = "$${price.toString().take(5)}",
-                        icon = Icons.Default.ShoppingBag,
-                        variant = SpressoButtonVariant.PRIMARY,
-                        onClick = {
-                            scope.launch {
-                                try {
-                                    network.SpressoBackend.logVisionEvent(
-                                        detectedObjects = item.detectedName,
-                                        context = "buy_click",
-                                        imageUrl = matchedProduct?.imageUrl,
-                                    )
-                                } catch (e: Exception) {
-                                    apiError = "Vision API Error: ${e.message}"
+                    matchedProduct?.price?.takeIf { it > 0.0 }?.let { verifiedPrice ->
+                        SpressoButton(
+                            text = "$${verifiedPrice.toString().take(5)}",
+                            icon = Icons.Default.ShoppingBag,
+                            variant = SpressoButtonVariant.PRIMARY,
+                            onClick = {
+                                scope.launch {
+                                    try {
+                                        network.SpressoBackend.logVisionEvent(
+                                            detectedObjects = item.detectedName,
+                                            context = "buy_click",
+                                            imageUrl = matchedProduct?.imageUrl,
+                                        )
+                                        val productId = matchedProduct?.id ?: item.matchingCatalogId
+                                        if (productId == null) {
+                                            apiError = "This item is not available for checkout yet."
+                                            return@launch
+                                        }
+                                        val merchantUrl = matchedProduct?.merchantUrl?.takeIf { it.startsWith("https://") }
+                                        if (merchantUrl == null) {
+                                            apiError = "A verified merchant listing is required before checkout."
+                                            return@launch
+                                        }
+                                        onHitlCheckout(
+                                            HITLPayload(
+                                                authorizationId = "authorization-$productId-${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}",
+                                                product =
+                                                    HITLProduct(
+                                                        id = productId,
+                                                        name = matchedProduct?.name ?: item.detectedName,
+                                                        price = verifiedPrice,
+                                                        sku = "",
+                                                        image = matchedProduct?.imageUrl.orEmpty(),
+                                                        merchantUrl = merchantUrl,
+                                                    ),
+                                                quantity = 1,
+                                                totalAmount = verifiedPrice,
+                                                deviceSource = "ANDROID_APP",
+                                                availabilityStatus = "VERIFY_AT_MERCHANT_CHECKOUT",
+                                                humanInTheLoopChallenge =
+                                                    HITLChallenge(
+                                                        title = "Confirm purchase",
+                                                        message = "Review this order, choose payment, and confirm with your device.",
+                                                    ),
+                                            ),
+                                        )
+                                    } catch (e: Exception) {
+                                        apiError = "Unable to prepare checkout. Please try again."
+                                    }
                                 }
-                            }
-                        },
-                        trackingId = "btn_buy_${matchedProduct?.id ?: "detected"}",
-                        trackingAction = "click_buy",
-                    )
+                            },
+                            trackingId = "btn_buy_${matchedProduct.id}",
+                            trackingAction = "click_buy",
+                        )
+                    }
                 },
             )
         }

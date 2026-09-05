@@ -30,6 +30,7 @@ fun OrdersTrackerPage(
 ) {
     var orders by remember { mutableStateOf<List<OrderRecord>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var loadError by remember { mutableStateOf<String?>(null) }
     var selectedOrderForReturn by remember { mutableStateOf<String?>(null) }
     var returnReason by remember { mutableStateOf("") }
     var isSubmittingReturn by remember { mutableStateOf(false) }
@@ -40,7 +41,7 @@ fun OrdersTrackerPage(
         try {
             orders = apiClient.fetchOrders()
         } catch (e: Exception) {
-            orders = emptyList() // Fallback gracefully without fake data
+            loadError = "Unable to load your orders. Please try again."
         } finally {
             isLoading = false
         }
@@ -77,7 +78,15 @@ fun OrdersTrackerPage(
                 }
             }
 
-            if (orders.isEmpty()) {
+            if (loadError != null) {
+                item {
+                    Text(
+                        text = loadError!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            } else if (!isLoading && orders.isEmpty()) {
                 item {
                     OrderTrackerEmptyState()
                 }
@@ -86,7 +95,25 @@ fun OrdersTrackerPage(
                     OrderRecordCard(
                         order = order,
                         apiClient = apiClient,
-                        onSetReminder = onSetReminder,
+                        onSetReminder = { orderId ->
+                            scope.launch {
+                                try {
+                                    val response = apiClient.setOrderReminder(
+                                        orderId = orderId,
+                                        reminderTime = kotlinx.datetime.Clock.System.now().toString(),
+                                    )
+                                    val success = response["success"]?.jsonPrimitive?.boolean == true
+                                    if (success) {
+                                        orders = orders.map { order -> if (order.id == orderId) order.copy(reminderSet = true) else order }
+                                        onSetReminder(orderId)
+                                    } else {
+                                        loadError = "Unable to set this reminder. Please try again."
+                                    }
+                                } catch (e: Exception) {
+                                    loadError = "Unable to set this reminder. Please try again."
+                                }
+                            }
+                        },
                         onInitiateReturn = { orderId -> selectedOrderForReturn = orderId },
                         onAskAI = onAskAI,
                     )

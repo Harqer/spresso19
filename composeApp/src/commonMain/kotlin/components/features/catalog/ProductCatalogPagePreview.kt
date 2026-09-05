@@ -16,7 +16,8 @@ fun ProductCatalogPagePreview() {
             httpClient = HttpClient(),
             onProductSelected = {},
             onTryOnRequested = {},
-            userLocation = "New York, NY",
+            onMediaGenerated = { _, _ -> },
+            userLocation = null,
         )
     }
 }

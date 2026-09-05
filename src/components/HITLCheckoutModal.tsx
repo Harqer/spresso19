@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { HITLPayload } from "../types";
-import { dataConnect, auth, loginWithGoogle } from "../lib/firebase";
-import { createOrder } from "../dataconnect";
+import { auth, db, loginWithGoogle } from "../lib/firebase";
+import { doc, getDoc, collection, query, where, limit, getDocs } from "firebase/firestore";
 import { MaterialIcon } from "./MaterialIcon";
 import { M3ExpressiveCircularProgress } from "./M3ExpressiveCircularProgress";
-import { GoogleWalletButton } from "@/src/components/features/profile/GoogleWalletButton";
 import { loadStripe, Stripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
@@ -19,17 +18,23 @@ const StripeCheckoutForm = ({ onSuccess, onCancel, totalAmount }: any) => {
     if (!stripe || !elements) return;
 
     setIsProcessing(true);
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      redirect: 'if_required',
-    });
-
-    setIsProcessing(false);
-
-    if (error) {
-      setErrorMsg(error.message || "An error occurred");
-    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-      onSuccess(paymentIntent);
+    setErrorMsg("");
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        redirect: 'if_required',
+      });
+      if (error) {
+        setErrorMsg(error.message || "Payment could not be completed.");
+      } else if (paymentIntent?.status === 'succeeded') {
+        await onSuccess(paymentIntent);
+      } else {
+        setErrorMsg("Payment is not complete yet. Please try again.");
+      }
+    } catch (error: any) {
+      setErrorMsg(error?.message || "Payment could not be completed.");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -54,12 +59,47 @@ interface HITLCheckoutModalProps {
   onOrderConfirmed?: () => void;
 }
 
-const GOOGLE_PAY_MERCHANT_ID = "BCR2DN6DTK6ZNGLF";
+interface CheckoutContext {
+  shippingAddress: string;
+  merchantUrl: string;
+}
+
+function readableShippingAddress(profile: Record<string, any>): string | null {
+  const candidates = [
+    profile.defaultShippingAddress,
+    profile.shippingAddress,
+    profile.defaultAddress,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim().length >= 5) {
+      return candidate.trim();
+    }
+    if (candidate && typeof candidate === "object") {
+      const formatted = candidate.formattedAddress || candidate.formatted || candidate.address;
+      if (typeof formatted === "string" && formatted.trim().length >= 5) {
+        return formatted.trim();
+      }
+    }
+  }
+  return null;
+}
+
+function requireHttpsMerchantUrl(value: unknown): string {
+  if (typeof value !== "string") {
+    throw new Error("This item is missing a verified merchant checkout link.");
+  }
+  const url = new URL(value);
+  if (url.protocol !== "https:") {
+    throw new Error("This merchant checkout link is not secure.");
+  }
+  return url.toString();
+}
 
 export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
   payload,
   onClose,
-  onSuccess
+  onSuccess,
+  onOrderConfirmed,
 }) => {
   if (!payload) return null;
 
@@ -70,6 +110,12 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
   const [isBiometricAuthenticating, setIsBiometricAuthenticating] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
+  const [checkoutContext, setCheckoutContext] = useState<CheckoutContext | null>(null);
+  const idempotencyKey = useRef(
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${payload.authorizationId}-${Date.now()}`,
+  );
 
   useEffect(() => {
     // Trigger haptic vibration buzz on device to notify user of biometric purchase authorization
@@ -86,17 +132,11 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
     setIsBiometricAuthenticating(true);
     setErrorMessage("");
     try {
-      // Re-authenticate or require fresh login via Firebase
-      const user = auth.currentUser;
-      if (!user) {
-        // If not logged in at all, require login
-        await loginWithGoogle();
-      } else {
-        // Here we could use reauthenticateWithPopup, but since the user requested standard auth,
-        // we'll just verify a session exists or force a login popup for "biometric" simulation with real auth.
-        await loginWithGoogle();
+      await loginWithGoogle();
+      if (!auth.currentUser) {
+        throw new Error("Sign-in did not complete.");
       }
-
+      await auth.currentUser.getIdToken(true);
       setBiometricVerified(true);
       if (typeof window !== "undefined" && "navigator" in window && navigator.vibrate) {
         try {
@@ -112,9 +152,85 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
     }
   };
 
+  const loadCheckoutContext = async (): Promise<CheckoutContext> => {
+    const user = auth.currentUser;
+    if (!user || user.isAnonymous) {
+      throw new Error("Sign in to continue with checkout.");
+    }
+
+    const [profileSnapshot, productSnapshot] = await Promise.all([
+      getDoc(doc(db, "users", user.uid)),
+      getDoc(doc(db, "products", payload.product.id)),
+    ]);
+    if (!profileSnapshot.exists()) {
+      throw new Error("Add a delivery address to your profile before checkout.");
+    }
+    if (!productSnapshot.exists()) {
+      throw new Error("This item is no longer available from the catalog.");
+    }
+
+    const shippingAddress = readableShippingAddress(profileSnapshot.data());
+    if (!shippingAddress) {
+      throw new Error("Add a delivery address to your profile before checkout.");
+    }
+    const productData = productSnapshot.data();
+    const merchantUrl = requireHttpsMerchantUrl(productData.merchantUrl || productData.productUrl);
+    const context = { shippingAddress, merchantUrl };
+    setCheckoutContext(context);
+    return context;
+  };
+
+  // After Stripe confirms, the signed webhook — not this client — creates the
+  // order. The client polls for the server-written order before showing
+  // success, so a false confirmation can never render.
+  const waitForServerOrder = async (paymentIntentId: string) => {
+    const deadline = Date.now() + 30000;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      try {
+        const ordersRef = collection(db, "users", auth.currentUser!.uid, "orders");
+        const q = query(ordersRef, where("paymentIntentId", "==", paymentIntentId), limit(1));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const orderDoc = snapshot.docs[0];
+          onSuccess?.({ orderId: orderDoc.id, total: orderDoc.data().totalAmount || 0 });
+          onOrderConfirmed?.();
+          onClose();
+          return;
+        }
+      } catch (e) {
+        // Keep polling until the deadline; surface a generic failure after.
+      }
+    }
+    throw new Error("Your payment was confirmed, but the order is still being saved. Please check your orders in a moment.");
+  };
+
+  const prepareStripeCheckout = async (context: CheckoutContext) => {
+    const { functions } = await import("../lib/firebase");
+    const { httpsCallable } = await import("firebase/functions");
+    // The server prices the item from a fresh merchant quote and returns the
+    // Stripe client secret. The client never chooses the amount.
+    const prepareCheckout = httpsCallable(functions, "prepareCheckout");
+    const result = await prepareCheckout({
+      listingId: payload.product.id,
+      quantity: payload.quantity,
+      idempotencyKey: idempotencyKey.current,
+    });
+    const secret = (result.data as any)?.clientSecret;
+    if (typeof secret !== "string" || secret.length === 0) {
+      throw new Error("Unable to prepare checkout right now.");
+    }
+    const publishableKey = (result.data as any)?.publishableKey;
+    if (typeof publishableKey !== "string" || !publishableKey.startsWith("pk_")) {
+      throw new Error("Secure payment configuration is unavailable.");
+    }
+    setStripePromise((current) => current || loadStripe(publishableKey));
+    setClientSecret(secret);
+  };
+
   const handleConfirmPurchase = async () => {
     if (!biometricVerified) {
-      setErrorMessage("Biometric authorization (Touch ID / Face ID / Passkey) required before payment.");
+      setErrorMessage("Confirm your identity before placing the order.");
       return;
     }
 
@@ -122,128 +238,15 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
     setErrorMessage("");
 
     try {
-      const authId = payload.authorizationId;
-      const uid = auth.currentUser?.uid || "anonymous_user";
+      const context = await loadCheckoutContext();
 
-      // If fiat, fetch clientSecret and render Elements
-      if (paymentMethod === "fiat") {
-        const { functions } = await import("../lib/firebase");
-        const { httpsCallable } = await import("firebase/functions");
-
-        // Fetch stripe publishable key securely from the backend
-        try {
-          const getStripeConfig = httpsCallable(functions, "getStripeConfig");
-          const configRes = await getStripeConfig();
-          const pubKey = (configRes.data as any)?.publishableKey;
-          if (!pubKey) {
-              throw new Error("Missing Stripe Publishable Key from backend.");
-          }
-          if (!stripePromise) {
-            setStripePromise(loadStripe(pubKey));
-          }
-        } catch (e: any) {
-          setErrorMessage(e.message || "Failed to load secure payment configuration.");
-          setIsSubmitting(false);
-          return;
-        }
-
-        const createStripeIntent = httpsCallable(functions, "createStripeIntent");
-
-        const res = await createStripeIntent({
-             productId: payload.product.id,
-             quantity: payload.quantity,
-             shippingAddress: "123 Innovation Way, SF",
-             merchantUrl: (payload as any).merchantUrl || "https://example.com"
-        });
-        
-        const data = res.data as any;
-        if (data.clientSecret) {
-          setClientSecret(data.clientSecret);
-          setIsSubmitting(false);
-          return; // Wait for user to fill Elements
-        } else {
-          setErrorMessage("Failed to initialize secure checkout.");
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      // If Google Pay was selected, build PaymentDataRequest with official Merchant ID BCR2DN6DTK6ZNGLF
-      if (paymentMethod === "gpay" && typeof window !== "undefined" && (window as any).google?.payments) {
-        const paymentsClient = new (window as any).google.payments.api.PaymentsClient({ environment: "TEST" });
-        const paymentDataRequest = {
-          apiVersion: 2,
-          apiVersionMinor: 0,
-          allowedPaymentMethods: [{
-            type: "CARD",
-            parameters: {
-              allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
-              allowedCardNetworks: ["VISA", "MASTERCARD", "AMEX", "DISCOVER"]
-            },
-            tokenizationSpecification: {
-              type: "PAYMENT_GATEWAY",
-              parameters: {
-                gateway: "example",
-                gatewayMerchantId: GOOGLE_PAY_MERCHANT_ID
-              }
-            }
-          }],
-          merchantInfo: {
-            merchantId: GOOGLE_PAY_MERCHANT_ID,
-            merchantName: "Spresso Retail"
-          },
-          transactionInfo: {
-            totalPriceStatus: "FINAL",
-            totalPriceLabel: "Total",
-            totalPrice: (payload.totalAmount || (payload.product.price * payload.quantity)).toFixed(2),
-            currencyCode: payload.currency || "USD",
-            countryCode: "US"
-          }
-        };
-        try {
-          await paymentsClient.loadPaymentData(paymentDataRequest);
-        } catch (e: any) {
-          throw new Error(e?.statusMessage || "Google Pay authorization failed or was canceled.");
-        }
+      if (paymentMethod === "fiat" || paymentMethod === "gpay") {
+        await prepareStripeCheckout(context);
+        return;
       }
 
       if (paymentMethod === "crypto") {
-         const { functions } = await import("../lib/firebase");
-         const { httpsCallable } = await import("firebase/functions");
-         const processCryptoPayment = httpsCallable(functions, "processCryptoPayment");
-         
-         const cryptoRes = await processCryptoPayment({
-            amount: payload.totalAmount || (payload.product.price * payload.quantity)
-         }).catch((err: any) => {
-             throw new Error(err.message || "Crypto payment failed via Agentic Wallet");
-         });
-         
-         if (!(cryptoRes.data as any).success) {
-             throw new Error("Crypto transaction failed or was rejected on-chain.");
-         }
-      }
-
-      const selectedPaymentLabel =
-        paymentMethod === "gpay"
-          ? "Google Pay (Merchant: BCR2DN6DTK6ZNGLF)"
-          : paymentMethod === "crypto"
-          ? "Coinbase USDC (Base AgentKit)"
-          : "Debit/Credit Card";
-
-      const response = await createOrder(dataConnect, {
-        authorizationId: authId,
-        productId: payload.product.id,
-        quantity: payload.quantity,
-        totalAmount: payload.totalAmount || (payload.product.price * payload.quantity),
-        deviceSource: payload.deviceSource,
-        paymentMethod: selectedPaymentLabel
-      });
-
-      if (response?.data && onSuccess) {
-        onSuccess({ orderId: response.data.order_insert, total: payload.totalAmount || 0, merchantId: GOOGLE_PAY_MERCHANT_ID });
-        onClose();
-      } else {
-        setErrorMessage("Failed to process request. Please try again.");
+        throw new Error("USDC checkout is temporarily unavailable while secure passkey authorization is being configured.");
       }
     } catch (err: any) {
       setErrorMessage(err?.message || "Failed to process request. Please try again.");
@@ -267,17 +270,12 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
         {/* Header */}
         <div className="flex items-center space-x-3">
           <div className="p-3 bg-[#e8f3e8] border border-[#d8ebd7] rounded-2xl text-[#386633] shrink-0">
-            <MaterialIcon icon="fingerprint" size={28} />
+            <MaterialIcon icon="shopping_bag" size={28} />
           </div>
           <div>
-            <div className="flex items-center space-x-2">
-              <h3 className="text-lg font-bold text-[#18211e] font-serif">Biometric Agentic Authorization</h3>
-              <span className="px-2 py-0.5 bg-[#386633] text-white text-[9px] font-mono font-bold rounded-md">
-                HITL Safeguard
-              </span>
-            </div>
+            <h3 className="text-lg font-bold text-[#18211e] font-serif">Review your purchase</h3>
             <p className="text-xs text-[#5e635f]">
-              Agent staged this item into cart. Confirm with Biometrics to complete order.
+              Check the item, delivery, and payment details, then place your order when you're ready.
             </p>
           </div>
         </div>
@@ -309,8 +307,8 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span>Shipping & Delivery:</span>
-              <span className="font-mono text-emerald-700 font-semibold">Free Express</span>
+              <span>Shipping:</span>
+              <span className="text-[#18211e] font-semibold">Calculated at checkout</span>
             </div>
             <div className="flex items-center justify-between text-sm font-bold text-[#18211e] pt-1 border-t border-dashed border-[#c4d6c3]">
               <span>Total Cost Before Confirmation:</span>
@@ -324,7 +322,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
         {/* Payment Method Selector (User Explicit Choice) */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-[#18211e] block">
-            Select Payment Settlement:
+            Choose a payment method
           </label>
           <div className="grid grid-cols-3 gap-2">
             <button
@@ -336,38 +334,33 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
                   : "bg-[#f8faf8] border-[#e2e2e2] hover:border-neutral-400 text-[#18211e]"
               }`}
             >
-              <div className="flex items-center justify-between">
+              <div>
                 <MaterialIcon icon="payment" size={18} className={paymentMethod === "gpay" ? "text-white" : "text-[#386633]"} />
-                <span className="text-[9px] font-mono font-bold px-1 py-0.5 bg-emerald-600 text-white rounded">
-                  GPay
-                </span>
               </div>
               <div className="mt-1.5">
                 <span className="text-xs font-bold block truncate">Google Pay</span>
                 <span className={`text-[9px] block truncate ${paymentMethod === "gpay" ? "text-neutral-300" : "text-[#556258]"}`}>
-                  Merchant: BCR2D...
+                  Secure wallet checkout
                 </span>
               </div>
             </button>
 
             <button
               type="button"
-              onClick={() => setPaymentMethod("crypto")}
+              onClick={() => setErrorMessage("USDC checkout is temporarily unavailable while secure passkey authorization is being configured.")}
+              aria-disabled="true"
               className={`p-2.5 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between min-w-[90px] ${
                 paymentMethod === "crypto"
                   ? "bg-[#e8f3e8] border-[#386633] ring-1 ring-[#386633]"
                   : "bg-[#f8faf8] border-[#e2e2e2] hover:border-neutral-400"
               }`}
             >
-              <div className="flex items-center justify-between">
+              <div>
                 <MaterialIcon icon="currency_bitcoin" size={18} className="text-[#386633]" />
-                <span className="text-[9px] font-mono font-bold px-1 py-0.5 bg-white rounded border border-[#d8ebd7]">
-                  Base
-                </span>
               </div>
               <div className="mt-1.5">
                 <span className="text-xs font-bold text-[#18211e] block truncate">Coinbase</span>
-                <span className="text-[9px] text-[#556258] block truncate">USDC</span>
+                <span className="text-[9px] text-[#556258] block truncate">USDC setup required</span>
               </div>
             </button>
 
@@ -380,11 +373,8 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
                   : "bg-[#f8faf8] border-[#e2e2e2] hover:border-neutral-400"
               }`}
             >
-              <div className="flex items-center justify-between">
+              <div>
                 <MaterialIcon icon="credit_card" size={18} className="text-[#386633]" />
-                <span className="text-[9px] font-mono font-bold px-1 py-0.5 bg-white rounded border border-[#d8ebd7]">
-                  Card
-                </span>
               </div>
               <div className="mt-1.5">
                 <span className="text-xs font-bold text-[#18211e] block truncate">Debit / Credit</span>
@@ -394,21 +384,21 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
           </div>
         </div>
 
-        {/* Biometric Scan Trigger Box */}
+        {/* Identity confirmation */}
         <div className="p-3.5 bg-[#f8faf8] rounded-2xl border border-[#e2e2e2] space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-[#18211e] flex items-center space-x-1.5">
               <MaterialIcon icon="lock" size={16} className="text-[#386633]" />
-              <span>Biometric Verification</span>
+              <span>Identity confirmation</span>
             </span>
             {biometricVerified ? (
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full flex items-center space-x-1">
+              <span className="text-[11px] font-semibold text-emerald-700 flex items-center space-x-1">
                 <MaterialIcon icon="check" size={14} />
-                <span>Verified</span>
+                <span>Confirmed</span>
               </span>
             ) : (
-              <span className="text-[11px] text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                Action Required
+              <span className="text-[11px] text-[#5e635f]">
+                Sign-in required
               </span>
             )}
           </div>
@@ -423,12 +413,12 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
               {isBiometricAuthenticating ? (
                 <div className="flex items-center space-x-2 py-0.5">
                   <M3ExpressiveCircularProgress size={24} icon="fingerprint" />
-                  <span>Scanning Passkey / Biometric Hash...</span>
+                  <span>Confirming your identity...</span>
                 </div>
               ) : (
                 <>
                   <MaterialIcon icon="fingerprint" size={18} />
-                  <span>Authenticate with Biometrics</span>
+                  <span>Confirm your identity</span>
                 </>
               )}
             </button>
@@ -448,9 +438,11 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
             <StripeCheckoutForm 
                totalAmount={payload.totalAmount || (payload.product.price * payload.quantity)}
                onCancel={() => setClientSecret(null)}
-               onSuccess={(intent: any) => {
-                 if (onSuccess) onSuccess({ orderId: intent.id, total: payload.totalAmount || 0, merchantId: GOOGLE_PAY_MERCHANT_ID });
-                 onClose();
+               onSuccess={async (intent: any) => {
+                 if (!checkoutContext) {
+                   throw new Error("Checkout details expired. Please start again.");
+                 }
+                 await waitForServerOrder(intent.id);
                }}
             />
           </Elements>
@@ -463,7 +455,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
             {isSubmitting ? (
               <div className="flex items-center space-x-2">
                 <M3ExpressiveCircularProgress size={22} colorClass="stroke-white" />
-                <span>Processing Settlement Order...</span>
+                <span>Preparing checkout...</span>
               </div>
             ) : (
               <>
@@ -483,4 +475,3 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
     </div>
   );
 };
-

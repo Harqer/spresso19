@@ -1,7 +1,6 @@
 package components.navigation
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
@@ -37,42 +36,40 @@ fun AdaptiveNavigationScaffold(
         }
     }
 
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val isCamera = navigationState.topLevelRoute is NavKey.SmartVisionKey
+    val isCamera = navigationState.topLevelRoute is NavKey.SmartVisionKey
 
-        if (isCamera) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                androidx.navigation3.ui.NavDisplay(
-                    entries = navigationState.toDecoratedEntries(entryProvider),
-                    onBack = { navigator.goBack() },
+    if (isCamera) {
+        Box(modifier = modifier.fillMaxSize()) {
+            navigation.PlatformNavHost(
+                entries = navigationState.toDecoratedEntries(entryProvider),
+                onBack = { navigator.goBack() },
+            )
+        }
+    } else {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                AdaptiveNavDrawerContent(
+                    currentKey = navigationState.topLevelRoute,
+                    onNavigate = { key ->
+                        navigator.navigate(key)
+                        scope.launch { drawerState.close() }
+                    },
                 )
-            }
-        } else {
-            ModalNavigationDrawer(
-                drawerState = drawerState,
-                drawerContent = {
-                    AdaptiveNavDrawerContent(
-                        currentKey = navigationState.topLevelRoute,
-                        onNavigate = { key ->
-                            navigator.navigate(key)
-                            scope.launch { drawerState.close() }
-                        },
-                    )
-                },
-            ) {
-                AdaptiveScaffoldBody(
-                    navigationState = navigationState,
-                    navigator = navigator,
-                    showBottomBar = true,
-                    isVoiceRecording = isVoiceRecording,
-                    onToggleVoiceRecording = onToggleVoiceRecording,
-                    themeMode = themeMode,
-                    onThemeModeChange = onThemeModeChange,
-                    onToggleDrawer = toggleDrawer,
-                    onAskAI = onAskAI,
-                    entryProvider = entryProvider,
-                )
-            }
+            },
+        ) {
+            AdaptiveScaffoldBody(
+                navigationState = navigationState,
+                navigator = navigator,
+                showBottomBar = true,
+                isVoiceRecording = isVoiceRecording,
+                onToggleVoiceRecording = onToggleVoiceRecording,
+                themeMode = themeMode,
+                onThemeModeChange = onThemeModeChange,
+                onToggleDrawer = toggleDrawer,
+                onAskAI = onAskAI,
+                entryProvider = entryProvider,
+            )
         }
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,7 +50,7 @@ fun SectionHeader(
             TextButton(
                 onClick = onActionClick,
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                modifier = Modifier.height(32.dp),
+                modifier = Modifier.heightIn(min = 48.dp),
             ) {
                 Text(
                     text = actionLabel,

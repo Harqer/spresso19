@@ -1,0 +1,33 @@
+{
+  "goal": "Complete Spresso Android stage one as a real Compose/KMP commerce client.",
+  "scope": [
+    "composeApp Android target",
+    "commonMain shared Compose/domain code",
+    "Firebase Auth, App Check, Firestore, callable Functions, App Functions",
+    "Navigation 3 and adaptive layouts",
+    "CameraX and ML Kit",
+    "Meta DAT camera/display/session flows",
+    "Stripe card checkout",
+    "Coinbase supported wallet/crypto checkout",
+    "canonical page/action routing"
+  ],
+  "preconditions": [
+    "No retailer inventory is modeled or owned by Spresso.",
+    "AI-assisted purchase requires explicit trusted-UI confirmation.",
+    "Secrets are supplied by approved secret stores or CI environment.",
+    "DAT and payment SDK APIs are verified from current official guidance before code changes."
+  ],
+  "postconditions": [
+    "Android user can discover, save, cart, quote, choose payment rail, confirm, and receive provider-backed order state.",
+    "Camera and Meta wearable flows route results to the correct domain page.",
+    "Every listed action is wired to its canonical page and typed backend contract.",
+    "Failure states remain customer-facing and never expose internal diagnostics."
+  ],
+  "invariants": [
+    "No stock, inventoryConfirmed, reservation, or decrement fields.",
+    "No unconfirmed financial submission.",
+    "No production mocks or fabricated success.",
+    "No Material 3 UI on Meta glasses display surfaces."
+  ],
+  "definition_of_done": "Fresh compile, tests, route/action contract evidence, Android CLI inspection, CameraX evidence, DAT lifecycle evidence, and provider-sandbox payment evidence all pass."
+}

@@ -161,6 +161,9 @@ sealed interface NavKey : AndroidXNavKey {
     @Serializable
     data object PreferencesKey : NavKey
 
+    @Serializable
+    data object SupportKey : NavKey
+
     // 11. Wearables & Spatial Flow
     @Serializable
     data object MetaWearablesKey : NavKey

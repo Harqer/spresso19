@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
-import com.spresso19.MainActivity
+import com.spresso.MainActivity
 import java.util.UUID
 
 actual object PlatformUtils {

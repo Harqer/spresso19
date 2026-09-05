@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "426485634252",
+    "project_id": "get-spresso",
+    "storage_bucket": "get-spresso.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:426485634252:android:cdddac79a46c96aaef5e69",
+        "android_client_info": {
+          "package_name": "com.spresso"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "426485634252-trc0qe6otjfrth3hct4gtpgd3a32r6rt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.spresso",
+            "certificate_hash": "b2bb0c8a5c933a8fac0fff3ac91370b3c182f184"
+          }
+        },
+        {
+          "client_id": "426485634252-3lv16vue7mfp7gau6ede6jfgh57rnp0k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDx0e-0vzs91gcNEZ1JA_nGEZyZaVjp2XU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "426485634252-3lv16vue7mfp7gau6ede6jfgh57rnp0k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -14,6 +14,10 @@ export function normalizeApifyResults(results: unknown[], options: ProviderNorma
       imageUrl: item.imageUrl ?? item.image ?? item.thumbnail,
       price: item.price ?? item.currentPrice,
       currency: item.currency,
+      videoUrl: item.videoUrl ?? item.video ?? item.video_url,
+      rating: item.rating ?? item.stars,
+      reviewCount: item.reviewCount ?? item.reviewsCount ?? item.review_count,
+      reviewSummary: item.reviewSummary ?? item.review_summary,
     }, options);
     return listing ? [listing] : [];
   }));

@@ -109,7 +109,7 @@ export const LocationDetailsView: React.FC<LocationDetailsViewProps> = ({
             )}
           </div>
 
-          {/* Action Chips / Badges */}
+          {/* Location actions */}
           <div className="flex flex-wrap gap-2 pt-1">
             <button
               onClick={handleItineraryToggle}

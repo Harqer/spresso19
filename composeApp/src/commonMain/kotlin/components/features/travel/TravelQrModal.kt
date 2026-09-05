@@ -24,6 +24,19 @@ import components.models.*
 fun QrModal(
     activeQrModalEvent: ItineraryEvent,
     onClose: () -> Unit,
+) = QrModal(
+    title = activeQrModalEvent.title,
+    location = activeQrModalEvent.location,
+    qrData = activeQrModalEvent.qrData,
+    onClose = onClose,
+)
+
+@Composable
+fun QrModal(
+    title: String,
+    location: String,
+    qrData: String?,
+    onClose: () -> Unit,
 ) {
     Dialog(onDismissRequest = onClose) {
         Box(
@@ -41,13 +54,13 @@ fun QrModal(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
-                    text = activeQrModalEvent.title,
+                    text = title,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = activeQrModalEvent.location,
+                    text = location,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -74,7 +87,7 @@ fun QrModal(
                             modifier = Modifier.size(140.dp),
                         )
                         Text(
-                            text = activeQrModalEvent.qrData ?: "",
+                            text = qrData.orEmpty(),
                             style =
                                 MaterialTheme.typography.labelSmall.copy(
                                     fontFamily = FontFamily.Monospace,
@@ -86,21 +99,8 @@ fun QrModal(
                     }
                 }
 
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(50))
-                            .background(MaterialTheme.colorScheme.surfaceContainer)
-                            .clickable { onClose() }
-                            .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "Close Pass",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
+                TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                    Text(text = "Close pass", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }

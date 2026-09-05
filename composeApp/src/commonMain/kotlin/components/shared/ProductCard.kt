@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -115,13 +116,12 @@ fun ProductCard(
                         fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    Text("In Stock", fontSize = 9.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
 
                 Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     OutlinedButton(
                         onClick = onTryOnClick,
-                        modifier = Modifier.weight(1f).height(32.dp),
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                         contentPadding = PaddingValues(0.dp),
                         shape = RoundedCornerShape(8.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -131,7 +131,7 @@ fun ProductCard(
                     if (onAddToCartClick != null) {
                         Button(
                             onClick = onAddToCartClick,
-                            modifier = Modifier.weight(1f).height(32.dp),
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                             contentPadding = PaddingValues(0.dp),
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),

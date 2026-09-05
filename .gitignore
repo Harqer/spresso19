@@ -10,10 +10,7 @@ kotlin-js-store/
 *.zip
 
 # Environment Files (All variations)
-.env
-.env.*
 *.env
-!.env.example
 
 # Arbitrary Dotfiles Agnostic Protection (Block hidden dotfiles by default, except infrastructure)
 .*
@@ -22,12 +19,12 @@ kotlin-js-store/
 !.github/
 !.firebaserc
 !.agents/
-!.env.example
 !.editorconfig
 
 # Sensitive Credentials & Keys
 local.properties
 google-services.json
+!composeApp/google-services.json
 GoogleService-Info.plist
 *.pem
 *.key
@@ -36,3 +33,11 @@ service-account*.json
 *.jks
 *.perfetto-trace
 trace_processor
+
+.projects/cache
+.projects/vault
+.projects/state.test.json
+.projects/state.local.test.json
+.env
+.env.*
+!.env.example

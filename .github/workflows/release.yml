@@ -9,6 +9,10 @@ jobs:
   test-and-deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      GITHUB_TOKEN: ${{ secrets.MWDAT_GITHUB_TOKEN }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -25,17 +29,23 @@ jobs:
           ruby-version: '3.2'
           bundler-cache: true
 
-      - name: Run Unit Tests (Gatekeeper)
-        run: ./gradlew :composeApp:testDebugUnitTest
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run Converging Gatekeeper
+        run: |
+          chmod +x scripts/ci-gate.sh
+          ./scripts/ci-gate.sh
 
       - name: Decode Keystore and Play Console Secrets
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           PLAY_JSON_B64: ${{ secrets.PLAY_CONFIG_JSON_B64 }}
         run: |
-          # Inject secrets securely at runtime
-          echo $KEYSTORE_B64 | base64 --decode > composeApp/release.jks
-          echo $PLAY_JSON_B64 | base64 --decode > play_config.json
+          : "${KEYSTORE_B64:?ANDROID_KEYSTORE_B64 is required}"
+          : "${PLAY_JSON_B64:?PLAY_CONFIG_JSON_B64 is required}"
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > composeApp/release.jks
+          printf '%s' "$PLAY_JSON_B64" | base64 --decode > play_config.json
 
       - name: Execute Fastlane Canary Deployment
         env:
@@ -43,6 +53,10 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          ANDROID_KEYSTORE_PATH: release.jks
+          META_APP_ID: ${{ secrets.META_APP_ID }}
+          META_CLIENT_TOKEN: ${{ secrets.META_CLIENT_TOKEN }}
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
         run: |
           gem install fastlane
           fastlane android deploy_internal

@@ -7,7 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.spresso19.translation.LocaleHelper
+import com.spresso.translation.LocaleHelper
 import org.jetbrains.compose.resources.stringResource
 import spresso.composeapp.generated.resources.*
 

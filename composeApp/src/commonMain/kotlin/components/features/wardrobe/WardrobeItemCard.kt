@@ -1,16 +1,13 @@
 package components.features.wardrobe
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import components.models.*
 import components.shared.widgets.MediaActionCard
 import io.ktor.client.HttpClient
@@ -21,28 +18,19 @@ fun WardrobeItemCard(
     category: String,
     imageUrl: String?,
     httpClient: HttpClient,
-    ratingText: String = "★ 4.8",
+    ratingText: String = "4.8",
     onItemClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     MediaActionCard(
         imageUrl = imageUrl ?: "",
         title = title,
-        subtitle = category.uppercase(),
+        subtitle = category,
         onClick = onItemClick,
-        badgeContent = {
-            Surface(
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(6.dp),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Icon(Icons.Default.Star, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(10.dp))
-                    Text(ratingText, color = MaterialTheme.colorScheme.surface, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                }
+        actionRow = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Icon(Icons.Default.Star, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
+                Text(ratingText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
         modifier = modifier,

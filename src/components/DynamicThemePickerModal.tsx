@@ -81,7 +81,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
             </div>
             <div>
               <h3 className="font-headline text-xl font-bold text-[var(--md-sys-color-on-surface)]">
-                Material You Dynamic Color Builder
+                Choose your colors
               </h3>
               <p className="text-xs text-[var(--md-sys-color-on-surface-variant)]">
                 Extract colors from wallpapers, derive 13-tone palettes, & apply surface elevations
@@ -111,7 +111,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
         {/* Dynamic Color Banner Preview */}
         <div className="px-6 py-3 bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] flex flex-wrap items-center justify-between gap-3 text-xs border-b border-[var(--md-sys-color-outline-variant)]">
           <div className="flex items-center space-x-2">
-            <span className="font-mono font-bold">Active Seed:</span>
+            <span className="font-bold">Current color</span>
             <div
               className="w-5 h-5 rounded-md border border-black/20 shadow-xs"
               style={{ backgroundColor: currentSeedHex }}
@@ -125,7 +125,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
               className="px-2.5 py-1 rounded-lg bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] font-bold flex items-center space-x-1 cursor-pointer transition hover:opacity-90"
             >
               <MaterialIcon icon="shuffle" size={14} />
-              <span>Shuffle Seed</span>
+              <span>Try another color</span>
             </button>
           </div>
         </div>
@@ -133,10 +133,10 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
         {/* Tab Navigation */}
         <div className="flex items-center space-x-2 px-6 pt-3 bg-[var(--md-sys-color-surface-container)] border-b border-[var(--md-sys-color-outline-variant)] overflow-x-auto no-scrollbar">
           {[
-            { id: "PRESETS", label: "🎨 Seed Presets", icon: "palette" },
-            { id: "EXTRACT_IMAGE", label: "🖼️ Extract Wallpaper Color", icon: "image" },
-            { id: "TONAL_PALETTES", label: "🌈 5 Tonal Palettes", icon: "gradient" },
-            { id: "SCHEME_TOKENS", label: "🏛️ Card Elevation Tokens", icon: "layers" },
+            { id: "PRESETS", label: "Colors", icon: "palette" },
+            { id: "EXTRACT_IMAGE", label: "From a photo", icon: "image" },
+            { id: "TONAL_PALETTES", label: "Color range", icon: "gradient" },
+            { id: "SCHEME_TOKENS", label: "Preview", icon: "layers" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -160,7 +160,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
             <div className="space-y-6">
               <div>
                 <h4 className="text-sm font-bold text-[var(--md-sys-color-on-surface)] mb-2">
-                  Curated Material You Seed Color Presets
+                  Spresso color themes
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {SEED_PRESETS.map((preset) => (
@@ -192,7 +192,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
               {/* Custom Hex Input */}
               <div className="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)] space-y-3">
                 <label className="block text-xs font-bold text-[var(--md-sys-color-on-surface)]">
-                  Custom Seed Color Picker or Hex Code
+                  Choose a custom color
                 </label>
                 <div className="flex items-center space-x-3">
                   <input
@@ -232,10 +232,10 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
             <div className="space-y-5">
               <div className="p-5 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)] space-y-4">
                 <h4 className="text-sm font-bold text-[var(--md-sys-color-on-surface)]">
-                  Extract Seed Color from Wallpaper Image
+                  Create a theme from a photo
                 </h4>
                 <p className="text-xs text-[var(--md-sys-color-on-surface-variant)]">
-                  Upload any wallpaper or moodboard image. Material You will derive the dominant seed hue and extrapolate custom tonal palettes for your UI.
+                  Choose a wallpaper or moodboard and Spresso will create a coordinated theme from its colors.
                 </p>
 
                 <input
@@ -265,7 +265,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
                       />
                       <div>
                         <span className="text-[10px] font-mono text-[var(--md-sys-color-on-surface-variant)] block">
-                          Extracted Seed Color
+                          Selected color
                         </span>
                         <div className="flex items-center space-x-2 mt-1">
                           <div
@@ -286,15 +286,15 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
           {activeTab === "TONAL_PALETTES" && (
             <div className="space-y-5">
               <p className="text-xs text-[var(--md-sys-color-on-surface-variant)]">
-                The seed color is translated into 5 tonal ranges (Primary, Secondary, Tertiary, Neutral, Neutral Variant) spanning 13 luminance tones from 0 (Black) to 100 (White).
+                Review how your selected color adapts across text, surfaces, actions, and accents.
               </p>
 
               {[
-                { name: "Primary Tonal Palette", palette: palettes.primary },
-                { name: "Secondary Tonal Palette", palette: palettes.secondary },
-                { name: "Tertiary Tonal Palette", palette: palettes.tertiary },
-                { name: "Neutral Tonal Palette", palette: palettes.neutral },
-                { name: "Neutral Variant Tonal Palette", palette: palettes.neutralVariant },
+                { name: "Primary colors", palette: palettes.primary },
+                { name: "Supporting colors", palette: palettes.secondary },
+                { name: "Accent colors", palette: palettes.tertiary },
+                { name: "Neutral colors", palette: palettes.neutral },
+                { name: "Soft neutral colors", palette: palettes.neutralVariant },
               ].map((p, idx) => (
                 <div key={idx} className="space-y-1.5">
                   <h5 className="text-xs font-bold text-[var(--md-sys-color-on-surface)]">
@@ -322,10 +322,10 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
             <div className="space-y-6">
               <div>
                 <h4 className="text-sm font-bold text-[var(--md-sys-color-on-surface)] mb-1">
-                  Material 3 Tonal Surface Elevation Levels
+                  Theme preview
                 </h4>
                 <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mb-4">
-                  Cards above the background use tonal surface colors and shadow overlays. Notice how elevation level increases background luminance and shadow depth.
+                  See how the theme looks across common cards, lists, and dialogs before applying it.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -335,7 +335,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
                       <span className="text-[10px] font-mono font-bold uppercase text-[var(--md-sys-color-primary)]">
                         Surface Level 0
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--md-sys-color-surface-variant)] text-[var(--md-sys-color-on-surface-variant)] font-mono">
+                      <span className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">
                         Flat Canvas
                       </span>
                     </div>
@@ -351,7 +351,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
                       <span className="text-[10px] font-mono font-bold uppercase text-[var(--md-sys-color-primary)]">
                         Surface Level 1
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] font-mono">
+                      <span className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">
                         Low Card
                       </span>
                     </div>
@@ -367,7 +367,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
                       <span className="text-[10px] font-mono font-bold uppercase text-[var(--md-sys-color-primary)]">
                         Surface Level 2
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)] font-mono">
+                      <span className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">
                         Standard Card
                       </span>
                     </div>
@@ -383,7 +383,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
                       <span className="text-[10px] font-mono font-bold uppercase text-[var(--md-sys-color-primary)]">
                         Surface Level 3
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--md-sys-color-tertiary-container)] text-[var(--md-sys-color-on-tertiary-container)] font-mono">
+                      <span className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">
                         High Card
                       </span>
                     </div>
@@ -399,7 +399,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
                       <span className="text-[10px] font-mono font-bold uppercase text-[var(--md-sys-color-primary)]">
                         Surface Level 4
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] font-mono">
+                      <span className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">
                         Floating Modal
                       </span>
                     </div>
@@ -417,7 +417,7 @@ export const DynamicThemePickerModal: React.FC<DynamicThemePickerModalProps> = (
         {/* Modal Footer */}
         <div className="px-6 py-3.5 bg-[var(--md-sys-color-surface-container-highest)] border-t border-[var(--md-sys-color-outline-variant)] flex items-center justify-between text-xs">
           <span className="text-[var(--md-sys-color-on-surface-variant)] font-mono">
-            Material 3 Dynamic Theme Generator Engine
+            Your theme applies across Spresso
           </span>
           <button
             onClick={onClose}

@@ -1,6 +1,6 @@
 # Spresso Android Testing Strategy
 
-This document outlines the testing strategy for the `spresso19` Kotlin Multiplatform (Android Compose) application.
+This document outlines the testing strategy for the Spresso Kotlin Multiplatform (Android Compose) application.
 
 ## Overview
 
@@ -14,6 +14,15 @@ The testing architecture uses Koin for Dependency Injection, enabling runtime fa
 - **Coverage**: Jacoco
 
 ## How to Run Tests
+
+### Backend Function Tests
+Run the Firebase Functions TypeScript build and focused Node handler tests:
+```bash
+cd functions
+npm test
+```
+
+These tests invoke the real Firebase callable/HTTP handlers and replace only external provider boundaries. New backend behavior follows red-green-refactor: run the focused test first and confirm the expected failure before changing production code.
 
 ### 1. Local Unit Tests
 Run unit tests for both common and Android source sets locally without an emulator:

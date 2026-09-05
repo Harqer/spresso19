@@ -59,18 +59,6 @@ fun AICurationFeed(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(8.dp),
-                ) {
-                    Text(
-                        "AI CURATION FEED",
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Black,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                    )
-                }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Icon(
                         Icons.Default.Recommend,
@@ -78,12 +66,12 @@ fun AICurationFeed(
                         tint = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.size(16.dp),
                     )
-                    Text("Personalized For You", color = MaterialTheme.colorScheme.tertiary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("Picked for you", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleMedium)
                 }
             }
 
             Text(
-                text = "Based on your recent search history and likes:",
+                text = "Recommendations based on your recent activity",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
@@ -100,6 +88,13 @@ fun AICurationFeed(
                         onTryOnRequested = onTryOnRequested,
                     )
                 }
+            }
+            if (curatedProducts.isEmpty()) {
+                Text(
+                    "Recommendations are unavailable right now. Please try again later.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

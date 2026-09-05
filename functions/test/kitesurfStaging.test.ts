@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { executeKitesurfPurchase, stageKitesurfListing } from "../src/kitesurfService";
+import {
+  executeKitesurfPurchase,
+  normalizeKitesurfSearchResults,
+  stageKitesurfListing,
+} from "../src/kitesurfService";
 import type { DiscoveredListing } from "../src/contracts/discoveredListing";
 
 const discoveredAt = "2026-08-30T12:00:00.000Z";
@@ -70,6 +74,54 @@ test("returns incompatibility for a bot challenge", async () => {
   assert.equal(result.failureReason, "bot_challenge");
 });
 
+test("fails safely when the merchant browser times out", async () => {
+  const result = await stageKitesurfListing(listing(), {
+    allowedDomains,
+    browser: {
+      inspectPublicListing: async () => {
+        const error = new Error("The operation was aborted");
+        error.name = "AbortError";
+        throw error;
+      },
+    },
+  });
+
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureReason, "network_error");
+  assert.match(result.steps[0], /could not be completed/i);
+});
+
+test("fails safely when a merchant browser request is cancelled", async () => {
+  const result = await stageKitesurfListing(listing(), {
+    allowedDomains,
+    browser: {
+      inspectPublicListing: async () => {
+        throw new Error("request cancelled by caller");
+      },
+    },
+  });
+
+  assert.equal(result.status, "failed");
+  assert.equal(result.failureReason, "network_error");
+});
+
+test("converts a Kitesurf provider failure into a safe staging failure", async () => {
+  const result = await stageKitesurfListing(listing(), {
+    allowedDomains,
+    browser: {
+      inspectPublicListing: async () => {
+        throw new Error("Browser Run provider unavailable");
+      },
+    },
+  });
+
+  assert.deepEqual(result, {
+    status: "failed",
+    steps: ["Merchant page staging could not be completed."],
+    failureReason: "network_error",
+  });
+});
+
 test("returns incompatibility for unsupported payment forms", async () => {
   const result = await stageKitesurfListing(listing(), {
     allowedDomains,
@@ -110,6 +162,38 @@ test("stages a public listing, parses its numeric price, and stops before place-
       "Stopped before the merchant place-order control.",
     ],
   });
+});
+
+test("returns no matches without inventing a listing", () => {
+  assert.deepEqual(normalizeKitesurfSearchResults([], allowedDomains), []);
+});
+
+test("deduplicates repeated merchant listings and rejects insecure results", () => {
+  const results = normalizeKitesurfSearchResults([
+    {
+      title: "Espresso Maker",
+      productUrl: "https://merchant.example/products/espresso?utm_source=search",
+      price: "$1,249.50",
+      currency: "USD",
+      productId: "first",
+    },
+    {
+      title: "Duplicate Espresso Maker",
+      productUrl: "https://merchant.example/products/espresso",
+      price: "$999.00",
+      currency: "USD",
+      productId: "second",
+    },
+    {
+      title: "Insecure result",
+      productUrl: "http://merchant.example/products/insecure",
+      price: "$20.00",
+    },
+  ], allowedDomains);
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0].name, "Espresso Maker");
+  assert.equal(results[0].merchantUrl, "https://merchant.example/products/espresso");
 });
 
 test("hard-stops the retired purchase entrypoint before any order or payment action", async () => {

@@ -34,11 +34,13 @@ import network.models.GroceryItem
 fun GroceryListPage(
     initialItems: List<GroceryItem> = emptyList(),
     apiClient: ApiClient = remember { ApiClient() },
+    listId: String? = null,
     onAskAI: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var items by remember { mutableStateOf(initialItems) }
     var isLoading by remember { mutableStateOf(true) }
+    var loadError by remember { mutableStateOf<String?>(null) }
     var newItemName by remember { mutableStateOf("") }
     var recipePrompt by remember { mutableStateOf("") }
     var isGeneratingRecipe by remember { mutableStateOf(false) }
@@ -51,11 +53,15 @@ fun GroceryListPage(
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
+        if (listId.isNullOrBlank()) {
+            loadError = "Your grocery list is unavailable right now. Please try again later."
+            isLoading = false
+            return@LaunchedEffect
+        }
         try {
-            // Using a generic "default" list for now
-            items = apiClient.fetchGroceryList("default")
+            items = apiClient.fetchGroceryList(listId)
         } catch (e: Exception) {
-            // Handle error gracefully
+            loadError = "Unable to load your grocery list. Please try again."
         } finally {
             isLoading = false
         }
@@ -99,17 +105,26 @@ fun GroceryListPage(
                         onClick = {
                             scope.launch {
                                 if (newItemName.isNotBlank()) {
-                                    val success =
-                                        apiClient.addGroceryItem(
-                                            listId = "b90c13bc-33b2-4d1a-8c2f-87000d11f67f", // default list ID
+                                    val activeListId = listId
+                                    if (activeListId == null) {
+                                        snackbarHostState.showSnackbar("Your grocery list is unavailable right now.")
+                                        return@launch
+                                    }
+                                    try {
+                                        val success = apiClient.addGroceryItem(
+                                            listId = activeListId,
                                             productName = newItemName,
                                             productId = null,
                                             addedVia = "MANUAL_INPUT",
                                         )
-                                    if (success) {
-                                        newItemName = ""
-                                    } else {
-                                        snackbarHostState.showSnackbar("Unable to add grocery item right now. Please try again.")
+                                        if (success) {
+                                            newItemName = ""
+                                            items = apiClient.fetchGroceryList(activeListId)
+                                        } else {
+                                            snackbarHostState.showSnackbar("Unable to add this item right now. Please try again.")
+                                        }
+                                    } catch (e: Exception) {
+                                        snackbarHostState.showSnackbar("Unable to add this item right now. Please try again.")
                                     }
                                 }
                             }
@@ -129,12 +144,26 @@ fun GroceryListPage(
             ) {
                 items(categories) { cat ->
                     val isSelected = selectedCategory == cat
-                    FilterChip(
-                        selected = isSelected,
+                    TextButton(
                         onClick = { selectedCategory = cat },
-                        label = { Text(cat, fontWeight = FontWeight.SemiBold) },
-                    )
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.textButtonColors(
+                            containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+                            contentColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                    ) {
+                        Text(cat, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
+                    }
                 }
+            }
+
+            loadError?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
             }
 
             LazyVerticalGrid(
@@ -160,7 +189,7 @@ fun GroceryListPage(
                         onClick = {
                             scope.launch {
                                 apiClient.recordInteraction("grocery_toggle_${item.id}", "click")
-                                val success = apiClient.toggleGroceryItem(item.id, !item.checked)
+                                val success = runCatching { apiClient.toggleGroceryItem(item.id, !item.checked) }.getOrDefault(false)
                                 if (!success) {
                                     snackbarHostState.showSnackbar("Unable to update item right now. Please try again.")
                                 } else {
@@ -174,12 +203,12 @@ fun GroceryListPage(
                                     scope.launch { apiClient.recordInteraction("grocery_ai_deals_${item.id}", "click") }
                                     onAskAI("Find deals for ${item.name}")
                                 }) {
-                                    Icon(Icons.Default.AutoAwesome, contentDescription = "AI", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Icons.Default.AutoAwesome, contentDescription = "Ask Spresso", tint = MaterialTheme.colorScheme.primary)
                                 }
                                 IconButton(onClick = {
                                     scope.launch {
                                         apiClient.recordInteraction("grocery_delete_${item.id}", "click")
-                                        val success = apiClient.deleteGroceryItem(item.id)
+                                        val success = runCatching { apiClient.deleteGroceryItem(item.id) }.getOrDefault(false)
                                         if (!success) {
                                             snackbarHostState.showSnackbar("Unable to delete item right now. Please try again.")
                                         } else {

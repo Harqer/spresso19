@@ -34,7 +34,7 @@ class SpressoMessagingService : FirebaseMessagingService() {
         itemId: String?,
     ) {
         val intent =
-            Intent(this, com.spresso19.MainActivity::class.java).apply {
+            Intent(this, com.spresso.MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 if (itemId != null) putExtra("item_id", itemId)
             }
@@ -50,7 +50,7 @@ class SpressoMessagingService : FirebaseMessagingService() {
         val notificationBuilder =
             NotificationCompat
                 .Builder(this, channelId)
-                .setSmallIcon(com.spresso19.R.drawable.logo_icon)
+                .setSmallIcon(com.spresso.R.drawable.logo_icon)
                 .setContentTitle(title)
                 .setContentText(messageBody)
                 .setAutoCancel(true)

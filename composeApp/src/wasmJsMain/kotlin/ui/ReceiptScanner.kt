@@ -29,9 +29,8 @@ actual fun rememberReceiptScanner(
                 val amount = firstItem?.priceEstimate?.toString() ?: response.apifyResults.firstOrNull()?.price?.toString() ?: "0.00"
                 onResult(merchant, amount)
             } catch (e: Exception) {
-                onError("Error scanning: \${e.message ?: "Unknown error"}")
+                onError("Unable to scan this receipt. Please try again.")
             }
         }
     }
 }
-

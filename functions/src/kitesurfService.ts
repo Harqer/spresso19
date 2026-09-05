@@ -15,6 +15,7 @@ import type {
 
 const CLOUDFLARE_ACCOUNT_ID = defineSecret("CLOUDFLARE_ACCOUNT_ID");
 const CLOUDFLARE_API_TOKEN = defineSecret("CLOUDFLARE_API_TOKEN");
+export const kitesurfSecrets = [CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN];
 const BROWSER_RUN_BASE = "https://api.cloudflare.com/client/v4/accounts";
 const KITESURF_TIMEOUT_MS = 15_000;
 const KITESURF_REQUEST_LIMIT = 1;
@@ -120,6 +121,48 @@ async function quickAction(credentials: CloudflareCredentials, body: Record<stri
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+export function normalizeKitesurfSearchResults(
+  products: unknown,
+  allowedDomains: readonly string[],
+  discoveredAt = new Date().toISOString(),
+): DiscoveredListing[] {
+  if (!Array.isArray(products)) return [];
+
+  const seenMerchantUrls = new Set<string>();
+  return products.slice(0, KITESURF_SEARCH_RESULT_LIMIT).flatMap((candidate: unknown) => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const item = candidate as KitesurfSearchRecord;
+    if (typeof item.title !== "string" || !item.title.trim() || typeof item.productUrl !== "string") return [];
+    if (!isAllowedMerchantUrl(item.productUrl, allowedDomains)) return [];
+
+    let productUrl: string;
+    try {
+      productUrl = canonicalMerchantUrl(item.productUrl);
+    } catch {
+      return [];
+    }
+    if (seenMerchantUrls.has(productUrl)) return [];
+
+    const price = parseObservedPrice(item.price, item.currency);
+    const currency = observedCurrency(item.currency, item.price);
+    const parsed = DiscoveredListingSchema.safeParse({
+      id: stableListingId("kitesurf", productUrl, typeof item.productId === "string" ? item.productId : undefined),
+      name: item.title.trim(),
+      brand: new URL(productUrl).hostname,
+      category: "Web sourced",
+      imageUrl: typeof item.imageUrl === "string" && item.imageUrl.startsWith("https://") ? item.imageUrl : undefined,
+      merchantUrl: productUrl,
+      source: "kitesurf",
+      providerListingId: typeof item.productId === "string" ? item.productId : undefined,
+      observedPrice: price && currency ? { amount: price, currency, evidenceUrl: productUrl } : undefined,
+      discoveredAt,
+    });
+    if (!parsed.success) return [];
+    seenMerchantUrls.add(productUrl);
+    return [parsed.data];
+  });
 }
 
 function cloudflareBrowser(credentials: CloudflareCredentials): MerchantBrowser {
@@ -258,34 +301,7 @@ export async function searchKitesurfRetailerProducts(query: string, retailerHint
     const data = response && typeof response === "object" && "result" in response
       ? (response as { result?: { products?: unknown } }).result
       : response as { products?: unknown };
-    const products = Array.isArray(data?.products) ? data.products.slice(0, KITESURF_SEARCH_RESULT_LIMIT) : [];
-    const discoveredAt = new Date().toISOString();
-
-    return products.flatMap((item: KitesurfSearchRecord) => {
-      if (typeof item.title !== "string" || !item.title.trim() || typeof item.productUrl !== "string") return [];
-      if (!isAllowedMerchantUrl(item.productUrl, allowedDomains)) return [];
-      let productUrl: string;
-      try {
-        productUrl = canonicalMerchantUrl(item.productUrl);
-      } catch {
-        return [];
-      }
-      const price = parseObservedPrice(item.price, item.currency);
-      const currency = observedCurrency(item.currency, item.price);
-      const parsed = DiscoveredListingSchema.safeParse({
-        id: stableListingId("kitesurf", productUrl, typeof item.productId === "string" ? item.productId : undefined),
-        name: item.title.trim(),
-        brand: new URL(productUrl).hostname,
-        category: "Web sourced",
-        imageUrl: typeof item.imageUrl === "string" && item.imageUrl.startsWith("https://") ? item.imageUrl : undefined,
-        merchantUrl: productUrl,
-        source: "kitesurf",
-        providerListingId: typeof item.productId === "string" ? item.productId : undefined,
-        observedPrice: price && currency ? { amount: price, currency, evidenceUrl: productUrl } : undefined,
-        discoveredAt,
-      });
-      return parsed.success ? [parsed.data] : [];
-    });
+    return normalizeKitesurfSearchResults(data?.products, allowedDomains);
   } catch (error) {
     console.warn("Kitesurf product search failed:", redactActionLog(error instanceof Error ? error.message : String(error)));
     return [];

@@ -43,9 +43,6 @@ export const WardrobeLikedTab: React.FC<WardrobeLikedTabProps> = ({
               <div key={prodId} className="bg-white rounded-2xl border border-[#d8ebd7] hover:border-rose-400 transition overflow-hidden shadow-xs flex flex-col justify-between group">
                 <div className="relative aspect-square overflow-hidden bg-[#f2f8f2]">
                   <img src={prod.image} alt={prod.name} onError={(e) => { (e.target as HTMLImageElement).src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><rect width='400' height='400' fill='%23f2f8f2'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' fill='%23386633'>No Image</text></svg>"; }} className="w-full h-full object-cover group-hover:scale-105 transition" />
-                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold shadow-xs bg-rose-500 text-white flex items-center space-x-1">
-                    <MaterialIcon icon="favorite" size={10} /><span>Liked</span>
-                  </span>
                   <button onClick={() => {
                     const updated = likedProducts.filter(p => (p.id || p.sku || "") !== (prod.id || prod.sku || ""));
                     setLikedProducts(updated);

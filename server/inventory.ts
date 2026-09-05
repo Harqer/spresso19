@@ -28,7 +28,7 @@ import { connectorConfig, listProducts } from "./dataconnect/esm/index.esm.js";
 
 function getDc() {
   if (getApps().length === 0) {
-    initializeApp({ projectId: "spresso-5561f" });
+    initializeApp({ projectId: "get-spresso" });
   }
   return getDataConnect(connectorConfig);
 }
@@ -48,7 +48,7 @@ export async function getActiveProductById(id: string): Promise<any | undefined>
         description: p.description || "",
         likesCount: p.likesCount || 0,
         sku: p.sku || `SKU-${id}`,
-        stock: p.stock || 0,
+        availabilityStatus: "VERIFY_AT_MERCHANT_CHECKOUT",
         currency: p.currency || "USD"
       };
     }

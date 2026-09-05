@@ -8,7 +8,15 @@ import './index.css';
 import * as DataConnectSDK from './dataconnect';
 (window as any).SpressoDataConnect = DataConnectSDK;
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      retry: 2,
+    },
+  },
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -7,7 +7,7 @@ const ToggleLikeSchema = z.object({
   idempotencyKey: z.string(),
 });
 
-export const curateWardrobe = onCall(async (request) => {
+export const curateWardrobe = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     try {
         const snapshot = await db.collection("curated_wardrobes").where("userId", "==", request.auth.uid).get();
@@ -18,7 +18,7 @@ export const curateWardrobe = onCall(async (request) => {
     }
 });
 
-export const getUserLikes = onCall(async (request) => {
+export const getUserLikes = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     try {
         const snapshot = await db.collection(`users/${request.auth.uid}/likes`).get();
@@ -29,7 +29,7 @@ export const getUserLikes = onCall(async (request) => {
     }
 });
 
-export const getUserBookmarks = onCall(async (request) => {
+export const getUserBookmarks = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     try {
         const snapshot = await db.collection(`users/${request.auth.uid}/bookmarks`).get();
@@ -40,7 +40,7 @@ export const getUserBookmarks = onCall(async (request) => {
     }
 });
 
-export const toggleUserLike = onCall(async (request) => {
+export const toggleUserLike = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     
     const parsed = ToggleLikeSchema.safeParse(request.data);
@@ -72,7 +72,7 @@ export const toggleUserLike = onCall(async (request) => {
     }
 });
 
-export const toggleUserBookmark = onCall(async (request) => {
+export const toggleUserBookmark = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     
     const parsed = ToggleLikeSchema.safeParse(request.data);
@@ -104,7 +104,7 @@ export const toggleUserBookmark = onCall(async (request) => {
     }
 });
 
-export const getUserPreferences = onCall(async (request) => {
+export const getUserPreferences = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     try {
         const doc = await db.collection("user_preferences").doc(request.auth.uid).get();
@@ -119,10 +119,31 @@ export const getUserPreferences = onCall(async (request) => {
     }
 });
 
-export const updateUserPreferences = onCall(async (request) => {
+export const updateUserPreferences = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     try {
-        await db.collection("user_preferences").doc(request.auth.uid).set(request.data, { merge: true });
+        const profileSchema = z.object({
+            usePersonalAvatar: z.boolean(),
+            avatarUrl: z.string().url().max(2048).optional(),
+            age: z.number().int().min(13).max(120).optional(),
+            height: z.string().trim().max(32).optional(),
+            weight: z.string().trim().max(32).optional(),
+            fitPreference: z.enum(["tailored", "regular", "relaxed", "oversized"]).optional(),
+        });
+        const input = z.object({
+            onboardingCompleted: z.boolean().optional(),
+            vibes: z.array(z.string().trim().min(1).max(80)).max(20).optional(),
+            cardSaved: z.boolean().optional(),
+            wardrobeSynced: z.boolean().optional(),
+            radius: z.number().int().min(1).max(100).optional(),
+            locationEnabled: z.boolean().optional(),
+            avatarProfile: profileSchema.optional(),
+        }).strict().safeParse(request.data);
+        if (!input.success) throw new HttpsError("invalid-argument", "The preference details are invalid.");
+        await db.collection("user_preferences").doc(request.auth.uid).set(input.data, { merge: true });
+        if (input.data.avatarProfile?.avatarUrl) {
+            await db.collection("users").doc(request.auth.uid).set({ avatarUrl: input.data.avatarProfile.avatarUrl }, { merge: true });
+        }
         return { success: true };
     } catch (e) {
         throw new HttpsError("internal", "Failed to update preferences");

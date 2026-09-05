@@ -6,7 +6,7 @@ const parallelDeepResearch_1 = require("./tools/parallelDeepResearch");
 const parallelWebSearch_1 = require("./tools/parallelWebSearch");
 const genkit_1 = require("./genkit");
 const genkit_2 = require("genkit");
-// Replaced mock with real Genkit execution
+// Uses the real Genkit execution path.
 class AgentEngine {
     constructor(config) {
         this.config = config;
@@ -16,7 +16,7 @@ class AgentEngine {
         console.log(`Executing task: ${task}`);
         try {
             const response = await genkit_1.ai.generate({
-                model: this.config.model || "googleai/gemini-1.5-flash",
+                model: this.config.model || "googleai/gemini-3.1-flash-lite-preview",
                 tools: this.config.tools,
                 prompt: task,
             });
@@ -46,7 +46,7 @@ exports.checkUserPermissions = genkit_1.ai.defineTool({
     return { allowed: true };
 });
 exports.vtoEngine = new AgentEngine({
-    model: "vertex-ai-gemini-1.5-pro",
+    model: "googleai/gemini-3.1-pro-preview",
     tools: [parallelDeepResearch_1.parallelDeepResearchTool, parallelWebSearch_1.parallelWebSearchTool, exports.checkUserPermissions],
     toolChoice: "any", // Forced function calling: requires the agent to call at least one tool
 });
@@ -56,16 +56,23 @@ exports.generateLocationContext = genkit_1.ai.defineTool({
     description: "Generates location context using Google Maps grounding and Parallel API for VTO",
     inputSchema: genkit_2.z.object({
         location: genkit_2.z.string().describe("The physical location to ground the context"),
+        latLng: genkit_2.z.object({
+            lat: genkit_2.z.number(),
+            lng: genkit_2.z.number(),
+        }).optional().describe("Exact GPS coordinates of the user"),
     }),
     outputSchema: genkit_2.z.object({
         context: genkit_2.z.string().describe("The generated visual and environmental context"),
     }),
-}, async ({ location }, ctx) => {
-    console.log(`Generating location context for: ${location}`);
+}, async ({ location, latLng }, ctx) => {
+    console.log(`Generating location context for: ${location}`, latLng);
     // Real Parallel API integration to get high-res context (using existing tool logic)
+    const coordinatesContext = latLng
+        ? ` near approximate coordinates ${(Math.round(latLng.lat * 100) / 100).toFixed(2)}, ${(Math.round(latLng.lng * 100) / 100).toFixed(2)}`
+        : '';
     const researchResult = await (0, parallelDeepResearch_1.parallelDeepResearchTool)({
-        query: `Analyze visual environment, lighting, and cinematic mood of ${location}.`,
-        processor: "pro"
+        query: `Analyze visual environment, lighting, and cinematic mood of ${location}${coordinatesContext}.`,
+        processor: "core"
     }, ctx);
     const fullContext = `Parallel Deep Research:\n${JSON.stringify(researchResult)}`;
     return { context: fullContext };

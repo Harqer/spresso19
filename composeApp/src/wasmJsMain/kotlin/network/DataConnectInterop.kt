@@ -49,6 +49,4 @@ external object SpressoDataConnect {
     fun updateUserSubscription(vars: JsAny? = definedExternally): Promise<JsAny?>
 
     fun connectCoinbaseWallet(vars: JsAny? = definedExternally): Promise<JsAny?>
-
-    fun registerPasskey(vars: JsAny? = definedExternally): Promise<JsAny?>
 }

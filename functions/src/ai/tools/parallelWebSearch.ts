@@ -2,6 +2,7 @@ import { ai } from "../genkit";
 import { z } from "genkit";
 import { defineSecret } from "firebase-functions/params";
 import Parallel from "parallel-web";
+import { consumeBudget, withCache } from "../costControls";
 
 const parallelApiKey = defineSecret("PARALLEL_API_KEY");
 
@@ -24,23 +25,22 @@ export const parallelWebSearchTool = ai.defineTool(
       throw new Error("Application safeguard triggered: Unauthenticated AI tool execution attempt blocked.");
     }
     
-    console.log(`User ${uid} executing parallel web search: ${query}`);
-    
     try {
       const apiKey = parallelApiKey.value();
       if (!apiKey) {
         throw new Error("Missing PARALLEL_API_KEY configuration. Add it via Firebase secrets.");
       }
       
-      const client = new Parallel({ apiKey });
-      
-      const searchResponse = await client.search({
-        objective: query,
-        search_queries: [query],
-        mode: (mode as "turbo" | "fast" | "basic" | "advanced") || "basic",
+      const { value } = await withCache("productResearch", { query, mode: mode || "basic" }, async () => {
+        await consumeBudget(uid, "search");
+        const client = new Parallel({ apiKey });
+        return { results: await client.search({
+          objective: query,
+          search_queries: [query],
+          mode: (mode as "turbo" | "fast" | "basic" | "advanced") || "basic",
+        }) };
       });
-      
-      return { results: searchResponse };
+      return value;
     } catch (e: any) {
       console.error("Parallel search error:", e);
       throw new Error(`Failed to search using Parallel: ${e.message}`);

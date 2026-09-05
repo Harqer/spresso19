@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "Uninstalling existing APK..."
-adb -s emulator-5554 uninstall com.spresso19 || true
+adb -s emulator-5554 uninstall com.spresso || true
 
 echo "Installing APK..."
 adb -s emulator-5554 install -r -t ./composeApp/build/outputs/apk/debug/composeApp-debug.apk
@@ -17,7 +17,7 @@ echo "Giving trace a moment to start..."
 sleep 2
 
 echo "Running Monkey test..."
-adb -s emulator-5554 shell monkey -p com.spresso19 -v 500
+adb -s emulator-5554 shell monkey -p com.spresso -v 500
 
 echo "Waiting for trace to complete..."
 wait $TRACE_PID

@@ -475,11 +475,6 @@ export interface Order_Key {
   __typename?: 'Order_Key';
 }
 
-export interface PasskeyCredential_Key {
-  userId: string;
-  __typename?: 'PasskeyCredential_Key';
-}
-
 export interface PaymentMethod_Key {
   id: UUIDString;
   __typename?: 'PaymentMethod_Key';
@@ -488,15 +483,6 @@ export interface PaymentMethod_Key {
 export interface Product_Key {
   id: string;
   __typename?: 'Product_Key';
-}
-
-export interface RegisterPasskeyData {
-  passkeyCredential_upsert: PasskeyCredential_Key;
-}
-
-export interface RegisterPasskeyVariables {
-  credentialId: string;
-  publicKey: string;
 }
 
 export interface ToggleGroceryItemData {
@@ -708,11 +694,6 @@ export function updateOnboardingStatus(vars: UpdateOnboardingStatusVariables, op
 export function connectCoinbaseWallet(dc: DataConnect, vars: ConnectCoinbaseWalletVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ConnectCoinbaseWalletData>>;
 /** Generated Node Admin SDK operation action function for the 'ConnectCoinbaseWallet' Mutation. Allow users to pass in custom DataConnect instances. */
 export function connectCoinbaseWallet(vars: ConnectCoinbaseWalletVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ConnectCoinbaseWalletData>>;
-
-/** Generated Node Admin SDK operation action function for the 'RegisterPasskey' Mutation. Allow users to execute without passing in DataConnect. */
-export function registerPasskey(dc: DataConnect, vars: RegisterPasskeyVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<RegisterPasskeyData>>;
-/** Generated Node Admin SDK operation action function for the 'RegisterPasskey' Mutation. Allow users to pass in custom DataConnect instances. */
-export function registerPasskey(vars: RegisterPasskeyVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<RegisterPasskeyData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListProducts' Query. Allow users to execute without passing in DataConnect. */
 export function listProducts(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListProductsData>>;

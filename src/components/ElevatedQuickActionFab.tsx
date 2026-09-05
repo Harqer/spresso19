@@ -70,51 +70,45 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
     }, 2800);
   };
 
-  const handleToggleLike = (e: React.MouseEvent) => {
+  const handleToggleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!product) return;
     const prodId = product.id || product.sku;
     const newLiked = !isLiked;
     setIsLiked(newLiked);
 
-    if (newLiked) {
-      showToast("Added to Liked Items in Wardrobe ❤️");
-    } else {
-      showToast("Removed from Liked Items");
-    }
-
-    const toggleUserLike = httpsCallable(functions, "toggleUserLike");
-    const idempotencyKey = crypto.randomUUID ? crypto.randomUUID() : `like-${Date.now()}-${Math.random()}`;
-    toggleUserLike({ productId: prodId, idempotencyKey }).catch(console.error);
-
-    if (onToggleLikeCallback) {
-      onToggleLikeCallback(product, newLiked);
+    try {
+      const toggleUserLike = httpsCallable(functions, "toggleUserLike");
+      const idempotencyKey = crypto.randomUUID();
+      await toggleUserLike({ productId: prodId, idempotencyKey });
+      showToast(newLiked ? "Added to your liked wardrobe items" : "Removed from liked items");
+      onToggleLikeCallback?.(product, newLiked);
+    } catch {
+      setIsLiked(!newLiked);
+      showToast("I couldn’t update your liked items. Please try again.");
     }
   };
 
-  const handleToggleBookmark = (e: React.MouseEvent) => {
+  const handleToggleBookmark = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!product) return;
     const prodId = product.id || product.sku;
     const newBM = !isBookmarked;
     setIsBookmarked(newBM);
 
-    if (newBM) {
-      showToast("Saved to Bookmarked Wardrobe");
-    } else {
-      showToast("Removed from Bookmarks");
-    }
-
-    const toggleUserBookmark = httpsCallable(functions, "toggleUserBookmark");
-    const idempotencyKey = crypto.randomUUID ? crypto.randomUUID() : `bookmark-${Date.now()}-${Math.random()}`;
-    toggleUserBookmark({ productId: prodId, idempotencyKey }).catch(console.error);
-
-    if (onToggleBookmarkCallback) {
-      onToggleBookmarkCallback(product, newBM);
+    try {
+      const toggleUserBookmark = httpsCallable(functions, "toggleUserBookmark");
+      const idempotencyKey = crypto.randomUUID();
+      await toggleUserBookmark({ productId: prodId, idempotencyKey });
+      showToast(newBM ? "Saved to your wardrobe" : "Removed from saved items");
+      onToggleBookmarkCallback?.(product, newBM);
+    } catch {
+      setIsBookmarked(!newBM);
+      showToast("I couldn’t update your saved items. Please try again.");
     }
   };
 
-  const handleShare = (e: React.MouseEvent) => {
+  const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!product) return;
     const shareUrl = window.location.href;
@@ -124,14 +118,16 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
       url: shareUrl
     };
 
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-      navigator.share(shareData).catch(() => {
-        navigator.clipboard.writeText(shareUrl);
-        showToast("Link copied to clipboard 🔗");
-      });
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      showToast("Product link copied to clipboard 🔗");
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+      await navigator.clipboard.writeText(shareUrl);
+      showToast("Product link copied");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      showToast("I couldn’t share this product. Please try again.");
     }
   };
 
@@ -139,7 +135,7 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
     e.stopPropagation();
     if (onSelectTryOn && product) {
       onSelectTryOn(product);
-      showToast("Launching Virtual Avatar Try-On 🎬");
+      showToast("Opening virtual try-on");
     } else if (onOpenLens && product) {
       onOpenLens(product);
     }
@@ -245,11 +241,6 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
           </span>
         </div>
 
-        {/* Dynamic Badge Pulse Dot */}
-        <span className="relative flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#a9d291] opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-[#446732] dark:bg-[#a9d291]"></span>
-        </span>
       </button>
     </div>
   );

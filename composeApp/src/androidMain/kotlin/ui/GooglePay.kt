@@ -2,6 +2,7 @@ package ui
 
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,12 +19,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.wallet.PaymentDataRequest
+import com.google.android.gms.wallet.PaymentData
 import com.google.android.gms.wallet.PaymentsClient
 import com.google.android.gms.wallet.Wallet
 import com.google.android.gms.wallet.WalletConstants
@@ -31,13 +34,52 @@ import network.SpressoConfig
 import org.json.JSONArray
 import org.json.JSONObject
 
+private fun googlePayResult(paymentDataJson: String?): GooglePayResult {
+    if (paymentDataJson.isNullOrBlank()) {
+        return GooglePayResult(errorMessage = "Google Pay did not return payment details.")
+    }
+    return try {
+        val tokenValue =
+            JSONObject(paymentDataJson)
+                .getJSONObject("paymentMethodData")
+                .getJSONObject("tokenizationData")
+                .getString("token")
+        val paymentToken =
+            if (tokenValue.startsWith("{")) {
+                JSONObject(tokenValue).optString("id")
+            } else {
+                tokenValue
+            }
+        if (paymentToken.startsWith("pm_") || paymentToken.startsWith("tok_")) {
+            GooglePayResult(paymentToken = paymentToken)
+        } else {
+            GooglePayResult(errorMessage = "Google Pay returned an unsupported payment reference.")
+        }
+    } catch (e: Exception) {
+        GooglePayResult(errorMessage = "Google Pay did not return usable payment details.")
+    }
+}
+
 @Composable
 actual fun GooglePayButton(
     amount: String,
-    onResult: (Boolean, String) -> Unit,
+    enabled: Boolean,
+    onResult: (GooglePayResult) -> Unit,
     modifier: Modifier,
 ) {
     val context = LocalContext.current
+    val activity = context as? Activity
+    val currentOnResult = rememberUpdatedState(onResult)
+    val paymentResultLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                currentOnResult.value(
+                    googlePayResult(result.data?.let { intent -> PaymentData.getFromIntent(intent)?.toJson() }),
+                )
+            } else {
+                currentOnResult.value(GooglePayResult(errorMessage = "Google Pay was canceled."))
+            }
+        }
     val paymentsClient: PaymentsClient =
         remember {
             Wallet.getPaymentsClient(
@@ -50,20 +92,14 @@ actual fun GooglePayButton(
         }
 
     val stripePublishableKey = SpressoConfig.stripePublishableKey
-
-    val launcher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.StartIntentSenderForResult(),
-        ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                onResult(true, "Success")
-            } else {
-                onResult(false, "Failed or canceled")
-            }
-        }
+    val isGooglePayConfigured = activity != null && stripePublishableKey.startsWith("pk_")
 
     Button(
         onClick = {
+            if (!isGooglePayConfigured) {
+                onResult(GooglePayResult(errorMessage = "Google Pay is unavailable on this device."))
+                return@Button
+            }
             val paymentDataRequestJson =
                 JSONObject().apply {
                     put("apiVersion", 2)
@@ -117,21 +153,30 @@ actual fun GooglePayButton(
 
             val request = PaymentDataRequest.fromJson(paymentDataRequestJson.toString())
             paymentsClient.loadPaymentData(request).addOnCompleteListener { task ->
-                try {
-                    val result = task.getResult(Exception::class.java)
-                    onResult(true, result?.toJson() ?: "Success")
-                } catch (e: Exception) {
-                    onResult(false, e.message ?: "Error")
+                if (task.isSuccessful) {
+                    currentOnResult.value(googlePayResult(task.result?.toJson()))
+                } else {
+                    val resolution = task.exception as? com.google.android.gms.common.api.ResolvableApiException
+                    if (resolution == null) {
+                        currentOnResult.value(GooglePayResult(errorMessage = "Google Pay was not completed."))
+                    } else {
+                        paymentResultLauncher.launch(IntentSenderRequest.Builder(resolution.resolution).build())
+                    }
                 }
             }
         },
+        enabled = enabled && isGooglePayConfigured,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
     ) {
         Icon(Icons.Default.ShoppingBag, null, modifier = Modifier.size(18.dp))
         Spacer(modifier = Modifier.width(6.dp))
-        Text("Pay with Google Pay • $$amount", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text(
+            if (isGooglePayConfigured) "Pay with Google Pay — $$amount" else "Google Pay unavailable",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 

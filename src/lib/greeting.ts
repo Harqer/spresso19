@@ -15,27 +15,39 @@ export interface GreetingContext {
 
 const LATE_NIGHT_GREETINGS = [
   "Good late night{name}.",
+  "Still up{name}? Let's find something great.",
+  "Midnight shopping{name}?",
   "Good evening{name}."
 ];
 
 const EARLY_MORNING_GREETINGS = [
+  "Good morning{name}. Early bird gets the deals!",
+  "Rise and shine{name}.",
   "Good morning{name}."
 ];
 
 const MORNING_GREETINGS = [
-  "Good morning{name}."
+  "Good morning{name}.",
+  "Hope you're having a great morning{name}.",
+  "Good morning{name}! Ready to explore?"
 ];
 
 const AFTERNOON_GREETINGS = [
-  "Good afternoon{name}."
+  "Good afternoon{name}.",
+  "Hope your afternoon is going well{name}.",
+  "Good afternoon{name}! What can I help you find?"
 ];
 
 const EVENING_GREETINGS = [
-  "Good evening{name}."
+  "Good evening{name}.",
+  "Winding down{name}? Let's browse.",
+  "Good evening{name}. Hope you had a great day!"
 ];
 
 const NIGHT_GREETINGS = [
-  "Good evening{name}."
+  "Good evening{name}.",
+  "Have a great night{name}.",
+  "Good night{name}. Anything you need before tomorrow?"
 ];
 
 const DAY_OF_WEEK_FLAIR: Record<string, string[]> = {

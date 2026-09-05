@@ -13,7 +13,7 @@ export const ActiveTripHero: React.FC<ActiveTripHeroProps> = ({ currentTrip, onA
       <img src={currentTrip.coverImage} alt={currentTrip.title} className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 flex flex-col justify-between">
         <div className="flex justify-between items-start">
-          <span className="px-3 py-1 bg-emerald-500/80 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow">
+          <span className="text-white text-xs font-semibold uppercase tracking-wider drop-shadow-md">
             {currentTrip.status}
           </span>
           <button

@@ -35,7 +35,7 @@ export const ProductCatalogHeader: React.FC<ProductCatalogHeaderProps> = ({
         <div>
           <h2 className="text-lg font-bold text-[#18211e] font-headline">Products</h2>
           <p className="text-xs text-[#5e635f]">
-            {userLocation ? `Comparing deals & stock near ${userLocation} within a ${searchRadius}-mile radius` : "Browse products & compare local store deals"}
+            {userLocation ? `Comparing merchant listings near ${userLocation} within a ${searchRadius}-mile radius` : "Discover products and compare merchant listings"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

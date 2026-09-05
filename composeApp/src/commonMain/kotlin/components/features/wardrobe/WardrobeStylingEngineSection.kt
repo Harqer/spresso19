@@ -5,16 +5,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Style
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import components.shared.elements.SkeletonCard
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WardrobeStylingEngineSection(
     activeSeason: String,
@@ -26,84 +27,53 @@ fun WardrobeStylingEngineSection(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Column {
                 Text(
-                    "SMART STYLING ENGINE",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 1.sp,
+                    "Outfit suggestions",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    "Weather-Tailored Outfit Curation",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    "Explore looks by season or occasion",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            // Pills
-            Row(
-                modifier =
-                    Modifier
-                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                        .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
+            val selectedIndex = seasons.indexOfFirst { it.first == activeSeason }.coerceAtLeast(0)
+            TabRow(selectedTabIndex = selectedIndex, containerColor = MaterialTheme.colorScheme.surface) {
                 seasons.forEach { (id, label, icon) ->
-                    val isSelected = activeSeason == id
-                    Surface(
+                    Tab(
+                        selected = activeSeason == id,
                         onClick = { onSeasonSelected(id) },
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                        shape = RoundedCornerShape(8.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
+                        text = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                        icon = {
                             Icon(
                                 icon,
                                 contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp),
                             )
-                            Text(
-                                label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                        },
+                    )
                 }
             }
 
             if (stylingLoading) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 2.dp,
-                    )
-                    Text(
-                        "Curating tailor-made fits for $activeSeason...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SkeletonCard(modifier = Modifier.fillMaxWidth().height(120.dp))
+                    SkeletonCard(modifier = Modifier.fillMaxWidth().height(120.dp))
                 }
             } else {
                 // Fits grid
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     curatedFits.forEach { fit ->
-                        Surface(
+                        OutlinedCard(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         ) {
                             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(
@@ -116,34 +86,54 @@ fun WardrobeStylingEngineSection(
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurface,
                                     )
-                                    Surface(color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(4.dp)) {
-                                        Text(
-                                            fit.season.uppercase(),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                        )
-                                    }
+                                    Text(
+                                        fit.season,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
                                 }
                                 Text(
                                     fit.stylingNotes,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                                    itemVerticalAlignment = Alignment.Top,
-                                    overflow = androidx.compose.foundation.layout.FlowRowOverflow.Visible,
-                                ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     fit.items.forEach { item ->
-                                        Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(4.dp)) {
-                                            Text(
-                                                item,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Icon(
+                                                Icons.Default.Style,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                                tint = MaterialTheme.colorScheme.primary,
                                             )
+                                            Text(item, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                                if (fit.styleTips.isNotEmpty()) {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp)).padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        Text(
+                                            "Stylist's tips",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                        fit.styleTips.forEach { tip ->
+                                            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Text(
+                                                    "•",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                )
+                                                Text(
+                                                    tip,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    modifier = Modifier.weight(1f),
+                                                )
+                                            }
                                         }
                                     }
                                 }

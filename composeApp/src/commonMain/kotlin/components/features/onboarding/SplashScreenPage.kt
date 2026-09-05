@@ -39,10 +39,9 @@ fun SplashScreenPage(
                 .now()
                 .toEpochMilliseconds()
         try {
-            // Simulate real application boot/configuration fetch instead of mock delay
-            val config = apiClient.discoverPersonalizedProducts()
+            apiClient.discoverPersonalizedProducts()
         } catch (e: Exception) {
-            errorMessage = "Failed to load config: ${e.message}"
+            errorMessage = "Spresso could not finish loading. You can continue and try again."
         }
         val elapsed =
             kotlinx.datetime.Clock.System

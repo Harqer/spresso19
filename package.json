@@ -1,7 +1,7 @@
 {
-  "name": "react-example",
+  "name": "spresso",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.cjs",
     "lint": "tsc --noEmit",
-    "test:integration": "tsx scripts/verify-integration.ts",
+    "test:integration": "node scripts/smoke/production-smoke.mjs",
+    "test:smoke": "node scripts/test/production-smoke.test.mjs && node scripts/test/no-synthetic-success.test.mjs",
+    "test:contracts": "node scripts/test/verify-function-contracts.test.mjs",
+    "test:bundle-budget": "node scripts/test/bundle-budget.test.mjs",
     "lavish": "tsx scripts/lavish.ts"
   },
   "dependencies": {
@@ -47,6 +50,7 @@
     "puppeteer-core": "^25.7.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-markdown": "^10.1.0",
     "redis": "^6.2.1",
     "stripe": "^22.5.0",
     "tailwind-merge": "^3.6.0",

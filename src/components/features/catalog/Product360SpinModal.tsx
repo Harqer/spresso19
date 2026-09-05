@@ -1,6 +1,8 @@
 import React from "react";
 import { MaterialIcon } from "../../MaterialIcon";
 import { ProductItem } from "../../../types";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../../lib/firebase";
 
 interface Product360SpinModalProps {
   spin360Product: ProductItem;
@@ -22,7 +24,31 @@ interface Product360SpinModalProps {
 export const Product360SpinModal: React.FC<Product360SpinModalProps> = ({
   spin360Product, spin360Angle, isAutoSpinning, tiltX, tiltY, active360AngleIdx,
   setSpin360Product, setSpin360Angle, setIsAutoSpinning, setTiltX, setTiltY, setActive360AngleIdx, onSelectTryOn, onAddToCart
-}) => (
+}) => {
+  const [generatedMedia, setGeneratedMedia] = React.useState<{ mediaUrl: string; mediaType: "image" | "video"; provider?: string } | null>(null);
+  const [isGenerating, setIsGenerating] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const generateSpinMedia = async () => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const generateSpin360 = httpsCallable(functions, "generateSpin360");
+      const result = await generateSpin360({
+        productId: spin360Product.id,
+        name: spin360Product.name,
+        category: spin360Product.category,
+        image: spin360Product.image,
+      });
+      setGeneratedMedia(result.data as typeof generatedMedia);
+    } catch {
+      setError("Unable to generate the product motion right now. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
   <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
     <div className="bg-gradient-to-b from-stone-900 via-stone-950 to-black text-white rounded-3xl border border-stone-800 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl my-auto">
       <div className="p-5 border-b border-stone-800 flex items-center justify-between bg-stone-900/50">
@@ -41,7 +67,7 @@ export const Product360SpinModal: React.FC<Product360SpinModalProps> = ({
           </div>
           <div className="absolute -bottom-8 w-64 h-8 bg-black/60 rounded-[100%] blur-xl pointer-events-none" style={{ transform: `scale(${1 + Math.sin((spin360Angle * Math.PI) / 180) * 0.15})` }}></div>
         </div>
-        <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/60 backdrop-blur-md border border-stone-800 rounded-full text-[11px] font-mono text-emerald-400 font-bold flex items-center space-x-1.5"><MaterialIcon icon="360" size={14} /><span>Orbit: {Math.round(spin360Angle)}°</span></div>
+        <div className="absolute bottom-4 left-4 text-[11px] text-emerald-300 font-medium flex items-center space-x-1.5 drop-shadow-md"><MaterialIcon icon="360" size={14} /><span>Orbit {Math.round(spin360Angle)}°</span></div>
         <div className="absolute bottom-4 right-4 flex items-center space-x-2"><button onClick={() => setIsAutoSpinning(!isAutoSpinning)} className={`px-3 py-1.5 rounded-full text-xs font-mono font-bold flex items-center space-x-1.5 border transition cursor-pointer ${isAutoSpinning ? "bg-emerald-600 text-white border-emerald-500 shadow-md" : "bg-stone-800 text-stone-300 border-stone-700 hover:bg-stone-700"}`}><MaterialIcon icon={isAutoSpinning ? "pause" : "play_arrow"} size={16} /><span>{isAutoSpinning ? "Pause Auto Orbit" : "Auto Orbit ON"}</span></button></div>
       </div>
       <div className="p-5 bg-stone-900/90 border-t border-stone-800 space-y-4">
@@ -57,5 +83,11 @@ export const Product360SpinModal: React.FC<Product360SpinModalProps> = ({
         </div>
       </div>
     </div>
-  </div>
-);
+        {generatedMedia && <video src={generatedMedia.mediaUrl} controls autoPlay loop className="fixed bottom-6 right-6 z-[60] w-64 max-h-80 rounded-2xl shadow-2xl border border-emerald-500/40" />}
+        {error && <div className="fixed bottom-6 left-6 z-[60] rounded-xl bg-red-950 px-4 py-3 text-xs text-red-100">{error}</div>}
+        <button onClick={generateSpinMedia} disabled={isGenerating} className="absolute top-20 right-5 z-10 px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold disabled:opacity-50">
+          {isGenerating ? "Generating…" : "Generate 360 Motion"}
+        </button>
+      </div>
+  );
+};

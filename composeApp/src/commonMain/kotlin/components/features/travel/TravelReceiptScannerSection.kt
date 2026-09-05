@@ -17,15 +17,22 @@ import androidx.compose.ui.unit.dp
 import components.features.travel.widgets.AddExpenseForm
 import components.models.*
 
+data class TravelExpenseDraft(
+    val amount: Double,
+    val currency: String,
+    val category: String,
+    val merchant: String,
+)
+
 @OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
 @Composable
 fun ReceiptScannerSection(
     activeTripId: String,
     tripExpenses: List<TravelExpense>,
-    onAddExpense: (TravelExpense) -> Unit,
+    onAddExpense: (TravelExpenseDraft) -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
     var isScanningReceipt by remember { mutableStateOf(false) }
+    var scannerError by remember { mutableStateOf<String?>(null) }
 
     var newExpenseMerchant by remember { mutableStateOf("") }
     var newExpenseAmount by remember { mutableStateOf("") }
@@ -39,8 +46,7 @@ fun ReceiptScannerSection(
                 isScanningReceipt = false
             },
             onError = { error ->
-                newExpenseMerchant = "Error scanning: $error"
-                newExpenseAmount = "0.0"
+                scannerError = "Unable to read this receipt. You can enter the details manually."
                 isScanningReceipt = false
             },
         )
@@ -71,20 +77,11 @@ fun ReceiptScannerSection(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Automated Receipt Parser",
+                    text = "Receipt scanner",
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Row(
-                    modifier =
-                        Modifier
-                            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(50))
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))
-                            .clickable { imagePicker() }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
+                OutlinedButton(onClick = { imagePicker() }, shape = RoundedCornerShape(8.dp)) {
                     Icon(
                         imageVector = if (isScanningReceipt) Icons.Default.Sync else Icons.Default.DocumentScanner,
                         contentDescription = null,
@@ -92,11 +89,15 @@ fun ReceiptScannerSection(
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        text = if (isScanningReceipt) "Parsing Receipt..." else "Scan Receipt",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        text = if (isScanningReceipt) "Reading receipt" else "Scan receipt",
+                        style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
+            }
+
+            scannerError?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
 
             AddExpenseForm(
@@ -108,20 +109,22 @@ fun ReceiptScannerSection(
                 onCategoryChange = { newExpenseCategory = it },
                 onAddExpense = {
                     if (newExpenseMerchant.isNotBlank() && newExpenseAmount.isNotBlank()) {
-                        val amt = newExpenseAmount.toDoubleOrNull() ?: 0.0
-                        val item =
-                            TravelExpense(
-                                id = "exp-${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}",
-                                tripId = activeTripId,
-                                amount = amt,
+                        val amount = newExpenseAmount.toDoubleOrNull()
+                        if (amount == null || amount <= 0.0) {
+                            scannerError = "Enter a valid expense amount."
+                            return@AddExpenseForm
+                        }
+                        onAddExpense(
+                            TravelExpenseDraft(
+                                amount = amount,
                                 currency = "USD",
                                 category = newExpenseCategory,
-                                merchant = newExpenseMerchant,
-                                date = "Today",
-                            )
-                        onAddExpense(item)
+                                merchant = newExpenseMerchant.trim(),
+                            ),
+                        )
                         newExpenseMerchant = ""
                         newExpenseAmount = ""
+                        scannerError = null
                     }
                 },
             )

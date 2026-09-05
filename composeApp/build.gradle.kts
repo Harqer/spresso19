@@ -1,4 +1,55 @@
 import java.util.Properties
+import org.gradle.api.tasks.testing.Test
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JavaToolchainService
+
+val MISSING_RELEASE_VALUE = "__MISSING_RELEASE_CONFIGURATION__"
+
+private fun String.asBuildConfigString(): String =
+    "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
+val releaseMetaAppId = providers.environmentVariable("META_APP_ID").orNull ?: MISSING_RELEASE_VALUE
+val releaseMetaClientToken = providers.environmentVariable("META_CLIENT_TOKEN").orNull ?: MISSING_RELEASE_VALUE
+val releaseStripePublishableKey =
+    providers.environmentVariable("STRIPE_PUBLISHABLE_KEY").orNull ?: MISSING_RELEASE_VALUE
+val firebaseWebClientId = "426485634252-3lv16vue7mfp7gau6ede6jfgh57rnp0k.apps.googleusercontent.com"
+val googleWebClientId =
+    providers.environmentVariable("GOOGLE_WEB_CLIENT_ID").orNull?.takeIf(String::isNotBlank)
+        ?: firebaseWebClientId
+val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull ?: "release.jks"
+val releaseKeystorePassword = providers.environmentVariable("KEYSTORE_PASSWORD").orNull.orEmpty()
+val releaseKeyAlias = providers.environmentVariable("KEY_ALIAS").orNull.orEmpty()
+val releaseKeyPassword = providers.environmentVariable("KEY_PASSWORD").orNull.orEmpty()
+val releaseGithubToken = providers.environmentVariable("GITHUB_TOKEN").orNull.orEmpty()
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+val debugMetaAppId = localProperties.getProperty("mwdat_application_id") ?: "0"
+val debugMetaClientToken = localProperties.getProperty("mwdat_client_token") ?: "0"
+val verifyReleaseConfiguration by tasks.registering {
+    group = "verification"
+    description = "Fails closed when required Android release credentials are unavailable."
+    doLast {
+        val missing =
+            buildList {
+                if (releaseMetaAppId.isBlank() || releaseMetaAppId == "0" || releaseMetaAppId == MISSING_RELEASE_VALUE) add("META_APP_ID")
+                if (releaseMetaClientToken.isBlank() || releaseMetaClientToken == "0" || releaseMetaClientToken == MISSING_RELEASE_VALUE) add("META_CLIENT_TOKEN")
+                if (!releaseStripePublishableKey.startsWith("pk_live_")) add("STRIPE_PUBLISHABLE_KEY (pk_live_… required)")
+                if (googleWebClientId.isBlank()) add("GOOGLE_WEB_CLIENT_ID")
+                if (!file(releaseKeystorePath).isFile) add("ANDROID_KEYSTORE_PATH ($releaseKeystorePath not found)")
+                if (releaseKeystorePassword.isBlank()) add("KEYSTORE_PASSWORD")
+                if (releaseKeyAlias.isBlank()) add("KEY_ALIAS")
+                if (releaseKeyPassword.isBlank()) add("KEY_PASSWORD")
+                if (releaseGithubToken.isBlank()) add("GITHUB_TOKEN (Meta DAT package read access)")
+            }
+        check(missing.isEmpty()) {
+            "Release configuration is incomplete: ${missing.joinToString()}. Supply values through CI secrets/Secret Manager; release placeholders are forbidden."
+        }
+    }
+}
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -51,7 +102,6 @@ kotlin {
             implementation(libs.mwdat.core)
             implementation(libs.mwdat.camera)
             implementation(libs.mwdat.display)
-            implementation(libs.mwdat.mockdevice)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.android)
             implementation(libs.androidx.appfunctions)
@@ -67,6 +117,7 @@ kotlin {
             implementation(libs.firebase.appcheck.playintegrity)
             implementation(libs.firebase.ui.auth)
             implementation(libs.compose.pay.button)
+            implementation("com.google.android.gms:play-services-location:21.3.0")
             implementation(libs.play.services.wallet)
             implementation(libs.androidx.camera.core)
             implementation(libs.androidx.camera.camera2)
@@ -75,6 +126,7 @@ kotlin {
             implementation(libs.androidx.camera.extensions)
             implementation(libs.androidx.camera.mlkit.vision)
             implementation(libs.mlkit.vision.detection)
+            implementation(libs.mlkit.image.labeling)
             implementation(libs.mlkit.vision.text)
             implementation("com.google.mlkit:translate:17.0.2")
             implementation(libs.androidx.credentials)
@@ -117,11 +169,11 @@ kotlin {
         val androidInstrumentedTest = sourceSets.getByName("androidInstrumentedTest")
         androidInstrumentedTest.dependencies {
             implementation(libs.androidx.compose.ui.test.junit4)
+            implementation(libs.mwdat.mockdevice)
         }
         commonMain.dependencies {
             implementation(libs.material3.adaptive.navigation.suite)
             implementation(libs.androidx.navigation3.runtime)
-            implementation(libs.androidx.navigation3.ui)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -146,22 +198,20 @@ kotlin {
 }
 
 android {
-    namespace = "com.spresso19"
+    namespace = "com.spresso"
     compileSdk = 37
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     sourceSets["main"].res.srcDirs("src/androidMain/res")
 
     defaultConfig {
-        applicationId = "com.spresso19"
+        applicationId = "com.spresso"
         minSdk = 30
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        manifestPlaceholders["mwdat_application_id"] = System.getenv("META_APP_ID") ?: "0"
-        manifestPlaceholders["mwdat_client_token"] = System.getenv("META_CLIENT_TOKEN") ?: "0"
-        buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${System.getenv("STRIPE_PUBLISHABLE_KEY") ?: "pk_live_51xyz"}\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", googleWebClientId.asBuildConfigString())
     }
     packaging {
         resources {
@@ -178,10 +228,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("spresso.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-            keyAlias = System.getenv("KEY_ALIAS") ?: "spresso"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+            storeFile = file(releaseKeystorePath)
+            storePassword = releaseKeystorePassword
+            keyAlias = releaseKeyAlias
+            keyPassword = releaseKeyPassword
             enableV1Signing = true
             enableV2Signing = true
         }
@@ -189,6 +239,9 @@ android {
 
     buildTypes {
         getByName("release") {
+            manifestPlaceholders["mwdat_application_id"] = releaseMetaAppId
+            manifestPlaceholders["mwdat_client_token"] = releaseMetaClientToken
+            buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", releaseStripePublishableKey.asBuildConfigString())
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -198,7 +251,15 @@ android {
             signingConfig = signingConfigs.getByName("release")
         }
         getByName("debug") {
-            
+            // DAT permits zero-value developer credentials only in Developer Mode.
+            // Using local.properties allows testing with actual hardware during local development.
+            manifestPlaceholders["mwdat_application_id"] = debugMetaAppId
+            manifestPlaceholders["mwdat_client_token"] = debugMetaClientToken
+            buildConfigField(
+                "String",
+                "STRIPE_PUBLISHABLE_KEY",
+                (providers.environmentVariable("STRIPE_PUBLISHABLE_KEY").orNull ?: "pk_test_debug_not_configured").asBuildConfigString(),
+            )
         }
     }
     compileOptions {
@@ -208,5 +269,23 @@ android {
 }
 
 dependencies {
-    
+    // MockDeviceKit is available to debug builds and instrumentation tests, never release runtime.
+    add("debugImplementation", libs.mwdat.mockdevice)
+}
+
+// Robolectric 4.11's bytecode reader cannot instrument Java 25 classes. Keep
+// local and CI unit tests on the same supported runtime as the Android app.
+val androidTestJavaLauncher =
+    extensions.getByType(JavaToolchainService::class.java).launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+
+tasks.withType<Test>().configureEach {
+    javaLauncher.set(androidTestJavaLauncher)
+}
+
+tasks.configureEach {
+    if (name == "preReleaseBuild") {
+        dependsOn(verifyReleaseConfiguration)
+    }
 }

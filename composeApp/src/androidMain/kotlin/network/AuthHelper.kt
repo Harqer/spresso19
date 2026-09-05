@@ -6,8 +6,8 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import com.spresso19.MainActivity
-import com.spresso19.R
+import com.spresso.BuildConfig
+import com.spresso.MainActivity
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -73,12 +73,18 @@ actual suspend fun signInWithGoogle(): Boolean =
             return@suspendCancellableCoroutine
         }
 
+        val serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
+        if (serverClientId.isBlank()) {
+            if (continuation.isActive) continuation.resume(false)
+            return@suspendCancellableCoroutine
+        }
+
         val credentialManager = CredentialManager.create(activity)
         val googleIdOption =
             GetGoogleIdOption
                 .Builder()
                 .setFilterByAuthorizedAccounts(false)
-                .setServerClientId(activity.getString(R.string.default_web_client_id))
+                .setServerClientId(serverClientId)
                 .setAutoSelectEnabled(true)
                 .build()
 
@@ -110,6 +116,8 @@ actual suspend fun signInWithGoogle(): Boolean =
                 } else {
                     if (continuation.isActive) continuation.resume(false)
                 }
+            } catch (e: androidx.credentials.exceptions.NoCredentialException) {
+                if (continuation.isActive) continuation.resume(false)
             } catch (e: androidx.credentials.exceptions.GetCredentialException) {
                 // Handle expected credential exceptions
                 if (continuation.isActive) continuation.resume(false)

@@ -147,13 +147,6 @@ function connectCoinbaseWallet(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.connectCoinbaseWallet = connectCoinbaseWallet;
 
-function registerPasskey(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('RegisterPasskey', inputVars, inputOpts);
-}
-exports.registerPasskey = registerPasskey;
-
 function listProducts(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
   dcInstance.useGen(true);

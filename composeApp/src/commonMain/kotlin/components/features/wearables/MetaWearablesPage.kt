@@ -9,12 +9,12 @@ import androidx.compose.ui.Modifier
  */
 @Composable
 expect fun MetaWearablesPage(
-    isConnected: Boolean = true,
-    batteryPercent: Int = 84,
-    glassesModelName: String = "Ray-Ban Meta Smart Glasses",
-    isCameraStreaming: Boolean = true,
-    onPairClick: () -> Unit = {},
-    onStartHandsFreeCheckout: () -> Unit = {},
-    onDismiss: () -> Unit = {},
-    modifier: Modifier = Modifier,
+    isConnected: Boolean,
+    batteryPercent: Int,
+    glassesModelName: String,
+    isCameraStreaming: Boolean,
+    onPairClick: () -> Unit,
+    onStartHandsFreeCheckout: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier,
 )

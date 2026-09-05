@@ -25,7 +25,7 @@ export const GoogleLensHeaderBar: React.FC<GoogleLensHeaderBarProps> = ({
         <div>
           <h2 className="text-sm font-extrabold text-white tracking-tight flex items-center space-x-2">
             <span>Google Lens Screen AI</span>
-            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] uppercase font-mono border border-emerald-500/30">Live</span>
+            <span className="text-[11px] font-medium text-emerald-300">Live</span>
           </h2>
           <p className="text-[11px] text-slate-400">Drag to crop or tap objects to inspect</p>
         </div>

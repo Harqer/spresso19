@@ -7,7 +7,7 @@ import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
-import com.spresso19.MainActivity
+import com.spresso.MainActivity
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.Signature

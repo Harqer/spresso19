@@ -51,7 +51,7 @@ export const CreativeStudioTemplatesTab = ({
               <div>
                 <div className="flex items-center space-x-2">
                   <h3 className="text-base font-bold">{activeTemplate.name}</h3>
-                  <span className="px-2.5 py-0.5 bg-[#f2f8f2] text-[#386633] text-[10px] rounded-full">by {activeTemplate.creator}</span>
+                  <span className="text-[11px] text-[#5e635f]">by {activeTemplate.creator}</span>
                 </div>
                 <p className="text-xs text-[#5e635f] mt-0.5">{activeTemplate.description}</p>
               </div>

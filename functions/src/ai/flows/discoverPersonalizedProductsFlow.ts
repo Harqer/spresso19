@@ -13,10 +13,13 @@ export const discoverPersonalizedProductsFlow = ai.defineFlow(
     inputSchema: z.object({
       searchQueries: z.array(z.string()),
       requesterUid: z.string().optional(),
-      providerListings: z.array(DiscoveredListingSchema).optional(),
+      // The runtime contract is validated with Zod 4 in the provider boundary.
+      // Genkit currently exposes a Zod 3-compatible type, so keep the schema
+      // as the single runtime validator while bridging the declaration type.
+      providerListings: z.array(DiscoveredListingSchema as any).optional(),
     }),
     outputSchema: z.object({
-      listings: z.array(DiscoveredListingSchema),
+      listings: z.array(DiscoveredListingSchema as any),
       items: z.array(
         z.object({
           id: z.string(),

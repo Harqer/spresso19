@@ -10,15 +10,10 @@ export const QuickPromptsGrid = ({ quickPrompts, onSelectPrompt }: { quickPrompt
           onClick={() => onSelectPrompt(card.prompt)}
           className="group p-5 bg-white dark:bg-[#141719] border border-[#e0e4db] dark:border-[#22272a] hover:border-[#386633] dark:hover:border-[#9cd695] rounded-3xl transition-all shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between space-y-4 active:scale-[0.98]"
         >
-          <div className="flex items-center justify-between">
+          <div>
             <div className="w-9 h-9 rounded-full bg-[#f4f7f3] dark:bg-[#1a211a] text-[#386633] dark:text-[#9cd695] flex items-center justify-center">
               <MaterialIcon icon={card.icon} size={18} />
             </div>
-            {card.badge && (
-              <span className={`px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full border ${card.badgeBg}`}>
-                {card.badge}
-              </span>
-            )}
           </div>
           <div>
             <h3 className="text-xs font-bold text-[var(--md-sys-color-on-surface)] group-hover:text-[#386633] dark:group-hover:text-[#9cd695] transition-colors">

@@ -35,11 +35,24 @@ function writeJson(res: import("express").Response, status: number, body: unknow
   res.status(status).json(body);
 }
 
+async function checkHealth(): Promise<{ status: "ok" | "degraded"; dependencies: { firestore: "ok" | "error" } }> {
+  try {
+    // A metadata-only Admin SDK call verifies the configured Firestore boundary
+    // without exposing user data or requiring a mutable probe document.
+    await db.listCollections();
+    return { status: "ok", dependencies: { firestore: "ok" } };
+  } catch (error) {
+    console.error("Health dependency check failed", { error });
+    return { status: "degraded", dependencies: { firestore: "error" } };
+  }
+}
+
 export const webApi = onRequest(
   { cors: HOSTING_ORIGINS, maxInstances: 10 },
   async (req, res) => {
     if (req.path.replace(/^\/+|\/+$/g, "") === "api/health" || req.path.replace(/^\/+|\/+$/g, "") === "health") {
-      res.status(200).json({ status: "ok" });
+      const health = await checkHealth();
+      res.status(health.status === "ok" ? 200 : 503).json(health);
       return;
     }
     try {
@@ -86,11 +99,40 @@ export const webApi = onRequest(
         }
       }
 
+      if (parts.length === 3 && parts[0] === "user" && parts[1] === "wallet" && parts[2] === "coinbase" && req.method === "POST") {
+        const address = typeof req.body?.address === "string" ? req.body.address : "";
+        const network = typeof req.body?.network === "string" ? req.body.network : "base";
+        if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+          writeJson(res, 400, { success: false, error: "A valid wallet address is required." });
+          return;
+        }
+        if (network !== "base" && network !== "ethereum") {
+          writeJson(res, 400, { success: false, error: "Unsupported wallet network." });
+          return;
+        }
+        await db.collection("users").doc(uid).set(
+          {
+            coinbaseWalletAddress: address,
+            walletNetwork: network,
+            walletConnectedAt: new Date().toISOString(),
+          },
+          { merge: true },
+        );
+        writeJson(res, 200, { success: true });
+        return;
+      }
+
       if (parts.length === 1 && parts[0] === "cart") {
         const ref = db.collection("carts").doc(uid);
         if (req.method === "GET") {
           const doc = await ref.get();
-          writeJson(res, 200, { cart: (doc.data()?.items) || [] });
+          try {
+            const cart = parseWebCart({ cart: doc.data()?.items || [] });
+            writeJson(res, 200, { cart });
+          } catch (error) {
+            console.error("Malformed persisted cart state", { uid, error });
+            writeJson(res, 400, { success: false, error: "A valid cart is required." });
+          }
           return;
         }
         if (req.method === "POST") {

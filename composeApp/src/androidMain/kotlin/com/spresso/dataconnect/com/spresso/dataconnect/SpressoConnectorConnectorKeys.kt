@@ -44,11 +44,6 @@ public data class OrderKey(
 )
 
 @kotlinx.serialization.Serializable
-public data class PasskeyCredentialKey(
-    val userId: String,
-)
-
-@kotlinx.serialization.Serializable
 public data class PaymentMethodKey(
     val id:
         @kotlinx.serialization.Serializable(with = com.google.firebase.dataconnect.serializers.UUIDSerializer::class)

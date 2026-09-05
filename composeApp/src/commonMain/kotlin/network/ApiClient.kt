@@ -1,19 +1,25 @@
 package network
 
 import components.models.TripRecord
+import components.features.catalog.DiscoveredListing
+import components.features.catalog.parseDiscoveredListingsCallableResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.plugin
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import io.ktor.utils.io.readUTF8Line
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -26,6 +32,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlin.time.TimeSource
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import network.models.ChatStreamChunk
@@ -33,11 +40,10 @@ import network.models.UserProfileData
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import network.addGroceryItem as addGroceryItemTopLevel
-import network.createOrder as createOrderTopLevel
 import network.createPaymentMethod as createPaymentMethodTopLevel
 import network.deleteGroceryItem as deleteGroceryItemTopLevel
 import network.deletePaymentMethod as deletePaymentMethodTopLevel
-import network.registerPasskey as registerPasskeyTopLevel
+
 import network.toggleGroceryItem as toggleGroceryItemTopLevel
 import network.updateUserSubscription as updateUserSubscriptionTopLevel
 
@@ -63,11 +69,24 @@ data class ProductItem(
     val imageUrl: String,
     val rating: Double? = null,
     val description: String? = null,
+    val merchantUrl: String? = null,
+    val source: String? = null,
+    val providerListingId: String? = null,
+)
+
+@Serializable
+data class GeneratedOutfit(
+    val title: String? = null,
+    @SerialName("stylingAdvice") val stylingAdvice: String? = null,
+    @SerialName("selectedItemIds") val selectedItemIds: List<String> = emptyList(),
+    @SerialName("weatherMatchScore") val weatherMatchScore: Double? = null,
+    @SerialName("styleTips") val styleTips: List<String> = emptyList(),
 )
 
 @Serializable
 data class LensSearchResponse(
     val success: Boolean,
+    val listings: List<DiscoveredListing> = emptyList(),
     val detectedResult: DetectedResult? = null,
     val apifyResults: List<ApifyProductMatch> = emptyList(),
 )
@@ -128,34 +147,35 @@ data class CheckoutResponse(
 )
 
 open class ApiClient {
-    val client =
-        HttpClient {
-            install(ContentNegotiation) {
-                json(
-                    Json {
-                        prettyPrint = true
-                        isLenient = true
-                        ignoreUnknownKeys = true
-                    },
-                )
-            }
-        }
+    val client: HttpClient
+        get() = sharedClient
 
     private val backendBaseUrl = SpressoConfig.backendBaseUrl
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun discoverPersonalizedProducts(): List<ProductItem> {
-        val responseStr = callFirebaseFunction(FirebaseRoutes.DISCOVER_PERSONALIZED_PRODUCTS, "{}")
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        val itemsArray = result["items"]?.jsonArray
-        return itemsArray?.mapNotNull { item ->
-            try {
-                json.decodeFromJsonElement<ProductItem>(item)
-            } catch (e: Exception) {
-                null
+        discoverCache?.let { cached ->
+            if (cached.mark.elapsedNow().inWholeMilliseconds < DISCOVER_CACHE_TTL_MS) {
+                return cached.value
             }
-        } ?: emptyList()
+        }
+        val responseStr = callFirebaseFunction(FirebaseRoutes.DISCOVER_PERSONALIZED_PRODUCTS, "{}")
+        val products =
+            parseDiscoveredListingsCallableResponse(responseStr).map { listing ->
+                ProductItem(
+                    id = listing.id,
+                    name = listing.name,
+                    brand = listing.brand.orEmpty(),
+                    category = listing.category.orEmpty(),
+                    price = listing.observedPrice?.amount,
+                    imageUrl = listing.imageUrl.orEmpty(),
+                    merchantUrl = listing.merchantUrl,
+                    source = listing.source,
+                    providerListingId = listing.providerListingId,
+                )
+            }
+        discoverCache = DiscoverCache(TimeSource.Monotonic.markNow(), products)
+        return products
     }
 
     suspend fun analyzeUserBehavior(
@@ -243,46 +263,52 @@ open class ApiClient {
     ): Flow<ChatStreamChunk> =
         flow {
             val authToken = getCurrentUserIdToken()
-            val url = "\$cloudFunctionsBaseUrl/\${FirebaseRoutes.CHAT_STREAM}"
+            val url = "$cloudFunctionsBaseUrl/${FirebaseRoutes.CHAT_STREAM}"
 
             try {
                 val response =
                     client.post(url) {
                         contentType(ContentType.Application.Json)
                         if (authToken != null) {
-                            header(HttpHeaders.Authorization, "Bearer \$authToken")
+                            header(HttpHeaders.Authorization, "Bearer $authToken")
                         }
-                        val localeHelper = com.spresso19.translation.LocaleHelper()
+                        val localeHelper = com.spresso.translation.LocaleHelper()
                         val locale = localeHelper.getCurrentLocale()
                         setBody(
                             mapOf(
-                                "data" to
-                                    mapOf(
-                                        "prompt" to prompt,
-                                        "imageBase64" to imageBase64,
-                                        "location" to location,
-                                        "latLng" to latLng?.let { mapOf("latitude" to it.first, "longitude" to it.second) },
-                                        "agentType" to agentType,
-                                        "locale" to locale,
-                                    ),
+                                "prompt" to prompt,
+                                "imageBase64" to imageBase64,
+                                "location" to location,
+                                "latLng" to latLng?.let { mapOf("latitude" to it.first, "longitude" to it.second) },
+                                "agentType" to agentType,
+                                "locale" to locale,
                             ),
                         )
                     }
 
-                val responseBody = response.bodyAsText()
-                try {
-                    // Parse Firebase Callable response format: {"result": {"response": "..."}}
-                    val jsonResponse = json.parseToJsonElement(responseBody)
-                    val result = jsonResponse.jsonObject["result"]?.jsonObject
-                    val text = result?.get("response")?.jsonPrimitive?.content ?: "Sorry, I couldn't process that."
-                    emit(ChatStreamChunk(type = "text", text = text))
-                    emit(ChatStreamChunk(type = "done"))
-                } catch (e: Exception) {
-                    emit(ChatStreamChunk(type = "text", text = "Error parsing response: \${e.message}"))
+                if (response.status.value !in 200..299) {
+                    throw Exception("Chat request failed with HTTP ${response.status.value}")
+                }
+                val channel = response.bodyAsChannel()
+                var completed = false
+                while (!channel.isClosedForRead) {
+                    val line = channel.readUTF8Line() ?: break
+                    if (!line.startsWith("data: ")) continue
+                    val data = line.removePrefix("data: ")
+                    if (data == "[DONE]") {
+                        completed = true
+                        emit(ChatStreamChunk(type = "done"))
+                        break
+                    }
+                    runCatching { json.parseToJsonElement(data).jsonObject["text"]?.jsonPrimitive?.content }
+                        .getOrNull()
+                        ?.let { emit(ChatStreamChunk(type = "text", text = it)) }
+                }
+                if (!completed) {
                     emit(ChatStreamChunk(type = "done"))
                 }
             } catch (e: Exception) {
-                emit(ChatStreamChunk(type = "text", text = "Network error: \${e.message}"))
+                emit(ChatStreamChunk(type = "text", text = "I couldn't complete that request. Please try again."))
                 emit(ChatStreamChunk(type = "done"))
             }
         }
@@ -290,42 +316,15 @@ open class ApiClient {
     open suspend fun performLensSearch(base64Image: String): LensSearchResponse =
         try {
             val payload = buildJsonObject { put("imageBase64", base64Image) }
-            val responseStr = callFirebaseFunction(FirebaseRoutes.IDENTIFY_VISION_OBJECT, payload.toString())
-            json.decodeFromString<LensSearchResponse>(responseStr)
+            val responseStr = callFirebaseFunction(FirebaseRoutes.LENS_SEARCH, payload.toString())
+            val response = json.parseToJsonElement(responseStr).jsonObject
+            val result = response["result"]?.jsonObject ?: response
+            json.decodeFromJsonElement<LensSearchResponse>(result)
         } catch (e: Exception) {
             throw Exception("Failed to perform Spresso Lens Search: \${e.message}", e)
         }
 
     suspend fun performAccessibilityLensSearch(base64Image: String): LensSearchResponse = performLensSearch(base64Image)
-
-    suspend fun confirmCheckoutWithToken(
-        productId: String,
-        quantity: Int,
-        token: String,
-        address: String,
-    ): CheckoutResponse {
-        val payloadObj =
-            buildJsonObject {
-                put("productId", productId)
-                put("quantity", quantity)
-                put("userConfirmedToken", token)
-                put("deviceSource", "WEARABLE")
-                put("shippingAddress", address)
-            }
-        val payloadStr = payloadObj.toString()
-        val signature = promptBiometricAuth("Confirm your identity to purchase this item.", payloadStr)
-        if (signature == null) {
-            return CheckoutResponse(success = false, message = "Biometric authentication failed or was cancelled.")
-        }
-        return try {
-            val responseStr = callFirebaseFunction(FirebaseRoutes.CONFIRM_PURCHASE, payloadStr)
-            val response = json.parseToJsonElement(responseStr).jsonObject
-            val result = response["result"]?.jsonObject ?: response
-            json.decodeFromJsonElement<CheckoutResponse>(result)
-        } catch (e: Exception) {
-            CheckoutResponse(success = false, message = e.message)
-        }
-    }
 
     suspend fun requestOrderReturn(
         orderId: String,
@@ -434,22 +433,22 @@ open class ApiClient {
 
     suspend fun fetchTravelEvents(tripId: String): List<components.models.ItineraryEvent> {
         val response = client.get("$backendBaseUrl/travel/trips/$tripId/events").bodyAsText()
-        return Json { ignoreUnknownKeys = true }.decodeFromString(response)
+        return json.decodeFromString(response)
     }
 
     suspend fun fetchTravelExpenses(tripId: String): List<components.models.TravelExpense> {
         val response = client.get("$backendBaseUrl/travel/trips/$tripId/expenses").bodyAsText()
-        return Json { ignoreUnknownKeys = true }.decodeFromString(response)
+        return json.decodeFromString(response)
     }
 
     suspend fun fetchVoiceNotes(tripId: String): List<components.models.VoiceNote> {
         val response = client.get("$backendBaseUrl/travel/trips/$tripId/voicenotes").bodyAsText()
-        return Json { ignoreUnknownKeys = true }.decodeFromString(response)
+        return json.decodeFromString(response)
     }
 
     suspend fun fetchGroceryList(listId: String): List<network.models.GroceryItem> {
         val response = client.get("$backendBaseUrl/grocery/lists/$listId/items").bodyAsText()
-        return Json { ignoreUnknownKeys = true }.decodeFromString(response)
+        return json.decodeFromString(response)
     }
 
     suspend fun initializeOnboarding(
@@ -526,7 +525,7 @@ open class ApiClient {
             } catch (
                 _: Exception,
             ) {
-                "https://us-central1-spresso-5561f.cloudfunctions.net"
+                "https://us-central1-get-spresso.cloudfunctions.net"
             }
 
         val payload =
@@ -579,76 +578,6 @@ open class ApiClient {
         return true
     }
 
-    suspend fun createOrder(
-        authorizationId: String,
-        productId: String,
-        quantity: Int,
-        totalAmount: Float,
-        shippingAddress: String?,
-        deviceSource: String,
-        paymentMethod: String,
-        userConfirmedToken: String?,
-    ): Boolean {
-        createOrderTopLevel(
-            authorizationId,
-            productId,
-            quantity,
-            totalAmount,
-            shippingAddress,
-            deviceSource,
-            paymentMethod,
-            userConfirmedToken,
-        )
-        return true
-    }
-
-    suspend fun registerPasskey(
-        credentialId: String,
-        publicKey: String,
-    ): Boolean {
-        registerPasskeyTopLevel(credentialId, publicKey)
-        return true
-    }
-
-    suspend fun generatePasskeyChallenge(): String {
-        val responseJson = callFirebaseFunction(FirebaseRoutes.GENERATE_PASSKEY_CHALLENGE, "{}")
-        val response = json.parseToJsonElement(responseJson).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        return result["challenge"]?.jsonPrimitive?.content ?: ""
-    }
-
-    suspend fun verifyPasskeyRegistration(
-        responseJson: String,
-        challenge: String,
-    ): Boolean {
-        val payload =
-            buildJsonObject {
-                put("responseJson", responseJson)
-                put("challenge", challenge)
-            }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.VERIFY_PASSKEY_REGISTRATION, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        return result["success"]?.jsonPrimitive?.boolean ?: false
-    }
-
-    suspend fun executeBiometricPurchase(
-        orderId: String,
-        responseJson: String,
-        challenge: String,
-    ): Boolean {
-        val payload =
-            buildJsonObject {
-                put("orderId", orderId)
-                put("responseJson", responseJson)
-                put("challenge", challenge)
-            }
-        val responseStr = callFirebaseFunction("executeBiometricPurchase", payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        return result["success"]?.jsonPrimitive?.boolean ?: false
-    }
-
     suspend fun generateGoogleWalletPassJwt(passType: String = "loyalty"): String {
         val payload = buildJsonObject { put("passType", passType) }
         val responseStr = callFirebaseFunction(FirebaseRoutes.GENERATE_GOOGLE_WALLET_PASS_JWT, payload.toString())
@@ -657,57 +586,187 @@ open class ApiClient {
         return result["jwt"]?.jsonPrimitive?.content ?: ""
     }
 
-    suspend fun checkInventory(productId: String): Pair<Boolean, Int> {
-        val payload = buildJsonObject { put("productId", productId) }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.GET_INVENTORY_PROXY, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        val confirmed = result["inventoryConfirmed"]?.jsonPrimitive?.boolean ?: true
-        val stock = result["stockRemaining"]?.jsonPrimitive?.content?.toIntOrNull() ?: 10
-        return Pair(confirmed, stock)
-    }
-
-    suspend fun getWeatherContext(): String =
+    suspend fun getWeatherContext(latLng: Pair<Double, Double>): String =
         try {
-            val response: String =
-                client
-                    .get(
-                        "https://api.open-meteo.com/v1/forecast?latitude=40.7128&longitude=-74.0060&current_weather=true",
-                    ).bodyAsText()
-            val json = Json { ignoreUnknownKeys = true }.parseToJsonElement(response).jsonObject
-            val current = json["current_weather"]?.jsonObject
-            val temp =
-                current
-                    ?.get("temperature")
-                    ?.jsonPrimitive
-                    ?.content
-                    ?.toDoubleOrNull() ?: 20.0
+            val temp = fetchCelsius(latLng)
             when {
                 temp < 10.0 -> "Winter"
                 temp > 25.0 -> "Summer"
                 else -> "Occasion"
             }
         } catch (e: Exception) {
-            "Occasion"
+            throw IllegalStateException("Weather data unavailable", e)
         }
+
+    suspend fun getTemperatureText(latLng: Pair<Double, Double>): String =
+        try {
+            "${fetchCelsius(latLng)}°C"
+        } catch (e: Exception) {
+            ""
+        }
+
+    private suspend fun fetchCelsius(latLng: Pair<Double, Double>): Double {
+        val (latitude, longitude) = latLng
+        val response: String =
+            client
+                .get(
+                    "https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&current_weather=true",
+                ).bodyAsText()
+        val parsed = json.parseToJsonElement(response).jsonObject
+        val current = parsed["current_weather"]?.jsonObject
+        return current
+            ?.get("temperature")
+            ?.jsonPrimitive
+            ?.content
+            ?.toDoubleOrNull() ?: throw IllegalStateException("Weather data unavailable")
+    }
 
     suspend fun fetchProduct(productId: String): ProductItem {
         val response = client.get("$backendBaseUrl/products/$productId").bodyAsText()
-        return Json { ignoreUnknownKeys = true }.decodeFromString(response)
+        return json.decodeFromString(response)
     }
 
     suspend fun fetchDetection(detectionId: String): DetectedItem {
         val response = client.get("$backendBaseUrl/vision/detections/$detectionId").bodyAsText()
-        return Json { ignoreUnknownKeys = true }.decodeFromString(response)
+        return json.decodeFromString(response)
     }
 
     suspend fun fetchRecipe(recipeName: String): network.models.GroceryItem {
         val response = client.get("$backendBaseUrl/recipes/$recipeName").bodyAsText()
-        return Json { ignoreUnknownKeys = true }.decodeFromString(response)
+        return json.decodeFromString(response)
     }
 
     suspend fun fetchOrders(): List<network.models.OrderRecord> {
         val response = client.get("$backendBaseUrl/orders/history").bodyAsText()
-        return Json { ignoreUnknownKeys = true }.decodeFromString(response)
+        return json.decodeFromString(response)
+    }
+
+    suspend fun fetchLikedProductIds(): List<String> {
+        val payload = buildJsonObject { }
+        val responseStr = callFirebaseFunction(FirebaseRoutes.GET_USER_PREFERENCES, payload.toString())
+        val response = json.parseToJsonElement(responseStr).jsonObject
+        val result = response["result"]?.jsonObject ?: response
+        val likedIds = result["likedIds"]?.jsonArray ?: return emptyList()
+        return likedIds.mapNotNull { it.jsonPrimitive.content }
+    }
+
+    suspend fun fetchProductsByIds(productIds: List<String>): List<ProductItem> {
+        if (productIds.isEmpty()) return emptyList()
+        val payload = buildJsonObject {
+            put("productIds", buildJsonArray {
+                productIds.forEach { add(it) }
+            })
+        }
+        val responseStr = callFirebaseFunction(FirebaseRoutes.FETCH_PRODUCTS_BY_IDS, payload.toString())
+        val response = json.parseToJsonElement(responseStr).jsonObject
+        val result = response["result"]?.jsonObject ?: response
+        val listings = result["listings"]?.jsonArray ?: return emptyList()
+        return listings.mapNotNull { element ->
+            try {
+                json.decodeFromJsonElement<ProductItem>(element.jsonObject)
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    suspend fun fetchFavorites(): List<ProductItem> {
+        val likedIds = fetchLikedProductIds()
+        return fetchProductsByIds(likedIds)
+    }
+
+    suspend fun generateOutfit(
+        items: List<WardrobeItemData>,
+        weatherCondition: String,
+        temperatureText: String,
+        userLocation: String? = null,
+    ): GeneratedOutfit? {
+        if (items.isEmpty()) return null
+        val payload = buildJsonObject {
+            put(
+                "items",
+                buildJsonArray {
+                    items.forEach { item ->
+                        add(
+                            buildJsonObject {
+                                put("id", item.id)
+                                put("name", item.brand?.takeIf { it.isNotBlank() } ?: item.category)
+                                put("category", item.category)
+                                item.color?.let { put("color", it) }
+                            },
+                        )
+                    }
+                },
+            )
+            put("weatherCondition", weatherCondition)
+            put("temperatureText", temperatureText)
+            userLocation?.let { put("userLocation", it) }
+        }
+        val responseStr = callFirebaseFunction(FirebaseRoutes.GENERATE_OUTFIT, payload.toString())
+        val response = json.parseToJsonElement(responseStr).jsonObject
+        val result = response["result"]?.jsonObject ?: response
+        return runCatching {
+            json.decodeFromJsonElement<GeneratedOutfit>(result)
+        }.getOrNull()
+    }
+
+    suspend fun getUserPreferences(): Map<String, Any?> {
+        val payload = buildJsonObject { }
+        val responseStr = callFirebaseFunction(FirebaseRoutes.GET_USER_PREFERENCES, payload.toString())
+        val response = json.parseToJsonElement(responseStr).jsonObject
+        val result = response["result"]?.jsonObject ?: response
+        return mapOf(
+            "likedIds" to result["likedIds"]?.jsonArray?.map { it.jsonPrimitive.content },
+            "bookmarkedIds" to result["bookmarkedIds"]?.jsonArray?.map { it.jsonPrimitive.content },
+        )
+    }
+
+    suspend fun updateUserPreferences(
+        fitPreference: String? = null,
+        height: String? = null,
+        weight: String? = null,
+        vibes: List<String>? = null,
+    ): Boolean {
+        val payload = buildJsonObject {
+            fitPreference?.let { put("fitPreference", it) }
+            height?.let { put("height", it) }
+            weight?.let { put("weight", it) }
+            vibes?.let { list ->
+                put("vibes", buildJsonArray {
+                    list.forEach { add(it) }
+                })
+            }
+        }
+        val responseStr = callFirebaseFunction(FirebaseRoutes.UPDATE_USER_PREFERENCES, payload.toString())
+        val response = json.parseToJsonElement(responseStr).jsonObject
+        val result = response["result"]?.jsonObject ?: response
+        return result["success"]?.jsonPrimitive?.boolean == true
+    }
+
+    companion object {
+        private val sharedClient: HttpClient by lazy {
+            val client = HttpClient {
+                install(ContentNegotiation) {
+                    json(
+                        Json {
+                            prettyPrint = true
+                            isLenient = true
+                            ignoreUnknownKeys = true
+                        },
+                    )
+                }
+            }
+            client.plugin(HttpSend).intercept { request ->
+                val appCheckToken = getCurrentAppCheckToken()
+                if (!appCheckToken.isNullOrBlank()) {
+                    request.headers.append("X-Firebase-AppCheck", appCheckToken)
+                }
+                execute(request)
+            }
+            client
+        }
+        private var discoverCache: DiscoverCache? = null
+        private const val DISCOVER_CACHE_TTL_MS = 5 * 60 * 1000L
+        private data class DiscoverCache(val mark: kotlin.time.TimeMark, val value: List<ProductItem>)
     }
 }

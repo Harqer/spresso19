@@ -3,7 +3,7 @@ package components.core
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -39,7 +39,7 @@ fun MicButton(
                 containerColor = if (isVoiceActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
                 contentColor = if (isVoiceActive) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             ),
-        modifier = modifier.height(32.dp),
+        modifier = modifier.heightIn(min = 48.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(

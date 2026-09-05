@@ -68,7 +68,7 @@ fun PreferencesSection(
             ProfileListItem(
                 icon = Icons.Outlined.Notifications,
                 title = "Email Summaries",
-                subtitle = "Weekly Bargain Chef AI recipe recommendations",
+                subtitle = "Weekly cooking and recipe recommendations",
                 trailingContent = {
                     Switch(
                         checked = emailAlertsEnabled,

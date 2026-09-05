@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AppFunctionAppMetadata xmlns:appfn="http://schemas.android.com/apk/androidx.appfunctions"
-    appfn:description="This app manages coffee orders and wardrobe items.
+    appfn:description="This app helps users search products, manage groceries, cook with AI assistance, manage coffee orders, and manage wardrobe items.
     Operational Patterns:
-    - Use 'orderCoffee' to place a coffee order.
+    - Use 'searchProducts' to find catalog products or groceries; use the returned id with 'addToCart'.
+    - Use 'addToCart' to prepare a cart change, then require the user to review and confirm checkout.
+    - Use 'orderCoffee' to prepare a coffee order in the cart.
     - Use 'saveWardrobeItem' to add an item to the wardrobe.
     - Use 'viewOrder' to retrieve the details of an order.
     Constraints:
     - Coffee size must be one of Small, Medium, Large.
+    - Product IDs must come from a current search result.
+    - Never claim a purchase or checkout completion without app confirmation.
     - Wardrobe item name must not be empty." />

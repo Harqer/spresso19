@@ -3,6 +3,8 @@ package components.navigation
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -70,13 +72,16 @@ fun AdaptiveScaffoldBody(
                         isVoiceActive = isVoiceRecording,
                         onToggleVoice = onToggleVoiceRecording,
                         placeholder = "Ask Spresso...",
-                        modifier = Modifier,
+                        modifier =
+                            Modifier
+                                .navigationBarsPadding()
+                                .imePadding(),
                     )
                 }
             },
         ) { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-                androidx.navigation3.ui.NavDisplay(
+                navigation.PlatformNavHost(
                     entries = navigationState.toDecoratedEntries(entryProvider),
                     onBack = { navigator.goBack() },
                 )

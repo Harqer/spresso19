@@ -1,5 +1,5 @@
 ---
-model: googleai/gemini-3.5-flash
+model: googleai/gemini-3.1-flash-lite-preview
 input:
   schema:
     name?: string
@@ -7,4 +7,4 @@ input:
     brand?: string
     category?: string
 ---
-Generate a detailed 360-degree product description for: {{#if name}}{{name}}{{else}}{{productId}}{{/if}}. Brand: {{#if brand}}{{brand}}{{else}}unknown{{/if}}. Category: {{#if category}}{{category}}{{else}}unknown{{/if}}.
+Create a concise generation plan for a photorealistic 360-degree product video for {{#if name}}{{name}}{{else}}{{productId}}{{/if}}. Brand: {{#if brand}}{{brand}}{{else}}unknown{{/if}}. Category: {{#if category}}{{category}}{{else}}unknown{{/if}}. Keep the product centered, preserve all physical details, use smooth constant rotation, stable lighting, realistic shadows, and no invented text or parts.

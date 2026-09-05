@@ -37,7 +37,7 @@ fun PrimaryButtonPreview() {
     AppTheme {
         PrimaryButton(
             text = "Explore Catalog",
-            onClick = { println("Preview Explore Catalog clicked") },
+            onClick = { Unit },
         )
     }
 }

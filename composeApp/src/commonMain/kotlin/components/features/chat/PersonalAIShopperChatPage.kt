@@ -19,6 +19,7 @@ fun PersonalAIShopperChatPage(
     userName: String? = null,
     errorMessage: String? = null,
     userLocation: String? = null,
+    userLatLng: Pair<Double, Double>? = null,
     isAccessibilityEnabled: Boolean = false,
     hasAccessibilityConsent: Boolean = false,
     showAccessibilityDisclosure: Boolean = false,
@@ -28,6 +29,8 @@ fun PersonalAIShopperChatPage(
     onRevokeAccessibilityConsent: (() -> Unit)? = null,
     onRequestAccessibilityScan: (() -> Unit)? = null,
     onTriggerGlobalLens: (() -> Unit)? = null,
+    onRequestLocationPermission: (() -> Unit)? = null,
+    onCloseGlobalChat: (() -> Unit)? = null,
     onLaunchCamera: (() -> Unit)? = null,
     onToggleVoiceRecording: (() -> Unit)? = null,
     onAddToCart: (ProductItem) -> Unit = { },
@@ -44,7 +47,12 @@ fun PersonalAIShopperChatPage(
         if (!initialImage.isNullOrBlank()) {
             chatViewModel.sendCameraSnapshot(initialImage, prompt = initialPrompt)
         } else if (!initialPrompt.isNullOrBlank() && (messages.isEmpty() || messages.last().text != initialPrompt)) {
-            chatViewModel.sendMessage(prompt = initialPrompt, location = userLocation, agentType = "SHOPPING_CONCIERGE")
+            chatViewModel.sendMessage(
+                prompt = initialPrompt,
+                location = userLocation,
+                latLng = userLatLng,
+                agentType = "SHOPPING_CONCIERGE",
+            )
         }
     }
 
@@ -52,10 +60,10 @@ fun PersonalAIShopperChatPage(
         var acknowledged by remember(showAccessibilityDisclosure) { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = { onDismissAccessibilityDisclosure?.invoke() },
-            title = { Text("Screen search access") },
+            title = { Text("Screen capture") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Spresso can capture current app screen after you tap Scan...")
+                    Text("Spresso can capture the screen after you tap Scan. Android will ask you to approve each capture.")
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = acknowledged, onCheckedChange = { acknowledged = it })
                         Text("I agree to screen capture and transfer for visual shopping search.")
@@ -86,7 +94,14 @@ fun PersonalAIShopperChatPage(
     Scaffold(modifier = modifier) { innerPadding ->
         PersonalAIShopperChatPanel(
             messages = messages,
-            onSendMessage = { chatViewModel.sendMessage(prompt = it, location = userLocation, agentType = "SHOPPING_CONCIERGE") },
+            onSendMessage = {
+                chatViewModel.sendMessage(
+                    prompt = it,
+                    location = userLocation,
+                    latLng = userLatLng,
+                    agentType = "SHOPPING_CONCIERGE",
+                )
+            },
             userName = userName,
             onAddToCart = onAddToCart,
             onSelectTryOn = onSelectTryOn,
@@ -97,6 +112,7 @@ fun PersonalAIShopperChatPage(
             onToggleAccessibility = onToggleAccessibility,
             onRequestAccessibilityScan = onRequestAccessibilityScan,
             onTriggerGlobalLens = onTriggerGlobalLens,
+            onRequestLocationPermission = onRequestLocationPermission,
             onRevokeAccessibilityConsent = onRevokeAccessibilityConsent,
             onLaunchCamera = onLaunchCamera,
             isVoiceRecording = isVoiceRecording || chatViewModel.isVoiceActive,

@@ -8,7 +8,7 @@ const ToggleLikeSchema = zod_1.z.object({
     productId: zod_1.z.string(),
     idempotencyKey: zod_1.z.string(),
 });
-exports.curateWardrobe = (0, https_1.onCall)(async (request) => {
+exports.curateWardrobe = (0, https_1.onCall)({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     try {
@@ -20,7 +20,7 @@ exports.curateWardrobe = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("internal", "Failed to curate wardrobe");
     }
 });
-exports.getUserLikes = (0, https_1.onCall)(async (request) => {
+exports.getUserLikes = (0, https_1.onCall)({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     try {
@@ -32,7 +32,7 @@ exports.getUserLikes = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("internal", "Failed to fetch user likes");
     }
 });
-exports.getUserBookmarks = (0, https_1.onCall)(async (request) => {
+exports.getUserBookmarks = (0, https_1.onCall)({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     try {
@@ -44,7 +44,7 @@ exports.getUserBookmarks = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("internal", "Failed to fetch user bookmarks");
     }
 });
-exports.toggleUserLike = (0, https_1.onCall)(async (request) => {
+exports.toggleUserLike = (0, https_1.onCall)({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     const parsed = ToggleLikeSchema.safeParse(request.data);
@@ -74,7 +74,7 @@ exports.toggleUserLike = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("internal", "Failed to toggle like");
     }
 });
-exports.toggleUserBookmark = (0, https_1.onCall)(async (request) => {
+exports.toggleUserBookmark = (0, https_1.onCall)({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     const parsed = ToggleLikeSchema.safeParse(request.data);
@@ -104,7 +104,7 @@ exports.toggleUserBookmark = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("internal", "Failed to toggle bookmark");
     }
 });
-exports.getUserPreferences = (0, https_1.onCall)(async (request) => {
+exports.getUserPreferences = (0, https_1.onCall)({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     try {
@@ -120,11 +120,34 @@ exports.getUserPreferences = (0, https_1.onCall)(async (request) => {
         throw new https_1.HttpsError("internal", "Failed to fetch user preferences");
     }
 });
-exports.updateUserPreferences = (0, https_1.onCall)(async (request) => {
+exports.updateUserPreferences = (0, https_1.onCall)({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
+    var _a;
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     try {
-        await db_1.db.collection("user_preferences").doc(request.auth.uid).set(request.data, { merge: true });
+        const profileSchema = zod_1.z.object({
+            usePersonalAvatar: zod_1.z.boolean(),
+            avatarUrl: zod_1.z.string().url().max(2048).optional(),
+            age: zod_1.z.number().int().min(13).max(120).optional(),
+            height: zod_1.z.string().trim().max(32).optional(),
+            weight: zod_1.z.string().trim().max(32).optional(),
+            fitPreference: zod_1.z.enum(["tailored", "regular", "relaxed", "oversized"]).optional(),
+        });
+        const input = zod_1.z.object({
+            onboardingCompleted: zod_1.z.boolean().optional(),
+            vibes: zod_1.z.array(zod_1.z.string().trim().min(1).max(80)).max(20).optional(),
+            cardSaved: zod_1.z.boolean().optional(),
+            wardrobeSynced: zod_1.z.boolean().optional(),
+            radius: zod_1.z.number().int().min(1).max(100).optional(),
+            locationEnabled: zod_1.z.boolean().optional(),
+            avatarProfile: profileSchema.optional(),
+        }).strict().safeParse(request.data);
+        if (!input.success)
+            throw new https_1.HttpsError("invalid-argument", "The preference details are invalid.");
+        await db_1.db.collection("user_preferences").doc(request.auth.uid).set(input.data, { merge: true });
+        if ((_a = input.data.avatarProfile) === null || _a === void 0 ? void 0 : _a.avatarUrl) {
+            await db_1.db.collection("users").doc(request.auth.uid).set({ avatarUrl: input.data.avatarProfile.avatarUrl }, { merge: true });
+        }
         return { success: true };
     }
     catch (e) {

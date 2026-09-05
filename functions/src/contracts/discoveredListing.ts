@@ -14,6 +14,10 @@ export const DiscoveredListingSchema = z.object({
     currency: z.string().regex(/^[A-Z]{3}$/),
     evidenceUrl: z.string().url().refine(value => value.startsWith("https://"), "evidenceUrl must use HTTPS")
   }).optional(),
+  videoUrl: z.string().url().refine(value => value.startsWith("https://"), "videoUrl must use HTTPS").optional(),
+  rating: z.number().min(0).max(5).optional(),
+  reviewCount: z.number().int().nonnegative().optional(),
+  reviewSummary: z.string().trim().min(1).max(500).optional(),
   discoveredAt: z.string().datetime(),
   expiresAt: z.string().datetime().optional(),
   confidence: z.number().min(0).max(1).optional()

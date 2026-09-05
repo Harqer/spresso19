@@ -24,6 +24,10 @@ data class DiscoveredListing(
     val source: String,
     val providerListingId: String? = null,
     val observedPrice: ObservedPrice? = null,
+    val videoUrl: String? = null,
+    val rating: Double? = null,
+    val reviewCount: Int? = null,
+    val reviewSummary: String? = null,
     val discoveredAt: String,
     val expiresAt: String? = null,
     val confidence: Double? = null,
@@ -34,8 +38,9 @@ private val callableListingJson = Json { ignoreUnknownKeys = false }
 fun parseDiscoveredListingsCallableResponse(responseJson: String): List<DiscoveredListing> {
     val root = callableListingJson.parseToJsonElement(responseJson).jsonObject
     val result = root["result"]?.jsonObject ?: root
-    val listings = result["listings"]?.jsonArray
-        ?: throw IllegalArgumentException("Discovery response does not contain canonical listings.")
+    val listings =
+        result["listings"]?.jsonArray
+            ?: throw IllegalArgumentException("Discovery response does not contain canonical listings.")
 
     return listings.map { listingElement ->
         val listing = callableListingJson.decodeFromString<DiscoveredListing>(listingElement.toString())
@@ -50,7 +55,11 @@ fun parseDiscoveredListingsCallableResponse(responseJson: String): List<Discover
     }
 }
 
-fun stableListingId(source: String, merchantUrl: String, providerListingId: String? = null): String {
+fun stableListingId(
+    source: String,
+    merchantUrl: String,
+    providerListingId: String? = null,
+): String {
     val input = "$source:${merchantUrl.substringBefore('#')}:${providerListingId.orEmpty()}"
     var hash = 2166136261u
     input.forEach { character ->

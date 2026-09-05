@@ -11,8 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
+    env:
+      GITHUB_TOKEN: ${{ secrets.MWDAT_GITHUB_TOKEN }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -26,18 +27,9 @@ jobs:
           java-version: '17'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Lightweight Kotlin Verification (No APK)
-        id: build_step
         run: |
           chmod +x ./gradlew
-          # Run lightweight checks: linting and compiling tests instead of full APK assembly
-          ./gradlew lint compileDebugKotlin --no-daemon 2>&1 | tee build_log.txt
-        continue-on-error: true
-
-      - name: Fail CI if build failed
-        if: steps.build_step.outcome == 'failure'
-        run: |
-          echo "Verification failed. Please check the build logs."
-          exit 1
+          ./gradlew :composeApp:lintDebug :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest --no-daemon

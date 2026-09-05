@@ -1,20 +1,17 @@
 package components.features.wardrobe
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -45,30 +42,25 @@ fun WardrobeTabChips(
             WardrobeSubTab("saved", "Saved", Icons.Default.Bookmark),
         )
 
-    LazyRow(
+    val selectedIndex = subTabs.indexOfFirst { it.id == selectedTabId }.coerceAtLeast(0)
+    ScrollableTabRow(
+        selectedTabIndex = selectedIndex,
         modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        edgePadding = 16.dp,
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        items(subTabs) { tab ->
-            val isSelected = selectedTabId == tab.id
-            FilterChip(
-                selected = isSelected,
+        subTabs.forEach { tab ->
+            Tab(
+                selected = selectedTabId == tab.id,
                 onClick = { onTabSelected(tab.id) },
-                label = { Text(tab.label, style = MaterialTheme.typography.labelMedium) },
-                leadingIcon = {
+                text = { Text(tab.label, style = MaterialTheme.typography.labelMedium) },
+                icon = {
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                     )
                 },
-                colors =
-                    FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    ),
             )
         }
     }

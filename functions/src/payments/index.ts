@@ -25,21 +25,21 @@ function rejectClientControlledMerchantPayment(data: unknown): never {
   );
 }
 
-export const getStripeConfig = onCall({ enforceAppCheck: true, secrets: [stripePublishableKey] }, async (request) => {
+export const getStripeConfig = onCall({ enforceAppCheck: true, secrets: [stripePublishableKey], maxInstances: 20, minInstances: 0 }, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
   return { publishableKey: stripePublishableKey.value() };
 });
 
 // Merchant listings remain user-completed checkout. This callable is retained
 // only to reject older clients before any payment provider call can occur.
-export const createStripeIntent = onCall({ enforceAppCheck: true }, async (request) => {
+export const createStripeIntent = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
   return rejectClientControlledMerchantPayment(request.data);
 });
 
 // A device confirmation can authorize a user action, but it cannot turn a
 // merchant listing into a Spresso-controlled payment operation.
-export const confirmPurchase = onCall({ enforceAppCheck: true }, async (request) => {
+export const confirmPurchase = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
   return rejectClientControlledMerchantPayment(request.data);
 });
@@ -49,7 +49,7 @@ const googleWalletIssuerId = defineSecret("GOOGLE_WALLET_ISSUER_ID");
 const googleWalletClassId = defineSecret("GOOGLE_WALLET_CLASS_ID");
 const googleWalletServiceAccountEmail = defineSecret("GOOGLE_WALLET_SA_EMAIL");
 
-export const generateGoogleWalletPassJwt = onCall({ enforceAppCheck: true, secrets: [googleWalletPrivateKey, googleWalletIssuerId, googleWalletClassId, googleWalletServiceAccountEmail] }, async (request) => {
+export const generateGoogleWalletPassJwt = onCall({ enforceAppCheck: true, secrets: [googleWalletPrivateKey, googleWalletIssuerId, googleWalletClassId, googleWalletServiceAccountEmail], maxInstances: 20, minInstances: 0 }, async (request) => {
   const authUid: string | undefined = request.auth?.uid;
   if (!authUid) throw new HttpsError("unauthenticated", "Must be logged in.");
 
@@ -117,7 +117,7 @@ export const generateGoogleWalletPassJwt = onCall({ enforceAppCheck: true, secre
 const cdpApiKeyId = defineSecret("CDP_API_KEY_NAME");
 const cdpApiKeySecret = defineSecret("CDP_API_KEY_PRIVATE_KEY");
 
-export const executeBiometricPurchase = onCall({ enforceAppCheck: true, secrets: [cdpApiKeyId, cdpApiKeySecret] }, async (request) => {
+export const executeBiometricPurchase = onCall({ enforceAppCheck: true, secrets: [cdpApiKeyId, cdpApiKeySecret], maxInstances: 20, minInstances: 0 }, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");
   throw new HttpsError(
     "failed-precondition",
@@ -125,7 +125,7 @@ export const executeBiometricPurchase = onCall({ enforceAppCheck: true, secrets:
   );
 });
 
-export const processCryptoPayment = onCall({ enforceAppCheck: true, secrets: [cdpApiKeyId, cdpApiKeySecret] }, async (request) => {
+export const processCryptoPayment = onCall({ enforceAppCheck: true, secrets: [cdpApiKeyId, cdpApiKeySecret], maxInstances: 20, minInstances: 0 }, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Must be logged in.");
   throw new HttpsError(
     "failed-precondition",

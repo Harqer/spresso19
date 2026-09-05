@@ -22,8 +22,6 @@ export interface DeckCategory {
   id: string;
   title: string;
   subtitle: string;
-  badge: string;
-  badgeColor: string;
   icon: string;
   outfits: GeneratedOutfit[];
   singleItems?: CustomWardrobeItem[];
@@ -92,9 +90,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="space-y-1.5 max-w-2xl">
             <div className="flex items-center space-x-2">
-              <span className="px-3 py-0.5 rounded-full bg-[#386633] text-white text-[10px] font-mono font-bold uppercase tracking-wider border border-white/20">
-                Jetpack Motion Stack UI
-              </span>
+              <span className="text-[11px] font-medium text-emerald-300">Interactive wardrobe</span>
               <span className="text-xs font-mono text-emerald-400 font-bold">
                 {poolItems.length} Curated Items Pool
               </span>
@@ -159,9 +155,6 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
                   <div>
                     <div className="flex items-center space-x-2">
                       <h3 className="font-bold text-base text-[var(--md-sys-color-on-surface)] font-headline">{deck.title}</h3>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${deck.badgeColor}`}>
-                        {deck.badge}
-                      </span>
                     </div>
                     <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-0.5">{deck.subtitle}</p>
                   </div>
@@ -412,9 +405,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
           <div className="bg-white w-full max-w-2xl rounded-3xl p-6 border border-[#d8ebd7] shadow-xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#f2f8f2] pb-3">
               <div>
-                <span className="px-2.5 py-0.5 bg-[#386633] text-white text-[10px] font-mono font-bold rounded-full">
-                  AI Styled Outfit
-                </span>
+                <span className="text-[11px] font-medium text-[#386633]">Styled outfit</span>
                 <h3 className="text-lg font-bold text-[#18211e] font-headline mt-1">
                   {selectedOutfitDetail.title}
                 </h3>
@@ -463,14 +454,13 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
                               totalAmount: p.price,
                               currency: p.currency,
                               deviceSource: "WEB",
-                              inventoryConfirmed: true,
-                              stockRemaining: p.stock,
+                              availabilityStatus: "VERIFY_AT_MERCHANT_CHECKOUT",
                               humanInTheLoopChallenge: {
                                 title: "Confirm Purchase",
                                 message: `Authorize $${p.price.toFixed(2)} for ${p.name}?`,
                                 safetyChecks: [
-                                  "Reserved from personal closet wardrobe",
-                                  "Includes free express shipping",
+                                  "Merchant availability will be verified at checkout",
+                                  "Spresso does not own or reserve retailer inventory",
                                   "Click confirm to place order"
                                 ]
                               }

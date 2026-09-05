@@ -1,6 +1,6 @@
 import Logger from "../lib/Logger";
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { functions } from "../lib/firebase";
 import { httpsCallable } from "firebase/functions";
 import { ProductItem, HITLPayload } from "../types";
@@ -17,7 +17,7 @@ interface VirtualTryOnModalProps {
 }
 
 const DEFAULT_AVATARS: any[] = [
-  // To adhere to the strict no-mock policy, we require the user to provide their own photo.
+  // Require a user-provided photo; generated placeholders are not acceptable.
 ];
 
 const GENMEDIA_BACKGROUNDS = [
@@ -53,25 +53,12 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generatedMedia, setGeneratedMedia] = useState<{ mediaUrl: string; mediaType: "image" | "video"; provider?: string } | null>(null);
 
   const [tryOnMeta, setTryOnMeta] = useState({
     mediaType: "video",
-    fitScore: 98,
-    sizeRecommendation: "Medium / Standard Fit",
-    styleMatchAnalysis: "Optimal fit, ViTPose plain vision transformer body keypoint tracking with FP16 FlashAttention.",
-    pipelineModel: "virtual-try-on-001 (Google Model Garden & ViTPose Transformer)",
-    genMediaMode: "GenMedia Commerce Studio Enabled",
-    vitPoseTracking: {
-      backbone: "ViTPose Plain Vision Transformer",
-      precision: "FP16 + FlashAttention",
-      inferenceFPS: 190,
-      baselineFPS: 58,
-      latencyMs: 5.2,
-      decoders: "Lightweight single-pass spatial decoders",
-      scalability: "Non-hierarchical edge to 1B parameter setup",
-      dreambeansUrl: "https://labs.google/dreambeans",
-      status: "Active (190+ FPS Ultra-Low Latency)"
-    }
+    sizeRecommendation: "Visual estimate only",
+    styleMatchAnalysis: "Add a personal photo and fit details for a more relevant visual estimate. Without them, a generated model will be used.",
   });
 
   useEffect(() => {
@@ -114,21 +101,24 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       const generateVirtualTryOn = httpsCallable(functions, "generateVirtualTryOn");
       const vitposeOrchestrateFit = httpsCallable(functions, "vitposeOrchestrateFit");
 
+      const resVitposePromise = (customAvatar || selectedAvatar) ? vitposeOrchestrateFit({
+        userImageBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
+        desiredFitStyle: selectedAnimation.name,
+        preferredCategory: product?.category || ""
+      }).catch((err) => {
+        if (err.name !== "AbortError") Logger.error("Fit analysis error:", err);
+        return null;
+      }) : Promise.resolve(null);
       const [resTryOn, resVitpose] = await Promise.all([
         generateVirtualTryOn({
           productId: product?.id,
+          productName: product?.name,
+          productImage: product?.image,
           userPhotoBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
           customNotes: `Render in ${selectedBg.name} using ${selectedAnimation.name}`,
           mediaType
         }),
-        vitposeOrchestrateFit({
-          userImageBase64: customAvatar || (selectedAvatar ? selectedAvatar.url : ""),
-          desiredFitStyle: selectedAnimation.name,
-          preferredCategory: product?.category || ""
-        }).catch((err) => {
-          if (err.name !== "AbortError") Logger.error("Vitpose error:", err);
-          return null;
-        })
+        resVitposePromise
       ]);
 
       const data: any = resTryOn.data;
@@ -141,10 +131,11 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       }
 
       if (data.tryOnMeta) {
+        if (data.tryOnMeta.mediaUrl) setGeneratedMedia(data.tryOnMeta);
         setTryOnMeta(prev => ({
           ...prev,
           ...data.tryOnMeta,
-          ...(fitReason ? { styleMatchAnalysis: `${data.tryOnMeta.styleMatchAnalysis} ViTPose Dimensions: ${fitReason}` } : {})
+          ...(fitReason ? { styleMatchAnalysis: fitReason } : {})
         }));
       }
     } catch (err: any) {
@@ -190,14 +181,13 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       totalAmount: product.price,
       currency: product.currency,
       deviceSource: "WEB",
-      inventoryConfirmed: product.stock > 0,
-      stockRemaining: product.stock,
+      availabilityStatus: "VERIFY_AT_MERCHANT_CHECKOUT",
       humanInTheLoopChallenge: {
         title: "Confirm Purchase",
         message: `Authorize $${product.price.toFixed(2)} for ${product.name}?`,
         safetyChecks: [
           `Virtual Try-On 001 fit verified in ${selectedMediaType.toUpperCase()} mode`,
-          "In stock and ready to ship",
+          "Merchant availability will be verified at checkout",
           "Includes free express delivery & returns"
         ]
       }
@@ -386,14 +376,22 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     ) : (
                       <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 opacity-50">
                          <MaterialIcon icon="person" size={64} className="text-[#386633]" />
-                         <span className="text-xs font-bold text-[#18211e]">Upload photo to start Try-On</span>
+                         <span className="text-xs font-bold text-[#18211e]">Generated model will be used</span>
                       </div>
+                    )}
+
+                    {generatedMedia && (
+                      generatedMedia.mediaType === "video" ? (
+                        <video src={generatedMedia.mediaUrl} controls autoPlay loop className="absolute inset-0 w-full h-full object-cover rounded-2xl z-10" />
+                      ) : (
+                        <img src={generatedMedia.mediaUrl} alt="Generated virtual try-on" className="absolute inset-0 w-full h-full object-cover rounded-2xl z-10" />
+                      )
                     )}
                     
                     {/* Garment / Product Overlay preview */}
                     <div className={`absolute bottom-3 right-3 w-28 h-28 bg-white/90 backdrop-blur-md rounded-2xl p-1.5 border border-[#d8ebd7] shadow-lg transition duration-300 ${isProcessing ? "scale-95 opacity-50" : "scale-100"}`}>
                       <img src={product.image} alt={product.name} className="w-full h-full object-cover rounded-xl" />
-                      <span className="absolute -top-2 -left-2 px-1.5 py-0.5 bg-[#386633] text-white text-[9px] font-mono font-bold rounded">Garment</span>
+                      <span className="sr-only">Selected garment</span>
                     </div>
                   </div>
 
@@ -406,15 +404,9 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     </span>
                   </div>
 
-                  {/* Fit Status Badge */}
-                  <div className="absolute top-3 left-3 px-3 py-1 bg-white/90 backdrop-blur-md border border-[#d8ebd7] text-[#386633] text-xs font-bold rounded-full flex items-center space-x-1.5 shadow-xs">
-                    <MaterialIcon icon="check_circle" size={16} className="text-[#386633]" />
-                    <span>3D Avatar Fitted</span>
-                  </div>
-
-                  {/* Active Animation Style Badge Overlay */}
+                  {/* Active animation context */}
                   {selectedMediaType === "video" && (
-                    <div className="absolute top-11 left-3 px-2.5 py-1 bg-emerald-900/80 backdrop-blur-md text-emerald-100 text-[10px] font-mono rounded-full flex items-center space-x-1 shadow-xs border border-emerald-500/30">
+                    <div className="absolute top-3 left-3 text-white text-xs font-medium flex items-center space-x-1 drop-shadow-md">
                       <MaterialIcon icon={selectedAnimation.icon} size={13} />
                       <span className="truncate max-w-[150px]">{selectedAnimation.name}</span>
                     </div>
@@ -436,7 +428,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     </div>
                   )}
 
-                  <div className="absolute top-3 right-3 px-2.5 py-1 bg-[#386633]/80 backdrop-blur-md text-white text-[10px] font-mono rounded-full flex items-center space-x-1 shadow-xs">
+                  <div className="absolute top-3 right-3 text-white text-xs font-medium flex items-center space-x-1 drop-shadow-md">
                     <MaterialIcon icon={selectedBg.icon} size={13} />
                     <span>{selectedBg.name}</span>
                   </div>
@@ -582,7 +574,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     className="w-full py-3.5 bg-[#386633] hover:bg-[#2c5227] text-white font-bold rounded-xl transition shadow-xs flex items-center justify-center space-x-2 cursor-pointer text-sm"
                   >
                     <MaterialIcon icon="shopping_bag" size={18} />
-                    <span>Confirm & Buy Now</span>
+                    <span>Add to Cart & Review</span>
                   </button>
                 </div>
               </div>
@@ -602,5 +594,3 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     </AnimatePresence>
   );
 };
-
-

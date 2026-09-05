@@ -62,7 +62,7 @@ fun ChatbotCanvas(
                 )
 
                 Text(
-                    text = "I can help you visualize products with Genkit AI.",
+                    text = "Ask about products, compare options, or see how a look comes together.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),
@@ -88,7 +88,7 @@ fun ChatbotCanvas(
                             modifier = Modifier.size(18.dp),
                         )
                         Text(
-                            text = "Listening to your command...",
+                            text = "Listening…",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -109,7 +109,7 @@ fun ChatbotCanvas(
             }
 
             Text(
-                text = "Scroll to see the parallax effect, or use voice commands.",
+                text = "Keep exploring, or ask Spresso for help.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(top = 24.dp),

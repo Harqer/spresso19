@@ -1,4 +1,4 @@
-# Spresso19 Application Context & Architecture Report
+# Spresso Application Context & Architecture Report
 
 ## Overview
 **Spresso AI Personal Shopper** (also featuring **Chef AI**) is a highly interactive, generative AI-powered web application. It acts as a comprehensive shopping concierge and cooking assistant. The app offers real-time multimodal (voice and video) chat interactions, virtual try-ons, location-based local store shopping, and automated order tracking.

@@ -6,6 +6,11 @@ expect fun logCrashlyticsBreadcrumb(
 )
 
 object Telemetry {
+    fun recordInfo(message: String) {
+        logCrashlyticsBreadcrumb("INFO", message)
+        println("INFO: $message")
+    }
+
     fun recordError(
         message: String,
         e: Throwable,

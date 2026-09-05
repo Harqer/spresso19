@@ -26,14 +26,18 @@ fun CreatorTemplatesSection(
             val result = network.SpressoBackend.getCreativeTemplates()
             templates = result
         } catch (e: Exception) {
-            errorMessage = e.message
+            errorMessage = "Creative templates are unavailable right now. Please try again."
         } finally {
             isLoading = false
         }
     }
 
     if (errorMessage != null) {
-        Text(text = "Error: $errorMessage", modifier = Modifier.padding(16.dp))
+        Text(
+            text = errorMessage.orEmpty(),
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(16.dp),
+        )
     } else if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -44,12 +48,6 @@ fun CreatorTemplatesSection(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-//            Icon(
-//                imageVector = androidx.compose.material.icons.Icons.Default.Check,
-//                contentDescription = null,
-//                modifier = Modifier.size(48.dp),
-//                tint = MaterialTheme.colorScheme.onSurfaceVariant
-//            )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "No templates found",

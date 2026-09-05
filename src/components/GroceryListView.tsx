@@ -1,6 +1,6 @@
 import Logger from "../lib/Logger";
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem } from "../types";
 import { auth } from "../lib/firebase";
@@ -192,7 +192,7 @@ export function GroceryListView({ onAddToCart, products = [], onAskAI }: Grocery
         category: `Grocery - ${item.category}`,
         description: `Grocery List Item: ${item.quantity} ${item.unit}(s) of ${item.name}`,
         image: "",
-        stock: 0,
+        availabilityStatus: "VERIFY_AT_MERCHANT_CHECKOUT",
         sku: `GROC-${item.id.toUpperCase()}`,
         rating: 0,
         virtualTryOnEligible: false,

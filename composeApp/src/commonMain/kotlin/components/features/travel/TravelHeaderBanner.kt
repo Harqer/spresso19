@@ -1,10 +1,7 @@
 package components.features.travel
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -59,58 +56,42 @@ fun HeaderBanner(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "AI-powered receipt parser, timeline boarding passes & expense budget tracker",
+                        text = "Keep itineraries, boarding passes, receipts, and travel spending together",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
 
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(bottom = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (trips.isEmpty()) {
+            if (trips.isEmpty()) {
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                     Text(
                         text = "No trips found. Create or sync a trip to get started.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
-                } else {
+                }
+            } else {
+                val selectedIndex = trips.indexOfFirst { it.id == activeTripId }.coerceAtLeast(0)
+                ScrollableTabRow(
+                    selectedTabIndex = selectedIndex,
+                    edgePadding = 0.dp,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ) {
                     trips.forEach { trip ->
-                        val isSelected = activeTripId == trip.id
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier =
-                                Modifier
-                                    .clip(RoundedCornerShape(50))
-                                    .background(
-                                        if (isSelected) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceContainer
-                                        },
-                                    ).clickable { onTripSelected(trip.id) }
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                        ) {
+                        Tab(
+                            selected = activeTripId == trip.id,
+                            onClick = { onTripSelected(trip.id) },
+                            text = { Text(trip.title, style = MaterialTheme.typography.labelLarge) },
+                            icon = {
                             Icon(
                                 imageVector = Icons.Default.Place,
                                 contentDescription = null,
-                                tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(14.dp),
                             )
-                            Text(
-                                text = trip.title,
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
+                            },
+                        )
                     }
                 }
             }

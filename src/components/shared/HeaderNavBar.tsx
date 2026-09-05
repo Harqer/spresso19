@@ -62,7 +62,7 @@ export const HeaderNavBar: React.FC<HeaderNavBarProps> = ({
           icon="shopping_bag"
           onClick={onOpenCartDrawer}
           title="Shopping Cart"
-          badgeCount={totalCartCount}
+          itemCount={totalCartCount}
         />
 
         {onOpenProfile && (

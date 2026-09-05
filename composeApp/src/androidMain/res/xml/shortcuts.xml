@@ -8,9 +8,9 @@
         android:shortcutLongLabel="@string/shortcut_lens_long"
         android:shortcutDisabledMessage="@string/shortcut_lens_disabled">
         <intent
-            android:action="com.spresso19.ACTION_SHORTCUT_LENS"
-            android:targetPackage="com.spresso19"
-            android:targetClass="com.spresso19.SpressoLensShortcutReceiver" />
+            android:action="com.spresso.ACTION_SHORTCUT_LENS"
+            android:targetPackage="com.spresso"
+            android:targetClass="com.spresso.SpressoLensShortcutReceiver" />
         <categories android:name="android.shortcut.conversation" />
     </shortcut>
 </shortcuts>

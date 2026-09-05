@@ -3,21 +3,41 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, PhoneAuthCredential } from 'firebase/auth';
 import { getFirestore, collection, addDoc, doc, getDocFromServer } from 'firebase/firestore';
 import { getDatabase } from 'firebase/database';
+import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
+import { getToken as getAppCheckToken, initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from 'firebase/app-check';
 import { getDataConnect, connectDataConnectEmulator } from 'firebase/data-connect';
+import type { Analytics } from 'firebase/analytics';
+import type { FirebasePerformance } from 'firebase/performance';
 import { connectorConfig } from '../dataconnect';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const rtdb = getDatabase(app, "https://spresso-5561f-default-rtdb.firebaseio.com");
+export const rtdb = getDatabase(app, "https://get-spresso-default-rtdb.firebaseio.com");
 export const auth = getAuth(app);
 export const dataConnect = getDataConnect(app, connectorConfig);
 export const functions = getFunctions(app);
+export const storage = getStorage(app);
+
+// App Check is required by the authenticated AI endpoints. The production
+// reCAPTCHA key is supplied at build time; leaving it unset keeps local
+// development usable while making the missing production configuration
+// explicit in deployment checks.
+export let appCheck: AppCheck | null = null;
+if (typeof window !== "undefined") {
+  const siteKey = import.meta.env.VITE_FIREBASE_APPCHECK_RECAPTCHA_SITE_KEY;
+  if (siteKey) {
+    appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(siteKey),
+      isTokenAutoRefreshEnabled: true,
+    });
+  }
+}
 
 // Initialize Telemetry: Firebase Performance Monitoring & Google Analytics
-let analytics: ReturnType<typeof getAnalytics> | null = null;
-let perf: ReturnType<typeof getPerformance> | null = null;
+let analytics: Analytics | null = null;
+let perf: FirebasePerformance | null = null;
 
 if (typeof window !== "undefined") {
   // We only initialize Analytics and Performance in browser environments
@@ -240,6 +260,11 @@ export const authFetch = async (url: string, options: RequestInit = {}) => {
 
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  if (appCheck) {
+    const appCheckToken = await getAppCheckToken(appCheck);
+    headers.set("X-Firebase-AppCheck", appCheckToken.token);
   }
 
   return fetch(url, {

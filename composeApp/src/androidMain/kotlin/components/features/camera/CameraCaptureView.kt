@@ -32,11 +32,14 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
 
+private const val FRAME_SAMPLE_INTERVAL_MS = 1_000L
+
 @SuppressLint("MissingPermission")
 @Composable
 fun CameraCaptureView(
     onImageCaptured: (ByteArray) -> Unit,
     onFrameCaptured: ((ByteArray) -> Unit)? = null,
+    onVisionContextCaptured: ((String) -> Unit)? = null,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -125,6 +128,13 @@ fun CameraCaptureView(
                 .getClient(options)
         }
 
+    val imageLabeler =
+        remember {
+            com.google.mlkit.vision.label.defaults.ImageLabelerOptions.DEFAULT_OPTIONS.let {
+                com.google.mlkit.vision.label.ImageLabeling.getClient(it)
+            }
+        }
+
     var detectedObjects by remember { mutableStateOf<List<com.google.mlkit.vision.objects.DetectedObject>>(emptyList()) }
 
     LaunchedEffect(Unit) {
@@ -150,19 +160,34 @@ fun CameraCaptureView(
             activeRecording?.stop()
             cameraExecutor.shutdown()
             objectDetector.close()
+            imageLabeler.close()
         }
     }
 
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
 
-    LaunchedEffect(onFrameCaptured) {
-        if (onFrameCaptured == null) return@LaunchedEffect
+    LaunchedEffect(onFrameCaptured, onVisionContextCaptured) {
+        if (onFrameCaptured == null && onVisionContextCaptured == null) return@LaunchedEffect
         while (isActive) {
-            kotlinx.coroutines.delay(1000)
+            kotlinx.coroutines.delay(FRAME_SAMPLE_INTERVAL_MS)
             previewView?.bitmap?.let { bmp ->
-                val stream = java.io.ByteArrayOutputStream()
-                bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, stream)
-                onFrameCaptured(stream.toByteArray())
+                onFrameCaptured?.let { callback ->
+                    val stream = java.io.ByteArrayOutputStream()
+                    bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 60, stream)
+                    callback(stream.toByteArray())
+                }
+                onVisionContextCaptured?.let { callback ->
+                    val image = com.google.mlkit.vision.common.InputImage.fromBitmap(bmp, 0)
+                    imageLabeler.process(image)
+                        .addOnSuccessListener { labels ->
+                            val context = labels
+                                .sortedByDescending { it.confidence }
+                                .take(5)
+                                .filter { it.confidence >= 0.55f }
+                                .joinToString(", ") { "${it.text} (${(it.confidence * 100).toInt()}%)" }
+                            if (context.isNotBlank()) callback(context)
+                        }
+                }
             }
         }
     }

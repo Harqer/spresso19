@@ -1,6 +1,6 @@
 import React from "react";
 import { MaterialIcon } from "../../MaterialIcon";
-import { AgentAvatarBadge } from "@/src/components/features/chat/AgentAvatarBadge";
+import { AgentAvatarIcon } from "@/src/components/features/chat/AgentAvatarIcon";
 import { CreatorAgentChatPanel } from "@/src/components/features/chat/CreatorAgentChatPanel";
 
 export const CreativeStudioAgentsTab = ({
@@ -29,15 +29,13 @@ export const CreativeStudioAgentsTab = ({
             className={`p-4 rounded-2xl text-left transition transform active:scale-[0.99] cursor-pointer flex flex-col justify-between border shadow-2xs group relative overflow-hidden ${selectedAgent === agent.id ? `${agent.bgColor} ${agent.borderColor} ring-2 ring-[#386633]/40` : "bg-white border-[#e2e2e2] hover:border-[#386633]/50 hover:bg-[#fafdfa]"}`}
           >
             <div>
-              <AgentAvatarBadge icon={agent.icon} color={agent.color} isSelected={selectedAgent === agent.id} badge={agent.badge} />
+              <AgentAvatarIcon icon={agent.icon} color={agent.color} isSelected={selectedAgent === agent.id} />
               <h3 className="text-xs font-bold text-[#18211e] font-serif group-hover:text-[#386633] transition">{agent.title}</h3>
               <p className="text-[11px] text-[#556258] leading-snug mt-1">{agent.subtitle}</p>
             </div>
-            <div className="mt-3 pt-2 border-t border-black/5 flex flex-wrap gap-1">
-              {agent.capabilities.map((cap: string, idx: number) => (
-                <span key={idx} className="text-[9px] font-mono font-medium px-1.5 py-0.5 bg-white/70 rounded text-[#38423b] border border-black/5">{cap}</span>
-              ))}
-            </div>
+            <p className="mt-3 pt-2 border-t border-black/5 text-[10px] text-[#38423b] leading-relaxed">
+              {agent.capabilities.join(" · ")}
+            </p>
           </button>
         ))}
       </div>

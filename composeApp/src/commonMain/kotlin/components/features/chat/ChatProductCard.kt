@@ -26,14 +26,13 @@ fun ChatProductCard(
         subtitle = "${product.brand.uppercase()} • $${product.price}",
         modifier = modifier,
         onClick = null,
-        badgeContent = null,
         actionRow = {
             components.shared.elements.SpressoButton(
                 text = "Try On",
                 icon = Icons.Default.AutoAwesome,
                 variant = components.shared.elements.SpressoButtonVariant.OUTLINE,
                 onClick = { onSelectTryOn(product) },
-                modifier = Modifier.weight(1f).height(36.dp),
+                modifier = Modifier.weight(1f),
                 trackingId = product.id,
                 trackingAction = "try_on",
             )
@@ -42,7 +41,7 @@ fun ChatProductCard(
                 icon = Icons.Default.AddShoppingCart,
                 variant = components.shared.elements.SpressoButtonVariant.PRIMARY,
                 onClick = { onAddToCart(product) },
-                modifier = Modifier.weight(1f).height(36.dp),
+                modifier = Modifier.weight(1f),
                 trackingId = product.id,
                 trackingAction = "buy_now",
             )

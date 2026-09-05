@@ -1,4 +1,4 @@
-export async function getCleanLocationName(latitude: number, longitude: number): Promise<string> {
+export async function getCleanLocationName(latitude: number, longitude: number): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3500);
@@ -34,14 +34,5 @@ export async function getCleanLocationName(latitude: number, longitude: number):
     // Reverse geocode timeout or network error — fallback label is applied below
   }
 
-  // Fallback clean city naming logic without ever showing raw coordinates
-  if (latitude >= 37.0 && latitude <= 38.2 && longitude >= -123.2 && longitude <= -121.8) {
-    return "San Francisco, CA";
-  } else if (latitude >= 40.4 && latitude <= 41.1 && longitude >= -74.3 && longitude <= -73.6) {
-    return "New York, NY";
-  } else if (latitude >= 33.7 && latitude <= 34.4 && longitude >= -118.7 && longitude <= -117.9) {
-    return "Los Angeles, CA";
-  }
-
-  return "Current Location";
+  return null;
 }

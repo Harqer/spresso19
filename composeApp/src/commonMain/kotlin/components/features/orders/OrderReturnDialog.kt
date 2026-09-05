@@ -68,7 +68,7 @@ fun OrderReturnDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    "Our automated 30-day return policy applies. Provide a reason below and a prepaid shipping label will be generated immediately.",
+                    "Tell us why you are returning this order. We will check its eligibility and show the available return steps.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -83,7 +83,7 @@ fun OrderReturnDialog(
                         onValueChange = onReturnReasonChange,
                         placeholder = {
                             Text(
-                                "e.g. Item defective or damaged",
+                            "For example, item arrived damaged",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -115,7 +115,7 @@ fun OrderReturnDialog(
                 shape = RoundedCornerShape(12.dp),
             ) {
                 Text(
-                    "Confirm Return",
+                    "Request return",
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onPrimary,
                 )

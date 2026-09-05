@@ -16,7 +16,7 @@ exports.behavioralAnalysisFlow = genkit_1.ai.defineFlow({
 }, async ({ explicitInterests, chatHistory }) => {
     // We will use gemini to analyze the interests and chat history
     const { text } = await genkit_1.ai.generate({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.1-flash-lite-preview",
         prompt: `Analyze the following user data to generate a behavioral profile.
       Explicit Interests: ${explicitInterests.join(", ")}
       Chat History: ${(chatHistory === null || chatHistory === void 0 ? void 0 : chatHistory.join(" | ")) || "None"}

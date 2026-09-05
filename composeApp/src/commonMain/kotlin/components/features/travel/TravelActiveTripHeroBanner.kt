@@ -2,7 +2,6 @@ package components.features.travel
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -56,45 +55,30 @@ fun ActiveTripHeroBanner(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top,
                 ) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f), RoundedCornerShape(50))
-                                .padding(horizontal = 12.dp, vertical = 4.dp),
-                    ) {
-                        Text(
-                            text = currentTrip.status,
-                            style =
-                                MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = 1.sp,
-                                ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
+                    Text(
+                        text = currentTrip.status,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
 
-                    Row(
-                        modifier =
-                            Modifier
-                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), RoundedCornerShape(50))
-                                .clickable {
-                                    onAskAI(
-                                        "Help me plan itinerary details and local recommendations for ${currentTrip.title} in ${currentTrip.destination}",
-                                    )
-                                }.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    TextButton(
+                        onClick = {
+                            onAskAI(
+                                "Help me plan itinerary details and local recommendations for ${currentTrip.title} in ${currentTrip.destination}",
+                            )
+                        },
+                        shape = RoundedCornerShape(8.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "Ask AI Travel Assistant",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.onSurface,
+                            text = "Ask Spresso",
+                            style = MaterialTheme.typography.labelLarge,
                         )
                     }
                 }

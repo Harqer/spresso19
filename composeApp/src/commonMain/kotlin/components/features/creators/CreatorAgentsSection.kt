@@ -28,14 +28,18 @@ fun CreatorAgentsSection(
             val result = network.SpressoBackend.getCreatorAgents()
             agents = result
         } catch (e: Exception) {
-            errorMessage = e.message
+            errorMessage = "Your creative assistants are unavailable right now. Please try again."
         } finally {
             isLoading = false
         }
     }
 
     if (errorMessage != null) {
-        Text(text = "Error: $errorMessage", modifier = Modifier.padding(16.dp))
+        Text(
+            text = errorMessage.orEmpty(),
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(16.dp),
+        )
     } else if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -54,12 +58,12 @@ fun CreatorAgentsSection(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "No agents found",
+                text = "No creative assistants yet",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "You haven't created any agents yet.",
+                text = "Create one when you are ready to develop a reusable style.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

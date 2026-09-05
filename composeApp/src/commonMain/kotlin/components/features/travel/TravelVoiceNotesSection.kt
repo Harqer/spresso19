@@ -54,16 +54,12 @@ fun VoiceNotesSection(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
-                Row(
-                    modifier =
-                        Modifier
-                            .background(
-                                if (isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                                RoundedCornerShape(50),
-                            ).clickable { onToggleRecording() }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                Button(
+                    onClick = onToggleRecording,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isRecording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    ),
                 ) {
                     Icon(
                         imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.GraphicEq,
@@ -72,8 +68,8 @@ fun VoiceNotesSection(
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        text = if (isRecording) "Recording Audio..." else "Record Voice Note",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        text = if (isRecording) "Stop recording" else "Record voice note",
+                        style = MaterialTheme.typography.labelLarge,
                         color = if (isRecording) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary,
                     )
                 }

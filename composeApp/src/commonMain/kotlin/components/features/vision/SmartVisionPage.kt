@@ -12,7 +12,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import components.features.chat.AIShopperInputBar
 import components.models.*
-import components.shared.HITLCheckoutModal
+import components.shared.MerchantHandoffDialog
 import kotlinx.coroutines.launch
 import network.ApiClient
 import network.DetectedItem
@@ -41,7 +41,7 @@ fun SmartVisionPage(
         try {
             inventory = apiClient.discoverPersonalizedProducts()
         } catch (e: Exception) {
-            scope.launch { snackbarHostState.showSnackbar("Failed to load inventory: ${e.message}") }
+            scope.launch { snackbarHostState.showSnackbar("Product availability could not be loaded. Please try again.") }
         }
     }
 
@@ -59,14 +59,40 @@ fun SmartVisionPage(
                         try {
                             val response = apiClient.performLensSearch(base64Image)
                             if (response.success) {
-                                detectedItems = response.detectedResult?.detectedItems ?: emptyList()
+                                // Lens results are canonical merchant listings. Keep the
+                                // legacy overlay shape only as a presentation adapter; the
+                                // listing remains the sole source of merchant/price data.
+                                val lensProducts = response.listings.map { listing ->
+                                    ProductItem(
+                                        id = listing.id,
+                                        name = listing.name,
+                                        brand = listing.brand.orEmpty(),
+                                        category = listing.category.orEmpty(),
+                                        price = listing.observedPrice?.amount,
+                                        imageUrl = listing.imageUrl.orEmpty(),
+                                        merchantUrl = listing.merchantUrl,
+                                        source = listing.source,
+                                        providerListingId = listing.providerListingId,
+                                    )
+                                }
+                                inventory = (inventory + lensProducts).distinctBy { it.id }
+                                detectedItems = response.listings.map { listing ->
+                                    DetectedItem(
+                                        detectedName = listing.name,
+                                        brandGuess = listing.brand.orEmpty(),
+                                        category = listing.category.orEmpty(),
+                                        priceEstimate = listing.observedPrice?.amount ?: 0.0,
+                                        confidenceScore = listing.confidence ?: 0.0,
+                                        matchingCatalogId = listing.id,
+                                    )
+                                }
                             } else {
                                 detectedItems = emptyList()
-                                snackbarHostState.showSnackbar("Vision Search unavailable")
+                                snackbarHostState.showSnackbar("Visual search is unavailable right now.")
                             }
                         } catch (e: Exception) {
                             detectedItems = emptyList()
-                            snackbarHostState.showSnackbar("Search failed: ${e.message}")
+                            snackbarHostState.showSnackbar("Visual search could not be completed. Please try again.")
                         } finally {
                             isScanning = false
                         }
@@ -117,36 +143,18 @@ fun SmartVisionPage(
                             try {
                                 network.SpressoBackend.logVisionEvent(detectedObjects = it, context = "chat", imageUrl = null)
                             } catch (e: Exception) {
-                                snackbarHostState.showSnackbar("Error: ${e.message}")
+                                snackbarHostState.showSnackbar("Your question could not be sent. Please try again.")
                             }
                         }
                     },
-                    placeholder = "Ask Spresso AI about these items...",
+                    placeholder = "Ask Spresso about these items...",
                 )
             }
 
             hitlCheckoutPayload?.let { payload ->
-                HITLCheckoutModal(
+                MerchantHandoffDialog(
                     payload = payload,
                     onDismiss = { hitlCheckoutPayload = null },
-                    onConfirmPurchase = { _ ->
-                        scope.launch {
-                            try {
-                                val res =
-                                    apiClient.confirmCheckoutWithToken(
-                                        payload.product.id,
-                                        payload.quantity,
-                                        payload.authorizationId,
-                                        "123 Main St",
-                                    )
-                                snackbarHostState.showSnackbar(res.message ?: "Order confirmed")
-                            } catch (e: Exception) {
-                                snackbarHostState.showSnackbar("Checkout failed: ${e.message}")
-                            } finally {
-                                hitlCheckoutPayload = null
-                            }
-                        }
-                    },
                 )
             }
         }

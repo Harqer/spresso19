@@ -22,7 +22,7 @@ robolectric = "4.11.1"
 dropshots = "0.4.1"
 mockk = "1.13.8"
 ui-test-junit4 = "1.6.8"
-mwdat = "0.8.0"
+mwdat = "0.9.0"
 firebase-bom = "33.1.2"
 firebase-dataconnect = "17.3.3"
 firebase-vertexai = "16.0.0"
@@ -30,6 +30,7 @@ pay-button = "1.1.0"
 play-services-wallet = "19.4.0"
 camera-mlkit-vision = "1.4.0-beta02"
 object-detection = "17.0.2"
+image-labeling = "17.0.9"
 text-recognition = "16.0.0"
 core-splashscreen = "1.0.1"
 billing-ktx = "7.1.0"
@@ -92,6 +93,7 @@ compose-pay-button = { module = "com.google.pay.button:compose-pay-button", vers
 play-services-wallet = { module = "com.google.android.gms:play-services-wallet", version.ref = "play-services-wallet" }
 androidx-camera-mlkit-vision = { module = "androidx.camera:camera-mlkit-vision", version.ref = "camera-mlkit-vision" }
 mlkit-vision-detection = { module = "com.google.mlkit:object-detection", version.ref = "object-detection" }
+mlkit-image-labeling = { module = "com.google.mlkit:image-labeling", version.ref = "image-labeling" }
 mlkit-vision-text = { module = "com.google.mlkit:text-recognition", version.ref = "text-recognition" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }

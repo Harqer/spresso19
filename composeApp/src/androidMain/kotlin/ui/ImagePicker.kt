@@ -12,6 +12,7 @@ import components.features.camera.CameraCaptureView
 @Composable
 actual fun rememberImagePicker(
     onFrameCaptured: ((ByteArray) -> Unit)?,
+    onVisionContextCaptured: ((String) -> Unit)?,
     onImagePicked: (ByteArray?) -> Unit,
 ): () -> Unit {
     val context = LocalContext.current
@@ -91,6 +92,7 @@ actual fun rememberImagePicker(
                     onImagePicked(bytes)
                 },
                 onFrameCaptured = onFrameCaptured,
+                onVisionContextCaptured = onVisionContextCaptured,
                 onDismiss = {
                     showCamera = false
                     onImagePicked(null)

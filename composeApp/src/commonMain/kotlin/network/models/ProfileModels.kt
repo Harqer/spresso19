@@ -8,7 +8,7 @@ enum class SubscriptionTier(
 ) {
     FREE("Free Explorer"),
     SPRESSO_VIP("Spresso VIP"),
-    CHEF_PRO("Bargain Chef Pro"),
+    CHEF_PRO("Cooking Pro"),
 }
 
 @Serializable

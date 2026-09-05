@@ -1,0 +1,20 @@
+goal: Complete Android stage-one core functionality with correct domain routing.
+steps:
+  - name: inspect
+    command: rg --files composeApp functions src terraform docs
+    evidence: Relevant Android, backend, payment, camera, wearable, and route files identified.
+  - name: graph-impact
+    command: node .gitnexus/run.cjs impact "App" --direction upstream --repo .
+    evidence: Callers and risk reviewed before editing existing symbols.
+  - name: contracts-first
+    command: ./gradlew :composeApp:testDebugUnitTest --no-daemon
+    evidence: Failing or passing route/action contract assertions recorded before implementation.
+  - name: android-implementation
+    command: ./gradlew :composeApp:compileDebugKotlinAndroid --no-daemon
+    evidence: Android Compose/KMP source compiles with required SDK boundaries.
+  - name: integration-verification
+    command: ./gradlew :composeApp:testDebugUnitTest :composeApp:connectedDebugAndroidTest --no-daemon
+    evidence: Android behavior, permissions, routing, and action wiring verified.
+  - name: graph-change
+    command: node .gitnexus/run.cjs detect-changes --scope all --repo .
+    evidence: Graph changes are complete and non-partial before commit.

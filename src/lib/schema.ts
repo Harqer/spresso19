@@ -15,9 +15,7 @@ export const ProductItemSchema = z.object({
   colors: z.array(z.string()).optional(),
   sizes: z.array(z.string()).optional(),
   fitNotes: z.string().optional(),
-  inStock: z.boolean().optional(),
-  stockCount: z.number().optional(),
-  stock: z.number().optional(),
+  availabilityStatus: z.enum(["UNKNOWN", "VERIFY_AT_MERCHANT_CHECKOUT", "AVAILABLE", "UNAVAILABLE"]).optional(),
   sku: z.string().optional(),
   rating: z.number().optional(),
   reviews: z.number().optional(),
@@ -28,7 +26,7 @@ export const ProductItemSchema = z.object({
 
 export const OrderItemSchema = z.object({
   product: ProductItemSchema,
-  quantity: z.number(),
+  quantity: z.number().int().positive().max(25),
   selectedColor: z.string().optional(),
   selectedSize: z.string().optional()
 });
@@ -51,6 +49,11 @@ export const OrderRecordSchema = z.object({
   mcpTransactionHash: z.string().optional(),
   deviceSource: z.string().optional(),
   shippingAddress: z.string().optional()
+});
+
+export const AddToCartSchema = z.object({
+  productId: z.string().min(1),
+  quantity: z.number().int().positive()
 });
 
 export const GetOrdersResponseSchema = z.object({

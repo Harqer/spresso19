@@ -3,7 +3,7 @@ import { getActiveProductById } from "./inventory";
 
 export interface KitesurfPurchaseResult {
   success: boolean;
-  orderId: string;
+  orderId?: string;
   steps: string[];
   receiptUrl: string;
   screenshotUrl?: string;
@@ -88,13 +88,13 @@ async function searchProductOnMerchant(
       productUrl: typeof data.productUrl === "string" ? data.productUrl : undefined,
     };
   } catch (err: any) {
-    console.warn(`Cloudflare Browser Run search note for ${merchantUrl}:`, err.message);
-    return {
-      found: true,
-      productUrl: merchantUrl,
-    };
+    console.warn(`Cloudflare Browser Run could not verify ${merchantUrl}:`, err.message);
+    throw new Error("The merchant listing could not be verified.");
   }
 }
+
+const kiteSearchCache = new Map<string, { expiresAt: number; value: any[] }>();
+const KITE_SEARCH_CACHE_TTL_MS = 5 * 60 * 1000;
 
 /**
  * Single-pass Kitesurf Direct Web Search & Product Extraction.
@@ -104,58 +104,85 @@ export async function searchKitesurfRetailerProducts(
   query: string,
   retailerHint?: string
 ): Promise<any[]> {
-  try {
-    const { accountId, apiToken } = await loadCloudflareCredentials();
-    const searchTargetUrl = retailerHint?.toLowerCase().includes("banana")
-      ? "https://bananarepublic.gap.com"
-      : `https://www.google.com/search?q=${encodeURIComponent(query + " buy online")}`;
+  const cacheKey = `${(retailerHint || "").toLowerCase()}|${query.toLowerCase().trim()}`;
+  const cached = kiteSearchCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
 
-    const result = await quickAction("json", accountId, apiToken, {
-      url: searchTargetUrl,
-      prompt: `Extract current live retail product listings matching query "${query}". Include product title, price, image URL, and direct product page URL.`,
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          type: "object",
-          properties: {
-            products: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  title: { type: "string" },
-                  price: { type: "number" },
-                  productUrl: { type: "string" },
-                  imageUrl: { type: "string" }
-                },
-                required: ["title", "price"]
+  const produce = async (): Promise<any[]> => {
+    try {
+      const { accountId, apiToken } = await loadCloudflareCredentials();
+      const searchTargetUrl = retailerHint?.toLowerCase().includes("banana")
+        ? "https://bananarepublic.gap.com"
+        : `https://www.google.com/search?q=${encodeURIComponent(query + " buy online")}`;
+
+      const result = await quickAction("json", accountId, apiToken, {
+        url: searchTargetUrl,
+        prompt: `Extract current live retail product listings matching query "${query}". Include product title, price, image URL, and direct product page URL.`,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            type: "object",
+            properties: {
+              products: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    price: { type: "number" },
+                    productUrl: { type: "string" },
+                    imageUrl: { type: "string" }
+                  },
+                  required: ["title", "price"]
+                }
               }
-            }
-          },
-          required: ["products"]
+            },
+            required: ["products"]
+          }
         }
-      }
-    });
+      });
 
-    const items = result?.result?.products || [];
-    if (items.length > 0) {
-      return items.map((item: any, idx: number) => ({
-        id: `kitesurf-${Date.now()}-${idx}`,
-        name: item.title,
-        brand: retailerHint || "Retail Merchant",
-        category: "Web Sourced",
-        price: item.price || 49.99,
-        image: item.imageUrl || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600",
-        merchantUrl: item.productUrl || searchTargetUrl,
-        inStock: true
-      }));
+      const items = Array.isArray(result?.result?.products) ? result.result.products : [];
+      return items.flatMap((item: any, idx: number) => {
+        const price = Number(item.price);
+        if (
+          typeof item.title !== "string" ||
+          !item.title.trim() ||
+          !Number.isFinite(price) ||
+          price <= 0 ||
+          typeof item.productUrl !== "string"
+        ) {
+          return [];
+        }
+        let productUrl: URL;
+        try {
+          productUrl = new URL(item.productUrl);
+        } catch {
+          return [];
+        }
+        if (productUrl.protocol !== "https:") return [];
+        return [{
+          id: `kitesurf-${Date.now()}-${idx}`,
+          name: item.title.trim(),
+          brand: retailerHint || productUrl.hostname,
+          category: "Web sourced",
+          price,
+          image: typeof item.imageUrl === "string" ? item.imageUrl : "",
+          merchantUrl: productUrl.toString(),
+          availabilityStatus: "VERIFY_AT_MERCHANT_CHECKOUT",
+        }];
+      });
+    } catch (err: any) {
+      console.warn("[Kitesurf Search] Direct web extraction note:", err.message);
     }
-  } catch (err: any) {
-    console.warn("[Kitesurf Search] Direct web extraction note:", err.message);
-  }
 
-  // Return empty array if no real products were found. No mock fallback data allowed.
-  return [];
+    // No listings is a valid empty discovery result; callers must handle it.
+    return [];
+  };
+
+  const value = await produce();
+  kiteSearchCache.set(cacheKey, { expiresAt: Date.now() + KITE_SEARCH_CACHE_TTL_MS, value });
+  return value;
 }
 
 async function captureReceiptScreenshot(
@@ -184,7 +211,6 @@ async function runHeadlessCheckout(
   virtualCardJson?: string
 ): Promise<{ steps: string[]; vendorOrderRef?: string }> {
   const steps: string[] = [];
-  let vendorOrderRef: string | undefined;
   try {
     const { default: puppeteer } = await import("puppeteer-core");
     const browserWSEndpoint = `${CDP_WS_BASE}/${accountId}/browser-run/devtools/browser?browser=kitesurf`;
@@ -199,14 +225,8 @@ async function runHeadlessCheckout(
       await page.goto(targetUrl, { waitUntil: "networkidle2", timeout: 45000 });
       steps.push(`Loaded merchant storefront page: ${targetUrl}`);
 
-      // 1. Form Management: Select Size/Variant
-      const sizeSelect = await page.$("select[name*='size' i], input[value*='M' i], [data-testid*='size-select']");
-      if (sizeSelect) {
-        await sizeSelect.click();
-        steps.push("Managed product variant form: Selected Size Medium.");
-      }
-
-      // 2. Form Management: Submit Add to Cart
+      // Add the already-selected catalog variant to the merchant cart. Variant
+      // choice is never guessed by automation.
       const addToCart = await page.$(
         "button[aria-label*='Add to cart' i], button::-p-text(Add to cart), [data-testid*='add-to-cart'], #add-to-cart"
       );
@@ -216,7 +236,7 @@ async function runHeadlessCheckout(
         steps.push("Submitted Add-to-Cart form action on merchant storefront.");
       }
 
-      // 3. Form Management: Navigate to Checkout Form Page
+      // Navigate to checkout without submitting an order.
       const cartCheckout = await page.$(
         "button[aria-label*='checkout' i], a::-p-text(Checkout), [data-testid*='checkout'], #checkout-btn"
       );
@@ -226,49 +246,27 @@ async function runHeadlessCheckout(
         steps.push("Navigated to merchant checkout form page.");
       }
 
-      // 4. Form Management: Fill Contact & Shipping Address Form Inputs
-      const emailInput = await page.$("input[type='email' i], input[name*='email' i]");
-      if (emailInput) {
-        await emailInput.type("shopper@spresso.ai", { delay: 15 });
-        steps.push("Filled contact information form inputs (Email: shopper@spresso.ai).");
-      }
-
+      // Shipping can be filled from the user's confirmed checkout payload.
       const addressInputs = await page.$$(
         "input[name*='address' i], input[name*='street' i], input[autocomplete*='address' i], textarea[name*='address' i]"
       );
       if (addressInputs.length > 0) {
         await addressInputs[0].type(shippingAddress, { delay: 25 });
-        steps.push("Filled shipping address form inputs: " + shippingAddress);
+        steps.push("Filled the confirmed shipping address.");
       }
 
-      // 5. Payment Information: Virtual Corporate Card logic
-      if (virtualCardJson) {
-        try {
-          const virtualCard = JSON.parse(virtualCardJson);
-          steps.push(`Filled payment form using secure Virtual Corporate Card (ending in ${virtualCard.cardNumber.slice(-4)}).`);
-        } catch (e) {
-          steps.push("Filled payment form using provided payment token.");
-        }
-      }
-
-      // 6. Biometric Authorization Check Gate before submitting final purchase form
-      if (biometricAuthorized) {
-        steps.push("User biometric authorization token verified (0xBIO_AUTH_CONFIRMED).");
-        const submitOrderBtn = await page.$("button[type='submit' i], button::-p-text(Place Order), #place-order");
-        if (submitOrderBtn) {
-          await submitOrderBtn.click();
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-          steps.push("Submitted final merchant order checkout form.");
-          vendorOrderRef = `VND-${Math.floor(100000 + Math.random() * 900000)}`;
-        } else {
-          steps.push("Submitted checkout form via automated Kitesurf form dispatch.");
-          vendorOrderRef = `VND-${Math.floor(100000 + Math.random() * 900000)}`;
-        }
-      } else {
+      if (!biometricAuthorized) {
         steps.push("Halted checkout before final form submit awaiting user biometric confirmation.");
+        return { steps };
       }
 
-      return { steps, vendorOrderRef };
+      // A Stripe PaymentIntent ID is not a merchant payment credential. Until
+      // a merchant API returns a verifiable order reference, browser checkout
+      // must never click Place Order or manufacture a success response.
+      void virtualCardJson;
+      throw new Error(
+        "This merchant requires an approved payment and order-confirmation integration before Spresso can submit the order."
+      );
     } finally {
       await browser.close();
     }
@@ -280,13 +278,16 @@ async function runHeadlessCheckout(
 
 export async function executeKitesurfPurchase(
   productId: string,
-  shippingAddress: string = "123 Main St, New York, NY 10001",
+  shippingAddress: string,
   paymentToken: string = "",
   merchantUrl?: string,
   userApprovedPaywall?: boolean,
   biometricAuthorized?: boolean
 ): Promise<KitesurfPurchaseResult> {
   const steps: string[] = [];
+  if (!shippingAddress.trim()) {
+    throw new Error("A confirmed shipping address is required.");
+  }
   const product = await getActiveProductById(productId);
   if (!product) {
     throw new Error("Product not found. Cannot automate a purchase without a valid product.");
@@ -304,7 +305,6 @@ export async function executeKitesurfPurchase(
   if (isPaywalledSite && !userApprovedPaywall) {
     return {
       success: false,
-      orderId: `ks-paywall-${Date.now()}`,
       steps: ["Encountered subscription paywall gate on merchant site.", "Halted automated navigation awaiting user approval."],
       receiptUrl: "",
       totalAmount: product.price,
@@ -326,14 +326,18 @@ export async function executeKitesurfPurchase(
   const cdpResult = await runHeadlessCheckout(productUrl, shippingAddress, accountId, apiToken, biometricAuthorized, paymentToken);
   steps.push(...cdpResult.steps);
 
+  if (!cdpResult.vendorOrderRef) {
+    throw new Error("The merchant did not return a verifiable order reference.");
+  }
+
   const screenshotUrl = await captureReceiptScreenshot(productUrl, accountId, apiToken);
-  steps.push("Captured post-checkout screenshot as receipt evidence.");
+  steps.push("Captured merchant confirmation evidence.");
 
   const totalAmount = search.price && search.price > 0 ? search.price : product.price;
 
   return {
     success: true,
-    orderId: `ks-ord-${Date.now()}`,
+    orderId: cdpResult.vendorOrderRef,
     steps,
     receiptUrl: screenshotUrl || "",
     screenshotUrl,

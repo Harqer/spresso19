@@ -8,6 +8,7 @@ const genkit_1 = require("../genkit");
 const genkit_2 = require("genkit");
 const params_1 = require("firebase-functions/params");
 const parallel_web_1 = __importDefault(require("parallel-web"));
+const costControls_1 = require("../costControls");
 const parallelApiKey = (0, params_1.defineSecret)("PARALLEL_API_KEY");
 exports.parallelWebSearchTool = genkit_1.ai.defineTool({
     name: "parallelWebSearch",
@@ -26,19 +27,21 @@ exports.parallelWebSearchTool = genkit_1.ai.defineTool({
     if (!uid) {
         throw new Error("Application safeguard triggered: Unauthenticated AI tool execution attempt blocked.");
     }
-    console.log(`User ${uid} executing parallel web search: ${query}`);
     try {
         const apiKey = parallelApiKey.value();
         if (!apiKey) {
             throw new Error("Missing PARALLEL_API_KEY configuration. Add it via Firebase secrets.");
         }
-        const client = new parallel_web_1.default({ apiKey });
-        const searchResponse = await client.search({
-            objective: query,
-            search_queries: [query],
-            mode: mode || "basic",
+        const { value } = await (0, costControls_1.withCache)("productResearch", { query, mode: mode || "basic" }, async () => {
+            await (0, costControls_1.consumeBudget)(uid, "search");
+            const client = new parallel_web_1.default({ apiKey });
+            return { results: await client.search({
+                    objective: query,
+                    search_queries: [query],
+                    mode: mode || "basic",
+                }) };
         });
-        return { results: searchResponse };
+        return value;
     }
     catch (e) {
         console.error("Parallel search error:", e);

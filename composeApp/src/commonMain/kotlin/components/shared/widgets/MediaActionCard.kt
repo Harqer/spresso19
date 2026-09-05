@@ -33,7 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import components.core.NetworkImage
-import components.shared.elements.ReactionBadge
+import components.core.LocalAnalyticsConsent
+import components.shared.elements.SelectedReactionIcon
 import kotlinx.coroutines.launch
 import network.ApiClient
 
@@ -46,7 +47,6 @@ fun MediaActionCard(
     subtitle: String? = null,
     imageBytes: ByteArray? = null,
     onClick: (() -> Unit)? = null,
-    badgeContent: (@Composable () -> Unit)? = null,
     actionRow: (@Composable RowScope.() -> Unit)? = null,
     trackingId: String? = null,
     trackingAction: String? = null,
@@ -55,11 +55,12 @@ fun MediaActionCard(
     val apiClient = remember { ApiClient() }
     var showReactionPalette by remember { mutableStateOf(false) }
     var selectedReaction by remember { mutableStateOf<ImageVector?>(null) }
+    val hasAnalyticsConsent = LocalAnalyticsConsent.current
 
     val trackedOnClick: (() -> Unit)? =
         onClick?.let { clickAction ->
             {
-                if (trackingId != null && trackingAction != null) {
+                if (trackingId != null && trackingAction != null && hasAnalyticsConsent) {
                     coroutineScope.launch {
                         apiClient.recordInteraction(trackingId, trackingAction)
                     }
@@ -103,26 +104,6 @@ fun MediaActionCard(
                         fallbackBytes = imageBytes,
                     )
 
-                    if (badgeContent != null) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .padding(8.dp)
-                                    .align(Alignment.TopEnd),
-                        ) {
-                            badgeContent()
-                        }
-                    }
-
-                    if (selectedReaction != null) {
-                        ReactionBadge(
-                            icon = selectedReaction!!,
-                            modifier =
-                                Modifier
-                                    .padding(8.dp)
-                                    .align(Alignment.BottomEnd),
-                        )
-                    }
                 }
 
                 // Content Area
@@ -150,6 +131,21 @@ fun MediaActionCard(
                         )
                     }
 
+                    selectedReaction?.let { reaction ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            SelectedReactionIcon(icon = reaction)
+                            Text(
+                                text = "Reaction selected",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
                     if (actionRow != null) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Row(
@@ -167,7 +163,7 @@ fun MediaActionCard(
                 onReactionSelected = { icon ->
                     showReactionPalette = false
                     selectedReaction = icon
-                    if (trackingId != null) {
+                    if (trackingId != null && hasAnalyticsConsent) {
                         coroutineScope.launch {
                             apiClient.recordInteraction(trackingId, "reacted_${icon.name}")
                         }

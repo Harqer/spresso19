@@ -16,9 +16,7 @@ export const AICurationFeed: React.FC<AICurationFeedProps> = ({ curatedPersonali
       
       <div className="relative z-10 space-y-3">
         <div className="flex items-center space-x-1.5">
-          <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-mono font-bold uppercase tracking-wider border border-white/20">
-            Curation Feed
-          </span>
+          <span className="text-[11px] font-medium text-emerald-300">Curated picks</span>
           <span className="text-xs text-emerald-400 font-bold flex items-center space-x-1">
             <MaterialIcon icon="recommend" size={14} />
             <span>Personalized For You</span>
@@ -39,7 +37,7 @@ export const AICurationFeed: React.FC<AICurationFeedProps> = ({ curatedPersonali
                 <h4 className="text-xs font-bold text-white line-clamp-1 group-hover:text-emerald-400 transition">{p.name}</h4>
                 <span className="text-[10px] text-stone-400 font-mono block">${p.price.toFixed(2)}</span>
                 {p.rating ? (
-                <div className="flex items-center space-x-1 text-[10px] font-bold text-[#191d16] dark:text-[#f8fafc] bg-[#eef3ea] dark:bg-[#283228] px-1.5 py-0.5 rounded-full">
+                <div className="flex items-center space-x-1 text-[10px] font-medium text-stone-300">
                   <MaterialIcon icon="star" size={10} className="text-[#386633] dark:text-[#9cd695]" />
                   <span>{p.rating}</span>
                 </div>

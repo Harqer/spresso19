@@ -23,6 +23,7 @@ fun PaymentWalletSection(
     savedCards: List<PaymentCardInfo>,
     web3WalletAddress: String? = null,
     onAddPaymentCard: (() -> Unit)? = null,
+    onRemovePaymentCard: ((String) -> Unit)? = null,
     onGoogleWalletAction: (() -> Unit)? = null,
     onConnectCoinbaseWallet: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -97,17 +98,16 @@ fun PaymentWalletSection(
                                         )
                                     }
                                 }
-                                if (card.isDefault) {
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = MaterialTheme.colorScheme.primaryContainer,
-                                    ) {
+                                Column(horizontalAlignment = Alignment.End) {
+                                    if (card.isDefault) {
                                         Text(
-                                            "Default",
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
+                                            "Default card",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary,
                                         )
+                                    }
+                                    TextButton(onClick = { onRemovePaymentCard?.invoke(card.id) }) {
+                                        Text("Remove")
                                     }
                                 }
                             }

@@ -4,10 +4,12 @@ exports.searchProductsTool = void 0;
 const genkit_1 = require("../genkit");
 const genkit_2 = require("genkit");
 const params_1 = require("firebase-functions/params");
+const costControls_1 = require("../costControls");
+const serpApiAdapter_1 = require("../providers/serpApiAdapter");
 const serpapiKey = (0, params_1.defineSecret)("SERPAPI_API_KEY");
 exports.searchProductsTool = genkit_1.ai.defineTool({
     name: "searchProducts",
-    description: "Searches the Spresso store inventory and internet for products matching the user's query.",
+    description: "Discovers products and compares listings from the Spresso catalog and the internet. Spresso does not own or represent merchant inventory.",
     inputSchema: genkit_2.z.object({
         query: genkit_2.z.string().describe("The search query (e.g. 'espresso machine', 'dark roast beans')"),
         category: genkit_2.z.string().optional().describe("Optional category to filter by"),
@@ -16,10 +18,11 @@ exports.searchProductsTool = genkit_1.ai.defineTool({
         results: genkit_2.z.array(genkit_2.z.object({
             id: genkit_2.z.string(),
             name: genkit_2.z.string(),
-            price: genkit_2.z.number(),
+            price: genkit_2.z.number().nullable(),
             description: genkit_2.z.string(),
             imageUrl: genkit_2.z.string().optional(),
-            source: genkit_2.z.string().optional(),
+            source: genkit_2.z.enum(["serpapi"]),
+            merchantUrl: genkit_2.z.string().url(),
         })),
     }),
 }, async ({ query, category }, ctx) => {
@@ -29,34 +32,38 @@ exports.searchProductsTool = genkit_1.ai.defineTool({
     if (!uid) {
         throw new Error("Application safeguard triggered: Unauthenticated AI tool execution attempt blocked.");
     }
-    console.log(`User ${uid} searching products for query: ${query}, category: ${category}`);
+    console.log("Product search requested", { uid, category });
     try {
-        const apiKey = serpapiKey.value();
-        if (!apiKey) {
-            throw new Error("Missing SERPAPI_API_KEY configuration.");
-        }
         const searchQuery = category ? `${category} ${query}` : query;
-        const url = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(searchQuery)}&api_key=${apiKey}`;
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`SerpApi responded with status: ${response.status}`);
-        }
-        const data = await response.json();
-        const shoppingResults = data.shopping_results || [];
-        return {
-            results: shoppingResults.slice(0, 5).map((item, index) => {
-                const priceRaw = item.price || "0";
-                const priceValue = parseFloat(priceRaw.replace(/[^0-9.]/g, ""));
-                return {
-                    id: item.product_id || `serp_${index}`,
-                    name: item.title || item.source,
-                    price: isNaN(priceValue) ? 0.0 : priceValue,
-                    description: item.snippet || item.title || "",
-                    imageUrl: item.thumbnail,
-                    source: item.source,
-                };
-            })
-        };
+        const { value } = await (0, costControls_1.withCache)("productSearch", { searchQuery }, async () => {
+            await (0, costControls_1.consumeBudget)(uid, "search");
+            const apiKey = serpapiKey.value();
+            if (!apiKey) {
+                throw new Error("DISCOVERY_INFRASTRUCTURE_UNAVAILABLE: SERPAPI_API_KEY is not configured for this environment.");
+            }
+            const url = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(searchQuery)}&api_key=${apiKey}`;
+            const response = await fetch(url);
+            if (!response.ok)
+                throw new Error(`SerpApi responded with status: ${response.status}`);
+            const data = await response.json();
+            const shoppingResults = Array.isArray(data.shopping_results) ? data.shopping_results : [];
+            const listings = (0, serpApiAdapter_1.normalizeSerpApiResults)(shoppingResults);
+            return {
+                results: listings.slice(0, 5).map(listing => {
+                    var _a, _b;
+                    return ({
+                        id: listing.id,
+                        name: listing.name,
+                        price: (_b = (_a = listing.observedPrice) === null || _a === void 0 ? void 0 : _a.amount) !== null && _b !== void 0 ? _b : null,
+                        description: listing.category || listing.brand || listing.name,
+                        imageUrl: listing.imageUrl,
+                        source: "serpapi",
+                        merchantUrl: listing.merchantUrl,
+                    });
+                }),
+            };
+        });
+        return value;
     }
     catch (e) {
         console.error("Search error:", e);

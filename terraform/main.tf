@@ -1,9 +1,11 @@
 # Enable required APIs
+# Firestore-first architecture: this Terraform provisions ONLY the approved
+# boundaries (Spanner global catalog, Cloud Run tool server, Agent Engine staging).
+# Cloud SQL, Redis/Memorystore and Data Connect are legacy experiments and MUST NOT
+# be provisioned without a documented requirement and migration plan.
 resource "google_project_service" "services" {
   for_each = toset([
     "run.googleapis.com",
-    "sqladmin.googleapis.com",
-    "redis.googleapis.com",
     "vpcaccess.googleapis.com",
     "secretmanager.googleapis.com",
     "artifactregistry.googleapis.com",
@@ -17,7 +19,7 @@ resource "google_project_service" "services" {
   disable_on_destroy = false
 }
 
-# Network setup for Cloud SQL and Redis (Private Services Access)
+# Network setup for approved private-access boundaries
 resource "google_compute_network" "main" {
   name                    = "spresso-network"
   auto_create_subnetworks = true
@@ -47,56 +49,6 @@ resource "google_vpc_access_connector" "connector" {
   depends_on    = [google_project_service.services]
 }
 
-# Cloud SQL (PostgreSQL)
-resource "google_sql_database_instance" "main" {
-  name             = "spresso-db-instance"
-  database_version = "POSTGRES_15"
-  region           = var.region
-  depends_on       = [google_service_networking_connection.private_vpc_connection]
-
-  settings {
-    tier              = "db-custom-2-7680"
-    availability_type = "REGIONAL"
-    disk_autoresize   = true
-    disk_type         = "PD_SSD"
-    backup_configuration {
-      enabled                        = true
-      point_in_time_recovery_enabled = true
-      start_time                     = "03:00"
-    }
-    ip_configuration {
-      ipv4_enabled    = false
-      private_network = google_compute_network.main.id
-    }
-  }
-
-  deletion_protection = true
-}
-
-resource "google_sql_database" "database" {
-  name     = "spresso_db"
-  instance = google_sql_database_instance.main.name
-}
-
-resource "google_sql_user" "users" {
-  name     = "spresso_user"
-  instance = google_sql_database_instance.main.name
-  password = var.db_password
-}
-
-# Memorystore for Redis
-resource "google_redis_instance" "cache" {
-  name           = "spresso-redis"
-  memory_size_gb = 1
-  region         = var.region
-  tier           = "STANDARD_HA"
-  redis_version  = "REDIS_7_2"
-
-  authorized_network = google_compute_network.main.id
-  connect_mode       = "PRIVATE_SERVICE_ACCESS"
-  depends_on         = [google_service_networking_connection.private_vpc_connection]
-}
-
 # Secret Manager Secrets
 resource "google_secret_manager_secret" "secrets" {
   for_each = toset([
@@ -110,7 +62,13 @@ resource "google_secret_manager_secret" "secrets" {
     "META_APP_ID",
     "META_CLIENT_TOKEN",
     "CLOUDFLARE_ACCOUNT_ID",
-    "CLOUDFLARE_API_TOKEN"
+    "CLOUDFLARE_API_TOKEN",
+    "CDP_API_KEY_ID",
+    "CDP_API_KEY_SECRET",
+    "CDP_WALLET_SECRET",
+    "SPRESSO_TOKEN_CONTRACT_ADDRESS",
+    "SPRESSO_TOKEN_SYMBOL",
+    "SPRESSO_TOKEN_DECIMALS"
   ])
   secret_id = each.key
   replication {
@@ -165,12 +123,6 @@ resource "google_project_iam_member" "sa_secret_accessor" {
 resource "google_project_iam_member" "sa_spanner_user" {
   project = var.project_id
   role    = "roles/spanner.databaseUser"
-  member  = "serviceAccount:${google_service_account.agent_engine_sa.email}"
-}
-
-resource "google_project_iam_member" "sa_cloudsql_client" {
-  project = var.project_id
-  role    = "roles/cloudsql.client"
   member  = "serviceAccount:${google_service_account.agent_engine_sa.email}"
 }
 

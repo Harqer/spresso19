@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { FluidShaderCanvas } from "@/src/components/shared/FluidShaderCanvas";
 import { MaterialIcon } from "../../MaterialIcon";
 
@@ -91,7 +91,7 @@ export const AnimatedTicketCard: React.FC<AnimatedTicketCardProps> = ({
           <div className="h-full border-r-2 border-dashed border-white/40 my-4" />
         </div>
 
-        {/* Right Stub Panel ("ADMIT ONE" Vertical Text) */}
+        {/* Right ticket edge panel ("ADMIT ONE" vertical text) */}
         <div className="relative z-10 p-5 md:w-36 bg-black/25 backdrop-blur-sm flex flex-col items-center justify-between border-t md:border-t-0 md:border-l border-white/25">
           <div className="flex items-center justify-center h-full my-auto py-2">
             <span className="text-xl md:text-2xl font-black uppercase tracking-widest text-white/90 font-mono md:[writing-mode:vertical-lr] md:rotate-180 drop-shadow-sm select-none">

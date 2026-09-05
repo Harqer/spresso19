@@ -35,10 +35,6 @@ fun CreatorStudioHeader() {
             }
         }
         Column {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
                 Text(
                     text = "Spresso Creative Studio",
                     style =
@@ -47,24 +43,8 @@ fun CreatorStudioHeader() {
                         ),
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(100.dp),
-                ) {
-                    Text(
-                        text = "AI Video & Image Hub",
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        style =
-                            MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp,
-                            ),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
-                    )
-                }
-            }
             Text(
-                text = "Community Templates • Video & Image Generation",
+                text = "Create videos and images from community styles",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 2.dp),

@@ -17,12 +17,11 @@ import androidx.compose.ui.unit.sp
 import components.shared.elements.SpressoButton
 import components.shared.elements.SpressoButtonVariant
 import components.shared.widgets.MediaActionCard
-import network.ProductItem
 
 fun LazyGridScope.wardrobePhotoGalleryGrid(
     photos: List<WardrobePhoto>,
     handleAddPhoto: () -> Unit,
-    onSelectTryOn: (ProductItem?) -> Unit,
+    onSelectTryOn: (WardrobePhoto) -> Unit,
 ) {
     item(span = { GridItemSpan(maxLineSpan) }) {
         Text(
@@ -91,34 +90,13 @@ fun LazyGridScope.wardrobePhotoGalleryGrid(
             MediaActionCard(
                 imageUrl = p.photoUrl,
                 title = p.title,
+                subtitle = p.category,
                 imageBytes = p.photoBytes,
-                badgeContent = {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                        shape = RoundedCornerShape(4.dp),
-                    ) {
-                        Text(
-                            p.category.uppercase(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        )
-                    }
-                },
                 actionRow = {
                     SpressoButton(
                         text = "Try On",
                         onClick = {
-                            onSelectTryOn(
-                                ProductItem(
-                                    id = p.id,
-                                    name = p.title,
-                                    price = 0.0,
-                                    imageUrl = p.photoUrl,
-                                    category = p.category,
-                                    brand = "Personal Closet",
-                                ),
-                            )
+                            onSelectTryOn(p)
                         },
                         variant = SpressoButtonVariant.SECONDARY,
                         icon = Icons.Default.Visibility,

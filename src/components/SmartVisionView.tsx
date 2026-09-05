@@ -5,13 +5,16 @@ import { DetectedItem, HITLPayload, ProductItem } from "../types";
 import { MaterialIcon } from "./MaterialIcon";
 import { CameraObjectDetectionModal } from "./CameraObjectDetectionModal";
 import { AIShopperInputBar } from "./AIShopperInputBar";
-import { cropImageSnippet } from "../utils/imageCropper";
+import { DiscoveryRepository, displayListingPrice } from "../lib/discoveryRepository";
 
 interface SmartVisionViewProps {
   deviceMode?: string;
   onSelectTryOn: (product: ProductItem) => void;
   onRequestHITLCheckout: (payload: HITLPayload) => void;
   products: ProductItem[];
+  discoveryRepository: DiscoveryRepository;
+  onListingsChanged: () => void;
+  onAddToCart: (product: ProductItem) => void;
   onAskAI?: (text: string, image?: string | null) => void;
 }
 
@@ -20,6 +23,9 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
   onSelectTryOn,
   onRequestHITLCheckout,
   products,
+  discoveryRepository,
+  onListingsChanged,
+  onAddToCart,
   onAskAI
 }) => {
   const [customImage, setCustomImage] = useState<string | null>(null);
@@ -30,6 +36,7 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
     hudAnnotationText: string;
   } | null>(null);
   const [itemThumbnails, setItemThumbnails] = useState<Record<number, string>>({});
+  const [verifiedProducts, setVerifiedProducts] = useState<ProductItem[]>([]);
 
   const activeImage = customImage || (products.length > 0 ? products[0].image : "");
 
@@ -51,27 +58,34 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
     const targetImage = imgDataUrl || activeImage;
 
     try {
-      const identifyVisionObject = httpsCallable(functions, "identifyVisionObject");
-      const res = await identifyVisionObject({
+      const lensSearch = httpsCallable(functions, "lensSearch");
+      const res = await lensSearch({
         imageBase64: targetImage,
-        deviceContext: "WEB",
-        promptText: "Identify product and match catalog stock."
       });
-      
-      const data = { success: true, result: { detectedItems: [res.data as any], hudAnnotationText: "Item located" } }; // Map to expected structure
-      if (data.success && data.result) {
+      const data = ((res.data as any)?.result ?? res.data) as { listings?: Array<{ name?: string }> };
+      const listings = Array.isArray(data.listings) ? data.listings : [];
+      if (listings.length > 0) {
         setDetectedResult({
-          detectedItems: data.result.detectedItems,
-          hudAnnotationText: data.result.hudAnnotationText || "Detected items"
+          detectedItems: [],
+          hudAnnotationText: `${listings.length} matching listings found`,
         });
 
-        const items: DetectedItem[] = data.result.detectedItems || [];
-        const crops: Record<number, string> = {};
-        for (let i = 0; i < items.length; i++) {
-          const crop = await cropImageSnippet(targetImage, items[i].boundingBox);
-          crops[i] = crop;
+        const discoveryQuery = listings.map(item => item.name).filter((name): name is string => Boolean(name?.trim())).join(" ");
+        if (discoveryQuery) {
+          try {
+            const listings = await discoveryRepository.search({ query: discoveryQuery });
+            const discovered = discoveryRepository.asProducts(listings);
+            setVerifiedProducts(discovered);
+            onListingsChanged();
+          } catch (error: any) {
+            if (error?.name !== "AbortError") throw error;
+          }
         }
-        setItemThumbnails(crops);
+        // Lens returns merchant listings, not object bounding boxes. Do not
+        // fabricate detection regions; thumbnails remain tied to listings.
+        setItemThumbnails({});
+      } else {
+        throw new Error("Visual search returned no listings.");
       }
     } catch (err) {
       // Ignored
@@ -80,38 +94,12 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
     }
   };
 
-  const handleTriggerHITL = (item: DetectedItem, thumbnail?: string) => {
-    const prod = products.find(p => p.id === item.matchingCatalogId) || products[0];
-    const finalPrice = item.priceEstimate && item.priceEstimate > 0 ? item.priceEstimate : (prod?.price || 0);
-    const finalImage = thumbnail || prod?.image || activeImage;
-
-    const payload: HITLPayload = {
-      authorizationId: `ORDER-${Date.now().toString(36).toUpperCase()}`,
-      product: {
-        id: prod?.id || `prod-detected-${Date.now()}`,
-        name: item.detectedName || prod?.name || "",
-        price: finalPrice,
-        sku: prod?.sku || `VIS-${Date.now()}`,
-        image: finalImage
-      },
-      quantity: 1,
-      totalAmount: finalPrice,
-      currency: "USD",
-      deviceSource: "WEB",
-      inventoryConfirmed: true,
-      stockRemaining: prod?.stock ?? 0,
-      humanInTheLoopChallenge: {
-        title: "Confirm Purchase",
-        message: `Confirm purchase of ${item.detectedName} for $${finalPrice.toFixed(2)}?`,
-        safetyChecks: [
-          "In stock and reserved",
-          "Includes free express delivery",
-          "Click confirm to place order"
-        ]
-      }
-    };
-
-    onRequestHITLCheckout(payload);
+  const findVerifiedProduct = (item: DetectedItem) => {
+    const candidates = [...verifiedProducts, ...products];
+    const name = item.detectedName.toLowerCase();
+    return candidates.find(product => product.id === item.matchingCatalogId && product.listing)
+      || candidates.find(product => product.listing && product.name.toLowerCase().includes(name))
+      || candidates.find(product => product.listing && product.category.toLowerCase() === item.category.toLowerCase());
   };
 
   return (
@@ -165,7 +153,7 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
 
           {!isScanning &&
             detectedResult?.detectedItems.map((item, idx) => {
-              const matchedCatalogItem = products.find(p => p.id === item.matchingCatalogId);
+              const matchedCatalogItem = findVerifiedProduct(item);
 
               return (
                 <div
@@ -202,7 +190,7 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
                           </h4>
                           <div className="flex items-center space-x-2 mt-0.5">
                             <span className="text-sm font-extrabold text-[#386633]">
-                              ${(item.priceEstimate && item.priceEstimate > 0 ? item.priceEstimate : (matchedCatalogItem?.price || 0)).toFixed(2)}
+                              {matchedCatalogItem?.listing ? displayListingPrice(matchedCatalogItem.listing) : "No verified listing"}
                             </span>
                           </div>
                         </div>
@@ -219,9 +207,10 @@ export const SmartVisionView: React.FC<SmartVisionViewProps> = ({
                           )}
 
                           <button
-                            onClick={() => handleTriggerHITL(item, itemThumbnails[idx])}
+                            onClick={() => matchedCatalogItem && onAddToCart(matchedCatalogItem)}
+                            disabled={!matchedCatalogItem}
                             className="p-2 bg-[#386633] hover:bg-[#2c5227] text-white rounded-lg shadow-xs transition cursor-pointer"
-                            title="Buy"
+                            title={matchedCatalogItem ? "Add verified listing to cart" : "No verified merchant listing"}
                           >
                             <MaterialIcon icon="shopping_bag" size={16} />
                           </button>

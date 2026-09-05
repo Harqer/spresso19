@@ -1,7 +1,7 @@
 package components.features.wardrobe
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,40 +11,85 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import components.models.*
 import network.ProductItem
+import network.SpressoBackend
 
 data class ComposeWardrobeDeck(
     val id: String,
     val title: String,
     val subtitle: String,
-    val badge: String,
-    val icon: ImageVector,
-    val itemsCount: Int,
+    val products: List<ProductItem>,
 )
 
 @Composable
 fun StackedWardrobeDecks(
     products: List<ProductItem>,
+    likedProducts: List<ProductItem> = emptyList(),
     onSelectTryOn: (ProductItem) -> Unit,
     onOpenUploadModal: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expandedDeckId by remember { mutableStateOf<String?>("ai-curated") }
+    var expandedDeckId by remember { mutableStateOf<String?>(null) }
+    var decks by remember { mutableStateOf<List<ComposeWardrobeDeck>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    var decks by remember(products.size) { mutableStateOf<List<ComposeWardrobeDeck>>(emptyList()) }
-
-    var apiError by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(products.size) {
+    LaunchedEffect(products) {
+        isLoading = true
+        errorMessage = null
         try {
-            network.SpressoBackend.getWardrobeOutfits()
+            val wardrobeDecks =
+                SpressoBackend.getWardrobeOutfits().map { outfit ->
+                    ComposeWardrobeDeck(
+                        id = outfit.id,
+                        title = outfit.title,
+                        subtitle = outfit.description.orEmpty(),
+                        products =
+                            outfit.items.map { item ->
+                                ProductItem(
+                                    id = item.id,
+                                    name = item.brand?.takeIf { it.isNotBlank() } ?: item.category,
+                                    brand = item.brand.orEmpty(),
+                                    category = item.category,
+                                    price = null,
+                                    imageUrl = item.imageUrl,
+                                )
+                            },
+                    )
+                }
+            decks =
+                wardrobeDecks +
+                    if (products.isNotEmpty()) {
+                        listOf(
+                            ComposeWardrobeDeck(
+                                id = "recommendations",
+                                title = "Recommended for you",
+                                subtitle = "Products selected from your live recommendations",
+                                products = products,
+                            ),
+                        )
+                    } else {
+                        emptyList()
+                    } +
+                    if (likedProducts.isNotEmpty()) {
+                        listOf(
+                            ComposeWardrobeDeck(
+                                id = "liked",
+                                title = "Your liked styles",
+                                subtitle = "Liked pieces to inspire your outfit",
+                                products = likedProducts,
+                            ),
+                        )
+                    } else {
+                        emptyList()
+                    }
+            expandedDeckId = decks.firstOrNull()?.id
         } catch (e: Exception) {
-            apiError = "Error: ${e.message}"
+            errorMessage = "Unable to load your wardrobe collections. Please try again."
+        } finally {
+            isLoading = false
         }
     }
 
@@ -53,59 +98,37 @@ fun StackedWardrobeDecks(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surfaceContainer,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Row(
                 modifier = Modifier.padding(16.dp).fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(
-                            Icons.Default.Style,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text(
-                            "JETPACK MOTION STACK UI",
-                            color = MaterialTheme.colorScheme.tertiary,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+                    Text("Wardrobe collections", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text(
-                        "Stacked Wardrobe Decks",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        "Tap any stacked deck to fan out & explore outfits",
+                        "Choose a collection to explore outfits and try on individual items.",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp,
                     )
                 }
-
-                Button(
-                    onClick = onOpenUploadModal,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Icon(Icons.Default.AddAPhoto, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Add", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(12.dp))
+                Button(onClick = onOpenUploadModal, shape = RoundedCornerShape(8.dp)) {
+                    Icon(Icons.Default.AddAPhoto, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Add look")
                 }
             }
         }
 
-        if (apiError != null) {
-            Text(
-                text = apiError!!,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 16.dp),
+        when {
+            isLoading -> Text("Loading your wardrobe…", style = MaterialTheme.typography.bodyMedium)
+            errorMessage != null -> Text(errorMessage!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+            decks.isEmpty() -> Text(
+                "No wardrobe collections yet. Add a look to start building your wardrobe.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -115,11 +138,7 @@ fun StackedWardrobeDecks(
                 modifier = Modifier.fillMaxWidth().clickable { expandedDeckId = if (isExpanded) null else deck.id },
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border =
-                    androidx.compose.foundation.BorderStroke(
-                        if (isExpanded) 1.5.dp else 1.dp,
-                        if (isExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                    ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(
@@ -128,24 +147,14 @@ fun StackedWardrobeDecks(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.size(40.dp),
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        deck.icon,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp),
-                                    )
+                            Icon(Icons.Default.Style, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Column(modifier = Modifier.weight(1f, fill = false)) {
+                                Text(deck.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                                if (deck.subtitle.isNotBlank()) {
+                                    Text(deck.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                            }
-                            Column {
-                                Text(deck.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                                 Text(
-                                    deck.subtitle,
+                                    "${deck.products.size} ${if (deck.products.size == 1) "item" else "items"}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -153,38 +162,37 @@ fun StackedWardrobeDecks(
                         }
                         Icon(
                             if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            contentDescription = if (isExpanded) "Collapse collection" else "Expand collection",
                         )
                     }
 
                     AnimatedVisibility(visible = isExpanded) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                            Text(
-                                "Fanned-Out Deck Content (${deck.badge})",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                            products.take(3).forEach { product ->
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth().clickable { onSelectTryOn(product) },
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            deck.products.forEach { product ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(10.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Column {
-                                            Text(product.name, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                            Text("$${product.price} • ★ 4.8", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(product.name, fontWeight = FontWeight.SemiBold)
+                                        Text(
+                                            listOfNotNull(
+                                                product.brand.takeIf { it.isNotBlank() },
+                                                product.price?.let { "$${it}" },
+                                            ).joinToString(" · "),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        product.rating?.takeIf { it > 0.0 }?.let { rating ->
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Icon(Icons.Default.Star, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
+                                                Text(rating.toString(), style = MaterialTheme.typography.bodySmall)
+                                            }
                                         }
-                                        TextButton(onClick = { onSelectTryOn(product) }) {
-                                            Text("Try On", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                        }
+                                    }
+                                    TextButton(onClick = { onSelectTryOn(product) }, shape = RoundedCornerShape(8.dp)) {
+                                        Text("Try on")
                                     }
                                 }
                             }

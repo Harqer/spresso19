@@ -22,6 +22,7 @@ import network.models.GroceryItem
 fun GroceryListWidget(
     initialItems: List<GroceryItem> = emptyList(),
     apiClient: ApiClient = remember { ApiClient() },
+    listId: String? = null,
     onAskAI: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -29,7 +30,7 @@ fun GroceryListWidget(
     var newItemName by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
     val scope = rememberCoroutineScope()
-    val categories = emptyList<String>()
+    val categories = remember(items) { listOf("All") + items.map { it.category }.filter { it.isNotBlank() }.distinct() }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -44,12 +45,17 @@ fun GroceryListWidget(
             onNameChange = { newItemName = it },
             onAdd = {
                 scope.launch {
+                    val activeListId = listId
+                    if (activeListId == null) {
+                        snackbarHostState.showSnackbar("Your grocery list is unavailable right now.")
+                        return@launch
+                    }
                     try {
-                        SpressoBackend.addGroceryItem(listId = "default", productName = newItemName, productId = null, addedVia = "APP")
+                        SpressoBackend.addGroceryItem(listId = activeListId, productName = newItemName, productId = null, addedVia = "APP")
                         newItemName = ""
-                        // In a real app we'd fetch updated items here, but relying on reactive flow or refreshing.
+                        items = apiClient.fetchGroceryList(activeListId)
                     } catch (e: Exception) {
-                        snackbarHostState.showSnackbar("Error: ${e.message}")
+                        snackbarHostState.showSnackbar("Unable to add this item. Please try again.")
                     }
                 }
             },
@@ -91,8 +97,9 @@ fun GroceryListWidget(
                             scope.launch {
                                 try {
                                     SpressoBackend.toggleGroceryItem(itemId = item.id, isPurchased = !item.checked)
+                                    items = items.map { current -> if (current.id == item.id) current.copy(checked = !current.checked) else current }
                                 } catch (e: Exception) {
-                                    snackbarHostState.showSnackbar("Error: ${e.message}")
+                                    snackbarHostState.showSnackbar("Unable to update this item. Please try again.")
                                 }
                             }
                         },
@@ -101,14 +108,15 @@ fun GroceryListWidget(
                                 IconButton(onClick = {
                                     onAskAI("Find deals for ${item.name}")
                                 }) {
-                                    Icon(Icons.Default.AutoAwesome, contentDescription = "AI", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Icons.Default.AutoAwesome, contentDescription = "Ask Spresso", tint = MaterialTheme.colorScheme.primary)
                                 }
                                 IconButton(onClick = {
                                     scope.launch {
                                         try {
                                             SpressoBackend.deleteGroceryItem(itemId = item.id)
+                                            items = items.filterNot { current -> current.id == item.id }
                                         } catch (e: Exception) {
-                                            snackbarHostState.showSnackbar("Error: ${e.message}")
+                                            snackbarHostState.showSnackbar("Unable to delete this item. Please try again.")
                                         }
                                     }
                                 }) {

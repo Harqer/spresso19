@@ -26,6 +26,8 @@ fun TravelTripsPage(
     var events by remember { mutableStateOf(initialEvents) }
     var expenses by remember { mutableStateOf(initialExpenses) }
     var voiceNotes by remember { mutableStateOf(initialVoiceNotes) }
+    var isLoading by remember { mutableStateOf(true) }
+    var loadError by remember { mutableStateOf<String?>(null) }
 
     var activeTripId by remember { mutableStateOf(trips.firstOrNull()?.id ?: "") }
 
@@ -34,33 +36,29 @@ fun TravelTripsPage(
     LaunchedEffect(Unit) {
         try {
             val fetchedTrips = apiClient.fetchTravelTrips()
-            if (fetchedTrips.isNotEmpty()) {
-                trips = fetchedTrips
-                if (activeTripId.isEmpty() || trips.none { it.id == activeTripId }) {
-                    activeTripId = trips.first().id
-                }
-
-                // Fetch associated data for all trips
-                val fetchedEvents = mutableListOf<ItineraryEvent>()
-                val fetchedExpenses = mutableListOf<TravelExpense>()
-                val fetchedVoiceNotes = mutableListOf<VoiceNote>()
-
-                for (trip in fetchedTrips) {
-                    try {
-                        fetchedEvents.addAll(apiClient.fetchTravelEvents(trip.id))
-                        fetchedExpenses.addAll(apiClient.fetchTravelExpenses(trip.id))
-                        fetchedVoiceNotes.addAll(apiClient.fetchVoiceNotes(trip.id))
-                    } catch (e: Exception) {
-                        // Ignore individual trip fetch errors
-                    }
-                }
-
-                events = fetchedEvents
-                expenses = fetchedExpenses
-                voiceNotes = fetchedVoiceNotes
+            trips = fetchedTrips
+            if (fetchedTrips.isNotEmpty() && (activeTripId.isEmpty() || fetchedTrips.none { it.id == activeTripId })) {
+                activeTripId = fetchedTrips.first().id
             }
         } catch (e: Exception) {
-            snackbarHostState.showSnackbar("Failed to load trips: ${e.message}")
+            loadError = "Unable to load your trips. Please try again."
+        } finally {
+            isLoading = false
+        }
+    }
+
+    LaunchedEffect(activeTripId) {
+        if (activeTripId.isBlank()) return@LaunchedEffect
+        try {
+            val activeEvents = apiClient.fetchTravelEvents(activeTripId)
+            val activeExpenses = apiClient.fetchTravelExpenses(activeTripId)
+            val activeVoiceNotes = apiClient.fetchVoiceNotes(activeTripId)
+            events = events.filterNot { it.tripId == activeTripId } + activeEvents
+            expenses = expenses.filterNot { it.tripId == activeTripId } + activeExpenses
+            voiceNotes = voiceNotes.filterNot { it.tripId == activeTripId } + activeVoiceNotes
+            loadError = null
+        } catch (e: Exception) {
+            loadError = "Some trip details are unavailable. Please try again."
         }
     }
 
@@ -87,16 +85,18 @@ fun TravelTripsPage(
                 scope.launch {
                     try {
                         network.SpressoBackend.createVoiceNote(tripId = activeTripId, transcript = text)
-                        snackbarHostState.showSnackbar("Voice note saved!")
+                        val refreshed = apiClient.fetchVoiceNotes(activeTripId)
+                        voiceNotes = voiceNotes.filterNot { it.tripId == activeTripId } + refreshed
+                        snackbarHostState.showSnackbar("Voice note saved.")
                     } catch (e: Exception) {
-                        snackbarHostState.showSnackbar("Failed to save voice note: ${e.message}")
+                        snackbarHostState.showSnackbar("Unable to save this voice note. Please try again.")
                     }
                 }
             },
             onError = {
                 isRecording = false
                 scope.launch {
-                    snackbarHostState.showSnackbar("Speech recognition error. Please try again.")
+                    snackbarHostState.showSnackbar("I couldn't understand that recording. Please try again.")
                 }
             },
         )
@@ -128,7 +128,13 @@ fun TravelTripsPage(
             ) {
                 HeaderBanner(trips, activeTripId) { activeTripId = it }
 
-                if (trips.isEmpty()) {
+                loadError?.let { message ->
+                    Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                }
+
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                } else if (trips.isEmpty() && loadError == null) {
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -167,9 +173,11 @@ fun TravelTripsPage(
                                             merchant = expense.merchant,
                                             items = null,
                                         )
-                                        snackbarHostState.showSnackbar("Expense added!")
+                                        val refreshed = apiClient.fetchTravelExpenses(activeTripId)
+                                        expenses = expenses.filterNot { it.tripId == activeTripId } + refreshed
+                                        snackbarHostState.showSnackbar("Expense added.")
                                     } catch (e: Exception) {
-                                        snackbarHostState.showSnackbar("Failed to add expense: ${e.message}")
+                                        snackbarHostState.showSnackbar("Unable to add this expense. Please try again.")
                                     }
                                 }
                             },

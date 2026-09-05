@@ -58,12 +58,11 @@ class ChatViewModel(
                         agentType = agentType,
                     ).onStart { isGenerating = true }
                     .onCompletion { isGenerating = false }
-                    .catch { e ->
+                    .catch {
                         isGenerating = false
-                        val errorText = e.message ?: "Unable to complete request. Please verify connection and retry."
                         updateOrAddAiMessage(
                             id = aiMsgId,
-                            text = if (aiText.isNotBlank()) aiText else "Unable to fetch live recommendations: $errorText",
+                            text = if (aiText.isNotBlank()) aiText else "I couldn't complete that request. Please try again.",
                             thought = null,
                             sources = currentSources,
                             products = currentProducts,
@@ -121,12 +120,11 @@ class ChatViewModel(
                             }
                         }
                     }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 isGenerating = false
-                val errorText = e.message ?: "An unexpected error occurred."
                 updateOrAddAiMessage(
                     id = aiMsgId,
-                    text = if (aiText.isNotBlank()) aiText else "Unable to fetch live recommendations: \$errorText",
+                    text = if (aiText.isNotBlank()) aiText else "I couldn't complete that request. Please try again.",
                     thought = null,
                     sources = currentSources,
                     products = currentProducts,
@@ -150,42 +148,25 @@ class ChatViewModel(
         scope.launch {
             try {
                 val lensResponse = apiClient.performLensSearch(imageBase64)
-                if (lensResponse.success && (lensResponse.detectedResult != null || lensResponse.apifyResults.isNotEmpty())) {
-                    val products = mutableListOf<ProductItem>()
-
-                    lensResponse.detectedResult?.detectedItems?.forEachIndexed { index, item ->
-                        products.add(
+                if (lensResponse.success && lensResponse.listings.isNotEmpty()) {
+                    val products =
+                        lensResponse.listings.map { listing ->
                             ProductItem(
-                                id = "lens-det-$index",
-                                name = item.detectedName,
-                                brand = item.brandGuess,
-                                category = item.category,
-                                price = item.priceEstimate,
-                                imageUrl = "",
-                                rating = null,
-                            ),
-                        )
-                    }
-
-                    lensResponse.apifyResults.forEachIndexed { index, match ->
-                        if (!match.title.isNullOrBlank()) {
-                            val priceVal = match.price?.replace(Regex("[^0-9.]"), "")?.toDoubleOrNull()
-                            products.add(
-                                ProductItem(
-                                    id = "lens-apify-$index",
-                                    name = match.title,
-                                    brand = match.source ?: "Lens Result",
-                                    category = "Search Match",
-                                    price = priceVal ?: 0.0, // UI layer requires a double, but maybe we can make price nullable? Wait, I will keep 0.0 if it's not nullable, or if nullable use null
-                                    imageUrl = match.imageUrl ?: "",
-                                    rating = null,
-                                ),
+                                id = listing.id,
+                                name = listing.name,
+                                brand = listing.brand.orEmpty(),
+                                category = listing.category.orEmpty(),
+                                price = listing.observedPrice?.amount,
+                                imageUrl = listing.imageUrl.orEmpty(),
+                                rating = listing.rating,
+                                description = listing.reviewSummary,
+                                merchantUrl = listing.merchantUrl,
+                                source = listing.source,
+                                providerListingId = listing.providerListingId,
                             )
                         }
-                    }
 
-                    val annotText =
-                        lensResponse.detectedResult?.hudAnnotationText ?: "Found ${products.size} visual matches via Spresso Lens Search."
+                    val annotText = "Found ${products.size} visual matches."
                     updateOrAddAiMessage(
                         id = aiMsgId,
                         text = annotText,
@@ -225,8 +206,15 @@ class ChatViewModel(
 
         val systemInstructions =
             when (agentType) {
-                "BARGAIN_CHEF" -> "You are Chef AI, a real-time voice and video cooking assistant. You observe the user's kitchen counter or cooking ingredients via camera video stream, listen to their questions via live mic audio, and speak back with friendly, real-time step-by-step culinary guidance, ingredient substitutions, and local bargain grocery tips. Use a premium, conversational tone (Sulafat standard). STRICTLY FORBIDDEN: Do not use technical jargon like 'modality', 'input', 'processing', 'data', or 'visual stream' in your spoken responses. Keep the immersion unbroken."
-                else -> "You are the Spresso AI Personal Shopper. Your job is to help the user find products, manage their cart, and answer questions. Keep your responses concise, helpful, and friendly. Use a premium, conversational tone (Sulafat standard). STRICTLY FORBIDDEN: Do not use technical jargon like 'modality', 'input', 'processing', 'data', or 'latency' in your spoken or written responses. Use a jargon-free conversational flow."
+                "BARGAIN_CHEF" ->
+                    "Help the user cook in real time. Observe the kitchen counter or ingredients, " +
+                        "listen to questions, and give concise step-by-step guidance and substitutions. " +
+                        "Keep responses natural and focused on the user's next action. Do not mention " +
+                        "system behavior or technical details."
+                else ->
+                    "You are the Spresso AI Personal Shopper. Help the user find products, manage their " +
+                        "cart, and answer questions. Keep responses concise, helpful, and friendly. " +
+                        "Use a premium, conversational tone. Do not use technical jargon in responses."
             }
 
         scope.launch {
@@ -287,6 +275,18 @@ class ChatViewModel(
         }
     }
 
+    fun sendLiveVisionContext(context: String) {
+        if (isVoiceActive) {
+            scope.launch {
+                try {
+                    liveApiClient.sendTextContent("Nearby visual context: $context")
+                } catch (e: Exception) {
+                    println("ChatViewModel sendLiveVisionContext error: ${e.message}")
+                }
+            }
+        }
+    }
+
     fun sendStandardAudio(
         audioBytes: ByteArray,
         prompt: String = "Please analyze this audio.",
@@ -324,14 +324,15 @@ class ChatViewModel(
         products: List<ProductItem> = emptyList(),
     ) {
         val index = messages.indexOfFirst { it.id == id }
+        val previous = messages.getOrNull(index)
         val newMessage =
             ChatMessage(
                 id = id,
                 text = text,
                 isUser = false,
                 thought = thought,
-                mediaUrl = mediaUrl,
-                mediaType = mediaType,
+                mediaUrl = mediaUrl ?: previous?.mediaUrl,
+                mediaType = mediaType ?: previous?.mediaType,
                 sources = sources,
                 products = products,
                 isStreaming = isGenerating,

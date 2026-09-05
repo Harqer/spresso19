@@ -2,7 +2,7 @@
 
 ## Persistent Context Memory
 
-The user prefers an agent that retains long-term memory of this specific architecture (Spresso19, Kotlin Multiplatform, Google Cloud, Firebase Data Connect, Gemini Live WebSockets) so they do not have to repeatedly explain the context.
+The user prefers an agent that retains long-term memory of this specific architecture (Spresso, Kotlin Multiplatform Android, Firebase-first serverless services, Gemini Live and Meta DAT) so they do not have to repeatedly explain the context.
 
 To achieve this, ALWAYS leverage the principles of **Recursive Language Models (RLMs)** to externalize context:
 
@@ -13,22 +13,46 @@ To achieve this, ALWAYS leverage the principles of **Recursive Language Models (
 Whenever the user asks a question about the project, assume the answer is already in the codebase or the generated artifacts, and use your tools to find it.
 
 ## Persistent Architecture Context
-An architecture context document has been copied to the project at `docs/spresso19_architecture_context.md`. When waking up for a new session or encountering ambiguity about the stack, always read this file first.
+The canonical architecture context is `docs/spresso_architecture_context.md`. When waking up for a new session or encountering ambiguity about the stack, always read this file first.
 
-**GCP Environment:**
-- Project ID: `spresso-5561f`
-- Default Region: `us-central1`
+**Firebase/GCP Environment:**
+- CLI-verified project ID/display name: `get-spresso`; project number: `426485634252`.
+- CLI-verified Hosting origin: `https://get-spresso.web.app`. It currently returns HTTP 404 because no Hosting release has been deployed.
+- Registered apps: legacy Android application ID `com.spresso19` and the Spresso Web app. The product name is always **Spresso**; never call it “Spresso19.” Firestore `(default)` is Standard/Native in `nam5` with delete protection and deployed rules/indexes.
+- Firebase Authentication has Google, email/password and anonymous providers enabled. Phone/SMS remains disabled pending an approved regional and abuse-control policy.
+- Cloud Functions, Cloud Run, App Check, Vertex AI, Gemini API and Secret Manager APIs are disabled, and no Cloud Storage bucket was found as of 24 August 2026. Never claim those services or their URLs are live until a fresh CLI check succeeds.
+- `spresso-5561f` and `spresso-19` are stale identifiers and MUST NOT be used for deploys, secret lookups or resource creation.
+- Never infer billing, credentials, secrets or deployed services from repository files. Verify each service before cloud mutation.
 
 **Core Architecture (STRICT):**
-- **Frontend**: React 19 SPA (Vite + Tailwind CSS v4).
-- **Backend (Serverless)**: Firebase Cloud Functions and **Vertex AI Agent Engine**.
-- **AI/WebSockets**: The "Chef AI" is a **Python ADK Agent** deployed to Agent Engine. It uses the Gemini Multimodal Live API natively via Agent Engine WebSockets.
+- **Primary client**: Kotlin Multiplatform with a native Android release target and AndroidX Navigation 3. The React 19 SPA is a companion surface, not the primary release entry point.
+- **Operational data**: Firestore-first for user and commerce workflow state. Firebase Auth, App Check, Cloud Functions v2 and Cloud Storage form the managed launch backend; approved Spanner global-catalog and Cloud Run tool-server boundaries remain part of the Google Cloud architecture when their verified deployments are deliberately enabled.
+- **Payments**: Stripe is the financial system of record. Firestore stores idempotency, processor references, receipts and customer-facing order state. Spresso does not own or decrement merchant inventory.
+- **Discovery catalog**: Product records are discovery/listing metadata, not Spresso-owned inventory. Never add stock or fake availability defaults; verify current merchant price and availability at the merchant/payment boundary.
+- **Agentic security**: Agents may research and stage checkout but may not submit orders, move funds, sign wallet transactions, or enter payment credentials without explicit trusted-UI confirmation. Enforce authenticated tool calls, App Check, passkey/biometric confirmation, idempotency, transaction limits, secret redaction, and server-side audit logs. Never store seed phrases, private keys, PAN/CVV, or raw wallet credentials.
+- **Current checkout mode (updated 2026-09-01)**: Spresso-controlled Stripe checkout is live for cart listings: the server quotes the price from a fresh merchant observation (`prepareCheckout`), the user confirms payment in the trusted UI, and the signed webhook creates the order. AI may prepare purchases but never submits payment or claims completion — explicit user confirmation is mandatory. Merchant-site handoff remains a fallback.
+- **Agentic browsing**: Use isolated short-lived browser contexts, HTTPS-only navigation, outbound-domain allowlists, SSRF/download/upload controls, bounded requests, and prompt-injection-resistant schemas. Stop before payment, order submission, wallet signing, or account/security changes.
+- **PQC readiness**: Keep cryptography agile. Use approved provider implementations for ML-KEM (FIPS 203), ML-DSA (FIPS 204), and SLH-DSA (FIPS 205) where supported, with reviewed hybrid migration and downgrade prevention. Never label a classical algorithm as PQC or invent a simulated PQC signature; support TLS 1.3 or successor.
+- **Legacy data infrastructure**: Data Connect/PostgreSQL, Cloud SQL and Redis are not launch dependencies. Spanner remains approved for the global catalog boundary, and Cloud Run remains approved for the tool-server/provider boundary. Do not add dual writes to legacy stores or provision them without an explicit ownership and migration decision.
+- **Target AI runtime**: Firebase Cloud Functions plus an explicitly approved Gemini/Agent runtime. No production AI runtime is currently deployed.
+- **Current Chef implementation**: `agents/chef/agent.py` is an Antigravity SDK wrapper, not a discoverable Google ADK application. It has no ADK `root_agent`, `App`, Runner or production session service. Do not call it ADK or deployed Agent Engine code until that migration and deployment are verified.
 - **PROHIBITED**: DO NOT hallucinate or propose a custom Node.js Express backend for WebSockets. The architecture is purely serverless (Firebase + Agent Engine).
 
 ## UI Badge & Overstatement Elimination Standard (STRICT USER MANDATE)
-1. **ONLY Product & Restaurant Star Ratings Allowed**: The ONLY visual rating badges allowed in the UI are standard customer product / restaurant star ratings (`★ 4.8`).
-2. **NO Artificial Telemetry Badges**: DO NOT render artificial percentage match scores (`98% Match`), elevation badges (`Elevated`), grounding badges (`✓ Google Search Grounded`), or engineering status labels.
-3. **Rationale**: Users do not care about internal AI match percentage scores or technical telemetry badges (no top consumer app like TikTok, Instagram, or Amazon overlays match percentages on recommendations). It clutters the interface and overstates obvious system actions. Clean, elegant UI with smooth motion and direct content results is mandatory.
+1. **PURCHASE CONFIRMATION ONLY**: The only badge or pill treatment allowed in customer UI is purchase confirmation after a real, server-confirmed purchase. Product and restaurant ratings use ordinary text with enterprise vector icons, never badge containers.
+2. **NO OTHER BADGES**: DO NOT render match percentages, category/status chips, elevation or grounding labels, engineering statuses, decorative pills, or telemetry badges. Interactive Material 3 action/filter chips are allowed only when they are genuine controls, never status decoration.
+3. **Rationale**: Badges clutter the immersive assistant and commerce experience and overstate system actions. Prefer clean hierarchy, natural language, semantic color, and direct content.
+
+## Meta Wearables DAT Development Gate (STRICT USER MANDATE)
+1. **REFERENCE DAT BEFORE EDITING**: Before changing any Meta wearable code, manifest metadata, dependency, permission, registration, session, stream, Display UI, or `com.meta.wearable.*` call, use `search_dat_docs` from the public DAT MCP or read the relevant installed `mwdat-android` skill. Never code from memory or generic Android guidance.
+2. **DAT DISPLAY IS NOT MATERIAL 3**: Spresso phone/tablet UI uses Material 3. Glasses-rendered content uses only the DAT Display DSL and its `TextStyle`, `TextColor`, `ButtonStyle`, `IconName`, layout, and lifecycle conventions.
+3. **NO UNREFERENCED WEARABLE CHANGE**: Record the DAT MCP result or skill consulted, handle typed `DatResult` and async errors, and validate with MockDeviceKit or the live DAT Inspector MCP when available. If neither MCP nor installed skills are available, stop instead of guessing.
+
+## Google AI Development Gate (STRICT USER MANDATE)
+1. **SELECT THE RIGHT GUIDE FIRST**: Before editing AI code, classify it as Genkit, direct Gemini API, Gemini Interactions, Gemini Live, or Python Google ADK. Read the matching installed skill before writing code: `developing-genkit-js`, `gemini-api-dev`, `gemini-interactions-api`, `gemini-live-api-dev`, or `adk-agent-builder`.
+2. **ADK SKILL ROUTING**: Use `adk-architecture` for runner/session/workflow design, `adk-debug` for an existing agent that misbehaves, and `adk-style` for Python ADK edits. Use `adk-setup` only when setup is explicitly requested. Do not call custom wrappers, Genkit tools, Vertex Agent Engine, or Antigravity code “ADK” unless it uses the Google ADK package structure and exposes a discoverable `root_agent` or `App`.
+3. **CURRENT DOCS ARE REQUIRED**: For Genkit, run the official CLI `docs:read` or `docs:search` command relevant to the change. For Gemini/ADK, use the Google docs MCP when available or current official docs. Verify model IDs against the exact API surface; ordinary Gemini generation models cannot be substituted into the Live API.
+4. **PRODUCTION COMPLETION BAR**: Pin dependencies, validate structured outputs, bind every referenced secret to each exported Firebase function, propagate authenticated context into tools, and test callable envelopes, stream events, interruption/resumption, sessions, and deployment configuration. Compilation alone is insufficient.
 
 ## App Immersion & Backend Hiding Standard (NO BREAKING IMMERSION)
 1. **Never Expose Internal Technical Names in the UI**: The user interface must remain fully immersive and consumer-focused. Never display internal backend technologies, framework names, or infrastructure details (such as "Kitesurf", "Cloudflare", "CDP", "PostgreSQL", or "Data Connect") in buttons, helper texts, log widgets, or user-facing messages.
@@ -41,7 +65,7 @@ An architecture context document has been copied to the project at `docs/spresso
 
 ## 1. MANDATORY CONTEXT ACQUISITION (NEVER ASSUME)
 1. **READ BEFORE YOU WRITE**: Before proposing or writing any code, you MUST use `grep_search` or `view_file` to locate the exact backend schema, API contract, or relevant files. NEVER assume you know how the backend works or hallucinate a schema. 
-2. **FIND THE SOURCE OF TRUTH**: If you are working on UI and need data, find the exact `.gql` Data Connect schema, Postgres schema, or `routes.ts` file that provides that data first.
+2. **FIND THE SOURCE OF TRUTH**: If you are working on UI and need data, find the exact Firestore contract, callable function, provider adapter, or route that supplies it. Legacy Data Connect/Postgres schemas are not authoritative unless an approved architecture decision explicitly reactivates them.
 
 ## 2. STRICT ZERO-MOCK PROTOCOL (POSITIVE DIRECTIVE)
 1. **FAIL FAST ON MISSING DATA**: If you cannot find the actual backend schema, API endpoint, or data source for a feature, you MUST STOP. You are strictly forbidden from writing `delay()`, hardcoding placeholder arrays, or injecting mock data to make a UI "compile" or "look finished".

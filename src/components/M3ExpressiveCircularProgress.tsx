@@ -42,14 +42,13 @@ export const M3ExpressiveCircularProgress: React.FC<M3ExpressiveCircularProgress
         style={{ width: size, height: size }}
       >
         {/* Outer subtle aura ring for expressive M3 depth */}
-        <div className="absolute inset-0 rounded-full bg-[#446732]/10 dark:bg-[#a9d291]/15 animate-ping opacity-25 pointer-events-none" />
+        <div className="absolute inset-0 rounded-full bg-[#446732]/10 dark:bg-[#a9d291]/15 opacity-25 pointer-events-none" />
 
         <svg
           width={size}
           height={size}
           viewBox={`0 0 ${size} ${size}`}
-          className={`transform -rotate-90 ${isIndeterminate ? "animate-spin" : "transition-all duration-500 ease-out"}`}
-          style={{ animationDuration: isIndeterminate ? "1.4s" : undefined }}
+          className="transform -rotate-90 transition-all duration-500 ease-out"
         >
           {/* Background Track Circle */}
           <circle
@@ -84,7 +83,7 @@ export const M3ExpressiveCircularProgress: React.FC<M3ExpressiveCircularProgress
             <MaterialIcon
               icon={icon}
               size={Math.round(size * 0.42)}
-              className="text-[#446732] dark:text-[#a9d291] animate-pulse"
+              className="text-[#446732] dark:text-[#a9d291]"
             />
           ) : !isIndeterminate ? (
             <span
@@ -94,7 +93,7 @@ export const M3ExpressiveCircularProgress: React.FC<M3ExpressiveCircularProgress
               {Math.round(clampedProgress)}%
             </span>
           ) : (
-            <div className="w-2 h-2 rounded-full bg-[#446732] dark:bg-[#a9d291] animate-ping" />
+            <div className="w-2 h-2 rounded-full bg-[#446732] dark:bg-[#a9d291]" />
           )}
         </div>
       </div>
@@ -103,7 +102,7 @@ export const M3ExpressiveCircularProgress: React.FC<M3ExpressiveCircularProgress
       {(label || sublabel) && (
         <div className="space-y-1 max-w-xs">
           {label && (
-            <p className="text-xs font-semibold font-serif text-[#191d16] dark:text-[#e1e4d9] tracking-wide animate-pulse">
+            <p className="text-xs font-semibold font-serif text-[#191d16] dark:text-[#e1e4d9] tracking-wide">
               {label}
             </p>
           )}

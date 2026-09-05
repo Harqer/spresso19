@@ -6,12 +6,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import network.ApiClient
 import network.ProductItem
 import network.models.HITLPayload
 
 class CatalogViewModel(
-    private val apiClient: ApiClient,
     private val scope: CoroutineScope,
 ) {
     private val _activeDetailProduct = MutableStateFlow<ProductItem?>(null)
@@ -22,7 +20,6 @@ class CatalogViewModel(
 
     private val _checkoutStatus = MutableStateFlow<String?>(null)
     val checkoutStatus: StateFlow<String?> = _checkoutStatus.asStateFlow()
-
     fun clearCheckoutStatus() {
         _checkoutStatus.value = null
     }
@@ -34,35 +31,13 @@ class CatalogViewModel(
     fun initiateCheckout(product: ProductItem) {
         scope.launch {
             try {
-                val (confirmed, stock) = apiClient.checkInventory(product.id)
+                val attemptId = "${product.id}-${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}"
                 _hitlCheckoutPayload.value =
                     product.toHITLPayload(
-                        inventoryConfirmed = confirmed,
-                        stockRemaining = stock,
+                        authorizationId = "authorization-$attemptId",
                     )
             } catch (e: Exception) {
                 _checkoutStatus.value = "Failed to initiate checkout: ${e.message}"
-            }
-        }
-    }
-
-    fun confirmCheckout(address: String?) {
-        val payload = _hitlCheckoutPayload.value ?: return
-        scope.launch {
-            try {
-                val msg =
-                    apiClient
-                        .confirmCheckoutWithToken(
-                            payload.product.id,
-                            payload.quantity,
-                            payload.authorizationId,
-                            address ?: "Default Shipping Address",
-                        ).message ?: "Order confirmed!"
-                _checkoutStatus.value = msg
-            } catch (e: Exception) {
-                _checkoutStatus.value = "Checkout note: ${e.message}"
-            } finally {
-                _hitlCheckoutPayload.value = null
             }
         }
     }

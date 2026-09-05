@@ -28,29 +28,14 @@ export const MessageStream: React.FC<MessageStreamProps> = ({ messages, onSelect
                 </div>
               )}
               {m.locationData && (
-                <button
-                  onClick={() => {
-                    onSelectTryOn({
-                      id: `loc-intent-${Date.now()}`,
-                      name: m.locationData.title,
-                      brand: m.locationData.subtitle || "",
-                      price: 0,
-                      currency: "USD",
-                      category: "Location",
-                      description: m.locationData.sectionTitle || "",
-                      image: m.locationData.heroImage || "",
-                      stock: 0,
-                      sku: "LOC",
-                      rating: 5.0,
-                      virtualTryOnEligible: true,
-                      mcpServerId: "spresso-retail"
-                    });
-                  }}
-                  className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-stone-950 text-xs font-black uppercase rounded-full transition flex items-center space-x-1.5 shadow-md max-w-max cursor-pointer"
-                >
-                  <MaterialIcon icon="reviews" size={15} />
-                  <span>View Location Details & Reviews</span>
-                </button>
+                <div className="max-w-lg border-l-2 border-orange-400 pl-3 py-1 text-sm text-[var(--md-sys-color-on-surface)]">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <MaterialIcon icon="location_on" size={16} className="text-orange-500" />
+                    <span>{m.locationData.title}</span>
+                  </div>
+                  {m.locationData.subtitle && <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-1">{m.locationData.subtitle}</p>}
+                  {m.locationData.sectionTitle && <p className="text-xs mt-1">{m.locationData.sectionTitle}</p>}
+                </div>
               )}
             </div>
           )}

@@ -40,6 +40,7 @@ actual fun LiveVisionCamera(
     var hasCameraPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
     }
+    var permissionPromptDismissed by remember { mutableStateOf(false) }
 
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -48,13 +49,16 @@ actual fun LiveVisionCamera(
 
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
+        permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
-    if (!hasCameraPermission) {
+    if (!hasCameraPermission && !permissionPromptDismissed) {
         CameraPermissionDialog(
-            onRequestPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+            onRequestPermission = {
+                permissionPromptDismissed = false
+                permissionLauncher.launch(Manifest.permission.CAMERA)
+            },
             onOpenSettings = {
                 val intent =
                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -63,7 +67,7 @@ actual fun LiveVisionCamera(
                     }
                 context.startActivity(intent)
             },
-            onDismiss = { },
+            onDismiss = { permissionPromptDismissed = true },
         )
         return
     }

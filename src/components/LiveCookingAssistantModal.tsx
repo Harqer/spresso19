@@ -34,7 +34,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
     isVideoOffRef.current = off;
     setIsVideoOffState(off);
   };
-  const [statusText, setStatusText] = useState("Connecting to Chef AI Live Agent...");
+  const [statusText, setStatusText] = useState("Connecting…");
   const [transcript, setTranscript] = useState<{ sender: "user" | "ai"; text: string }[]>([]);
   const [aiIsSpeaking, setAiIsSpeaking] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
   const startLiveSession = async () => {
     setIsConnecting(true);
     setErrorMsg(null);
-    setStatusText("Initializing camera and microphone...");
+    setStatusText("Connecting…");
 
     let mediaStream: MediaStream | null = null;
     try {
@@ -90,7 +90,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
     }
 
     // Connect to WebSocket endpoint directly to Gemini Live API
-    setStatusText("Establishing real-time voice & video connection...");
+    setStatusText("Connecting…");
     
     try {
       const { httpsCallable } = await import("firebase/functions");
@@ -99,7 +99,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
       const tokenRes = await generateLiveApiToken();
       const tokenData = tokenRes.data as any;
       
-      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${tokenData.token}`;
+      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?access_token=${encodeURIComponent(tokenData.token)}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -107,10 +107,25 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
         logToCrashlytics("info", "[Live Cooking Modal] Connected to Backend WS Proxy");
         setIsConnected(true);
         setIsConnecting(false);
-        setStatusText("Live Agent Ready — Speak or show your kitchen!");
+        setStatusText("");
+
+        ws.send(JSON.stringify({
+          setup: {
+            model: "models/gemini-3.1-flash-live-preview",
+            generationConfig: { responseModalities: ["AUDIO"] },
+            systemInstruction: {
+              parts: [{ text: "You are Spresso's concise, safety-conscious live cooking assistant. Help the user cook with the camera and microphone." }]
+            }
+          }
+        }));
         
         if (recipeContext) {
-          ws.send(JSON.stringify({ text: `Current cooking context / recipe requested: ${recipeContext}` }));
+          ws.send(JSON.stringify({
+            clientContent: {
+              turns: [{ role: "user", parts: [{ text: `Current cooking context / recipe requested: ${recipeContext}` }] }],
+              turnComplete: true
+            }
+          }));
         }
 
         startMediaPipelines(mediaStream!, ws);
@@ -120,11 +135,15 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
         try {
           const data = JSON.parse(event.data);
           
-          if (data.type === "audio" && data.audio) {
+          const serverContent = data.serverContent;
+          const parts = serverContent?.modelTurn?.parts ?? [];
+          const audioPart = parts.find((part: any) => part.inlineData?.data);
+          const textPart = parts.find((part: any) => part.text);
+          if (audioPart) {
              setAiIsSpeaking(true);
-             playPCMChunk(data.audio);
-          } else if (data.type === "text" && data.text) {
-             const text = data.text;
+             playPCMChunk(audioPart.inlineData.data);
+          } else if (textPart) {
+             const text = textPart.text;
              setTranscript(prev => {
                 const last = prev[prev.length - 1];
                 if (last && last.sender === "ai") {
@@ -132,7 +151,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
                 }
                 return [...prev, { sender: "ai", text: text }];
              });
-          } else if (data.type === "interrupted") {
+          } else if (serverContent?.interrupted) {
              setAiIsSpeaking(false);
              if (outputAudioCtxRef.current) {
                 queueTimeRef.current = outputAudioCtxRef.current.currentTime;
@@ -178,7 +197,11 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
         if (ws.readyState === WebSocket.OPEN && !isMicMutedRef.current) {
           const inputData = e.inputBuffer.getChannelData(0);
           const pcmBase64 = convertFloat32ToPCM16(inputData);
-          ws.send(JSON.stringify({ audio: pcmBase64 }));
+          ws.send(JSON.stringify({
+            realtimeInput: {
+              mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: pcmBase64 }]
+            }
+          }));
         }
       };
     } catch (e) {
@@ -206,7 +229,11 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
         if (ctx && video.videoWidth > 0) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
-          ws.send(JSON.stringify({ image: dataUrl }));
+          ws.send(JSON.stringify({
+            realtimeInput: {
+              mediaChunks: [{ mimeType: "image/jpeg", data: dataUrl.replace(/^data:image\/jpeg;base64,/, "") }]
+            }
+          }));
         }
       }
     }, 1000); // 1 Frame Per Second as recommended by skill
@@ -361,7 +388,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
                   {/* Outer glowing aura */}
                   <div
                     className={`w-36 h-36 rounded-full bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-400 blur-2xl opacity-40 transition-all duration-300 ${
-                      aiIsSpeaking ? "scale-125 opacity-70 animate-pulse" : "scale-100"
+                      aiIsSpeaking ? "scale-125 opacity-70" : "scale-100"
                     }`}
                   />
                   {/* Inner orb */}
@@ -384,8 +411,8 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
                     size={64}
                     icon="videocam"
                     colorClass="stroke-emerald-400"
-                    label="Connecting Live Agent..."
-                    sublabel={statusText || "Establishing WebRTC & Audio Channel"}
+                    label={statusText || "Connecting…"}
+                    sublabel=""
                   />
                 </div>
               )}
@@ -401,7 +428,7 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
             </p>
           ) : (
             <span className="text-[11px] text-slate-400 font-sans tracking-wide font-light">
-              Listening & watching live • Speak naturally
+
             </span>
           )}
         </div>

@@ -42,6 +42,11 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
         const { latitude, longitude } = position.coords;
         const cleanName = await getCleanLocationName(latitude, longitude);
         setLoading(false);
+        if (!cleanName) {
+          setErrorMsg("Your location could not be resolved. Please enter a city or ZIP code below.");
+          setManualMode(true);
+          return;
+        }
         if (onRadiusChange) onRadiusChange(selectedRadius);
         onLocationGranted(cleanName, { lat: latitude, lng: longitude }, selectedRadius);
         onClose();
@@ -65,7 +70,13 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
 
   const handleApplyRadiusAndClose = () => {
     if (onRadiusChange) onRadiusChange(selectedRadius);
-    onLocationGranted(userLocation || manualInput.trim() || "San Francisco, CA", undefined, selectedRadius);
+    const location = userLocation || manualInput.trim();
+    if (!location) {
+      setErrorMsg("Choose a location before applying this search radius.");
+      setManualMode(true);
+      return;
+    }
+    onLocationGranted(location, undefined, selectedRadius);
     onClose();
   };
 
@@ -178,7 +189,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                   <p className="text-[11px] text-[#446732] dark:text-[#a9d291] leading-tight pt-0.5">
                     {selectedRadius >= 25
                       ? `Searching ${selectedRadius} miles captures deals across regional outlets & major stores.`
-                      : `Searching ${selectedRadius} miles strictly focuses on immediate local store stock.`}
+                      : `Searching within ${selectedRadius} miles focuses on nearby merchant listings.`}
                   </p>
                 </div>
 
@@ -268,4 +279,3 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
     </AnimatePresence>
   );
 };
-

@@ -1,54 +1,142 @@
-import { Router, Request, Response } from 'express';
-import Stripe from 'stripe';
-import { executeKitesurfPurchase } from './kitesurfService';
+import { Router, Request, Response } from "express";
+import Stripe from "stripe";
+import { getFirestore } from "firebase-admin/firestore";
+import "./config/firebase";
 
-const router = Router();
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("Missing STRIPE_SECRET_KEY environment variable");
-}
-if (!process.env.STRIPE_WEBHOOK_SECRET) {
-  throw new Error("Missing STRIPE_WEBHOOK_SECRET environment variable");
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+if (!stripeSecretKey || !stripeWebhookSecret) {
+  throw new Error("Stripe Secret Manager bindings are required before the webhook server can start.");
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-01-27.acacia' as any
+const stripe = new Stripe(stripeSecretKey, {
+  apiVersion: "2025-01-27.acacia" as any,
 });
+const db = getFirestore();
+const router = Router();
 
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+router.post("/", async (request: Request, response: Response) => {
+  const signature = request.headers["stripe-signature"];
+  if (typeof signature !== "string") {
+    response.status(400).send("Missing signature");
+    return;
+  }
 
-router.post('/', async (req: Request, res: Response) => {
-  const sig = req.headers['stripe-signature'];
-  let event;
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(request.body, signature, stripeWebhookSecret);
+  } catch (error: any) {
+    console.error("Stripe webhook signature verification failed.", { error: error?.message });
+    response.status(400).send("Invalid signature");
+    return;
+  }
+
+  if (event.type !== "payment_intent.succeeded") {
+    response.status(200).send("Ignored");
+    return;
+  }
+
+  const eventRef = db.collection("stripe_webhook_events").doc(event.id);
+  const processingState = await db.runTransaction(async (transaction) => {
+    const existing = await transaction.get(eventRef);
+    if (existing.data()?.status === "COMPLETED") {
+      return "COMPLETED" as const;
+    }
+    const startedAtMs = existing.data()?.startedAtMs;
+    if (
+      existing.data()?.status === "PROCESSING" &&
+      typeof startedAtMs === "number" &&
+      Date.now() - startedAtMs < 10 * 60 * 1000
+    ) {
+      return "PROCESSING" as const;
+    }
+    transaction.set(eventRef, {
+      status: "PROCESSING",
+      paymentIntentId: (event.data.object as Stripe.PaymentIntent).id,
+      startedAtMs: Date.now(),
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+    return "ACQUIRED" as const;
+  });
+  if (processingState === "COMPLETED") {
+    response.status(200).send("Already processed");
+    return;
+  }
+  if (processingState === "PROCESSING") {
+    response.status(409).send("Processing in progress");
+    return;
+  }
+
+  const paymentIntent = event.data.object as Stripe.PaymentIntent;
+  const metadata = paymentIntent.metadata || {};
+  const quantity = Number(metadata.quantity);
+  if (!metadata.productId || !metadata.orderId || !metadata.userId || !Number.isInteger(quantity) || quantity <= 0) {
+    await eventRef.set({ status: "IGNORED", updatedAt: new Date().toISOString() }, { merge: true });
+    response.status(200).send("Unmanaged payment intent ignored");
+    return;
+  }
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig as string, endpointSecret);
-  } catch (err: any) {
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  if (event.type === 'payment_intent.succeeded') {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    const { productId, quantity, shippingAddress, userId, merchantUrl } = paymentIntent.metadata || {};
-    
-    // Autonomous Kitesurf Trigger
-    if (productId) {
-      try {
-        const kResult = await executeKitesurfPurchase(
-          productId, 
-          shippingAddress || "123 Innovation Way, Tech District, SF", 
-          "", 
-          merchantUrl || "https://example.com", 
-          true, 
-          true
-        );
-        console.log("Kitesurf purchase triggered via webhook", kResult);
-      } catch(err) {
-        console.error("Failed to execute kitesurf on webhook:", err);
+    const attemptRef = db.collection("purchaseAttempts").doc(metadata.orderId);
+    const orderRef = db.collection("orders").doc(metadata.orderId);
+    await db.runTransaction(async (transaction) => {
+      const [attemptSnapshot, orderSnapshot] = await Promise.all([
+        transaction.get(attemptRef),
+        transaction.get(orderRef),
+      ]);
+      const attempt = attemptSnapshot.data();
+      if (!attemptSnapshot.exists || attempt?.userId !== metadata.userId || attempt?.productId !== metadata.productId || attempt?.quantity !== quantity) {
+        throw new Error("No matching reserved purchase was found.");
       }
-    }
+      if (attempt.totalCents !== paymentIntent.amount || attempt.currency !== paymentIntent.currency) {
+        throw new Error("The settled amount does not match the reserved purchase.");
+      }
+      if (!orderSnapshot.exists) {
+        transaction.create(orderRef, {
+          userId: metadata.userId,
+          items: [{
+            product: {
+              id: metadata.productId,
+              name: attempt.productName,
+              image: attempt.productImage || "",
+              price: attempt.unitPrice,
+              currency: String(attempt.currency).toUpperCase(),
+            },
+            quantity,
+          }],
+          totalAmount: paymentIntent.amount / 100,
+          currency: paymentIntent.currency.toUpperCase(),
+          status: "PROCESSING",
+          paymentIntentId: paymentIntent.id,
+          authorizationId: metadata.authorizationId || attempt.authorizationId,
+          shippingAddress: attempt.shippingAddress,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      transaction.set(attemptRef, {
+        status: "COMPLETED",
+        orderId: orderRef.id,
+        paymentIntentId: paymentIntent.id,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+      transaction.set(eventRef, {
+        status: "COMPLETED",
+        orderId: orderRef.id,
+        completedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+    });
+    response.status(200).send("Completed");
+  } catch (error: any) {
+    console.error("Stripe order reconciliation failed; requesting retry.", {
+      eventId: event.id,
+      paymentIntentId: paymentIntent.id,
+      error: error?.message,
+    });
+    await eventRef.set({ status: "FAILED", updatedAt: new Date().toISOString() }, { merge: true });
+    response.status(500).send("Fulfillment failed");
   }
-
-  res.send();
 });
 
 export const webhookRouter = router;

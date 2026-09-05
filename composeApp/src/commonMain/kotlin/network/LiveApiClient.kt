@@ -183,7 +183,7 @@ open class LiveApiClient {
                     try {
                         SpressoConfig.cloudFunctionsBaseUrl
                     } catch (_: Exception) {
-                        "https://us-central1-spresso-5561f.cloudfunctions.net"
+                        "https://us-central1-get-spresso.cloudfunctions.net"
                     }
                 val tokenResponse =
                     client

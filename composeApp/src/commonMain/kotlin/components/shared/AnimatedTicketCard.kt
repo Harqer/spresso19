@@ -101,7 +101,11 @@ fun AnimatedTicketCard(
                         )
                         Text(ticketCode, fontSize = 13.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
                     }
-                    Box(modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(4.dp))) // QR placeholder
+                    Text(
+                        "Use this code at checkout",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }

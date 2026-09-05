@@ -4,8 +4,13 @@ import path from "node:path";
 import test from "node:test";
 import { createCartListingSnapshot } from "../src/cart/cartListingSnapshot";
 import { getMerchantQuote, MerchantQuoteError } from "../src/payments/merchantQuote";
-import { createCheckoutIntent, stripeWebhook } from "../src/webhooks";
-import { confirmPurchase, createStripeIntent } from "../src/payments";
+import { stripeWebhook } from "../src/webhooks";
+import {
+  confirmPurchase,
+  createStripeIntent,
+  executeBiometricPurchase,
+  processCryptoPayment,
+} from "../src/payments";
 import { addToCart } from "../src/cart";
 import { db } from "../src/shared/db";
 
@@ -125,7 +130,7 @@ test("missing provider prices cannot produce a financial quote", async () => {
   );
 });
 
-test("payment endpoints reject client pricing and keep merchant checkout user-completed", async () => {
+test("legacy client pricing is rejected by retained merchant-handoff callables", async () => {
   const request = {
     auth: { uid: "user-123", token: {} },
     data: {
@@ -138,16 +143,45 @@ test("payment endpoints reject client pricing and keep merchant checkout user-co
     },
   };
 
-  for (const callable of [createStripeIntent, confirmPurchase, createCheckoutIntent]) {
+  for (const callable of [createStripeIntent, confirmPurchase]) {
     await assert.rejects(
       callable.run(request as any),
       (error: any) => error?.code === "invalid-argument",
     );
   }
 
-  const paymentsSource = await readFile(path.join(process.cwd(), "src/payments/index.ts"), "utf8");
+  // The Spresso-controlled flow never trusts client pricing: prepareCheckout
+  // only accepts listingId + quantity + idempotencyKey, and prices strictly
+  // from the fresh merchant quote inside the server transaction.
   const webhooksSource = await readFile(path.join(process.cwd(), "src/webhooks.ts"), "utf8");
-  assert.doesNotMatch(paymentsSource, /paymentIntents\.create/);
-  assert.doesNotMatch(webhooksSource, /purchaseAttempts/);
+  assert.doesNotMatch(webhooksSource, /unitPrice/);
+  assert.match(webhooksSource, /getMerchantQuote/);
+  assert.match(webhooksSource, /paymentIntents\.create/);
+  assert.match(webhooksSource, /purchaseAttempts/);
   assert.ok(stripeWebhook);
+});
+
+test("biometric denial and replayed confirmation never submit a merchant order", async () => {
+  const request = {
+    auth: { uid: "user-123", token: {} },
+    data: {
+      listingId: listing.id,
+      quantity: 1,
+      idempotencyKey: "12b9fc19-0f9a-472a-bb1c-a2e7d8954255",
+    },
+  };
+
+  for (const callable of [executeBiometricPurchase, processCryptoPayment]) {
+    await assert.rejects(
+      callable.run(request as any),
+      (error: any) => error?.code === "failed-precondition" && /merchant site/i.test(error.message),
+    );
+  }
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await assert.rejects(
+      confirmPurchase.run(request as any),
+      (error: any) => error?.code === "failed-precondition" && /merchant site/i.test(error.message),
+    );
+  }
 });

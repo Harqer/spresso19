@@ -12,7 +12,9 @@ export const kitesurfSearchTool = ai.defineTool(
       query: z.string().min(2).max(240),
       retailerHint: z.string().max(120).optional(),
     }),
-    outputSchema: z.object({ products: z.array(DiscoveredListingSchema) }),
+    // DiscoveredListingSchema is the canonical Zod 4 runtime contract;
+    // Genkit's schema generic is Zod 3-shaped, so bridge only the type here.
+    outputSchema: z.object({ products: z.array(DiscoveredListingSchema as any) }),
   },
   async ({ query, retailerHint }, ctx) => {
     const uid = ctx.context?.auth?.uid;

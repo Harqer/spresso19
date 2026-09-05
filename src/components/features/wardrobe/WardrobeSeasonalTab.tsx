@@ -26,7 +26,7 @@ export const WardrobeSeasonalTab: React.FC<WardrobeSeasonalTabProps> = ({
       <SeasonalCategorySection
         title="Solstice Sun & Linen Collection"
         subtitle="Breathable linen shirts, breezy dresses, tailored shorts & UV resortwear for warm days"
-        seasonBadge="Hot Summer Wear"
+        seasonLabel="For hot summer weather"
         seasonTheme="summer"
         items={allWardrobeItems.filter(i =>
           i.weatherSuitability === "HOT_SUMMER" || i.name.toLowerCase().includes("linen") || i.name.toLowerCase().includes("short") || i.name.toLowerCase().includes("summer")
@@ -37,7 +37,7 @@ export const WardrobeSeasonalTab: React.FC<WardrobeSeasonalTabProps> = ({
       <SeasonalCategorySection
         title="Alpine Frost & Cashmere Haven"
         subtitle="Chunky knit sweaters, tailored wool coats, thermal denim & insulated winter boots"
-        seasonBadge="Cold Winter Wear"
+        seasonLabel="For cold winter weather"
         seasonTheme="winter"
         items={allWardrobeItems.filter(i =>
           i.weatherSuitability === "COLD_WINTER" || i.category === "SWEATER_OUTERWEAR" || i.name.toLowerCase().includes("sweater") || i.name.toLowerCase().includes("coat") || i.name.toLowerCase().includes("jacket")
@@ -48,7 +48,7 @@ export const WardrobeSeasonalTab: React.FC<WardrobeSeasonalTabProps> = ({
       <SeasonalCategorySection
         title="Autumn Ember & Tweed Ensemble"
         subtitle="Layered cardigans, rich earth-tone denim, leather jackets & transitional footwear"
-        seasonBadge="Fall Autumn Wear"
+        seasonLabel="For mild autumn weather"
         seasonTheme="autumn"
         items={allWardrobeItems.filter(i =>
           i.weatherSuitability === "MILD_SPRING_AUTUMN" || i.category === "BOTTOM" || i.name.toLowerCase().includes("denim") || i.name.toLowerCase().includes("jean")
@@ -59,7 +59,7 @@ export const WardrobeSeasonalTab: React.FC<WardrobeSeasonalTabProps> = ({
       <SeasonalCategorySection
         title="Vernal Bloom & Silk Promenade"
         subtitle="Pastel silks, flowy skirts, floral blouses & clean crisp spring footwear"
-        seasonBadge="Spring Bloom"
+        seasonLabel="For spring weather"
         seasonTheme="spring"
         items={allWardrobeItems.filter(i => i.category === "DRESS" || i.category === "ACCESSORY" || i.weatherSuitability === "ALL_WEATHER")}
         onPrimaryAction={handlePrimaryAction}

@@ -37,7 +37,7 @@ fun WardrobeGallerySection(
                     .padding(12.dp),
         ) {
             Text(
-                text = "Genkit AI Seasonal Styling Engine",
+                text = "Seasonal outfit suggestions",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,

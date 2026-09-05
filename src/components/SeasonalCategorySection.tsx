@@ -5,7 +5,7 @@ import { CustomWardrobeItem } from "../types";
 export interface SeasonalCategorySectionProps {
   title: string;
   subtitle: string;
-  seasonBadge: string;
+  seasonLabel: string;
   seasonTheme: "summer" | "winter" | "autumn" | "spring" | "resort";
   items: CustomWardrobeItem[];
   onItemClick?: (item: CustomWardrobeItem) => void;
@@ -17,7 +17,7 @@ export interface SeasonalCategorySectionProps {
 export const SeasonalCategorySection: React.FC<SeasonalCategorySectionProps> = ({
   title,
   subtitle,
-  seasonBadge,
+  seasonLabel,
   seasonTheme,
   items,
   onItemClick,
@@ -25,40 +25,34 @@ export const SeasonalCategorySection: React.FC<SeasonalCategorySectionProps> = (
   onPrimaryAction,
   favoritedMap = {}
 }) => {
-  // Theme badge colors
   const themeStyles = {
     summer: {
       bg: "bg-amber-50/70",
       border: "border-amber-200/80",
-      badgeBg: "bg-amber-100 text-amber-900 border-amber-300",
       accent: "text-amber-800",
       btnBg: "bg-amber-700 hover:bg-amber-800 text-white"
     },
     winter: {
       bg: "bg-sky-50/70",
       border: "border-sky-200/80",
-      badgeBg: "bg-sky-100 text-sky-900 border-sky-300",
       accent: "text-sky-800",
       btnBg: "bg-sky-800 hover:bg-sky-900 text-white"
     },
     autumn: {
       bg: "bg-orange-50/70",
       border: "border-orange-200/80",
-      badgeBg: "bg-orange-100 text-orange-900 border-orange-300",
       accent: "text-orange-800",
       btnBg: "bg-orange-800 hover:bg-orange-900 text-white"
     },
     spring: {
       bg: "bg-emerald-50/70",
       border: "border-emerald-200/80",
-      badgeBg: "bg-emerald-100 text-emerald-900 border-emerald-300",
       accent: "text-emerald-800",
       btnBg: "bg-[#386633] hover:bg-[#2c5227] text-white"
     },
     resort: {
       bg: "bg-teal-50/70",
       border: "border-teal-200/80",
-      badgeBg: "bg-teal-100 text-teal-900 border-teal-300",
       accent: "text-teal-800",
       btnBg: "bg-teal-700 hover:bg-teal-800 text-white"
     }
@@ -69,13 +63,8 @@ export const SeasonalCategorySection: React.FC<SeasonalCategorySectionProps> = (
       {/* Category Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-black/5 pb-3">
         <div>
-          <div className="flex items-center space-x-2">
-            <h3 className="text-base sm:text-lg font-bold text-[#18211e] font-headline">{title}</h3>
-            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border shadow-2xs ${themeStyles.badgeBg}`}>
-              {seasonBadge}
-            </span>
-          </div>
-          <p className="text-xs text-[#5e635f] mt-0.5">{subtitle}</p>
+          <h3 className="text-base sm:text-lg font-bold text-[#18211e] font-headline">{title}</h3>
+          <p className="text-xs text-[#5e635f] mt-0.5">{seasonLabel}. {subtitle}</p>
         </div>
 
         <span className="text-xs font-mono font-bold text-[#5e635f] shrink-0">

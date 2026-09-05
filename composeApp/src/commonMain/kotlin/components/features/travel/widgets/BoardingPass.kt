@@ -197,25 +197,16 @@ fun BoardingPass(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (evt.qrData != null) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
-                                .clickable { onShowQr(evt) }
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
+                    TextButton(onClick = { onShowQr(evt) }, shape = RoundedCornerShape(8.dp)) {
                         Icon(
                             imageVector = Icons.Default.QrCode2,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            text = "View Pass QR",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            text = "View pass QR",
+                            style = MaterialTheme.typography.labelLarge,
                         )
                     }
                 }

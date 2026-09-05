@@ -3,12 +3,16 @@ package components.features.profile
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
-import com.spresso19.MainActivity
+import com.coinbase.android.nativesdk.CoinbaseWalletSDK
+import com.coinbase.android.nativesdk.message.request.Web3JsonRPC
+import com.spresso.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import network.ApiClient
+import kotlin.coroutines.resume
 
 object CoinbaseWalletManager {
     private const val WALLET_PACKAGE = "org.toshi"
@@ -18,17 +22,22 @@ object CoinbaseWalletManager {
 
     private var pendingCallback: ((Boolean, String?) -> Unit)? = null
     private var pendingApiClient: ApiClient? = null
+    private var sdk: CoinbaseWalletSDK? = null
 
     suspend fun connectWallet(activity: Activity?): String =
         withContext(Dispatchers.Main) {
-            val targetActivity = activity ?: MainActivity.currentActivity ?: return@withContext ""
-            try {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://keys.coinbase.com/connect?callback=$CALLBACK_URL"))
-                intent.setPackage(WALLET_PACKAGE)
-                targetActivity.startActivity(intent)
-                "0x" + (1..40).map { "0123456789abcdef".random() }.joinToString("")
-            } catch (e: Exception) {
-                ""
+            suspendCancellableCoroutine { continuation ->
+                connect(activity, onResult = { success, address ->
+                    if (success && !address.isNullOrBlank()) {
+                        continuation.resume(address)
+                    } else if (continuation.isActive) {
+                        continuation.resume("")
+                    }
+                })
+                continuation.invokeOnCancellation {
+                    pendingCallback = null
+                    pendingApiClient = null
+                }
             }
         }
 
@@ -47,43 +56,40 @@ object CoinbaseWalletManager {
             return
         }
 
-        pendingCallback = onResult
-        pendingApiClient = apiClient
-
         try {
-            // Build the Mobile Wallet Protocol Handshake URI
-            val handshakeUri =
-                Uri
-                    .Builder()
-                    .scheme("cbwallet")
-                    .authority("w")
-                    .appendPath("handshake")
-                    .appendQueryParameter("dapp_name", "Spresso")
-                    .appendQueryParameter("callback_url", CALLBACK_URL)
-                    .appendQueryParameter("chain_id", "8453") // Base Mainnet
-                    .build()
-
-            val intent =
-                Intent(Intent.ACTION_VIEW, handshakeUri).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                }
-
-            // Check if Coinbase Wallet app is installed
-            val packageManager = targetActivity.packageManager
-            val activities = packageManager.queryIntentActivities(intent, 0)
-            if (activities.isNotEmpty()) {
-                intent.setPackage(WALLET_PACKAGE)
-                targetActivity.startActivity(intent)
-            } else {
-                // Fallback: Open web connection or redirect to Play Store for Coinbase Wallet
-                val webConnectUri = Uri.parse("https://go.cb-w.com/dapp?cb_url=${Uri.encode(CALLBACK_URL)}")
-                val webIntent = Intent(Intent.ACTION_VIEW, webConnectUri)
-                try {
-                    targetActivity.startActivity(webIntent)
-                } catch (e: Exception) {
-                    val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$WALLET_PACKAGE"))
-                    targetActivity.startActivity(marketIntent)
-                }
+            pendingCallback = onResult
+            pendingApiClient = apiClient
+            val client = CoinbaseWalletSDK(
+                Uri.parse(CALLBACK_URL),
+                targetActivity.applicationContext,
+                "Spresso",
+            ) { intent -> targetActivity.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            sdk = client
+            val requestAccounts = Web3JsonRPC.RequestAccounts().action(false)
+            client.initiateHandshake(listOf(requestAccounts)) { result, account ->
+                result.fold(
+                    onSuccess = {
+                        val address = account?.address
+                        val callback = pendingCallback
+                        val connectedClient = pendingApiClient
+                        pendingCallback = null
+                        pendingApiClient = null
+                        if (address.isNullOrBlank()) {
+                            callback?.invoke(false, "Coinbase Wallet returned no account")
+                        } else {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val serverConnected = connectedClient?.connectCoinbaseWallet(address) ?: true
+                                withContext(Dispatchers.Main) { callback?.invoke(serverConnected, address) }
+                            }
+                        }
+                    },
+                    onFailure = { error ->
+                        val callback = pendingCallback
+                        pendingCallback = null
+                        pendingApiClient = null
+                        callback?.invoke(false, error.message)
+                    },
+                )
             }
         } catch (e: Exception) {
             val callback = pendingCallback
@@ -99,56 +105,7 @@ object CoinbaseWalletManager {
      */
     fun handleResponse(uri: Uri?): Boolean {
         if (uri == null) return false
-
-        val scheme = uri.scheme
-        val host = uri.host
-
-        // Check if the URI matches our registered callback scheme/host or contains wallet response parameters
-        val isCallback =
-            (scheme == CALLBACK_SCHEME && (host == CALLBACK_HOST || host == "callback" || host == null)) ||
-                uri.toString().startsWith(CALLBACK_URL)
-
-        val hasWalletParams =
-            uri.getQueryParameter("address") != null ||
-                uri.getQueryParameter("account") != null ||
-                uri.getQueryParameter("result") != null ||
-                uri.getQueryParameter("error") != null
-
-        if (!isCallback && !hasWalletParams) {
-            return false
-        }
-
-        val error = uri.getQueryParameter("error") ?: uri.getQueryParameter("errorMessage")
-        if (error != null) {
-            val callback = pendingCallback
-            pendingCallback = null
-            pendingApiClient = null
-            callback?.invoke(false, error)
-            return true
-        }
-
-        val address =
-            uri.getQueryParameter("address")
-                ?: uri.getQueryParameter("account")
-                ?: uri.getQueryParameter("result")
-                ?: uri.fragment?.takeIf { it.startsWith("0x") }
-
-        if (address != null && address.isNotBlank()) {
-            val callback = pendingCallback
-            val client = pendingApiClient
-            pendingCallback = null
-            pendingApiClient = null
-
-            CoroutineScope(Dispatchers.IO).launch {
-                val serverConnected = client?.connectCoinbaseWallet(address) ?: true
-                withContext(Dispatchers.Main) {
-                    callback?.invoke(serverConnected, address)
-                }
-            }
-            return true
-        }
-
-        return false
+        return sdk?.handleResponse(uri) == true
     }
 
     /**

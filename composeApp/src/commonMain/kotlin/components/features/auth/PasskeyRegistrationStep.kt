@@ -75,9 +75,11 @@ fun PasskeyRegistrationStep(
                 onClick = {
                     scope.launch {
                         state = state.begin()
-                        val result =
-                            runCatching { onRegistrationRequested() }
-                                .getOrElse { PasskeyRegistrationResult.BackendFailure() }
+                        val result = try {
+                            onRegistrationRequested()
+                        } catch (_: Exception) {
+                            PasskeyRegistrationResult.BackendFailure()
+                        }
                         state = state.after(result)
                     }
                 },
@@ -85,6 +87,6 @@ fun PasskeyRegistrationStep(
                 Text(if (state.isRegistering) "Setting up passkey" else "Set up passkey")
             }
         }
-        state.message?.let(::Text)
+        state.message?.let { message -> Text(text = message) }
     }
 }

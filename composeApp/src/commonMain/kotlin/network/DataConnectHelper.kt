@@ -54,8 +54,3 @@ expect suspend fun createOrder(
 )
 
 expect suspend fun connectCoinbaseWallet(address: String)
-
-expect suspend fun registerPasskey(
-    credentialId: String,
-    publicKey: String,
-)

@@ -30,6 +30,7 @@ fun AIShopperInputBar(
     onSend: (String) -> Unit,
     onOpenLiveCamera: (() -> Unit)? = null,
     onOpenObjectDetection: (() -> Unit)? = null,
+    onRequestLocationPermission: (() -> Unit)? = null,
     isVoiceActive: Boolean = false,
     isSpeaking: Boolean = false,
     isListening: Boolean = false,
@@ -73,8 +74,11 @@ fun AIShopperInputBar(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
-                IconButton(onClick = { onOpenLiveCamera?.invoke() }, modifier = Modifier.size(32.dp)) {
+                IconButton(onClick = { onOpenLiveCamera?.invoke() }) {
                     Icon(Icons.Default.Add, "Attach", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+                }
+                IconButton(onClick = { onRequestLocationPermission?.invoke() }) {
+                    Icon(Icons.Default.LocationOn, "Set Location", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
                 }
                 Box(
                     modifier =
@@ -112,7 +116,7 @@ fun AIShopperInputBar(
                     )
                 }
                 if (onOpenObjectDetection != null) {
-                    IconButton(onClick = onOpenObjectDetection, modifier = Modifier.size(32.dp)) {
+                    IconButton(onClick = onOpenObjectDetection) {
                         Icon(
                             Icons.Default.Search,
                             "Camera",
@@ -139,7 +143,7 @@ fun AIShopperInputBar(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary,
                             ),
-                        modifier = Modifier.height(32.dp),
+                        modifier = Modifier.heightIn(min = 48.dp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Icon(Icons.AutoMirrored.Filled.Send, null, modifier = Modifier.size(14.dp))

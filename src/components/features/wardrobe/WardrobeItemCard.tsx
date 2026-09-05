@@ -1,7 +1,6 @@
 import React from "react";
 import { CustomWardrobeItem } from "../../../types";
 import { MaterialIcon } from "../../MaterialIcon";
-import { WardrobeBadge } from "@/src/components/features/wardrobe/WardrobeBadge";
 import { ProductItem } from "../../../types";
 
 interface WardrobeItemCardProps {
@@ -17,12 +16,6 @@ export const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({ item, produc
       <div className="relative aspect-square overflow-hidden bg-[#f2f8f2]">
         <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
 
-        <WardrobeBadge 
-          label={item.type === "user_upload" ? "Gallery Upload" : "Bookmarked"} 
-          type={item.type === "user_upload" ? "upload" : "bookmark"}
-          className="absolute top-2 left-2" 
-        />
-
         <button
           onClick={() => onDelete(item)}
           className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 text-red-600 hover:bg-red-600 hover:text-white transition shadow-sm cursor-pointer"
@@ -34,13 +27,9 @@ export const WardrobeItemCard: React.FC<WardrobeItemCardProps> = ({ item, produc
 
       <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
         <div>
-          <div className="flex items-center justify-between">
-            <WardrobeBadge label={item.category.replace("_", " ")} type="category" />
-            <WardrobeBadge 
-              label={item.weatherSuitability === "COLD_WINTER" ? "Winter" : item.weatherSuitability === "HOT_SUMMER" ? "Summer" : "All-Weather"} 
-              type="weather" 
-            />
-          </div>
+          <p className="text-[10px] text-[#5e635f] leading-relaxed">
+            {item.type === "user_upload" ? "From your gallery" : "Saved from the catalog"} · {item.category.replace("_", " ").toLowerCase()} · {item.weatherSuitability === "COLD_WINTER" ? "winter" : item.weatherSuitability === "HOT_SUMMER" ? "summer" : "all weather"}
+          </p>
           <h4 className="font-bold text-xs text-[#18211e] mt-1 line-clamp-1">{item.name}</h4>
         </div>
 

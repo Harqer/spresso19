@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -57,29 +56,12 @@ fun SubscriptionMembershipSection(
                         fontWeight = FontWeight.Bold,
                     )
                 }
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = tierColor.copy(alpha = 0.15f),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Verified,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = tierColor,
-                        )
-                        Text(
-                            text = currentTier.displayName,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = tierColor,
-                        )
-                    }
-                }
+                Text(
+                    text = currentTier.displayName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = tierColor,
+                )
             }
 
             Text(
@@ -87,7 +69,7 @@ fun SubscriptionMembershipSection(
                     when (currentTier) {
                         SubscriptionTier.FREE -> "Upgrade to Spresso VIP for free shipping and priority AI recommendations."
                         SubscriptionTier.SPRESSO_VIP -> "Enjoy unlimited free delivery, 5% cashback on grocery plans, and 24/7 AI shopping support."
-                        SubscriptionTier.CHEF_PRO -> "Full Bargain Chef AI access, automated grocery meal prep, and VIP concierge shopping."
+                        SubscriptionTier.CHEF_PRO -> "Get full cooking help, grocery planning, and shopping support."
                     },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

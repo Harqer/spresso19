@@ -1,0 +1,19 @@
+{
+  "baseUrl": "https://get-spresso.web.app",
+  "endpoints": [
+    {
+      "name": "products",
+      "method": "GET",
+      "path": "/api/products",
+      "expectedStatuses": [401],
+      "requiresJson": true
+    },
+    {
+      "name": "web-api-health",
+      "method": "GET",
+      "path": "/api/health",
+      "expectedStatuses": [200],
+      "requiresJson": true
+    }
+  ]
+}

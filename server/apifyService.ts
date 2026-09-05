@@ -14,6 +14,8 @@ function getApifyToken(): string | null {
   return token && token.trim().length > 0 ? token.trim() : null;
 }
 
+const APIFY_REQUEST_TIMEOUT_MS = 60_000;
+
 export async function runApifyShoppingActor(actorId: string, input: any) {
   const token = getApifyToken();
   if (!token) return { success: false, error: "Apify is not configured" };
@@ -26,7 +28,8 @@ export async function runApifyShoppingActor(actorId: string, input: any) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify(input || {})
+      body: JSON.stringify(input || {}),
+      signal: AbortSignal.timeout(APIFY_REQUEST_TIMEOUT_MS)
     });
     const data = await response.json();
     return { success: response.ok, data: data.data || data };
@@ -100,7 +103,8 @@ async function processLensBatch(batch: LensBatchRequest[], token: string) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify(actorInput)
+      body: JSON.stringify(actorInput),
+      signal: AbortSignal.timeout(APIFY_REQUEST_TIMEOUT_MS)
     });
 
     if (response.ok) {
@@ -116,7 +120,8 @@ async function processLensBatch(batch: LensBatchRequest[], token: string) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify(actorInput)
+      body: JSON.stringify(actorInput),
+      signal: AbortSignal.timeout(APIFY_REQUEST_TIMEOUT_MS)
     });
     const runData = await runRes.json();
     if (!runRes.ok) {
@@ -136,11 +141,11 @@ export async function getApifyCategoryFeed(input: ApifyActorInput) {
   const liked = input.likedItemIds || [];
 
   const { initPool } = require("../src/db/index");
-  let liveInventory: any[] = [];
+  let discoveryListings: any[] = [];
   try {
     const pool = initPool();
     const result = await pool.query('SELECT * FROM "Product" LIMIT 50');
-    liveInventory = result.rows.map((row: any) => ({
+    discoveryListings = result.rows.map((row: any) => ({
       id: row.id || row.id_val || "",
       name: row.name || "",
       brand: row.brand || "Spresso Store",
@@ -149,7 +154,7 @@ export async function getApifyCategoryFeed(input: ApifyActorInput) {
       image: row.imageUrl || row.image || "",
       description: row.description || "",
       rating: 4.8,
-      stock: 25
+      availabilityStatus: "VERIFY_AT_MERCHANT_CHECKOUT"
     }));
   } catch (err: any) {
     console.error("[PostgreSQL] Error fetching inventory for Apify feed:", err);
@@ -169,7 +174,7 @@ export async function getApifyCategoryFeed(input: ApifyActorInput) {
     }
 
     // Retrieve full items for user's bookmarked / liked IDs
-    const userFavorites = liveInventory.filter(p => bookmarked.includes(p.id) || liked.includes(p.id));
+    const userFavorites = discoveryListings.filter(p => bookmarked.includes(p.id) || liked.includes(p.id));
     return {
       success: true,
       feedType: "for_you",
@@ -181,7 +186,7 @@ export async function getApifyCategoryFeed(input: ApifyActorInput) {
 
   // 2. DEALS FEED - Filter for items with MSRP discount
   if (feedType === "deals") {
-    const dealItems = liveInventory.map(p => ({
+    const dealItems = discoveryListings.map(p => ({
       ...p,
       originalPrice: Math.round(p.price * 1.25),
       dealTag: "APIFY HOT DEAL - SAVE 20%"
@@ -194,11 +199,11 @@ export async function getApifyCategoryFeed(input: ApifyActorInput) {
     };
   }
 
-  // 3. HOT DROPS FEED - Filter for rare/low stock drops
+  // 3. HOT DROPS FEED - discovery trend; never infer scarcity from local data
   if (feedType === "hot_drops") {
-    const hotDrops = liveInventory.filter(p => (p.stock || 20) < 20).map(p => ({
+    const hotDrops = discoveryListings.map(p => ({
       ...p,
-      dropTag: "LIMITED DROP - RARE STOCK"
+      dropTag: "TRENDING DISCOVERY"
     }));
     return {
       success: true,
@@ -209,7 +214,7 @@ export async function getApifyCategoryFeed(input: ApifyActorInput) {
   }
 
   // 4. TRENDING FEED - High rating items
-  const trendingItems = liveInventory.filter(p => (p.rating || 4.8) >= 4.8);
+  const trendingItems = discoveryListings.filter(p => (p.rating || 4.8) >= 4.8);
   return {
     success: true,
     feedType: "trending",

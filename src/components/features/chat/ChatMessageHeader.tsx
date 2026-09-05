@@ -17,18 +17,14 @@ export const ChatMessageHeader: React.FC<ChatMessageHeaderProps> = ({ sender, ti
             <defs>
               <linearGradient id="avatar-marble" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#FF7A00">
-                  {isStreaming && <animate attributeName="stop-color" values="#FF7A00;#FF004D;#9000FF;#FF7A00" dur="8s" repeatCount="indefinite" />}
                 </stop>
                 <stop offset="50%" stopColor="#FF004D">
-                  {isStreaming && <animate attributeName="stop-color" values="#FF004D;#9000FF;#FF7A00;#FF004D" dur="8s" repeatCount="indefinite" />}
                 </stop>
                 <stop offset="100%" stopColor="#9000FF">
-                  {isStreaming && <animate attributeName="stop-color" values="#9000FF;#FF7A00;#FF004D;#9000FF" dur="8s" repeatCount="indefinite" />}
                 </stop>
               </linearGradient>
               <filter id="avatar-wavy">
                 <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" result="noise">
-                  {isStreaming && <animate attributeName="baseFrequency" values="0.015;0.02;0.015" dur="10s" repeatCount="indefinite" />}
                 </feTurbulence>
                 <feDisplacementMap in="SourceGraphic" in2="noise" scale="30" xChannelSelector="R" yChannelSelector="G" />
               </filter>

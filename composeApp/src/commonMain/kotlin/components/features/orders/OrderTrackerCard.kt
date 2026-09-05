@@ -45,11 +45,13 @@ fun OrderTrackerCard(
                     fontSize = 14.sp,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                 )
-                AssistChip(onClick = {
-                    uriHandler.openUri("https://spresso-5561f.web.app/tracking/${order.id}")
-                }, label = {
-                    Text(order.status, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                }, leadingIcon = { Icon(Icons.Outlined.LocalShipping, null, modifier = Modifier.size(14.dp)) })
+                TextButton(onClick = {
+                    uriHandler.openUri("https://get-spresso.web.app/tracking/${order.id}")
+                }) {
+                    Icon(Icons.Outlined.LocalShipping, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Track order", style = MaterialTheme.typography.labelLarge)
+                }
             }
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -77,7 +79,7 @@ fun OrderTrackerCard(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Text(
-                                    order.trackingStatus ?: "In Transit",
+                                    order.trackingStatus?.takeIf { it.isNotBlank() } ?: "Unavailable",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
@@ -99,7 +101,7 @@ fun OrderTrackerCard(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Text(
-                                    order.estimatedDelivery ?: "Today",
+                                    order.estimatedDelivery?.takeIf { it.isNotBlank() } ?: "Unavailable",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,

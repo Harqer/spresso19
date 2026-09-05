@@ -22,6 +22,10 @@ export type ProviderListingInput = {
   imageUrl?: unknown;
   price?: unknown;
   currency?: unknown;
+  videoUrl?: unknown;
+  rating?: unknown;
+  reviewCount?: unknown;
+  reviewSummary?: unknown;
   discoveredAt?: string;
 };
 
@@ -92,6 +96,10 @@ export function normalizeProviderListing(input: ProviderListingInput, options: P
     source: input.source,
     providerListingId,
     observedPrice,
+    ...(typeof input.videoUrl === "string" && input.videoUrl.startsWith("https://") ? { videoUrl: input.videoUrl } : {}),
+    ...(typeof input.rating === "number" && input.rating >= 0 && input.rating <= 5 ? { rating: input.rating } : {}),
+    ...(typeof input.reviewCount === "number" && Number.isInteger(input.reviewCount) && input.reviewCount >= 0 ? { reviewCount: input.reviewCount } : {}),
+    ...(typeof input.reviewSummary === "string" && input.reviewSummary.trim() ? { reviewSummary: input.reviewSummary.trim() } : {}),
     discoveredAt: options.discoveredAt || input.discoveredAt || new Date().toISOString(),
   };
   const parsed = DiscoveredListingSchema.safeParse(listing);

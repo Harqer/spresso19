@@ -56,19 +56,7 @@ fun AgentTemplateCard(
                         Icon(icon, null, modifier = Modifier.size(20.dp))
                     }
                 }
-                Surface(
-                    shape = RoundedCornerShape(100.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                ) {
-                    Text(
-                        category,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+                Text(category, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -100,20 +88,9 @@ fun AgentTemplateCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Reference Template", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Surface(
-                    onClick = { onUseStyle() },
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
+                TextButton(onClick = onUseStyle, shape = RoundedCornerShape(8.dp)) {
                         Icon(Icons.Default.Animation, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                         Text("Use Style", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
                 }
             }
         }

@@ -5,6 +5,5 @@
     <string name="auth_purchase_confirmed">Покупку підтверджено ✓</string>
     <string name="auth_failed_to_confirm">Не вдалося підтвердити</string>
     <string name="auth_error">Помилка: </string>
-    <string name="auth_confirm_purchase_passkey">Підтвердити покупку за допомогою ключа доступу</string>
     <string name="settings_language">Мова</string>
 </resources>

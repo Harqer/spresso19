@@ -11,6 +11,9 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,10 +59,17 @@ fun ProfilePage(
     val snackbarHostState = androidx.compose.runtime.remember { SnackbarHostState() }
     val platformContext = getPlatformContext()
 
+    var fitPreference by remember { mutableStateOf("regular") }
+    var userHeight by remember { mutableStateOf("") }
+    var userWeight by remember { mutableStateOf("") }
+
     androidx.compose.runtime.LaunchedEffect(userUid) {
         if (userUid != null && apiClient != null) {
             try {
                 userProfile = apiClient.fetchUserProfile(userUid)
+                val prefs = apiClient.getUserPreferences()
+                val fitPref = prefs["fitPreference"]
+                if (fitPref is String) fitPreference = fitPref
             } catch (e: Exception) {
                 snackbarHostState.showSnackbar("Failed to load profile. Please try again.")
             }
@@ -134,18 +144,21 @@ fun ProfilePage(
                     web3WalletAddress = userProfile!!.web3WalletAddress,
                     onAddPaymentCard = {
                         scope.launch {
+                            snackbarHostState.showSnackbar("Adding a card is unavailable until secure card entry is connected.")
+                        }
+                    },
+                    onRemovePaymentCard = { paymentMethodId ->
+                        scope.launch {
                             try {
-                                val success = apiClient?.createPaymentMethod(stripePaymentMethodId = "pm_card_visa") ?: false
-                                if (success) {
-                                    if (userUid != null) {
-                                        userProfile = apiClient?.fetchUserProfile(userUid)
-                                    }
-                                    snackbarHostState.showSnackbar("Payment card added successfully.")
+                                val success = apiClient?.removePaymentMethod(paymentMethodId) ?: false
+                                if (success && userUid != null) {
+                                    userProfile = apiClient?.fetchUserProfile(userUid)
+                                    snackbarHostState.showSnackbar("Payment card removed.")
                                 } else {
-                                    snackbarHostState.showSnackbar("Failed to add payment card.")
+                                    snackbarHostState.showSnackbar("Unable to remove this card. Please try again.")
                                 }
                             } catch (e: Exception) {
-                                snackbarHostState.showSnackbar("Failed to add payment card.")
+                                snackbarHostState.showSnackbar("Unable to remove this card. Please try again.")
                             }
                         }
                     },
@@ -168,6 +181,10 @@ fun ProfilePage(
                             try {
                                 val coinbaseHelper = CoinbaseWalletHelper(platformContext)
                                 val address = coinbaseHelper.connectWallet()
+                                if (!Regex("^0x[a-fA-F0-9]{40}$").matches(address)) {
+                                    snackbarHostState.showSnackbar("Failed to connect Coinbase Wallet.")
+                                    return@launch
+                                }
                                 val success = apiClient?.connectCoinbaseWallet(address) ?: false
                                 if (success) {
                                     val updated = userProfile!!.copy(web3WalletAddress = address)
@@ -196,31 +213,51 @@ fun ProfilePage(
                     icon = Icons.Outlined.FavoriteBorder,
                     title = "My Favorites",
                     subtitle = "View saved products",
-                    onClick = onNavigateToFavorites,
+                    onClick =
+                        onNavigateToFavorites ?: {
+                            scope.launch { snackbarHostState.showSnackbar("Favorites are unavailable right now.") }
+                            Unit
+                        },
                 )
                 ProfileListItem(
                     icon = Icons.Outlined.History,
                     title = "Order History",
                     subtitle = "Track your purchases",
-                    onClick = onNavigateToOrderHistory,
+                    onClick =
+                        onNavigateToOrderHistory ?: {
+                            scope.launch { snackbarHostState.showSnackbar("Order history is unavailable right now.") }
+                            Unit
+                        },
                 )
                 ProfileListItem(
                     icon = Icons.Outlined.NotificationsNone,
                     title = "Notifications",
                     subtitle = "Manage alerts and updates",
-                    onClick = onNavigateToNotifications,
+                    onClick =
+                        onNavigateToNotifications ?: {
+                            scope.launch { snackbarHostState.showSnackbar("Notification settings are unavailable right now.") }
+                            Unit
+                        },
                 )
                 ProfileListItem(
                     icon = Icons.Outlined.CheckCircle,
                     title = "Verify Email",
                     subtitle = "Secure account with digital credentials",
-                    onClick = onVerifyEmail,
+                    onClick =
+                        onVerifyEmail ?: {
+                            scope.launch { snackbarHostState.showSnackbar("Email verification is unavailable right now.") }
+                            Unit
+                        },
                 )
                 ProfileListItem(
                     icon = Icons.Outlined.Face,
                     title = "Smart Glasses",
                     subtitle = "Manage Meta Wearables",
-                    onClick = onNavigateToWearables,
+                    onClick =
+                        onNavigateToWearables ?: {
+                            scope.launch { snackbarHostState.showSnackbar("Smart glasses settings are unavailable right now.") }
+                            Unit
+                        },
                 )
 
                 ThemeSelectorCard(
@@ -231,8 +268,14 @@ fun ProfilePage(
                             apiClient?.let { client ->
                                 scope.launch {
                                     try {
-                                        val currentProfile = userProfile ?: UserProfileData(uid = uid, email = "", name = "")
-                                        client.updateUserProfile(currentProfile)
+                                        val currentProfile = userProfile
+                                        if (currentProfile == null) {
+                                            snackbarHostState.showSnackbar("Unable to save theme before your profile is loaded.")
+                                            return@launch
+                                        }
+                                        val updatedProfile = currentProfile.copy(themePreference = newTheme.name.lowercase())
+                                        client.updateUserProfile(updatedProfile)
+                                        userProfile = updatedProfile
                                     } catch (e: Exception) {
                                         snackbarHostState.showSnackbar("Failed to update theme preference.")
                                     }
@@ -242,17 +285,43 @@ fun ProfilePage(
                     },
                 )
 
+                StylePreferencesSection(
+                    fitPreference = fitPreference,
+                    height = userHeight,
+                    weight = userWeight,
+                    onFitPreferenceChange = { newFit ->
+                        fitPreference = newFit
+                        scope.launch {
+                            try {
+                                apiClient?.updateUserPreferences(fitPreference = newFit)
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar("Failed to save fit preference.")
+                            }
+                        }
+                    },
+                    onHeightChange = { userHeight = it },
+                    onWeightChange = { userWeight = it },
+                )
+
                 ProfileListItem(
                     icon = Icons.Outlined.Security,
                     title = "Privacy & Security",
                     subtitle = "Biometric and account safety",
-                    onClick = onNavigateToPrivacySecurity,
+                    onClick =
+                        onNavigateToPrivacySecurity ?: {
+                            scope.launch { snackbarHostState.showSnackbar("Privacy and security settings are unavailable right now.") }
+                            Unit
+                        },
                 )
                 ProfileListItem(
                     icon = Icons.AutoMirrored.Outlined.HelpOutline,
                     title = "Support",
                     subtitle = "Contact Spresso Concierge",
-                    onClick = onNavigateToSupport,
+                    onClick =
+                        onNavigateToSupport ?: {
+                            scope.launch { snackbarHostState.showSnackbar("Support is unavailable right now. Please try again later.") }
+                            Unit
+                        },
                 )
             }
 

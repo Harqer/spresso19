@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.layout.ContentScale
@@ -27,7 +28,7 @@ fun SmartVisionViewport(
 ) {
     if (activeImage == null) return
 
-    val activeImageBitmap = activeImage.makeImageBitmap()
+    val activeImageBitmap = remember(activeImage) { activeImage.makeImageBitmap() }
     if (activeImageBitmap != null) {
         Image(
             bitmap = activeImageBitmap,

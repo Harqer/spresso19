@@ -2,6 +2,8 @@ import Logger from "../lib/Logger";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { functions } from "../lib/firebase";
+import { auth, storage } from "../lib/firebase";
+import { getDownloadURL, ref, uploadString } from "firebase/storage";
 import { httpsCallable } from "firebase/functions";
 import { MaterialIcon } from "./MaterialIcon";
 import { SpressoLogo } from "./SpressoLogo";
@@ -10,9 +12,18 @@ import { AnimatedTicketCard } from "@/src/components/features/orders/AnimatedTic
 interface GamifiedOnboardingModalProps {
   isOpen?: boolean;
   onClose: () => void;
-  onComplete?: (userPreferences: { vibes: string[]; radius: number; locationEnabled: boolean }) => void;
+  onComplete?: (userPreferences: { vibes: string[]; radius: number; locationEnabled: boolean; avatarProfile?: AvatarProfile }) => void;
   onAskAI?: (query: string, image?: string) => void;
   onSelectTryOn?: (product: any) => void;
+}
+
+interface AvatarProfile {
+  usePersonalAvatar: boolean;
+  avatarUrl?: string;
+  age?: number;
+  height?: string;
+  weight?: string;
+  fitPreference?: "tailored" | "regular" | "relaxed" | "oversized";
 }
 
 const STYLE_VIBES = [
@@ -32,10 +43,15 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
   const [selectedVibes, setSelectedVibes] = useState<string[]>(["streetwear", "luxury"]);
   const [tryOnTested, setTryOnTested] = useState<boolean>(false);
   const [cardAdded, setCardAdded] = useState<boolean>(false);
-  const [cardNumber, setCardNumber] = useState<string>("");
   const [wardrobeConnected, setWardrobeConnected] = useState<boolean>(false);
   const [totalXp, setTotalXp] = useState<number>(0);
   const [floatingXpText, setFloatingXpText] = useState<string | null>(null);
+  const [avatarPhoto, setAvatarPhoto] = useState<string | undefined>();
+  const [usePersonalAvatar, setUsePersonalAvatar] = useState(true);
+  const [age, setAge] = useState("");
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+  const [fitPreference, setFitPreference] = useState<AvatarProfile["fitPreference"]>("regular");
 
   if (!isOpen) return null;
 
@@ -59,16 +75,6 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
   const handleTestTryOn = () => {
     setTryOnTested(true);
     triggerXpGain(150);
-    if (onSelectTryOn) {
-      onSelectTryOn({
-        id: "prod-onboard-01",
-        name: "Spresso VIP Virtual Try-On Jacket",
-        brand: "Spresso Studio",
-        category: "Outerwear",
-        price: 199.00,
-        image: "https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=600&q=80"
-      });
-    }
   };
 
   const handleSaveCard = () => {
@@ -84,13 +90,20 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
   const handleFinishOnboarding = async () => {
     try {
       const updateUserPreferences = httpsCallable(functions, "updateUserPreferences");
+      let avatarUrl: string | undefined;
+      if (usePersonalAvatar && avatarPhoto && auth.currentUser) {
+        const avatarRef = ref(storage, `users/${auth.currentUser.uid}/avatar/onboarding.jpg`);
+        await uploadString(avatarRef, avatarPhoto, "data_url", { contentType: "image/jpeg" });
+        avatarUrl = await getDownloadURL(avatarRef);
+      }
       await updateUserPreferences({
         onboardingCompleted: true,
         vibes: selectedVibes,
         cardSaved: cardAdded,
         wardrobeSynced: wardrobeConnected,
         radius: 25,
-        locationEnabled: true
+        locationEnabled: true,
+        avatarProfile: { usePersonalAvatar, avatarUrl, age: Number(age) || undefined, height: height || undefined, weight: weight || undefined, fitPreference },
       });
     } catch (e) {
       Logger.error("Failed to sync onboarding preferences", e);
@@ -99,7 +112,8 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
     onComplete?.({
       vibes: selectedVibes,
       radius: 25,
-      locationEnabled: true
+      locationEnabled: true,
+      avatarProfile: { usePersonalAvatar, avatarUrl: undefined, age: Number(age) || undefined, height: height || undefined, weight: weight || undefined, fitPreference },
     });
     onClose();
   };
@@ -133,7 +147,7 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
                 <span className="text-xs font-black uppercase tracking-wider text-[#446732] dark:text-[#a9d291]">
                   Quest {currentStep} of 5
                 </span>
-                <span className="px-2 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-bold rounded-full border border-amber-500/30 flex items-center space-x-1">
+                <span className="text-amber-600 dark:text-amber-400 text-[11px] font-medium flex items-center space-x-1">
                   <MaterialIcon icon="stars" size={12} />
                   <span>{totalXp} XP</span>
                 </span>
@@ -217,13 +231,35 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
               </div>
 
               <div className="p-5 bg-white dark:bg-[#191d16] border border-[#dfe4d7] dark:border-[#43483e] rounded-2xl shadow-md space-y-4 text-left">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-stone-900 shrink-0">
-                    <img src="https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=600&q=80" alt="Jacket" className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold">Spresso VIP Virtual Try-On Jacket</h4>
-                    <p className="text-[11px] text-[#43483e] dark:text-[#c3c8bb]">3D Spatial Mesh & AR Overlay Supported</p>
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold">Your try-on profile</h4>
+                  <p className="text-[11px] text-[#43483e] dark:text-[#c3c8bb]">Optional. If you skip this, try-on uses a generated model instead.</p>
+                  <label className="flex items-center gap-2 text-xs font-medium">
+                    <input type="checkbox" checked={usePersonalAvatar} onChange={(event) => setUsePersonalAvatar(event.target.checked)} />
+                    Use my photo as the avatar
+                  </label>
+                  {usePersonalAvatar && (
+                    <label className="block cursor-pointer text-center py-2 px-3 bg-[#f8faf6] dark:bg-[#282b24] border border-[#dfe4d7] dark:border-[#43483e] rounded-xl text-xs font-bold">
+                      {avatarPhoto ? "Photo selected" : "Choose a photo or capture one"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => setAvatarPhoto(String(reader.result));
+                        reader.readAsDataURL(file);
+                      }} />
+                    </label>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <input aria-label="Age" inputMode="numeric" placeholder="Age (optional)" value={age} onChange={(event) => setAge(event.target.value)} className="rounded-lg border p-2 text-xs bg-transparent" />
+                    <input aria-label="Height" placeholder="Height (optional)" value={height} onChange={(event) => setHeight(event.target.value)} className="rounded-lg border p-2 text-xs bg-transparent" />
+                    <input aria-label="Weight" placeholder="Weight (optional)" value={weight} onChange={(event) => setWeight(event.target.value)} className="rounded-lg border p-2 text-xs bg-transparent" />
+                    <select aria-label="Fit preference" value={fitPreference} onChange={(event) => setFitPreference(event.target.value as AvatarProfile["fitPreference"])} className="rounded-lg border p-2 text-xs bg-transparent">
+                      <option value="tailored">Tailored fit</option>
+                      <option value="regular">Regular fit</option>
+                      <option value="relaxed">Relaxed fit</option>
+                      <option value="oversized">Oversized fit</option>
+                    </select>
                   </div>
                 </div>
 
@@ -257,19 +293,7 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
               </div>
 
               <div className="p-5 bg-white dark:bg-[#191d16] border border-[#dfe4d7] dark:border-[#43483e] rounded-2xl shadow-md space-y-3 text-left">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#43483e] dark:text-[#c3c8bb]">Card Number (Stripe Tokenized)</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="4242 •••• •••• 4242"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      className="w-full pl-10 pr-3 py-2.5 bg-[#f8faf6] dark:bg-[#282b24] border border-[#dfe4d7] dark:border-[#43483e] rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-[#446732]"
-                    />
-                    <MaterialIcon icon="payment" size={18} className="absolute left-3 top-3 text-[#43483e] dark:text-[#c3c8bb]" />
-                  </div>
-                </div>
+                <p className="text-[11px] text-[#43483e] dark:text-[#c3c8bb]">Payment details are collected only inside secure Stripe checkout. Spresso never asks for a raw card number here.</p>
 
                 <button
                   type="button"

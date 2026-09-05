@@ -5,6 +5,5 @@
     <string name="auth_purchase_confirmed">Compra Confirmada ✓</string>
     <string name="auth_failed_to_confirm">Falha ao confirmar</string>
     <string name="auth_error">Erro: </string>
-    <string name="auth_confirm_purchase_passkey">Confirmar Compra com Passkey</string>
     <string name="settings_language">Idioma</string>
 </resources>

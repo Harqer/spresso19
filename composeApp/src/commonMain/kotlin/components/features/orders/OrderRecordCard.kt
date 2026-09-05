@@ -39,7 +39,7 @@ fun OrderRecordCard(
                         order.items
                             .firstOrNull()
                             ?.product
-                            ?.imageUrl ?: "https://storage.googleapis.com/spresso-assets/default-product.png",
+                            ?.imageUrl.orEmpty(),
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     client = apiClient.client,
@@ -47,7 +47,13 @@ fun OrderRecordCard(
                 Column {
                     Text("Order #${order.id.take(8)}", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "${order.status} • ${order.trackingStatus ?: "In Transit"}\nEst: ${order.estimatedDelivery ?: "Today"} • Total: $${order.totalAmount.toPriceString()}",
+                        buildString {
+                            append(order.status)
+                            order.trackingStatus?.takeIf { it.isNotBlank() }?.let { append(" · $it") }
+                            append("\n")
+                            append(order.estimatedDelivery?.takeIf { it.isNotBlank() }?.let { "Estimated arrival: $it" } ?: "Tracking estimate unavailable")
+                            append(" · Total: $${order.totalAmount.toPriceString()}")
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -56,8 +62,6 @@ fun OrderRecordCard(
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                itemVerticalAlignment = Alignment.Top,
-                overflow = androidx.compose.foundation.layout.FlowRowOverflow.Visible,
             ) {
                 SpressoButton(
                     text = "Reminder",

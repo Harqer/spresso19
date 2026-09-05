@@ -87,8 +87,6 @@ public interface SpressoConnectorConnector : com.google.firebase.dataconnect.gen
 
     public val logVisionEvent: LogVisionEventMutation
 
-    public val registerPasskey: RegisterPasskeyMutation
-
     public val toggleGroceryItem: ToggleGroceryItemMutation
 
     public val toggleLike: ToggleLikeMutation
@@ -293,10 +291,6 @@ private class SpressoConnectorConnectorImpl(
         LogVisionEventMutationImpl(this)
     }
 
-    override val registerPasskey by lazy(LazyThreadSafetyMode.PUBLICATION) {
-        RegisterPasskeyMutationImpl(this)
-    }
-
     override val toggleGroceryItem by lazy(LazyThreadSafetyMode.PUBLICATION) {
         ToggleGroceryItemMutationImpl(this)
     }
@@ -342,7 +336,6 @@ private class SpressoConnectorConnectorImpl(
             deleteGroceryItem,
             deletePaymentMethod,
             logVisionEvent,
-            registerPasskey,
             toggleGroceryItem,
             toggleLike,
             updateOnboardingStatus,
@@ -969,19 +962,6 @@ private class LogVisionEventMutationImpl(
         LogVisionEventMutation.Companion.variablesSerializer,
     ),
     LogVisionEventMutation
-
-private class RegisterPasskeyMutationImpl(
-    connector: SpressoConnectorConnector,
-) : SpressoConnectorConnectorGeneratedMutationImpl<
-        RegisterPasskeyMutation.Data,
-        RegisterPasskeyMutation.Variables,
-    >(
-        connector,
-        RegisterPasskeyMutation.Companion.operationName,
-        RegisterPasskeyMutation.Companion.dataDeserializer,
-        RegisterPasskeyMutation.Companion.variablesSerializer,
-    ),
-    RegisterPasskeyMutation
 
 private class ToggleGroceryItemMutationImpl(
     connector: SpressoConnectorConnector,

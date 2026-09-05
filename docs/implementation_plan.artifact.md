@@ -11,16 +11,16 @@ Address the "Failed to find preview element" error in the `render_compose_previe
 
 ### Build Configuration & Environment
 
-#### [MODIFY] [build.gradle.kts](file:///home/shaolin/Spresso/spresso19/composeApp/build.gradle.kts)
+#### [MODIFY] [build.gradle.kts](file:///home/shaolin/Spresso/composeApp/build.gradle.kts)
 - Ensure all necessary preview and UI tooling dependencies are correctly declared for both `commonMain` and `androidMain`.
 - Verify the `composeCompiler` and `jetbrainsCompose` plugin versions are compatible with the current environment.
 
-#### [MODIFY] [gradle.properties](file:///home/shaolin/Spresso/spresso19/gradle.properties)
+#### [MODIFY] [gradle.properties](file:///home/shaolin/Spresso/gradle.properties)
 - Add flags to stabilize the Gradle daemon and potentially bypass the `AndroidLocationsBuildService` issue (e.g., setting a explicit `android.dir` if needed).
 
 ### Preview Implementation Standard
 
-#### [MODIFY] [ChatBubbleText.kt](file:///home/shaolin/Spresso/spresso19/composeApp/src/commonMain/kotlin/components/atoms/ChatBubbleText.kt) (and others)
+#### [MODIFY] [ChatBubbleText.kt](file:///home/shaolin/Spresso/composeApp/src/commonMain/kotlin/components/atoms/ChatBubbleText.kt) (and others)
 - Ensure previews are top-level functions.
 - Verify visibility is `public` (default).
 - Standardize on `org.jetbrains.compose.ui.tooling.preview.Preview` for `commonMain`.
