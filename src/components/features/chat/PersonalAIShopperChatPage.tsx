@@ -45,8 +45,6 @@ interface PersonalAIShopperChatPageProps {
   onClearPendingQuery?: () => void;
   showcaseProduct?: ProductItem | null;
   onClearShowcaseProduct?: () => void;
-  discoveryRepository?: unknown;
-  onListingsChanged?: () => void;
 }
 
 export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps> = ({

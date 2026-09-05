@@ -49,18 +49,15 @@ exports.searchProductsTool = genkit_1.ai.defineTool({
             const shoppingResults = Array.isArray(data.shopping_results) ? data.shopping_results : [];
             const listings = (0, serpApiAdapter_1.normalizeSerpApiResults)(shoppingResults);
             return {
-                results: listings.slice(0, 5).map(listing => {
-                    var _a, _b;
-                    return ({
-                        id: listing.id,
-                        name: listing.name,
-                        price: (_b = (_a = listing.observedPrice) === null || _a === void 0 ? void 0 : _a.amount) !== null && _b !== void 0 ? _b : null,
-                        description: listing.category || listing.brand || listing.name,
-                        imageUrl: listing.imageUrl,
-                        source: "serpapi",
-                        merchantUrl: listing.merchantUrl,
-                    });
-                }),
+                results: listings.slice(0, 5).map(listing => { var _a; var _b; return ({
+                    id: listing.id,
+                    name: listing.name,
+                    price: (_b = (_a = listing.observedPrice) === null || _a === void 0 ? void 0 : _a.amount) !== null && _b !== void 0 ? _b : null,
+                    description: listing.category || listing.brand || listing.name,
+                    imageUrl: listing.imageUrl,
+                    source: "serpapi",
+                    merchantUrl: listing.merchantUrl,
+                }); }),
             };
         });
         return value;

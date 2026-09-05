@@ -22,6 +22,9 @@ object FirebaseRoutes {
     const val UPDATE_USER_PROFILE = "updateUserProfile"
     const val DEACTIVATE_ACCOUNT = "deactivateAccount"
     const val GET_TRAVEL_TRIPS = "getTravelTrips"
+    const val INITIALIZE_ONBOARDING = "initializeOnboarding"
+    const val CONNECT_COINBASE_WALLET = "connectCoinbaseWallet"
+    const val GENERATE_RESPONSE_FROM_AUDIO = "generateResponseFromAudio"
 
     const val GENERATE_GOOGLE_WALLET_PASS_JWT = "generateGoogleWalletPassJwt"
     const val GET_USER_PREFERENCES = "getUserPreferences"

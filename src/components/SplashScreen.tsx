@@ -75,6 +75,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onSplashComplete }) 
         src="/splash_video.mp4"
         autoPlay
         playsInline
+        aria-hidden="true"
         onEnded={handleEnded}
         className="w-full h-full object-cover pointer-events-none"
       />

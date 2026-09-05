@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { ProductItem, HITLPayload } from "../types";
+import { verifiedMerchantUrl } from "../lib/merchantCheckout";
 
 interface ProductDetailsModalProps {
   isOpen?: boolean;

@@ -183,7 +183,8 @@ function failure(failureReason, steps, status = "failed") {
     return { status, steps: steps.map(redactActionLog), failureReason };
 }
 async function stageKitesurfListing(listing, options = {}) {
-    var _a, _b, _c, _d;
+    var _a, _b;
+    var _c, _d;
     if (!((_a = listing.merchantUrl) === null || _a === void 0 ? void 0 : _a.trim()) || !((_b = listing.name) === null || _b === void 0 ? void 0 : _b.trim())) {
         return failure("missing_listing", ["Merchant listing details were missing."]);
     }

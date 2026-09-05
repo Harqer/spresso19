@@ -109,7 +109,8 @@ exports.acknowledgeDelivery = (0, https_1.onCall)({ enforceAppCheck: true, maxIn
     const orderRef2 = (0, orderRefs_1.orderRef)(request.auth.uid, input.data.orderId);
     const requestRef = orderRef2.collection("deliveryAcknowledgements").doc(input.data.idempotencyKey);
     return db_1.db.runTransaction(async (transaction) => {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c, _d;
+        var _e;
         const [order, priorRequest] = await Promise.all([transaction.get(orderRef2), transaction.get(requestRef)]);
         if (priorRequest.exists)
             return { success: true };

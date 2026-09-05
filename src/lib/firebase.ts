@@ -35,17 +35,6 @@ if (typeof window !== "undefined") {
   }
 }
 
-export let appCheck: AppCheck | null = null;
-if (typeof window !== "undefined") {
-  const siteKey = import.meta.env.VITE_FIREBASE_APPCHECK_RECAPTCHA_SITE_KEY;
-  if (siteKey) {
-    appCheck = initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(siteKey),
-      isTokenAutoRefreshEnabled: true,
-    });
-  }
-}
-
 // Initialize Telemetry: Firebase Performance Monitoring & Google Analytics
 let analytics: Analytics | null = null;
 let perf: FirebasePerformance | null = null;

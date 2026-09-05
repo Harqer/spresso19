@@ -461,7 +461,7 @@ export const StackedWardrobeDecks: React.FC<StackedWardrobeDecksProps> = ({
                                 safetyChecks: [
                                   "Merchant availability will be verified at checkout",
                                   "Spresso does not own or reserve retailer inventory",
-                                  "Click confirm to place order"
+                                  "Review the merchant quote and confirm only if you want to proceed"
                                 ]
                               }
                             });

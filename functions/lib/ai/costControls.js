@@ -80,7 +80,8 @@ async function consumeBudget(uid, kind) {
     const day = new Date().toISOString().slice(0, 10);
     const ref = db_1.db.collection("aiBudgets").doc(`${uid}_${day}`);
     await db_1.db.runTransaction(async (transaction) => {
-        var _a, _b;
+        var _a;
+        var _b;
         const snapshot = await transaction.get(ref);
         const current = Number((_b = (_a = snapshot.data()) === null || _a === void 0 ? void 0 : _a[kind]) !== null && _b !== void 0 ? _b : 0);
         if (current >= BUDGETS[kind]) {

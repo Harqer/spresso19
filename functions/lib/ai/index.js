@@ -343,11 +343,18 @@ exports.vitposeOrchestrateFit = (0, https_1.onCall)({ enforceAppCheck: true, sec
         const responseText = response.output_text;
         if (!responseText)
             throw new Error("Empty response from Gemini");
-        const parsed = JSON.parse(responseText);
+        const parsed = zod_1.z.object({
+            fitScore: zod_1.z.number().min(0).max(100),
+            garmentType: zod_1.z.string().min(1),
+            postureDetected: zod_1.z.string().min(1),
+            confidence: zod_1.z.number().min(0).max(100),
+        }).parse(JSON.parse(responseText));
         return { success: true, fitAnalysis: parsed };
     }
     catch (e) {
-        throw new https_1.HttpsError("internal", `Failed to orchestrate fit: ${e.message}`);
+        if (e instanceof https_1.HttpsError)
+            throw e;
+        throw new https_1.HttpsError("internal", "Failed to orchestrate fit");
     }
 });
 exports.getQuickPrompts = (0, https_1.onCall)({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {

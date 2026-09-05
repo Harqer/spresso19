@@ -8,7 +8,7 @@ const testDir = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(join(testDir, "../src/database/spannerClient.ts"), "utf8");
 
 test("Spanner defaults stay on the verified Google project and catalog resources", () => {
-  assert.match(source, /process\.env\.GCLOUD_PROJECT\s*\|\|\s*["']get-spresso["']/);
+  assert.match(source, /process\.env\.GCLOUD_PROJECT\s*\|\|\s*process\.env\.GOOGLE_CLOUD_PROJECT\s*\|\|\s*["']get-spresso["']/);
   assert.match(source, /process\.env\.SPANNER_INSTANCE\s*\|\|\s*["']spresso-catalog["']/);
   assert.match(source, /process\.env\.SPANNER_DATABASE\s*\|\|\s*["']catalog_db["']/);
   assert.doesNotMatch(source, /spresso-(?:19|5561f)/);

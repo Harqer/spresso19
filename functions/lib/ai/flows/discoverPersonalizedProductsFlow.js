@@ -91,21 +91,18 @@ exports.discoverPersonalizedProductsFlow = genkit_1.ai.defineFlow({
             const rankedListings = (0, discoveryTypes_1.assertModelListingProvenance)(modelOutput, validatedListings);
             return {
                 listings: rankedListings,
-                items: rankedListings.map(listing => {
-                    var _a, _b, _c, _d;
-                    return ({
-                        id: listing.id,
-                        name: listing.name,
-                        brand: listing.brand,
-                        category: listing.category,
-                        price: (_b = (_a = listing.observedPrice) === null || _a === void 0 ? void 0 : _a.amount) !== null && _b !== void 0 ? _b : null,
-                        currency: (_c = listing.observedPrice) === null || _c === void 0 ? void 0 : _c.currency,
-                        imageUrl: listing.imageUrl,
-                        merchantUrl: listing.merchantUrl,
-                        source: listing.source,
-                        priceEvidence: (_d = listing.observedPrice) === null || _d === void 0 ? void 0 : _d.evidenceUrl,
-                    });
-                }),
+                items: rankedListings.map(listing => { var _a, _b, _c; var _d; return ({
+                    id: listing.id,
+                    name: listing.name,
+                    brand: listing.brand,
+                    category: listing.category,
+                    price: (_d = (_a = listing.observedPrice) === null || _a === void 0 ? void 0 : _a.amount) !== null && _d !== void 0 ? _d : null,
+                    currency: (_b = listing.observedPrice) === null || _b === void 0 ? void 0 : _b.currency,
+                    imageUrl: listing.imageUrl,
+                    merchantUrl: listing.merchantUrl,
+                    source: listing.source,
+                    priceEvidence: (_c = listing.observedPrice) === null || _c === void 0 ? void 0 : _c.evidenceUrl,
+                }); }),
             };
         });
         return value;

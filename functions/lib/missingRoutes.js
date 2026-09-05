@@ -31,7 +31,8 @@ exports.seasonalStyling = (0, https_1.onCall)({ enforceAppCheck: true, memory: "
     return { outfits: snapshot.docs.map((doc) => (Object.assign({ id: doc.id }, doc.data()))), season: parsed.data.season };
 });
 exports.updateUserProfile = (0, https_1.onCall)({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
-    var _a, _b;
+    var _a;
+    var _b;
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "Must be signed in.");
     const profile = (_b = (_a = request.data) === null || _a === void 0 ? void 0 : _a.profile) !== null && _b !== void 0 ? _b : request.data;

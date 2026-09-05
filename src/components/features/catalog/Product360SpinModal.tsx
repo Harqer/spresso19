@@ -3,6 +3,7 @@ import { MaterialIcon } from "../../MaterialIcon";
 import { ProductItem } from "../../../types";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../../lib/firebase";
+import { displayListingPrice } from "../../../lib/discoveryRepository";
 
 interface Product360SpinModalProps {
   spin360Product: ProductItem;

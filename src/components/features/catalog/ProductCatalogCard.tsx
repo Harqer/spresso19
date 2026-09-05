@@ -67,7 +67,12 @@ export const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
       </div>
       <div className="pt-3 border-t border-[#f2f8f2] space-y-3">
         <div className="flex items-center justify-between">
-          <ProductPriceTag price={product.price} originalPrice={product.originalPrice} isObserved={Boolean(product.listing?.observedPrice)} />
+          <ProductPriceTag
+            price={product.price}
+            originalPrice={product.originalPrice}
+            observedPrice={product.listing?.observedPrice}
+            merchantUrl={product.listing?.merchantUrl}
+          />
           <div className="flex items-center space-x-1.5">
             <button onClick={onGenkitModal} className="px-2.5 py-2 rounded-xl border"><MaterialIcon icon="auto_awesome" size={16} /></button>
             <button onClick={onSelectTryOn} className="px-3 py-2 rounded-xl bg-[#e8f3e8] border"><MaterialIcon icon="animation" size={18} /></button>

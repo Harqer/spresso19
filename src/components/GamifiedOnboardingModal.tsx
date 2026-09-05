@@ -1,13 +1,12 @@
 import Logger from "../lib/Logger";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { functions } from "../lib/firebase";
-import { auth, storage } from "../lib/firebase";
+import { auth, functions, storage } from "../lib/firebase";
 import { getDownloadURL, ref, uploadString } from "firebase/storage";
 import { httpsCallable } from "firebase/functions";
-import { auth, functions } from "../lib/firebase";
 import { MaterialIcon } from "./MaterialIcon";
 import { SpressoLogo } from "./SpressoLogo";
+import { AnimatedTicketCard } from "./features/orders/AnimatedTicketCard";
 
 interface GamifiedOnboardingModalProps {
   isOpen?: boolean;
@@ -41,8 +40,6 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [selectedVibes, setSelectedVibes] = useState<string[]>(["streetwear", "luxury"]);
   const [tryOnTested, setTryOnTested] = useState<boolean>(false);
-  const [cardAdded, setCardAdded] = useState<boolean>(false);
-  const [wardrobeConnected, setWardrobeConnected] = useState<boolean>(false);
   const [totalXp, setTotalXp] = useState<number>(0);
   const [floatingXpText, setFloatingXpText] = useState<string | null>(null);
   const [avatarPhoto, setAvatarPhoto] = useState<string | undefined>();
@@ -51,6 +48,14 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [fitPreference, setFitPreference] = useState<AvatarProfile["fitPreference"]>("regular");
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const triggerXpGain = (amount: number) => {
+    setTotalXp((current) => current + amount);
+    setFloatingXpText(`+${amount} XP`);
+    window.setTimeout(() => setFloatingXpText(null), 900);
+  };
 
   if (!isOpen) return null;
 
@@ -67,16 +72,6 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
 
   const handleTestTryOn = () => {
     setTryOnTested(true);
-    triggerXpGain(150);
-  };
-
-  const handleSaveCard = () => {
-    setCardAdded(true);
-    triggerXpGain(150);
-  };
-
-  const handleConnectWardrobe = () => {
-    setWardrobeConnected(true);
     triggerXpGain(150);
   };
 
@@ -103,8 +98,8 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
       await updateUserPreferences({
         onboardingCompleted: true,
         vibes: selectedVibes,
-        cardSaved: cardAdded,
-        wardrobeSynced: wardrobeConnected,
+        cardSaved: false,
+        wardrobeSynced: false,
         radius: 25,
         locationEnabled: true,
         avatarProfile: { usePersonalAvatar, avatarUrl, age: Number(age) || undefined, height: height || undefined, weight: weight || undefined, fitPreference },
@@ -210,7 +205,7 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
                       }`}
                     >
                       <div className="flex items-center space-x-2">
-                        <div className={`p-2 rounded-xl text-white bg-gradient-to-br ${vibe.color}`}>
+                        <div className="p-2 rounded-xl text-white bg-gradient-to-br from-[#446732] to-[#a9d291]">
                           <MaterialIcon icon={vibe.icon} size={18} />
                         </div>
                         <span className="text-xs font-bold">{vibe.label}</span>
@@ -269,26 +264,8 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
                   </div>
                 </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {STYLE_VIBES.map((vibe) => {
-              const selected = selectedVibes.includes(vibe.id);
-              return (
-                <button
-                  key={vibe.id}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => toggleVibe(vibe.id)}
-                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 text-left transition ${
-                    selected
-                      ? "border-[#446732] bg-[#eef7e9] text-[#29491d]"
-                      : "border-[#dfe4d7] bg-white text-[#18211e] hover:bg-[#f7faf5]"
-                  }`}
-                >
-                  <MaterialIcon icon={vibe.icon} size={22} />
-                  <span className="text-sm font-semibold">{vibe.label}</span>
-                </button>
-              </div>
-            </motion.div>
+                </div>
+              </motion.div>
           )}
 
           {/* STEP 3: Adding Credit Card & Wallet Connection */}
@@ -307,18 +284,9 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
               <div className="p-5 bg-white dark:bg-[#191d16] border border-[#dfe4d7] dark:border-[#43483e] rounded-2xl shadow-md space-y-3 text-left">
                 <p className="text-[11px] text-[#43483e] dark:text-[#c3c8bb]">Payment details are collected only inside secure Stripe checkout. Spresso never asks for a raw card number here.</p>
 
-                <button
-                  type="button"
-                  onClick={handleSaveCard}
-                  className={`w-full py-2.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center justify-center space-x-2 ${
-                    cardAdded
-                      ? "bg-green-700 text-white shadow-xs"
-                      : "bg-[#446732] hover:bg-[#385428] text-white shadow-md"
-                  }`}
-                >
-                  <MaterialIcon icon={cardAdded ? "verified" : "lock"} size={18} />
-                  <span>{cardAdded ? "Payment Method Saved (+150 XP)" : "Save Card & Google Wallet"}</span>
-                </button>
+                <p className="rounded-xl bg-[#f2f8f2] p-3 text-xs text-[#43483e] dark:bg-[#282b24] dark:text-[#c3c8bb]">
+                  Payment details are added only when you review a merchant quote and continue through secure checkout.
+                </p>
               </div>
             </motion.div>
           )}
@@ -347,18 +315,9 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleConnectWardrobe}
-                  className={`w-full py-3 rounded-xl font-bold text-xs transition cursor-pointer flex items-center justify-center space-x-2 ${
-                    wardrobeConnected
-                      ? "bg-green-700 text-white shadow-xs"
-                      : "bg-[#446732] hover:bg-[#385428] text-white shadow-md"
-                  }`}
-                >
-                  <MaterialIcon icon={wardrobeConnected ? "check_circle" : "add_photo_alternate"} size={18} />
-                  <span>{wardrobeConnected ? "Photo Gallery Linked (+150 XP)" : "Connect Photo Gallery & Wardrobe"}</span>
-                </button>
+                <p className="rounded-xl bg-[#f2f8f2] p-3 text-xs text-[#43483e] dark:bg-[#282b24] dark:text-[#c3c8bb]">
+                  Add wardrobe photos from the Wardrobe page when you are ready. Your images stay under your account controls.
+                </p>
               </div>
             </motion.div>
           )}
@@ -372,7 +331,7 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
 
               <div>
                 <span className="px-3 py-1 bg-amber-500/20 text-amber-600 dark:text-amber-400 font-mono text-xs font-extrabold rounded-full border border-amber-500/30 inline-block mb-2">
-                  {totalXp} XP ACHIEVED · SPRESSO VIP UNLOCKED
+                  {totalXp} XP ACHIEVED
                 </span>
                 <h3 className="text-2xl font-black font-headline">Welcome to Spresso Commerce!</h3>
                 <p className="text-xs text-[#43483e] dark:text-[#c3c8bb] mt-2 max-w-md mx-auto leading-relaxed">
@@ -382,12 +341,12 @@ export const GamifiedOnboardingModal: React.FC<GamifiedOnboardingModalProps> = (
 
               <AnimatedTicketCard
                 variant="onboarding"
-                title="SPRESSO VIP ONBOARDING PASS"
-                subtitle="WELCOME MEMBER PERK"
+                title="SPRESSO ONBOARDING PASS"
+                subtitle="PERSONALIZED SHOPPING SETUP"
                 attendeeName="SPRESSO MEMBER"
-                location="10% OFF PROMO CODE: SPRESSO10"
-                date="VALID LIFETIME"
-                ticketCode="VIP-ONBOARD-2026"
+                location="Personalized recommendations as you shop"
+                date="AVAILABLE AFTER SETUP"
+                ticketCode="ONBOARDING-SETUP"
               />
             </motion.div>
           )}

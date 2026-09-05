@@ -29,7 +29,7 @@ function service() {
 }
 
 export const getAgentWalletStatus = onCall(
-  { enforceAppCheck: true, secrets: [...cdpWalletSecrets, stablecoinContractAddress, stablecoinSymbol], maxInstances: 20, minInstances: 0 },
+  { enforceAppCheck: true, secrets: [...cdpWalletSecrets, stablecoinContractAddress, stablecoinSymbol, stablecoinDecimals], maxInstances: 20, minInstances: 0 },
   async (request) => {
     if (!request.auth || request.auth.token.firebase?.sign_in_provider === "anonymous") {
       throw new HttpsError("unauthenticated", "You must be signed in.");

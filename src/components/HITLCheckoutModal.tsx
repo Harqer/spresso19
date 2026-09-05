@@ -471,8 +471,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
               </>
             )}
           </button>
-        </div>
-
+        )}
         <div className="mt-6 space-y-4 text-sm text-[#48524d]">
           <p>Your item is in the Spresso cart. Open the merchant listing to confirm the current price, availability, delivery options, and payment there.</p>
           <p>Spresso does not reserve retailer inventory or submit payment on your behalf.</p>

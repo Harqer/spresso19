@@ -3,9 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getSpannerDatabase = void 0;
 const spanner_1 = require("@google-cloud/spanner");
 // Hardcoded or ENV driven project values
-const projectId = process.env.GCLOUD_PROJECT || 'spresso-19';
-const instanceId = process.env.SPANNER_INSTANCE || 'spresso-global-instance';
-const databaseId = process.env.SPANNER_DATABASE || 'spresso-catalog';
+const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || 'get-spresso';
+const instanceId = process.env.SPANNER_INSTANCE || 'spresso-catalog';
+const databaseId = process.env.SPANNER_DATABASE || 'catalog_db';
 /**
  * Global singleton Spanner client.
  * Declared outside the function scope to reuse connections across invocations

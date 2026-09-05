@@ -198,6 +198,8 @@ open class ApiClient {
     }
 
     private val cloudFunctionsBaseUrl = SpressoConfig.cloudFunctionsBaseUrl
+    /** Firebase Hosting is the canonical HTTP boundary for non-callable REST resources. */
+    private val backendBaseUrl = SpressoConfig.backendBaseUrl
 
     suspend fun verifyEmailCredential(
         credential: String,

@@ -55,7 +55,11 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [generatedMedia, setGeneratedMedia] = useState<{ mediaUrl: string; mediaType: "image" | "video"; provider?: string } | null>(null);
 
-  const [tryOnMeta, setTryOnMeta] = useState({
+  const [tryOnMeta, setTryOnMeta] = useState<{
+    mediaType: string;
+    sizeRecommendation: string;
+    styleMatchAnalysis: string;
+  } | null>({
     mediaType: "video",
     sizeRecommendation: "Visual estimate only",
     styleMatchAnalysis: "Add a personal photo and fit details for a more relevant visual estimate. Without them, a generated model will be used.",
@@ -197,7 +201,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
         safetyChecks: [
           `Virtual Try-On 001 fit verified in ${selectedMediaType.toUpperCase()} mode`,
           "Merchant availability will be verified at checkout",
-          "Includes free express delivery & returns"
+          "Delivery options and returns are provided by the merchant"
         ]
       }
     };

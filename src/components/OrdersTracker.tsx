@@ -8,6 +8,7 @@ import { AIShopperInputBar } from "./AIShopperInputBar";
 import { GoogleWalletButton } from "@/src/components/features/profile/GoogleWalletButton";
 import { ErrorStateFallback, EmptyStateFallback } from "./shared/Fallbacks";
 import { GetOrdersResponseSchema } from "../lib/schema";
+import { AnimatedTicketCard } from "./features/orders/AnimatedTicketCard";
 
 interface OrdersTrackerProps {
   orders: OrderRecord[];

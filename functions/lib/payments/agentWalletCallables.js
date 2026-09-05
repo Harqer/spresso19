@@ -19,7 +19,7 @@ const cdpWalletAdapter_1 = require("./cdpWalletAdapter");
 function service() {
     return (0, agentWallet_1.createAgentWalletService)((0, cdpWalletAdapter_1.createCdpWalletPort)(), agentWallet_1.stablecoinContractAddress.value());
 }
-exports.getAgentWalletStatus = (0, https_1.onCall)({ enforceAppCheck: true, secrets: [...cdpWalletAdapter_1.cdpWalletSecrets, agentWallet_1.stablecoinContractAddress, agentWallet_1.stablecoinSymbol], maxInstances: 20, minInstances: 0 }, async (request) => {
+exports.getAgentWalletStatus = (0, https_1.onCall)({ enforceAppCheck: true, secrets: [...cdpWalletAdapter_1.cdpWalletSecrets, agentWallet_1.stablecoinContractAddress, agentWallet_1.stablecoinSymbol, agentWallet_1.stablecoinDecimals], maxInstances: 20, minInstances: 0 }, async (request) => {
     var _a;
     if (!request.auth || ((_a = request.auth.token.firebase) === null || _a === void 0 ? void 0 : _a.sign_in_provider) === "anonymous") {
         throw new https_1.HttpsError("unauthenticated", "You must be signed in.");
