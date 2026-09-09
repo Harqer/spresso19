@@ -2,9 +2,28 @@
 
 This document is the persistent architecture source of truth for future agents. It replaces earlier assumptions about a deployed `spresso-5561f` environment and a web-first entry point. The project identifier changed to `get-spresso`; the previously approved Spanner global-catalog and Cloud Run tool-server decisions remain in force.
 
+## Current architecture correction (owner-confirmed)
+
+The active rebuild target is Convex plus the ChatGPT Apps SDK/agent surface. New application state, agent orchestration, trial/entitlement state, media metadata, and commerce workflow state belong in Convex. The ChatGPT Apps SDK surface is a separate MCP boundary and must expose only capabilities that have an authenticated, reviewed contract. Do not invent Convex or Bunny URLs: obtain them from the CLI/deployment and store credentials in the deployment vault.
+
+This section is authoritative for the active rebuild. The later Firebase-first launch section records historical architecture decisions and migration constraints; it does not authorize new Firebase/Genkit implementations for the Convex rebuild.
+
+Bunny Storage/CDN is the mandatory production media delivery provider for generated images, completed short videos, and static media. Production code must fail closed when Bunny configuration is missing; there is no Firebase/Convex media fallback. Tests may inject a contract-compatible media store to test application behavior without a live CDN, but that test adapter is not a production path.
+
 ## Confirmed product scope
 
 Spresso is a native-first conversational commerce assistant. It discovers products, reasons over camera and wearable input, manages carts and personal collections, and can initiate purchases after explicit human confirmation. Spresso does not own inventory and must not represent a payment, merchant acceptance or fulfillment event as complete until the responsible external system confirms it.
+
+### Visual input semantics (do not conflate these paths)
+
+- **Lens is screen inspection, not camera input.** The user explicitly shares/captures the current phone screen through Android `MediaProjectionScreenCapture`; the Lens widget analyzes what is visible on that screen and returns product regions and discovery listings. It is not a live screen-sharing session, a gallery photo picker, or a physical-camera flow.
+- **Phone camera is physical-world input.** CameraX and ML Kit support object detection, image labeling, sampled live-vision context for chat, and explicit photo/video capture for virtual try-on. Camera permission is not required for the Lens screen-capture path.
+- **Virtual try-on is generated media.** A user photo/video plus selected garment and fit context produces an AI-generated still image or video. It is not a 3D mesh, 4D simulation, body scan, AR overlay, or measurement guarantee.
+- **Meta wearable camera is a separate DAT path.** DAT camera/audio supplies visual context to Gemini Live and bounded shopping/grocery tools; it is not the Lens widget and cannot submit payment or orders.
+
+### Feature inventory for context and verification
+
+Future audits must account for every entry point: authentication/onboarding and fit profile; Convex AI chat and streaming; text product discovery; Lens screen inspection; CameraX physical-camera object detection, image labeling, live-vision context, and photo/video capture; screen-capture privacy and cancellation; image/video virtual try-on; wardrobe/gallery import and AI outfit curation; Meta DAT registration, permissions, session lifecycle, camera/display/audio capabilities and tool-call ledger; ChatGPT Apps SDK/MCP read-only discovery; cart intent state; fresh merchant quote; human-approved Stripe checkout; signed payment webhooks; orders, returns and delivery state; Bunny media upload/signed delivery/retention; 14-day trial and future entitlements; rate limits, idempotency, retries, prompt-injection resistance, privacy, audit logging, and deployment smoke tests.
 
 The primary release client is the Kotlin Multiplatform Android application in `composeApp/`. Android uses AndroidX Navigation 3. Phone and tablet surfaces follow the app's Material 3 design system. Meta glasses surfaces are a separate design domain and use only the Meta DAT Display DSL after consulting the DAT MCP or installed `mwdat-android` skills.
 
@@ -19,7 +38,9 @@ The primary release client is the Kotlin Multiplatform Android application in `c
 - Firebase Authentication is initialized with Google, email/password and anonymous sign-in. Phone/SMS remains disabled until a deliberate regional allowlist, billing and abuse-defense policy is approved.
 - Cloud Functions, Cloud Run, App Check, Vertex AI, Gemini API and Secret Manager APIs are disabled. Do not assume billing, secrets, service accounts or other deployed services exist; verify each resource before mutation or release claims.
 
-## Launch architecture decision
+## Legacy launch architecture reference
+
+The following Firebase-first design is retained as migration history and a record of approved provider boundaries. It is not the active application state model for the Convex rebuild above. Do not add new code against it unless a migration ticket explicitly requires that boundary.
 
 Use a Firestore-first Google Cloud architecture:
 

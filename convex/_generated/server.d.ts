@@ -30,6 +30,12 @@ import type { DataModel } from "./dataModel.js";
 type Env = {
   readonly CONVEX_CLOUD_URL: string;
   readonly CONVEX_SITE_URL: string;
+  readonly BUNNY_CDN_BASE_URL: string | undefined;
+  readonly BUNNY_CDN_TOKEN_KEY: string | undefined;
+  readonly BUNNY_SOURCE_HOSTS: string | undefined;
+  readonly BUNNY_STORAGE_ACCESS_KEY: string | undefined;
+  readonly BUNNY_STORAGE_HOST: string | undefined;
+  readonly BUNNY_STORAGE_ZONE: string | undefined;
 };
 
 /**

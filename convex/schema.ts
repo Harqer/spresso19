@@ -2,15 +2,8 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 /**
- * CVX-001 bootstrap schema (2026-09-05 platform-cost-migration, Convex-only revision).
- *
- * Firebase UID is the canonical identity subject: every user-scoped document is
- * keyed by `tokenIdentifier` (the Convex-verified canonical identity key) or
- * `firebaseUid`, never by caller-supplied arguments.
- *
- * Phase-1 tables land as separate tickets (CVX-002 reactive state, CVX-003
- * checkout/passkeys, CVX-004 entitlements); each arrival must follow
- * convex-migration-helper widen/migrate/narrow rules for populated tables.
+ * Convex migration schema. User-scoped data is keyed by Convex's verified
+ * tokenIdentifier; clients never supply an authorization identity.
  */
 export default defineSchema({
   preferences: defineTable({
@@ -93,14 +86,89 @@ export default defineSchema({
     .index("by_token_identifier_and_client_id", ["tokenIdentifier", "clientId"]),
 
   users: defineTable({
-    // Canonical Firebase subject (Firebase UID).
     firebaseUid: v.string(),
-    // Convex tokenIdentifier for the signed-in identity (unique per identity).
     tokenIdentifier: v.string(),
     email: v.optional(v.string()),
     displayName: v.optional(v.string()),
     createdAt: v.number(),
+    trialStartedAt: v.optional(v.number()),
+    trialEndsAt: v.optional(v.number()),
   })
     .index("by_firebase_uid", ["firebaseUid"])
     .index("by_token_identifier", ["tokenIdentifier"]),
+
+  aiUsage: defineTable({
+    tokenIdentifier: v.string(),
+    threadId: v.optional(v.string()),
+    model: v.string(),
+    provider: v.string(),
+    inputTokens: v.number(),
+    outputTokens: v.number(),
+    totalTokens: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_token_identifier", ["tokenIdentifier"])
+    .index("by_token_identifier_and_created_at", ["tokenIdentifier", "createdAt"]),
+
+  mediaAssets: defineTable({
+    tokenIdentifier: v.string(),
+    mediaKey: v.string(),
+    mimeType: v.string(),
+    byteLength: v.number(),
+    sha256: v.string(),
+    jobId: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_token_identifier", ["tokenIdentifier"])
+    .index("by_token_identifier_and_media_key", ["tokenIdentifier", "mediaKey"]),
+
+  checkoutAttempts: defineTable({
+    tokenIdentifier: v.string(),
+    listingId: v.string(),
+    quantity: v.number(),
+    idempotencyKey: v.string(),
+    status: v.union(
+      v.literal("NEW"),
+      v.literal("QUOTING"),
+      v.literal("AWAITING_STEP_UP"),
+      v.literal("READY_FOR_PAYMENT"),
+      v.literal("PROCESSING"),
+      v.literal("COMPLETED"),
+      v.literal("FAILED"),
+    ),
+    amountCents: v.optional(v.number()),
+    currency: v.optional(v.string()),
+    merchantUrl: v.optional(v.string()),
+    quoteObservedAt: v.optional(v.string()),
+    paymentIntentId: v.optional(v.string()),
+    orderId: v.optional(v.string()),
+    failureCode: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_token_identifier_and_idempotency_key", ["tokenIdentifier", "idempotencyKey"])
+    .index("by_payment_intent_id", ["paymentIntentId"]),
+
+  webhookInbox: defineTable({
+    provider: v.string(),
+    eventId: v.string(),
+    payloadHash: v.string(),
+    status: v.union(v.literal("PROCESSING"), v.literal("COMPLETED"), v.literal("IGNORED"), v.literal("FAILED")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_provider_and_event_id", ["provider", "eventId"]),
+
+  orders: defineTable({
+    tokenIdentifier: v.string(),
+    checkoutAttemptId: v.id("checkoutAttempts"),
+    paymentIntentId: v.string(),
+    listingId: v.string(),
+    quantity: v.number(),
+    amountCents: v.number(),
+    currency: v.string(),
+    merchantUrl: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_token_identifier", ["tokenIdentifier"])
+    .index("by_checkout_attempt_id", ["checkoutAttemptId"]),
 });

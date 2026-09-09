@@ -29,6 +29,8 @@ export const me = query({
       email: v.optional(v.string()),
       displayName: v.optional(v.string()),
       createdAt: v.number(),
+      trialStartedAt: v.optional(v.number()),
+      trialEndsAt: v.optional(v.number()),
     }),
     v.null(),
   ),
@@ -62,12 +64,16 @@ export const ensureUser = internalMutation({
       return byUid._id;
     }
 
+    const createdAt = Date.now();
+    const trialEndsAt = createdAt + 14 * 24 * 60 * 60 * 1000;
     return await ctx.db.insert("users", {
       firebaseUid: identity.firebaseUid,
       tokenIdentifier: identity.tokenIdentifier,
       email: args.email,
       displayName: args.displayName,
-      createdAt: Date.now(),
+      createdAt,
+      trialStartedAt: createdAt,
+      trialEndsAt,
     });
   },
   returns: v.id("users"),

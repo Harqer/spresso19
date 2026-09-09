@@ -15,14 +15,44 @@ The testing architecture uses Koin for Dependency Injection, enabling runtime fa
 
 ## How to Run Tests
 
-### Backend Function Tests
-Run the Firebase Functions TypeScript build and focused Node handler tests:
+### Active backend and boundary tests
+Run the Convex contract tests and typecheck:
 ```bash
-cd functions
-npm test
+npx vitest run convex --passWithNoTests
+npx tsc -p convex/tsconfig.json --noEmit --pretty false
 ```
 
-These tests invoke the real Firebase callable/HTTP handlers and replace only external provider boundaries. New backend behavior follows red-green-refactor: run the focused test first and confirm the expected failure before changing production code.
+These tests exercise authenticated ownership, trial expiry, AI guardrails, commerce state transitions, idempotency, and Bunny media contracts. External provider boundaries use contract-compatible test seams; no production path falls back to synthetic data.
+
+Run the MCP boundary test with local loopback access:
+```bash
+npm run test:mcp
+```
+
+The MCP test must bind a local ephemeral port. In restricted sandboxes, run it with the environment's approved loopback permission; an `EPERM` bind failure is an environment limitation, not an application result.
+
+Run the production web build and static checks:
+```bash
+npm run lint
+npm run build
+git diff --check
+```
+
+### End-to-end coverage contract
+
+Every release audit must account for these seams:
+
+- Convex auth and user ownership
+- Chat thread creation, streaming generation, prompt-injection guardrails, rate limits, and trial expiry
+- Product discovery and MCP read-only tools with strict origin policy
+- CameraX physical-camera detection, labeling, live-vision context, and photo/video capture
+- Lens screen inspection through Android `MediaProjectionScreenCapture`; never camera input
+- Generated still/video virtual try-on media and Bunny upload/signed delivery
+- Meta DAT registration, permissions, session lifecycle, camera/display/audio capability failures
+- Cart intent, fresh merchant quote, explicit human payment confirmation, Stripe webhook reconciliation
+- Orders, returns, privacy, retention, retries, idempotency, and server-side audit logging
+
+Device-only seams (CameraX, Lens, and Meta DAT) require Android/emulator or approved hardware verification; repository tests do not claim those flows are covered.
 
 ### 1. Local Unit Tests
 Run unit tests for both common and Android source sets locally without an emulator:
