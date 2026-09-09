@@ -40,14 +40,15 @@ confirmation phase.
 
 The environment must explicitly provide:
 
-- `SPRESSO_MCP_CATALOG_ENDPOINT`: an HTTPS endpoint that has been verified as a
-  live catalog gateway in the target environment.
-- `SPRESSO_MCP_CATALOG_TOKEN`: server-only credential for that gateway.
+- `SPRESSO_MCP_DISCOVERY_ENDPOINT`: an HTTPS endpoint that has been verified as
+  a live discovery-provider adapter in the target environment.
+- `SPRESSO_MCP_DISCOVERY_TOKEN`: server-only credential for that adapter.
 
 Until both are present, `search_products` fails closed with a customer-safe
 error and returns no fabricated listings. The repository currently does not
-claim that a Convex catalog HTTP endpoint exists; the prior catalog source is
-still in Firebase/Kitesurf code, so no Convex URL has been invented.
+claim that a Convex discovery HTTP endpoint exists. SerpApi, Parallel, Apify,
+and Kitesurf remain active external discovery providers; their current Firebase
+Functions wrappers are the migration boundary, not the providers themselves.
 
 ## Local contract verification
 
@@ -71,8 +72,8 @@ OpenAI plugin submission portal. The container listens on the platform-provided
 
 Before deployment, configure these values in the host's secret manager:
 
-- `SPRESSO_MCP_CATALOG_ENDPOINT` — verified HTTPS catalog gateway.
-- `SPRESSO_MCP_CATALOG_TOKEN` — server-only gateway credential.
+- `SPRESSO_MCP_DISCOVERY_ENDPOINT` — verified HTTPS discovery-provider adapter.
+- `SPRESSO_MCP_DISCOVERY_TOKEN` — server-only adapter credential.
 - `SPRESSO_MCP_ALLOWED_ORIGINS` — exact browser origins permitted by the host.
 
 Do not deploy until the catalog endpoint and token are real and health-checked;

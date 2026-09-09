@@ -8,7 +8,7 @@ The active rebuild target is Convex plus the ChatGPT Apps SDK/agent surface. New
 
 This section is authoritative for the active rebuild. The later Firebase-first launch section records historical architecture decisions and migration constraints; it does not authorize new Firebase/Genkit implementations for the Convex rebuild.
 
-Owner deployment constraint: Google Cloud, Firebase, Genkit, and Cloud Run are not active services for this rebuild. Do not propose or deploy the MCP server, web app, catalog gateway, or media boundary on Google infrastructure. The MCP server requires a separately authorized non-Google HTTPS host; until that host and its secret vault are configured, deployment is blocked.
+Owner deployment constraint: Google Cloud, Firebase Hosting, Genkit, and Cloud Run are not deployment targets for this rebuild. SerpApi, Parallel, Apify, and Kitesurf remain approved external discovery providers; their Firebase Functions wrappers are migration code, not provider ownership. Do not deploy the MCP server, web app, discovery-provider adapter, or media boundary on Google infrastructure. The MCP server requires a separately authorized non-Google HTTPS host; until that host and its secret vault are configured, deployment is blocked.
 
 The verified Convex production deployment for this rebuild is `mikros:spresso:production` at `https://woozy-anteater-572.convex.cloud`. The checked-in `.env.production.example` is the release URL reference; `.env.local` remains on the dev deployment and must not be changed as part of ordinary local development.
 

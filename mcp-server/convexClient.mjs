@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 const ConfigSchema = z.object({
-  SPRESSO_MCP_CATALOG_ENDPOINT: z.string().url().refine((value) => value.startsWith("https://"), "Catalog endpoint must use HTTPS"),
-  SPRESSO_MCP_CATALOG_TOKEN: z.string().min(1),
+  SPRESSO_MCP_DISCOVERY_ENDPOINT: z.string().url().refine((value) => value.startsWith("https://"), "Discovery endpoint must use HTTPS"),
+  SPRESSO_MCP_DISCOVERY_TOKEN: z.string().min(1),
 }).strict();
 
 const ListingSchema = z.object({
@@ -18,8 +18,8 @@ const SearchResponseSchema = z.object({ listings: z.array(ListingSchema).max(50)
 
 export function createCatalogClient(env = process.env) {
   const config = ConfigSchema.safeParse({
-    SPRESSO_MCP_CATALOG_ENDPOINT: env.SPRESSO_MCP_CATALOG_ENDPOINT,
-    SPRESSO_MCP_CATALOG_TOKEN: env.SPRESSO_MCP_CATALOG_TOKEN,
+    SPRESSO_MCP_DISCOVERY_ENDPOINT: env.SPRESSO_MCP_DISCOVERY_ENDPOINT,
+    SPRESSO_MCP_DISCOVERY_TOKEN: env.SPRESSO_MCP_DISCOVERY_TOKEN,
   });
   if (!config.success) {
     return {
@@ -33,11 +33,11 @@ export function createCatalogClient(env = process.env) {
   return {
     configured: true,
     async searchProducts(query) {
-      const response = await fetch(config.data.SPRESSO_MCP_CATALOG_ENDPOINT, {
+      const response = await fetch(config.data.SPRESSO_MCP_DISCOVERY_ENDPOINT, {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          authorization: `Bearer ${config.data.SPRESSO_MCP_CATALOG_TOKEN}`,
+          authorization: `Bearer ${config.data.SPRESSO_MCP_DISCOVERY_TOKEN}`,
         },
         body: JSON.stringify({ query }),
       });

@@ -4,7 +4,7 @@
 
 **Goal:** Move the application client and reviewed ChatGPT Apps SDK tools onto the verified Convex production deployment while completing the production action and database contracts for discovery, AI chat, virtual try-on, media, and human-approved merchant checkout.
 
-**Architecture:** Convex production is the application state and trusted server-function boundary at `https://woozy-anteater-572.convex.cloud`. The native/web client uses the production URL only in its release configuration; local development remains on `decisive-dolphin-161`. The ChatGPT Apps SDK server remains a separate public HTTPS MCP service and calls only an authenticated, narrowly scoped Convex catalog contract. Bunny stores media bytes; Convex stores ownership, job state, hashes, and stable media keys; merchants remain the source of price, availability, and fulfillment.
+**Architecture:** Convex production is the application state and trusted server-function boundary at `https://woozy-anteater-572.convex.cloud`. The native/web client uses the production URL only in its release configuration; local development remains on `decisive-dolphin-161`. The ChatGPT Apps SDK server remains a separate public HTTPS MCP service and calls only an authenticated, narrowly scoped discovery-provider adapter. SerpApi, Parallel, Apify, and Kitesurf are active external providers; Firebase Functions are only the migration transport. Bunny stores media bytes; Convex stores ownership, job state, hashes, and stable media keys; merchants remain the source of price, availability, and fulfillment.
 
 **Tech Stack:** Convex 1.45, `@convex-dev/agent`, Convex rate limiter, Firebase OIDC identity validation, OpenAI Apps SDK/MCP, Bunny Storage/CDN, Stripe Elements and signed webhooks, Kotlin Multiplatform client, Vitest/convex-test.
 
@@ -27,7 +27,7 @@
 - Production deployment exists as `mikros:spresso:production` (`woozy-anteater-572`). The endpoint returns HTTP 200.
 - Production schema and Convex components are deployed; `npx convex function-spec --prod` lists the application functions.
 - Local `npx tsc -p convex/tsconfig.json --noEmit --pretty false` passes. The Convex CLI did not discover the repository `convex/tsconfig.json` during its deploy check, so the next deploy must retain the explicit local typecheck gate until that CLI discrepancy is resolved.
-- The root client is wired to `VITE_CONVEX_URL`; the MCP server still fails closed until a verified catalog gateway and secret are configured.
+- The root client is wired to `VITE_CONVEX_URL`; the MCP server still fails closed until a verified discovery-provider adapter endpoint and secret are configured.
 
 ### Transition slice completed (2026-09-09)
 
@@ -51,7 +51,7 @@
 | Meta DAT | Native registration/session remains on device | optional server-side tool/audit mutation | New `wearableActionLog` only for reviewed audit events | DAT permissions/session/capability lifecycle |
 | Checkout preparation | `commerce.checkout.acquireCheckoutAttempt` and read-only status query | new merchant quote + Stripe intent Node action; CAS mutations `markQuoted`/`finalizeQuote` | `checkoutAttempts` | Fresh merchant quote and Stripe; client amount never trusted |
 | Payment confirmation | Trusted UI confirms exact quote through Stripe Elements | signed webhook HTTP action; `acquireWebhookEvent`, `completeWebhookEvent` | `webhookInbox`, `orders` | Stripe is financial system of record |
-| MCP discovery | MCP `search_products`, `render_discovery_widget` | server-only catalog adapter | No direct MCP database access | Public HTTPS MCP host → authenticated Convex catalog contract |
+| MCP discovery | MCP `search_products`, `render_discovery_widget` | server-only discovery-provider adapter | No direct MCP database access | Public HTTPS MCP host → authenticated provider adapter |
 
 ## Tasks
 
@@ -140,7 +140,7 @@
 - Test: MCP Inspector against the deployed non-production URL, then production health/tool contract checks
 
 - [ ] Keep `/mcp` stateless and read-only until OAuth subject mapping is implemented.
-- [ ] Configure only the verified Convex catalog contract URL and server-only token; fail closed when either is absent or non-HTTPS.
+- [ ] Configure only the verified discovery-provider adapter URL and server-only token; fail closed when either is absent or non-HTTPS.
 - [ ] Do not expose cart, checkout, payment, account, wallet, camera, Lens, or private wardrobe tools before OAuth and trusted confirmation contracts are complete.
 - [ ] Publish the MCP endpoint only after HTTPS, origin policy, rate limits, tool annotations, audit logging, and OpenAI test cases pass.
 

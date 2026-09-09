@@ -72,7 +72,7 @@ test("tool listing contains only read-only discovery tools and real output schem
   await transport.close();
 });
 
-test("unconfigured catalog fails closed without fabricated listings", async () => {
+test("unconfigured discovery provider fails closed without fabricated listings", async () => {
   const client = new Client({ name: "boundary-test", version: "0.1.0" }, { capabilities: {} });
   const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp`), {
     reconnectionOptions: { initialReconnectionDelay: 10, maxReconnectionDelay: 10, reconnectionDelayGrowFactor: 1, maxRetries: 0 },
