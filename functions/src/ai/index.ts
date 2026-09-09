@@ -204,7 +204,13 @@ export const generateLiveApiToken = onCall({ secrets: [geminiApiKey], enforceApp
                     model: "models/gemini-3.1-flash-live-preview",
                     config: {
                         responseModalities: ["AUDIO"],
-                        sessionResumption: {}
+                        sessionResumption: {},
+                        // Server-owned persona: the constraint config takes
+                        // precedence over client setup, so the client cannot
+                        // alter or omit the system instruction.
+                        systemInstruction: {
+                            parts: [{ text: "You are Spresso's concise, safety-conscious live cooking assistant. Help the user cook with the camera and microphone." }]
+                        }
                     }
                 }
             })

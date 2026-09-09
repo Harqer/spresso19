@@ -111,11 +111,10 @@ export const LiveCookingAssistantModal: React.FC<LiveCookingAssistantModalProps>
 
         ws.send(JSON.stringify({
           setup: {
-            model: "models/gemini-3.1-flash-live-preview",
-            generationConfig: { responseModalities: ["AUDIO"] },
-            systemInstruction: {
-              parts: [{ text: "You are Spresso's concise, safety-conscious live cooking assistant. Help the user cook with the camera and microphone." }]
-            }
+            // Model, modalities, and the system instruction are owned by the
+            // server via liveConnectConstraints on the ephemeral token
+            // (generateLiveApiToken). The client must never ship prompts.
+            generationConfig: { responseModalities: ["AUDIO"] }
           }
         }));
         
