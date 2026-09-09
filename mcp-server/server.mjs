@@ -7,6 +7,7 @@ import { createCatalogClient } from "./convexClient.mjs";
 
 const MCP_PATH = "/mcp";
 const PORT = Number(process.env.PORT || 8787);
+const HOST = process.env.HOST || "0.0.0.0";
 const MAX_QUERY_LENGTH = 240;
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 30;
@@ -176,7 +177,7 @@ const httpServer = createServer(async (req, res) => {
 });
 
 if (process.argv[1] === new URL(import.meta.url).pathname) {
-  httpServer.listen(PORT, "127.0.0.1", () => console.log(`Spresso MCP server listening on http://127.0.0.1:${PORT}${MCP_PATH}`));
+  httpServer.listen(PORT, HOST, () => console.log(`Spresso MCP server listening on http://${HOST}:${PORT}${MCP_PATH}`));
 }
 
 export { createMcpServer, httpServer, SearchInputSchema, SearchOutputSchema, widgetUri };

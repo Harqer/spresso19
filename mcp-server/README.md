@@ -61,3 +61,20 @@ The test verifies the actual local HTTP route, MCP tool listing, schema
 rejection, and fail-closed behavior. It does not create or deploy cloud
 resources. Use the MCP Inspector only after selecting an explicitly approved
 non-production server process.
+
+## Deployment boundary
+
+OpenAI does not host this process. Deploy the container to an operator-controlled
+HTTPS service, then use its stable `/mcp` URL in ChatGPT developer mode or the
+OpenAI plugin submission portal. The container listens on the platform-provided
+`PORT` and binds to `HOST` (default `0.0.0.0`).
+
+Before deployment, configure these values in the host's secret manager:
+
+- `SPRESSO_MCP_CATALOG_ENDPOINT` — verified HTTPS catalog gateway.
+- `SPRESSO_MCP_CATALOG_TOKEN` — server-only gateway credential.
+- `SPRESSO_MCP_ALLOWED_ORIGINS` — exact browser origins permitted by the host.
+
+Do not deploy until the catalog endpoint and token are real and health-checked;
+the server intentionally returns a safe unavailable response when either is
+missing.
