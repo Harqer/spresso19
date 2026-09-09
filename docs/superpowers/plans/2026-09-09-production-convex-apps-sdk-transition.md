@@ -35,6 +35,7 @@
 - The shopper UI creates a server-owned Convex Agent thread, sends prompts through `aiChat.sendMessage`, and renders persisted UI stream deltas from `aiChat.listMessages`.
 - `aiGeneration` uses Convex Agent `streamText` with saved deltas; the model is selected by server-only `SPRESSO_LLM_MODEL` through the Convex AI gateway.
 - The production deployment contains the updated streaming function contract. Remaining unchecked tasks are intentionally blocked on verified catalog/provider contracts, media-provider configuration, and the separate MCP host.
+- Owner-scoped checkout status (`getCheckoutAttempt`) and bounded order history (`listOrders`) are now public read contracts; pricing, merchant availability, payment, and order writes remain server/provider-controlled.
 
 ## Action and data ownership map
 
