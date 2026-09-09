@@ -36,6 +36,10 @@ type Env = {
   readonly BUNNY_STORAGE_ACCESS_KEY: string | undefined;
   readonly BUNNY_STORAGE_HOST: string | undefined;
   readonly BUNNY_STORAGE_ZONE: string | undefined;
+  readonly CLOUDFLARE_ACCOUNT_ID: string | undefined;
+  readonly CLOUDFLARE_API_TOKEN: string | undefined;
+  readonly PARALLEL_API_KEY: string | undefined;
+  readonly SERPAPI_API_KEY: string | undefined;
   readonly SPRESSO_LLM_MODEL: string | undefined;
 };
 

@@ -21,13 +21,25 @@ import { doc, setDoc } from "firebase/firestore";
 import { MainAppPage } from "./components/shared/MainAppPage";
 const AppModalManager = lazy(() => import("./routes/ModalManagerRoute"));
 const ProfilePage = lazy(() => import("./routes/ProfileRoute"));
-import { DiscoveryRepository, firebaseDiscoveryCallable } from "./lib/discoveryRepository";
+import { DiscoveryRepository } from "./lib/discoveryRepository";
+import { convexClient } from "./lib/convex";
+import { api } from "../convex/_generated/api";
 import { createCartItem, withCartQuantity } from "./lib/cartState";
 import { assertCartPersistence, requestMerchantCheckout } from "./lib/merchantCheckout";
 
 export default function App() {
   const discoveryRepository = useMemo(
-    () => new DiscoveryRepository({ discover: firebaseDiscoveryCallable }),
+    () => new DiscoveryRepository({
+      discover: (request, signal) => {
+        if (!convexClient) return Promise.reject(new Error("Convex discovery is not configured."));
+        const query = request.searchQueries[0] || "";
+        const result = convexClient.action(api.discovery.search, { query });
+        return Promise.race([
+          result,
+          new Promise<never>((_, reject) => signal.addEventListener("abort", () => reject(new DOMException("Discovery request was cancelled.", "AbortError")), { once: true })),
+        ]);
+      },
+    }),
     [],
   );
   const [activeTab, setActiveTab] = useState<"catalog" | "chat" | "wardrobe" | "travel" | "grocery" | "orders" | "profile" | "vision" | "products" | "creator">("products");

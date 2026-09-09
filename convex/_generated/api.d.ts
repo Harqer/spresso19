@@ -13,6 +13,7 @@ import type * as ai_model from "../ai/model.js";
 import type * as aiChat from "../aiChat.js";
 import type * as aiGeneration from "../aiGeneration.js";
 import type * as commerce_checkout from "../commerce/checkout.js";
+import type * as discovery from "../discovery.js";
 import type * as lib_identity from "../lib/identity.js";
 import type * as media from "../media.js";
 import type * as media_actions from "../media/actions.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   aiChat: typeof aiChat;
   aiGeneration: typeof aiGeneration;
   "commerce/checkout": typeof commerce_checkout;
+  discovery: typeof discovery;
   "lib/identity": typeof lib_identity;
   media: typeof media;
   "media/actions": typeof media_actions;
