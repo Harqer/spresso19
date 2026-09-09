@@ -22,6 +22,10 @@ const CACHE_TTLS_SECONDS = {
     media: 24 * 60 * 60,
     referenceData: 60 * 60,
 };
+// Coalesce concurrent misses in the same worker. The Convex provider gateway
+// should provide the distributed equivalent; this still prevents a local
+// instance from fanning one cold key into duplicate paid requests.
+const inFlight = new Map();
 function stableJson(value) {
     if (value === null || typeof value !== "object")
         return JSON.stringify(value);
@@ -72,9 +76,23 @@ async function withCache(namespace, input, producer, ttlSeconds) {
     const cached = await getCached(namespace, key);
     if (cached !== undefined)
         return { value: cached, cacheHit: true };
-    const value = await producer();
-    await setCached(namespace, key, value, ttlSeconds);
-    return { value, cacheHit: false };
+    const requestKey = `${namespace}:${key}`;
+    const existing = inFlight.get(requestKey);
+    if (existing)
+        return { value: await existing, cacheHit: true };
+    const request = (async () => {
+        const value = await producer();
+        await setCached(namespace, key, value, ttlSeconds);
+        return value;
+    })();
+    inFlight.set(requestKey, request);
+    try {
+        return { value: await request, cacheHit: false };
+    }
+    finally {
+        if (inFlight.get(requestKey) === request)
+            inFlight.delete(requestKey);
+    }
 }
 async function consumeBudget(uid, kind) {
     const day = new Date().toISOString().slice(0, 10);

@@ -121,6 +121,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       }) : Promise.resolve(null);
       const [resTryOn, resVitpose] = await Promise.all([
         generateVirtualTryOn({
+          idempotencyKey: crypto.randomUUID(),
           productId: product?.id,
           productName: product?.name,
           productImage: product?.image,

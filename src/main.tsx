@@ -14,7 +14,12 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 60_000,
       refetchOnWindowFocus: false,
-      retry: 2,
+      retry: (failureCount, error) => {
+        if (failureCount >= 2) return false;
+        const status = (error as { status?: number; code?: number })?.status
+          ?? (error as { code?: number })?.code;
+        return status === undefined || status === 408 || status === 429 || status >= 500;
+      },
     },
   },
 });

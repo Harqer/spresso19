@@ -69,6 +69,11 @@ function clientKey(req) {
 function allowRequest(req) {
   const key = clientKey(req);
   const now = Date.now();
+  if (requestWindows.size > 10_000) {
+    for (const [windowKey, window] of requestWindows) {
+      if (window.resetAt <= now) requestWindows.delete(windowKey);
+    }
+  }
   const prior = requestWindows.get(key);
   if (!prior || prior.resetAt <= now) {
     requestWindows.set(key, { count: 1, resetAt: now + WINDOW_MS });

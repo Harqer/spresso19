@@ -43,6 +43,10 @@ export class BunnyMediaStore {
         "Content-Type": media.mimeType,
         "Content-Length": String(bytes.byteLength),
         "X-Checksum": media.sha256,
+        // Generated objects are content-addressed by SHA-256 and immutable.
+        // This lets Bunny serve repeat views from the edge without allowing
+        // stale personalized results to be reused under a different key.
+        "Cache-Control": "public, max-age=31536000, immutable",
       },
       body: bytes as BodyInit,
     });

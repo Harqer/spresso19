@@ -1,5 +1,5 @@
 import Logger from "../../../lib/Logger";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ProductItem } from "../../../types";
 import { MaterialIcon } from "../../MaterialIcon";
 import { GenkitCreativeStudioModal } from "../../GenkitCreativeStudioModal";
@@ -52,23 +52,32 @@ export const ProductCatalogPage: React.FC<any> = ({ onSelectTryOn, onRequestMerc
     return () => clearInterval(interval);
   }, [spin360Product, isAutoSpinning]);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const requestGeneration = useRef(0);
   const fetchPersonalizedFeed = async (cat: string) => {
+    const generation = ++requestGeneration.current;
     setIsLoadingPersonalized(true);
     setFetchError(null);
     try {
       const query = cat === "ALL" ? "current products matching my preferences" : `${cat} products`;
       const listings = await (discoveryRepository as DiscoveryRepository).search({ query, location: userLocation, radius: searchRadius });
+      if (generation !== requestGeneration.current) return;
       const items = (discoveryRepository as DiscoveryRepository).asProducts(listings);
       setPersonalizedProducts(items);
       onListingsChanged?.();
     } catch (err: any) {
+      if (generation !== requestGeneration.current) return;
       setFetchError("Unable to load product catalog. Please try again later.");
       setPersonalizedProducts([]);
     } finally {
-      setIsLoadingPersonalized(false);
+      if (generation === requestGeneration.current) setIsLoadingPersonalized(false);
     }
   };
-  useEffect(() => { fetchPersonalizedFeed(selectedCategory); }, [selectedCategory, userLocation, searchRadius]);
+  // Discovery is intentionally user initiated. Filter and location changes only
+  // update the pending request; the provider is called from an explicit action.
+  const applyCatalogFilters = (category: string = selectedCategory) => {
+    setSelectedCategory(category);
+    void fetchPersonalizedFeed(category);
+  };
   const [userPreferences, setUserPreferences] = useState<{
     bookmarkedIds: string[],
     likedIds: string[],
@@ -135,7 +144,7 @@ export const ProductCatalogPage: React.FC<any> = ({ onSelectTryOn, onRequestMerc
         totalItems={personalizedProducts.length}
         selectedCategory={selectedCategory}
         onRequestLocationPermission={onRequestLocationPermission}
-        onSelectCategory={setSelectedCategory}
+        onSelectCategory={applyCatalogFilters}
       />
       {selectedCategory === "ALL" && curatedPersonalizedProducts.length > 0 && (
         <AICurationFeed curatedPersonalizedProducts={curatedPersonalizedProducts} onSelectTryOn={onSelectTryOn} />

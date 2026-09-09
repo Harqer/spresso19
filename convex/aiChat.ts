@@ -9,7 +9,8 @@ import { ChatRequestSchema } from "./ai/guardrails";
 import { isTrialActive, trialWindow } from "./trial";
 
 const rateLimiter = new RateLimiter(components.rateLimiter, {
-  chatRequests: { kind: "token bucket", rate: 12, period: MINUTE, capacity: 4 },
+  threadCreates: { kind: "token bucket", rate: 2, period: MINUTE, capacity: 2 },
+  chatMessages: { kind: "token bucket", rate: 12, period: MINUTE, capacity: 4 },
 });
 
 async function authorizeThread(
@@ -38,7 +39,7 @@ export const createThread = mutation({
     if (!currentUser || !isTrialActive(trialWindow(currentUser.createdAt, currentUser.trialStartedAt, currentUser.trialEndsAt))) {
       throw new Error("Your Spresso trial has ended. Choose a plan to continue.");
     }
-    const allowed = await rateLimiter.limit(ctx, "chatRequests", { key: identity.tokenIdentifier });
+    const allowed = await rateLimiter.limit(ctx, "threadCreates", { key: identity.tokenIdentifier });
     if (!allowed.ok) throw new Error("Chat request rate limit exceeded.");
     const { _id: threadId } = await ctx.runMutation(components.agent.threads.createThread, {
       userId: identity.tokenIdentifier,
@@ -96,7 +97,7 @@ export const sendMessage = mutation({
       throw new Error("Your Spresso trial has ended. Choose a plan to continue.");
     }
     const input = ChatRequestSchema.parse({ prompt: args.prompt });
-    const allowed = await rateLimiter.limit(ctx, "chatRequests", { key: identity.tokenIdentifier });
+    const allowed = await rateLimiter.limit(ctx, "chatMessages", { key: identity.tokenIdentifier });
     if (!allowed.ok) throw new Error("Chat request rate limit exceeded.");
 
     const { messageId } = await saveMessage(ctx, components.agent, {
