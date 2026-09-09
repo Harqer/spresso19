@@ -55,10 +55,11 @@ export type InfisicalRuntimeConfiguration = {
  * Secret payloads remain external to the process configuration and are never
  * included in this result or in configuration errors.
  */
-export function assertInfisicalRuntimeConfiguration(): InfisicalRuntimeConfiguration {
+export function assertInfisicalRuntimeConfiguration(): InfisicalRuntimeConfiguration | undefined {
   const project = process.env[infisicalProjectEnv]?.trim();
   const environment = process.env[infisicalEnvironmentEnv]?.trim();
   const secretPath = process.env[infisicalSecretPathEnv]?.trim();
+  if (!project && !environment && !secretPath) return undefined;
   const missing = [
     !project || project !== INFISICAL_PROJECT ? infisicalProjectEnv : "",
     !environment ? infisicalEnvironmentEnv : "",
@@ -71,6 +72,10 @@ export function assertInfisicalRuntimeConfiguration(): InfisicalRuntimeConfigura
 }
 
 function readSecret(secret: SecretParam): string | undefined {
+  // SecretParam.value() warns when its dependency is not bound. Checking the
+  // runtime injection marker first keeps optional credentials quiet while
+  // retaining the deployment-managed SecretParam accessor.
+  if (process.env[secret.name] === undefined) return undefined;
   const value = secret.value().trim();
   return value.length > 0 ? value : undefined;
 }

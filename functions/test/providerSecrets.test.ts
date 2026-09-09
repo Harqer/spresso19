@@ -33,7 +33,6 @@ function configureInfisicalRuntime(): void {
 
 test.beforeEach(() => {
   clearProviderEnvironment();
-  configureInfisicalRuntime();
 });
 test.afterEach(() => {
   clearProviderEnvironment();
@@ -51,7 +50,14 @@ test("reports presence without returning credential material", async () => {
   assert.deepEqual(await assertSecretPresence(), { nvidia: true, mediaFallback: true });
 });
 
+test("accepts externally injected provider secrets when no Infisical metadata is exposed", async () => {
+  process.env.NVIDIA_API_KEY = "configured-nvidia";
+  assert.equal(assertInfisicalRuntimeConfiguration(), undefined);
+  assert.deepEqual(await assertSecretPresence(), { nvidia: true, mediaFallback: false });
+});
+
 test("requires KYZO project, environment, and secret path provenance", () => {
+  configureInfisicalRuntime();
   delete process.env.INFISICAL_PROJECT_ID;
   assert.throws(
     () => assertInfisicalRuntimeConfiguration(),

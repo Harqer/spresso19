@@ -123,12 +123,6 @@ resource "google_service_account" "agent_engine_sa" {
   display_name = "Spresso Agent Engine Service Account"
 }
 
-resource "google_project_iam_member" "sa_secret_accessor" {
-  project = var.project_id
-  role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.agent_engine_sa.email}"
-}
-
 resource "google_project_iam_member" "sa_spanner_user" {
   project = var.project_id
   role    = "roles/spanner.databaseUser"
@@ -143,13 +137,6 @@ resource "google_service_account" "tool_server_sa" {
   count        = var.enable_tool_server ? 1 : 0
   account_id   = "spresso-tool-server-sa"
   display_name = "Spresso Tool Server Service Account"
-}
-
-resource "google_project_iam_member" "tool_server_secret_accessor" {
-  count   = var.enable_tool_server ? 1 : 0
-  project = var.project_id
-  role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.tool_server_sa[0].email}"
 }
 
 resource "google_cloud_run_v2_service" "tool_server" {

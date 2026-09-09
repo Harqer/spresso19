@@ -10,4 +10,3 @@ export * from "./users";
 export * from "./missingRoutes";
 export { prepareCheckout, stripeWebhook } from "./webhooks";
 export { webApi } from "./webapi";
-export { providerSecretBindings } from "./config/providerSecrets";
