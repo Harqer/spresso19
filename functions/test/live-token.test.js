@@ -46,6 +46,11 @@ test("issues one model-constrained Live token and returns its token name", async
       config: {
         responseModalities: ["AUDIO"],
         sessionResumption: {},
+        systemInstruction: {
+          parts: [{
+            text: "You are Spresso's concise, safety-conscious live cooking assistant. Help the user cook with the camera and microphone.",
+          }],
+        },
       },
     },
   });
