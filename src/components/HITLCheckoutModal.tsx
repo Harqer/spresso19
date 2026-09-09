@@ -109,6 +109,8 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
   const [biometricVerified, setBiometricVerified] = useState(false);
   const [isBiometricAuthenticating, setIsBiometricAuthenticating] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [quotedTotalCents, setQuotedTotalCents] = useState<number | null>(null);
+  const [quotedCurrency, setQuotedCurrency] = useState("USD");
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
   const [checkoutContext, setCheckoutContext] = useState<CheckoutContext | null>(null);
   const idempotencyKey = useRef(
@@ -225,6 +227,13 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
       throw new Error("Secure payment configuration is unavailable.");
     }
     setStripePromise((current) => current || loadStripe(publishableKey));
+    const totalCents = (result.data as any)?.totalCents;
+    const currency = (result.data as any)?.currency;
+    if (!Number.isInteger(totalCents) || totalCents <= 0 || typeof currency !== "string") {
+      throw new Error("The merchant quote is unavailable. Please try again.");
+    }
+    setQuotedTotalCents(totalCents);
+    setQuotedCurrency(currency.toUpperCase());
     setClientSecret(secret);
   };
 
@@ -303,7 +312,9 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
             <div className="flex items-center justify-between">
               <span>Item Price x Quantity:</span>
               <span className="font-mono text-[#18211e] font-semibold">
-                ${((payload.totalAmount || (payload.product.price * payload.quantity)) / (payload.quantity || 1)).toFixed(2)} × {payload.quantity}
+                {quotedTotalCents === null
+                  ? `Merchant quote required × ${payload.quantity}`
+                  : `${quotedCurrency} ${(quotedTotalCents / 100 / (payload.quantity || 1)).toFixed(2)} × ${payload.quantity}`}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -313,7 +324,9 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
             <div className="flex items-center justify-between text-sm font-bold text-[#18211e] pt-1 border-t border-dashed border-[#c4d6c3]">
               <span>Total Cost Before Confirmation:</span>
               <span className="text-base text-[#386633] font-mono font-extrabold">
-                ${(payload.totalAmount || (payload.product.price * payload.quantity)).toFixed(2)}
+                {quotedTotalCents === null
+                  ? "Fresh quote at checkout"
+                  : `${quotedCurrency} ${(quotedTotalCents / 100).toFixed(2)}`}
               </span>
             </div>
           </div>
@@ -436,7 +449,7 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
         {clientSecret ? (
           <Elements stripe={stripePromise} options={{ clientSecret }}>
             <StripeCheckoutForm 
-               totalAmount={payload.totalAmount || (payload.product.price * payload.quantity)}
+               totalAmount={(quotedTotalCents ?? 0) / 100}
                onCancel={() => setClientSecret(null)}
                onSuccess={async (intent: any) => {
                  if (!checkoutContext) {
@@ -463,10 +476,10 @@ export const HITLCheckoutModal: React.FC<HITLCheckoutModalProps> = ({
                 <MaterialIcon icon="shopping_bag" size={20} />
                 <span>
                   {paymentMethod === "gpay"
-                    ? "Pay with Google Pay"
+                    ? "Review Google Pay checkout"
                     : paymentMethod === "crypto"
                     ? "Confirm USDC Crypto Purchase"
-                    : "Confirm Card Purchase"} • ${(payload.totalAmount || (payload.product.price * payload.quantity)).toFixed(2)}
+                    : "Review card checkout"}
                 </span>
               </>
             )}

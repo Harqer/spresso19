@@ -8,7 +8,6 @@ import { CameraObjectDetectionModal } from "../../CameraObjectDetectionModal";
 import { GoogleLensScreenWidgetModal } from "../../GoogleLensScreenWidgetModal";
 import { functions } from "../../../lib/firebase";
 import { httpsCallable } from "firebase/functions";
-import { authFetch } from "../../../lib/firebase";
 import { QuickPromptsGrid } from "@/src/components/features/chat/QuickPromptsGrid";
 import { MessageStream } from "@/src/components/features/chat/MessageStream";
 import { generateDynamicGreeting } from "../../../lib/greeting";
@@ -105,7 +104,6 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
   // Generate dynamic time-of-day greeting (e.g., "Good evening.")
   const greeting = generateDynamicGreeting(userName);
   const locationContext = userLocation ? ` near ${userLocation}` : "";
-  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   const [quickPrompts, setQuickPrompts] = useState<any[]>([]);
 
@@ -133,13 +131,6 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
         text: "I’m getting your chat ready. Please try again in a moment.",
       }]);
       return;
-    }
-
-    try {
-      const logSearchHistory = httpsCallable(functions, "logSearchHistory");
-      logSearchHistory({ query: text.trim() }).catch(e => Logger.warn("Failed to update search history on backend:", e));
-    } catch (e) {
-      Logger.warn("Failed to initiate search history update:", e);
     }
 
     const userMsg: PersonalChatMsg = {
@@ -173,118 +164,15 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
       return;
     }
 
-    discoveryRepository.search({ query: text, location: userLocation })
-      .then(listings => {
-        const verifiedProducts = discoveryRepository.asProducts(listings);
-        onListingsChanged();
-        setMessages(prev => prev.map(message => message.id === aiMsgId ? { ...message, products: verifiedProducts } : message));
-      })
-      .catch(error => {
-        if (error?.name !== "AbortError") Logger.warn("Verified product discovery failed", error);
-      });
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    try {
-      const response = await authFetch("https://us-central1-get-spresso.cloudfunctions.net/chatStream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, locale: navigator.language }),
-        signal: abortControllerRef.current.signal,
-      });
-      if (!response.ok || !response.body) throw new Error(`Chat request failed (${response.status})`);
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let pending = "";
-
-      let accumulatedText = "";
-
-      while (true) {
-        if (abortControllerRef.current?.signal.aborted) break;
-        const { value, done } = await reader.read();
-        pending += value ? decoder.decode(value, { stream: !done }) : "";
-        const events = pending.split("\n\n");
-        pending = events.pop() || "";
-        for (const event of events) {
-          const line = event.split("\n").find(item => item.startsWith("data: "));
-          if (!line || line === "data: [DONE]") continue;
-          let chunk: any;
-          try { chunk = JSON.parse(line.slice(6)); } catch { continue; }
-          if (chunk.text) {
-          accumulatedText += chunk.text;
-
-          const jsonBlock = extractJsonBlock(accumulatedText);
-          let locationData: any = undefined;
-
-          if (jsonBlock) {
-            if (jsonBlock.locationData) {
-              locationData = jsonBlock.locationData;
-            }
-          }
-
-          const metadataStart = accumulatedText.search(/```json|\{\s*\"(?:recommendedProducts|locationData)\"/);
-          const cleanText = (metadataStart >= 0 ? accumulatedText.slice(0, metadataStart) : accumulatedText).trim();
-
-          setMessages(prev =>
-            prev.map(m =>
-              m.id === aiMsgId
-                ? {
-                    ...m,
-                    text: cleanText,
-                    locationData
-                  }
-                : m
-            )
-          );
-          }
-        }
-        if (done) break;
-      }
-
-      setMessages(prev =>
-        prev.map(m => (m.id === aiMsgId ? { ...m, isStreaming: false } : m))
-      );
-    } catch (err) {
-      Logger.error("Personal AI chat error:", err);
-      setMessages(prev =>
-        prev.map(m =>
-          m.id === aiMsgId
-            ? {
-                ...m,
-                text: "I’m unable to help with that right now. Please try again.",
-                isStreaming: false
-              }
-            : m
-        )
-      );
-    } finally {
-      setIsGenerating(false);
-    }
+    // Convex Agent is the single in-app chat transport. Do not fall back to
+    // a second legacy endpoint: that would duplicate provider spend and make
+    // production behavior depend on an unverified Firebase URL.
+    setMessages(prev => prev.map(message => message.id === aiMsgId
+      ? { ...message, text: "Chat is still connecting. Please try again in a moment.", isStreaming: false }
+      : message));
+    setIsGenerating(false);
   };
 
-  const extractJsonBlock = (text: string) => {
-    try {
-      const match = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
-      if (match) {
-        const jsonStr = match[1] || match[0];
-        return JSON.parse(jsonStr.trim());
-      }
-    } catch (e) {
-      Logger.warn("Failed to extract JSON block from AI output");
-    }
-    return null;
-  };
-
-  React.useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px)] bg-[var(--md-sys-color-surface)]">
