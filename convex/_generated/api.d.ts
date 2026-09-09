@@ -9,6 +9,7 @@
  */
 
 import type * as lib_identity from "../lib/identity.js";
+import type * as reactiveState from "../reactiveState.js";
 import type * as users from "../users.js";
 
 import type {
@@ -19,6 +20,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "lib/identity": typeof lib_identity;
+  reactiveState: typeof reactiveState;
   users: typeof users;
 }>;
 
