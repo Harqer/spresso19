@@ -17,6 +17,11 @@ export const providerSecretBindings: SecretParam[] = [
   higgsfieldKeySecret,
 ];
 
+const INFISICAL_PROJECT = "KYZO" as const;
+const infisicalProjectEnv = "INFISICAL_PROJECT_ID";
+const infisicalEnvironmentEnv = "INFISICAL_ENVIRONMENT";
+const infisicalSecretPathEnv = "INFISICAL_SECRET_PATH";
+
 export type ProviderSecrets = {
   nvidiaApiKey: string;
   geminiApiKey?: string;
@@ -39,6 +44,32 @@ export class ProviderSecretConfigurationError extends Error {
   }
 }
 
+export type InfisicalRuntimeConfiguration = {
+  project: typeof INFISICAL_PROJECT;
+  environment: string;
+  secretPath: string;
+};
+
+/**
+ * Verify the non-secret provenance supplied by the Infisical runtime injector.
+ * Secret payloads remain external to the process configuration and are never
+ * included in this result or in configuration errors.
+ */
+export function assertInfisicalRuntimeConfiguration(): InfisicalRuntimeConfiguration {
+  const project = process.env[infisicalProjectEnv]?.trim();
+  const environment = process.env[infisicalEnvironmentEnv]?.trim();
+  const secretPath = process.env[infisicalSecretPathEnv]?.trim();
+  const missing = [
+    !project || project !== INFISICAL_PROJECT ? infisicalProjectEnv : "",
+    !environment ? infisicalEnvironmentEnv : "",
+    !secretPath ? infisicalSecretPathEnv : "",
+  ].filter((name): name is string => name.length > 0);
+  if (missing.length > 0) {
+    throw new ProviderSecretConfigurationError(missing);
+  }
+  return { project: INFISICAL_PROJECT, environment: environment as string, secretPath: secretPath as string };
+}
+
 function readSecret(secret: SecretParam): string | undefined {
   const value = secret.value().trim();
   return value.length > 0 ? value : undefined;
@@ -49,6 +80,7 @@ function readSecret(secret: SecretParam): string | undefined {
  * NVIDIA inference is required; all other provider credentials are optional.
  */
 export async function loadProviderSecrets(): Promise<ProviderSecrets> {
+  assertInfisicalRuntimeConfiguration();
   const nvidia = readSecret(nvidiaApiKey);
   if (!nvidia) {
     throw new ProviderSecretConfigurationError(["NVIDIA_API_KEY"]);
@@ -64,6 +96,7 @@ export async function loadProviderSecrets(): Promise<ProviderSecrets> {
 
 /** Return configuration status without exposing credential material. */
 export async function assertSecretPresence(): Promise<SecretPresence> {
+  assertInfisicalRuntimeConfiguration();
   const nvidia = Boolean(readSecret(nvidiaApiKey));
   const mediaFallback = Boolean(readSecret(higgsfieldKeyId) && readSecret(higgsfieldKeySecret));
   return { nvidia, mediaFallback };

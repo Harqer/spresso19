@@ -168,10 +168,7 @@ resource "google_cloud_run_v2_service" "tool_server" {
       }
       dynamic "env" {
         for_each = toset([
-          "NVIDIA_API_KEY",
           "GEMINI_API_KEY",
-          "HIGGSFIELD_API_KEY_ID",
-          "HIGGSFIELD_KEY_SECRET",
           "APIFY_API_TOKEN",
           "STRIPE_SECRET_KEY",
           "STRIPE_WEBHOOK_SECRET",

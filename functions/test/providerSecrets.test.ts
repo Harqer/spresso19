@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   assertSecretPresence,
+  assertInfisicalRuntimeConfiguration,
   loadProviderSecrets,
   ProviderSecretConfigurationError,
 } from "../src/config/providerSecrets";
@@ -11,6 +12,9 @@ const secretNames = [
   "GEMINI_API_KEY",
   "HIGGSFIELD_API_KEY_ID",
   "HIGGSFIELD_KEY_SECRET",
+  "INFISICAL_PROJECT_ID",
+  "INFISICAL_ENVIRONMENT",
+  "INFISICAL_SECRET_PATH",
 ] as const;
 
 const originalEnvironment = Object.fromEntries(
@@ -21,7 +25,16 @@ function clearProviderEnvironment(): void {
   for (const name of secretNames) delete process.env[name];
 }
 
-test.beforeEach(clearProviderEnvironment);
+function configureInfisicalRuntime(): void {
+  process.env.INFISICAL_PROJECT_ID = "KYZO";
+  process.env.INFISICAL_ENVIRONMENT = "test";
+  process.env.INFISICAL_SECRET_PATH = "/providers";
+}
+
+test.beforeEach(() => {
+  clearProviderEnvironment();
+  configureInfisicalRuntime();
+});
 test.afterEach(() => {
   clearProviderEnvironment();
   for (const name of secretNames) {
@@ -36,6 +49,19 @@ test("reports presence without returning credential material", async () => {
   process.env.HIGGSFIELD_KEY_SECRET = "configured-media-secret";
 
   assert.deepEqual(await assertSecretPresence(), { nvidia: true, mediaFallback: true });
+});
+
+test("requires KYZO project, environment, and secret path provenance", () => {
+  delete process.env.INFISICAL_PROJECT_ID;
+  assert.throws(
+    () => assertInfisicalRuntimeConfiguration(),
+    (error: unknown) => {
+      assert.ok(error instanceof ProviderSecretConfigurationError);
+      assert.deepEqual(error.missing, ["INFISICAL_PROJECT_ID"]);
+      assert.equal(error.message.includes("/providers"), false);
+      return true;
+    },
+  );
 });
 
 test("requires the NVIDIA credential", async () => {

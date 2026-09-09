@@ -39,6 +39,7 @@ import {
     safeVirtualTryOnError,
 } from "./virtualTryOnBoundary";
 import { persistGeneratedMedia } from "./virtualTryOnStorage";
+import { nvidiaApiKey } from "../config/providerSecrets";
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const higgsfieldKeyId = defineSecret("HIGGSFIELD_API_KEY_ID");
@@ -49,7 +50,7 @@ const cloudflareAccountId = defineSecret("CLOUDFLARE_ACCOUNT_ID");
 const cloudflareApiToken = defineSecret("CLOUDFLARE_API_TOKEN");
 const apifyApiToken = defineSecret("APIFY_API_TOKEN");
 const mediaSecrets = [geminiApiKey, higgsfieldKeyId, higgsfieldKeySecret];
-const shopperSecrets = [...mediaSecrets, serpApiKey, parallelApiKey, cloudflareAccountId, cloudflareApiToken];
+const shopperSecrets = [...mediaSecrets, serpApiKey, parallelApiKey, cloudflareAccountId, cloudflareApiToken, nvidiaApiKey];
 
 export const generateVirtualTryOn = onCall({ enforceAppCheck: true, secrets: mediaSecrets, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
