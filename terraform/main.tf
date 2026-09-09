@@ -58,7 +58,10 @@ resource "google_vpc_access_connector" "connector" {
 # Secret Manager Secrets
 resource "google_secret_manager_secret" "secrets" {
   for_each = toset([
+    "NVIDIA_API_KEY",
     "GEMINI_API_KEY",
+    "HIGGSFIELD_API_KEY_ID",
+    "HIGGSFIELD_KEY_SECRET",
     "PARALLEL_API_KEY",
     "SERPAPI_API_KEY",
     "APIFY_API_TOKEN",
@@ -165,7 +168,10 @@ resource "google_cloud_run_v2_service" "tool_server" {
       }
       dynamic "env" {
         for_each = toset([
+          "NVIDIA_API_KEY",
           "GEMINI_API_KEY",
+          "HIGGSFIELD_API_KEY_ID",
+          "HIGGSFIELD_KEY_SECRET",
           "APIFY_API_TOKEN",
           "STRIPE_SECRET_KEY",
           "STRIPE_WEBHOOK_SECRET",
