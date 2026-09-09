@@ -9,6 +9,7 @@
  */
 
 import type * as ai_guardrails from "../ai/guardrails.js";
+import type * as ai_model from "../ai/model.js";
 import type * as aiChat from "../aiChat.js";
 import type * as aiGeneration from "../aiGeneration.js";
 import type * as commerce_checkout from "../commerce/checkout.js";
@@ -29,6 +30,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "ai/guardrails": typeof ai_guardrails;
+  "ai/model": typeof ai_model;
   aiChat: typeof aiChat;
   aiGeneration: typeof aiGeneration;
   "commerce/checkout": typeof commerce_checkout;

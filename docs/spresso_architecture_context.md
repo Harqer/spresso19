@@ -10,6 +10,8 @@ This section is authoritative for the active rebuild. The later Firebase-first l
 
 Owner deployment constraint: Google Cloud, Firebase, Genkit, and Cloud Run are not active services for this rebuild. Do not propose or deploy the MCP server, web app, catalog gateway, or media boundary on Google infrastructure. The MCP server requires a separately authorized non-Google HTTPS host; until that host and its secret vault are configured, deployment is blocked.
 
+The verified Convex production deployment for this rebuild is `mikros:spresso:production` at `https://woozy-anteater-572.convex.cloud`. The checked-in `.env.production.example` is the release URL reference; `.env.local` remains on the dev deployment and must not be changed as part of ordinary local development.
+
 Bunny Storage/CDN is the mandatory production media delivery provider for generated images, completed short videos, and static media. Production code must fail closed when Bunny configuration is missing; there is no Firebase/Convex media fallback. Tests may inject a contract-compatible media store to test application behavior without a live CDN, but that test adapter is not a production path.
 
 ## Confirmed product scope

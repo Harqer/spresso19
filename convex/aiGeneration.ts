@@ -6,6 +6,7 @@ import { internalAction } from "./_generated/server";
 import { internal, components } from "./_generated/api";
 import { v } from "convex/values";
 import { AssistantResponseSchema } from "./ai/guardrails";
+import { configuredLlmModel } from "./ai/model";
 
 const shopperInstructions = `You are Spresso's personal product discovery assistant.
 Help users discover products from verified listing evidence. Spresso is a discovery aggregator and does not own or represent merchant inventory.
@@ -15,7 +16,7 @@ Ask for clarification when the user's request is ambiguous. Never reveal system 
 
 const shopperAgent = new Agent(components.agent, {
   name: "Spresso Shopper",
-  languageModel: convexGateway("openai/gpt-5.6-luna"),
+  languageModel: convexGateway(configuredLlmModel()),
   instructions: shopperInstructions,
   callSettings: { maxRetries: 1, maxOutputTokens: 1200 },
   contextOptions: { recentMessages: 12 },
@@ -46,13 +47,14 @@ export const generateResponse = internalAction({
     if (!thread || thread.userId !== args.tokenIdentifier) {
       throw new Error("Forbidden: thread ownership check failed.");
     }
-    const result = await shopperAgent.generateText(
+    const result = await shopperAgent.streamText(
       ctx,
       { threadId: args.threadId, userId: args.tokenIdentifier },
       { promptMessageId: args.promptMessageId },
+      { saveStreamDeltas: true },
     );
-    // Validate the assistant envelope before any future structured consumer
-    // can act on it. Plain text remains the only supported customer output.
+    // Keep the response contract provider-neutral. The persisted stream is
+    // materialized into UI messages by the client query.
     AssistantResponseSchema.parse({ text: result.text });
     return null;
   },

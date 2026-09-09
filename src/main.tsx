@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App.tsx';
 import './index.css';
+import { SpressoConvexProvider } from './lib/convex';
 
 // Expose Data Connect SDK globally for Kotlin WasmJS interop
 import * as DataConnectSDK from './dataconnect';
@@ -21,7 +22,9 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <SpressoConvexProvider>
+        <App />
+      </SpressoConvexProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

@@ -1,4 +1,4 @@
-import { getThreadMetadata, listUIMessages, saveMessage } from "@convex-dev/agent";
+import { getThreadMetadata, listUIMessages, saveMessage, syncStreams, vStreamArgs } from "@convex-dev/agent";
 import { RateLimiter, MINUTE } from "@convex-dev/rate-limiter";
 import { paginationOptsValidator } from "convex/server";
 import { mutation, query, internalMutation } from "./_generated/server";
@@ -71,12 +71,14 @@ export const getThread = query({
 });
 
 export const listMessages = query({
-  args: { threadId: v.string(), paginationOpts: paginationOptsValidator },
+  args: { threadId: v.string(), paginationOpts: paginationOptsValidator, streamArgs: vStreamArgs },
   returns: v.any(),
   handler: async (ctx, args) => {
     const identity = await requireFirebaseIdentity(ctx);
     await authorizeThread(ctx, args.threadId, identity.tokenIdentifier);
-    return await listUIMessages(ctx, components.agent, args);
+    const paginated = await listUIMessages(ctx, components.agent, args);
+    const streams = await syncStreams(ctx, components.agent, args);
+    return { ...paginated, streams };
   },
 });
 

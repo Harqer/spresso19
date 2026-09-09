@@ -11,6 +11,7 @@ const app = defineApp({
     BUNNY_CDN_BASE_URL: v.optional(v.string()),
     BUNNY_CDN_TOKEN_KEY: v.optional(v.string()),
     BUNNY_SOURCE_HOSTS: v.optional(v.string()),
+    SPRESSO_LLM_MODEL: v.optional(v.string()),
   },
 });
 app.use(agent);

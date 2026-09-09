@@ -13,6 +13,9 @@ import { QuickPromptsGrid } from "@/src/components/features/chat/QuickPromptsGri
 import { MessageStream } from "@/src/components/features/chat/MessageStream";
 import { generateDynamicGreeting } from "../../../lib/greeting";
 import { DiscoveryRepository } from "../../../lib/discoveryRepository";
+import { useConvexAuth, useMutation } from "convex/react";
+import { useUIMessages } from "@convex-dev/agent/react";
+import { api } from "../../../../convex/_generated/api";
 
 interface PersonalChatMsg {
   id: string;
@@ -47,6 +50,15 @@ interface PersonalAIShopperChatPageProps {
   onClearShowcaseProduct?: () => void;
 }
 
+function textFromConvexParts(parts: unknown): string {
+  if (!Array.isArray(parts)) return "";
+  return parts
+    .filter((part): part is { type: "text"; text: string } =>
+      Boolean(part) && typeof part === "object" && (part as any).type === "text" && typeof (part as any).text === "string")
+    .map((part) => part.text)
+    .join("");
+}
+
 export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps> = ({
   products,
   discoveryRepository,
@@ -63,6 +75,31 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
   const [liveCameraOpen, setLiveCameraOpen] = useState(false);
   const [cameraDetectionOpen, setCameraDetectionOpen] = useState(false);
   const [googleLensOpen, setGoogleLensOpen] = useState(false);
+  const convexAuth = useConvexAuth();
+  const createThread = useMutation(api.aiChat.createThread);
+  const sendConvexMessage = useMutation(api.aiChat.sendMessage);
+  const [convexThreadId, setConvexThreadId] = useState<string | null>(null);
+  const convexMessages = useUIMessages(
+    api.aiChat.listMessages as any,
+    convexThreadId ? { threadId: convexThreadId } : "skip",
+    { initialNumItems: 50, stream: true } as any,
+  );
+
+  React.useEffect(() => {
+    let active = true;
+    if (!convexAuth.isAuthenticated || convexThreadId) return;
+    createThread({ title: "Spresso discovery" })
+      .then((threadId) => { if (active) setConvexThreadId(threadId); })
+      .catch((error) => Logger.warn("Unable to start Spresso chat", error));
+    return () => { active = false; };
+  }, [convexAuth.isAuthenticated, convexThreadId, createThread]);
+
+  const persistedMessages: PersonalChatMsg[] = (convexMessages.results ?? []).map((message: any) => ({
+    id: `${message.order}-${message.stepOrder}`,
+    sender: message.role === "user" ? "user" : "ai",
+    text: textFromConvexParts(message.parts),
+    isStreaming: message.status === "streaming",
+  }));
 
   // Generate dynamic time-of-day greeting (e.g., "Good evening.")
   const greeting = generateDynamicGreeting(userName);
@@ -110,6 +147,20 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
 
     setMessages(prev => [...prev, userMsg, aiMsg]);
     setIsGenerating(true);
+
+    if (convexThreadId) {
+      try {
+        await sendConvexMessage({ threadId: convexThreadId, prompt: text.trim() });
+      } catch (error) {
+        Logger.error("Convex shopper chat error:", error);
+        setMessages(prev => prev.map((message) => message.id === aiMsgId
+          ? { ...message, text: "I’m unable to help with that right now. Please try again.", isStreaming: false }
+          : message));
+      } finally {
+        setIsGenerating(false);
+      }
+      return;
+    }
 
     discoveryRepository.search({ query: text, location: userLocation })
       .then(listings => {
@@ -239,7 +290,7 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
         </div>
 
         {/* Message Stream */}
-        <MessageStream messages={messages} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} />
+        <MessageStream messages={convexThreadId ? persistedMessages : messages} onSelectTryOn={onSelectTryOn} onAddToCart={onAddToCart} />
       </div>
 
       {/* Input Bar */}
