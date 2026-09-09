@@ -20,6 +20,14 @@ if git grep -nE 'spresso-19|spresso_19|spresso19|5561f|com\.spresso19' -- \
 fi
 echo "clean"
 
+echo "== [gate] dependency vulnerability audit =="
+for package_dir in "$ROOT" "$ROOT/functions" "$ROOT/gemini-streaming-mcp"; do
+  (
+    cd "$package_dir"
+    npm audit --audit-level=moderate
+  )
+done
+
 echo "== [gate] functions: build + failure-path tests =="
 (
   cd "$ROOT/functions"
