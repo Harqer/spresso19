@@ -28,7 +28,6 @@ const GENMEDIA_BACKGROUNDS = [
 ];
 
 export const PRODUCT_ANIMATION_OPTIONS = [
-  { id: "anim-orbit", name: "360° Runway Orbit", icon: "3d_rotation", description: "360-degree smooth orbital sweep highlighting 3D garment silhouette" },
   { id: "anim-catwalk", name: "Catwalk Motion Walk", icon: "directions_walk", description: "Natural runway pacing with full-body fabric swing and dynamic light reflection" },
   { id: "anim-drape", name: "Drape & Texture Slow-Mo", icon: "styler", description: "Macro zoom on stitching, material weight, and micro-drape fluid motion" },
   { id: "anim-street", name: "Dynamic Street Pacing", icon: "location_city", description: "Outdoor ambient movement with natural sunlight flare and realistic shadows" },

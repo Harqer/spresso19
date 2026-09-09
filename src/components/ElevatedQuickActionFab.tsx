@@ -213,7 +213,7 @@ export const ElevatedQuickActionFab: React.FC<ElevatedQuickActionFabProps> = ({
           className="group flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#446732] to-[#2d4f1c] dark:from-[#a9d291] dark:to-[#759b60] text-white dark:text-[#173807] border border-[#a9d291]/40 rounded-full shadow-xl hover:shadow-emerald-500/20 transition-all duration-200 hover:scale-105 cursor-pointer"
           title="Animate & Try-On Avatar"
         >
-          <span className="text-xs font-bold font-mono uppercase tracking-wider">Animate 360°</span>
+          <span className="text-xs font-bold font-mono uppercase tracking-wider">Animate Try-On</span>
           <div className="w-7 h-7 rounded-full bg-white/20 dark:bg-black/20 flex items-center justify-center shrink-0">
             <MaterialIcon icon="animation" size={18} className="text-white dark:text-[#173807]" />
           </div>

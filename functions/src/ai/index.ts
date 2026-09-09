@@ -124,26 +124,6 @@ export const generateVirtualTryOn = onCall({ enforceAppCheck: true, secrets: med
     }
 });
 
-export const generateSpin360 = onCall({ enforceAppCheck: true, secrets: mediaSecrets, maxInstances: 20, minInstances: 0 }, async (request) => {
-    if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
-    if (request.app == undefined) throw new HttpsError("failed-precondition", "The function must be called from an App Check verified app.");
-    try {
-        const data = request.data || {};
-        return await generateMediaWithFallback({
-            prompt: `Photorealistic product presentation video with a smooth 360-degree rotation for ${data.name || data.productId || "the selected product"}. Keep the product centered and fully visible. Preserve exact shape, materials, texture, color, construction, and proportions. Use consistent studio-quality lighting, realistic shadows, stable camera motion, and no invented parts or text. ${data.category ? `Category: ${data.category}.` : ""} ${data.locationContext ? `Use a tasteful environment inspired by the user's coarse location: ${String(data.locationContext).slice(0, 120)}.` : "Use a neutral studio environment."}`,
-            mediaType: "video",
-            imageUrls: [data.image].filter((value): value is string => typeof value === "string" && value.startsWith("http")),
-            requesterUid: request.auth.uid,
-            geminiApiKey: geminiApiKey.value(),
-            higgsfieldKeyId: higgsfieldKeyId.value(),
-            higgsfieldKeySecret: higgsfieldKeySecret.value(),
-            cacheScope: "shared",
-        });
-    } catch (e) {
-        throw new HttpsError("internal", "Failed to run spin 360 flow");
-    }
-});
-
 export const analyzeUserBehavior = onCall({ enforceAppCheck: true, secrets: [geminiApiKey], maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
     try {

@@ -74,20 +74,20 @@ async function fetchParallel(query: string, key: string, signal: AbortSignal): P
   return Array.isArray(values) ? values.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object")) : [];
 }
 
-async function fetchKitesurf(query: string, accountId: string, token: string, signal: AbortSignal): Promise<Record<string, unknown>[]> {
+async function fetchKitesurfVerification(merchantUrl: string, productName: string, accountId: string, token: string, signal: AbortSignal) {
   const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/browser-run/json?browser=kitesurf`, {
     method: "POST",
     signal,
     headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
     body: JSON.stringify({
-      url: `https://www.google.com/search?q=${encodeURIComponent(`${query} buy online`)}`,
-      prompt: `Extract current retail product listings matching ${query}. Return title, price, currency, image URL, and direct HTTPS product URL. Do not interact with carts, accounts, checkout, or payment forms.`,
-      response_format: { type: "json_schema", json_schema: { type: "object", properties: { products: { type: "array" } }, required: ["products"] } },
+      url: merchantUrl,
+      prompt: `Inspect this public product page for ${productName}. Return only visible current price, ISO currency, final product URL, and whether the named product is present. Do not log in, add to cart, open checkout, enter payment data, or click place order.`,
+      response_format: { type: "json_schema", json_schema: { type: "object", properties: { found: { type: "boolean" }, price: { type: ["number", "string"] }, currency: { type: "string" }, productUrl: { type: "string" } }, required: ["found"] } },
     }),
   });
   if (!response.ok) throw new Error(`Kitesurf request failed (${response.status}).`);
-  const data = await response.json() as { result?: { products?: unknown } };
-  return Array.isArray(data.result?.products) ? data.result.products.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object")) : [];
+  const data = await response.json() as { result?: Record<string, unknown> };
+  return data.result ?? {};
 }
 
 export const search = action({
@@ -98,29 +98,50 @@ export const search = action({
     const query = args.query.trim().replace(/\s+/g, " ");
     if (query.length < 2 || query.length > 240) throw new Error("A valid discovery query is required.");
     const scopedQuery = args.location?.trim() ? `${query} near ${args.location.trim()}` : query;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10_000);
     const discoveredAt = new Date().toISOString();
-    try {
-      const tasks: Promise<{ source: "parallel" | "serpapi" | "kitesurf"; items: Record<string, unknown>[] }>[] = [];
-      if (env.SERPAPI_API_KEY) tasks.push(fetchSerpApi(scopedQuery, env.SERPAPI_API_KEY, controller.signal).then(items => ({ source: "serpapi", items })));
-      if (env.PARALLEL_API_KEY) tasks.push(fetchParallel(scopedQuery, env.PARALLEL_API_KEY, controller.signal).then(items => ({ source: "parallel", items })));
-      if (env.CLOUDFLARE_ACCOUNT_ID && env.CLOUDFLARE_API_TOKEN) tasks.push(fetchKitesurf(scopedQuery, env.CLOUDFLARE_ACCOUNT_ID, env.CLOUDFLARE_API_TOKEN, controller.signal).then(items => ({ source: "kitesurf", items })));
-      if (tasks.length === 0) throw new Error("Discovery providers are not configured in the Convex deployment.");
-      const settled = await Promise.allSettled(tasks);
-      const seen = new Set<string>();
-      const listings = settled.flatMap(result => result.status === "fulfilled"
-        ? result.value.items.flatMap(item => {
-          const normalized = normalize(result.value.source, item, discoveredAt);
-          if (!normalized || seen.has(normalized.id)) return [];
-          seen.add(normalized.id);
-          return [normalized];
-        })
-        : []).slice(0, 50);
-      if (listings.length === 0) throw new Error("Discovery providers returned no verified listings.");
-      return { listings };
-    } finally {
-      clearTimeout(timeout);
+    const run = async <T>(task: (signal: AbortSignal) => Promise<T>) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+      try { return await task(controller.signal); } finally { clearTimeout(timeout); }
+    };
+    let raw: Record<string, unknown>[] = [];
+    let source: "parallel" | "serpapi" = "parallel";
+    if (env.PARALLEL_API_KEY) {
+      try { raw = await run(signal => fetchParallel(scopedQuery, env.PARALLEL_API_KEY!, signal)); } catch { raw = []; }
     }
+    if (raw.length < 3 && env.SERPAPI_API_KEY) {
+      source = "serpapi";
+      try { raw = await run(signal => fetchSerpApi(scopedQuery, env.SERPAPI_API_KEY!, signal)); } catch { raw = []; }
+    }
+    if (raw.length === 0) throw new Error("Discovery providers returned no verified listings.");
+    const seen = new Set<string>();
+    const listings = raw.flatMap(item => {
+      const normalized = normalize(source, item, discoveredAt);
+      if (!normalized || seen.has(normalized.id)) return [];
+      seen.add(normalized.id);
+      return [normalized];
+    }).slice(0, 50);
+    if (listings.length === 0) throw new Error("Discovery providers returned no verified listings.");
+    return { listings };
+  },
+});
+
+export const verifyMerchantListing = action({
+  args: { merchantUrl: v.string(), productName: v.string() },
+  returns: v.object({ found: v.boolean(), merchantUrl: v.string(), observedPrice: v.optional(v.object({ amount: v.number(), currency: v.string(), evidenceUrl: v.string() })) }),
+  handler: async (ctx, args) => {
+    await requireFirebaseIdentity(ctx);
+    const merchantUrl = httpsUrl(args.merchantUrl);
+    const productName = args.productName.trim();
+    if (!merchantUrl || productName.length < 2 || productName.length > 240) throw new Error("A valid merchant listing is required.");
+    if (!env.CLOUDFLARE_ACCOUNT_ID || !env.CLOUDFLARE_API_TOKEN) throw new Error("Merchant verification is not configured in the Convex deployment.");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    try {
+      const result = await fetchKitesurfVerification(merchantUrl, productName, env.CLOUDFLARE_ACCOUNT_ID, env.CLOUDFLARE_API_TOKEN, controller.signal);
+      const evidenceUrl = httpsUrl(result.productUrl) ?? merchantUrl;
+      const observedPrice = price(result.price, result.currency, evidenceUrl);
+      return { found: result.found === true, merchantUrl: evidenceUrl, ...(observedPrice ? { observedPrice } : {}) };
+    } finally { clearTimeout(timeout); }
   },
 });

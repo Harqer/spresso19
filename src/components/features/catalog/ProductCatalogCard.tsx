@@ -11,7 +11,6 @@ interface ProductCatalogCardProps {
   onElevate: () => void;
   onBookmark: () => void;
   onOpenLens: () => void;
-  onSpin360: () => void;
   onSelectTryOn: () => void;
   onAddToCart: () => void;
   onCheckout: () => void;
@@ -26,7 +25,6 @@ export const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
   onElevate,
   onBookmark,
   onOpenLens,
-  onSpin360,
   onSelectTryOn,
   onAddToCart,
   onCheckout,
@@ -40,9 +38,6 @@ export const ProductCatalogCard: React.FC<ProductCatalogCardProps> = ({
       </button>
       <button onClick={(e) => { e.stopPropagation(); onOpenLens(); }} className="absolute top-3 right-3 px-2.5 py-1 bg-stone-900/80 hover:bg-orange-600 text-white rounded-full shadow-md flex space-x-1 cursor-pointer">
         <MaterialIcon icon="center_focus_strong" size={13} className="text-orange-400" /><span>Lens</span>
-      </button>
-      <button onClick={(e) => { e.stopPropagation(); onSpin360(); }} className="absolute bottom-3 right-3 px-2.5 py-1.5 rounded-full border bg-white/90 text-[#18211e] cursor-pointer flex space-x-1">
-        <MaterialIcon icon="360" size={16} className="text-[#386633]" /><span>360°</span>
       </button>
     </div>
     <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">

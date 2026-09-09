@@ -16,7 +16,6 @@ require("./tools/marketResearchUSAgent");
 require("./tools/kitesurfSearch");
 require("./flows/shopperFlow");
 require("./flows/virtualTryOnFlow");
-require("./flows/spin360Flow");
 require("./flows/discoverPersonalizedProductsFlow");
 require("./flows/behavioralAnalysisFlow");
 console.log("Genkit flows and tools loaded.");

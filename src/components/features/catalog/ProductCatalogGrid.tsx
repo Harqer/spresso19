@@ -11,12 +11,11 @@ interface ProductCatalogGridProps {
   onRequestMerchantCheckout: (product: ProductItem) => void;
   onOpenLens?: (p: ProductItem) => void;
   setGenkitModalProduct: (p: ProductItem) => void;
-  setSpin360Product: (p: ProductItem) => void;
   fetchFeed: () => void;
 }
 
 export const ProductCatalogGrid: React.FC<ProductCatalogGridProps> = ({
-  products, isLoading, onSelectTryOn, onAddToCart, onRequestMerchantCheckout, onOpenLens, setGenkitModalProduct, setSpin360Product, fetchFeed
+  products, isLoading, onSelectTryOn, onAddToCart, onRequestMerchantCheckout, onOpenLens, setGenkitModalProduct, fetchFeed
 }) => {
   const [elevatedCardId, setElevatedCardId] = useState<string | null>(null);
   const [addedToCartId, setAddedToCartId] = useState<string | null>(null);
@@ -71,7 +70,6 @@ export const ProductCatalogGrid: React.FC<ProductCatalogGridProps> = ({
           onElevate={() => setElevatedCardId(elevatedCardId === product.id ? null : product.id)}
           onBookmark={() => toggleBookmark(product)}
           onOpenLens={() => onOpenLens && onOpenLens(product)}
-          onSpin360={() => setSpin360Product(product)}
           onSelectTryOn={() => onSelectTryOn(product)}
           onAddToCart={() => {
             if (onAddToCart) {

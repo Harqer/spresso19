@@ -14,7 +14,6 @@ import "./tools/marketResearchUSAgent";
 import "./tools/kitesurfSearch";
 import "./flows/shopperFlow";
 import "./flows/virtualTryOnFlow";
-import "./flows/spin360Flow";
 import "./flows/discoverPersonalizedProductsFlow";
 import "./flows/behavioralAnalysisFlow";
 

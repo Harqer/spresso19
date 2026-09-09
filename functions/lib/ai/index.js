@@ -43,7 +43,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateResponseFromAudio = exports.lensSearch = exports.generateOutfit = exports.chatStream = exports.processSearchHistoryTelemetry = exports.logSearchHistory = exports.getQuickPrompts = exports.vitposeOrchestrateFit = exports.generateCreatorCampaign = exports.creatorAgentTemplates = exports.generateLiveApiToken = exports.discoverPersonalizedProducts = exports.analyzeUserBehavior = exports.generateSpin360 = exports.generateVirtualTryOn = void 0;
+exports.generateResponseFromAudio = exports.lensSearch = exports.generateOutfit = exports.chatStream = exports.processSearchHistoryTelemetry = exports.logSearchHistory = exports.getQuickPrompts = exports.vitposeOrchestrateFit = exports.generateCreatorCampaign = exports.creatorAgentTemplates = exports.generateLiveApiToken = exports.discoverPersonalizedProducts = exports.analyzeUserBehavior = exports.generateVirtualTryOn = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const pubsub_1 = require("firebase-functions/v2/pubsub");
 const pubsub_2 = require("@google-cloud/pubsub");
@@ -164,28 +164,6 @@ exports.generateVirtualTryOn = (0, https_1.onCall)({ enforceAppCheck: true, secr
         throw new https_1.HttpsError("internal", (0, virtualTryOnBoundary_1.safeVirtualTryOnError)(e));
     }
 });
-exports.generateSpin360 = (0, https_1.onCall)({ enforceAppCheck: true, secrets: mediaSecrets, maxInstances: 20, minInstances: 0 }, async (request) => {
-    if (!request.auth)
-        throw new https_1.HttpsError("unauthenticated", "You must be signed in.");
-    if (request.app == undefined)
-        throw new https_1.HttpsError("failed-precondition", "The function must be called from an App Check verified app.");
-    try {
-        const data = request.data || {};
-        return await (0, mediaGeneration_1.generateMediaWithFallback)({
-            prompt: `Photorealistic product presentation video with a smooth 360-degree rotation for ${data.name || data.productId || "the selected product"}. Keep the product centered and fully visible. Preserve exact shape, materials, texture, color, construction, and proportions. Use consistent studio-quality lighting, realistic shadows, stable camera motion, and no invented parts or text. ${data.category ? `Category: ${data.category}.` : ""} ${data.locationContext ? `Use a tasteful environment inspired by the user's coarse location: ${String(data.locationContext).slice(0, 120)}.` : "Use a neutral studio environment."}`,
-            mediaType: "video",
-            imageUrls: [data.image].filter((value) => typeof value === "string" && value.startsWith("http")),
-            requesterUid: request.auth.uid,
-            geminiApiKey: geminiApiKey.value(),
-            higgsfieldKeyId: higgsfieldKeyId.value(),
-            higgsfieldKeySecret: higgsfieldKeySecret.value(),
-            cacheScope: "shared",
-        });
-    }
-    catch (e) {
-        throw new https_1.HttpsError("internal", "Failed to run spin 360 flow");
-    }
-});
 exports.analyzeUserBehavior = (0, https_1.onCall)({ enforceAppCheck: true, secrets: [geminiApiKey], maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth)
         throw new https_1.HttpsError("unauthenticated", "You must be signed in.");
@@ -246,7 +224,13 @@ exports.generateLiveApiToken = (0, https_1.onCall)({ secrets: [geminiApiKey], en
                     model: "models/gemini-3.1-flash-live-preview",
                     config: {
                         responseModalities: ["AUDIO"],
-                        sessionResumption: {}
+                        sessionResumption: {},
+                        // Server-owned persona: the constraint config takes
+                        // precedence over client setup, so the client cannot
+                        // alter or omit the system instruction.
+                        systemInstruction: {
+                            parts: [{ text: "You are Spresso's concise, safety-conscious live cooking assistant. Help the user cook with the camera and microphone." }]
+                        }
                     }
                 }
             })
