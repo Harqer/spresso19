@@ -1,4 +1,4 @@
-import { internalMutation, mutation } from "../_generated/server";
+import { internalMutation, mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 import { requireFirebaseIdentity } from "../lib/identity";
 
@@ -18,6 +18,66 @@ const webhookStatus = v.union(
   v.literal("IGNORED"),
   v.literal("FAILED"),
 );
+
+const checkoutAttempt = v.object({
+  _id: v.id("checkoutAttempts"),
+  _creationTime: v.number(),
+  tokenIdentifier: v.string(),
+  listingId: v.string(),
+  quantity: v.number(),
+  idempotencyKey: v.string(),
+  status: checkoutStatus,
+  amountCents: v.optional(v.number()),
+  currency: v.optional(v.string()),
+  merchantUrl: v.optional(v.string()),
+  quoteObservedAt: v.optional(v.string()),
+  paymentIntentId: v.optional(v.string()),
+  orderId: v.optional(v.string()),
+  failureCode: v.optional(v.string()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+});
+
+const order = v.object({
+  _id: v.id("orders"),
+  _creationTime: v.number(),
+  tokenIdentifier: v.string(),
+  checkoutAttemptId: v.id("checkoutAttempts"),
+  paymentIntentId: v.string(),
+  listingId: v.string(),
+  quantity: v.number(),
+  amountCents: v.number(),
+  currency: v.string(),
+  merchantUrl: v.string(),
+  createdAt: v.number(),
+});
+
+export const getCheckoutAttempt = query({
+  args: { attemptId: v.id("checkoutAttempts") },
+  returns: v.union(checkoutAttempt, v.null()),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const attempt = await ctx.db.get(args.attemptId);
+    if (!attempt || attempt.tokenIdentifier !== identity.tokenIdentifier) return null;
+    return attempt;
+  },
+});
+
+export const listOrders = query({
+  args: { limit: v.number() },
+  returns: v.array(order),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    if (!Number.isInteger(args.limit) || args.limit < 1 || args.limit > 50) {
+      throw new Error("Order limit must be a whole number between 1 and 50.");
+    }
+    return await ctx.db
+      .query("orders")
+      .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .order("desc")
+      .take(args.limit);
+  },
+});
 
 function requireHttpsUrl(value: string, fieldName: string): string {
   const normalized = value.trim();

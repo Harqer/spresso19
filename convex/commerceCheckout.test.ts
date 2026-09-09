@@ -103,6 +103,25 @@ test("checkout attempt can only advance through an expected state", async () => 
   expect(finalized.status).toBe("READY_FOR_PAYMENT");
 });
 
+test("checkout status is visible only to its owner", async () => {
+  const t = testConvex();
+  const attemptId = await t.withIdentity(identityA).mutation(api.commerce.checkout.acquireCheckoutAttempt, {
+    listingId: "listing-owner-only",
+    quantity: 1,
+    idempotencyKey: "status-key",
+  });
+  expect(await t.withIdentity(identityA).query(api.commerce.checkout.getCheckoutAttempt, { attemptId }))
+    .toMatchObject({ listingId: "listing-owner-only", status: "NEW" });
+  expect(await t.withIdentity(identityB).query(api.commerce.checkout.getCheckoutAttempt, { attemptId })).toBeNull();
+});
+
+test("orders are bounded and scoped to the authenticated user", async () => {
+  const t = testConvex();
+  await expect(t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 0 })).rejects.toThrow(/between 1 and 50/);
+  expect(await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 })).toEqual([]);
+  expect(await t.withIdentity(identityB).query(api.commerce.checkout.listOrders, { limit: 10 })).toEqual([]);
+});
+
 test("webhook inbox is idempotent by provider and event id", async () => {
   const t = testConvex();
   const first = await t.mutation(internal.commerce.checkout.acquireWebhookEvent, {
