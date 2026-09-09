@@ -16,6 +16,7 @@ import { DiscoveryRepository } from "../../../lib/discoveryRepository";
 import { useConvexAuth, useMutation } from "convex/react";
 import { useUIMessages } from "@convex-dev/agent/react";
 import { api } from "../../../../convex/_generated/api";
+import { convexClient } from "../../../lib/convex";
 
 interface PersonalChatMsg {
   id: string;
@@ -123,6 +124,16 @@ export const PersonalAIShopperChatPage: React.FC<PersonalAIShopperChatPageProps>
   const handleSend = async (text: string) => {
     if (!text.trim() || isGenerating) return;
     setInputQuery("");
+
+    if (convexClient && !convexThreadId) {
+      Logger.warn("Convex chat is still initializing; the message was not sent.");
+      setMessages((previous) => [...previous, {
+        id: `chat-ready-${Date.now()}`,
+        sender: "ai",
+        text: "I’m getting your chat ready. Please try again in a moment.",
+      }]);
+      return;
+    }
 
     try {
       const logSearchHistory = httpsCallable(functions, "logSearchHistory");
