@@ -43,11 +43,10 @@ export type InfisicalRuntimeConfiguration = {
  * Secret payloads remain external to the process configuration and are never
  * included in this result or in configuration errors.
  */
-export function assertInfisicalRuntimeConfiguration(): InfisicalRuntimeConfiguration | undefined {
+export function assertInfisicalRuntimeConfiguration(): InfisicalRuntimeConfiguration {
   const project = process.env[infisicalProjectEnv]?.trim();
   const environment = process.env[infisicalEnvironmentEnv]?.trim();
   const secretPath = process.env[infisicalSecretPathEnv]?.trim();
-  if (!project && !environment && !secretPath) return undefined;
   const missing = [
     !project || project !== INFISICAL_PROJECT ? infisicalProjectEnv : "",
     !environment ? infisicalEnvironmentEnv : "",

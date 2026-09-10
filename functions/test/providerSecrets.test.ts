@@ -33,6 +33,7 @@ function configureInfisicalRuntime(): void {
 
 test.beforeEach(() => {
   clearProviderEnvironment();
+  configureInfisicalRuntime();
 });
 test.afterEach(() => {
   clearProviderEnvironment();
@@ -50,15 +51,27 @@ test("reports presence without returning credential material", async () => {
   assert.deepEqual(await assertSecretPresence(), { nvidia: true, mediaFallback: true });
 });
 
-test("accepts externally injected provider secrets when no Infisical metadata is exposed", async () => {
+test("rejects provider secrets when Infisical metadata is absent", async () => {
+  clearProviderEnvironment();
   process.env.NVIDIA_API_KEY = "configured-nvidia";
-  assert.equal(assertInfisicalRuntimeConfiguration(), undefined);
-  assert.deepEqual(await assertSecretPresence(), { nvidia: true, mediaFallback: false });
+
+  const rejectsMissingMetadata = (error: unknown): boolean => {
+    assert.ok(error instanceof ProviderSecretConfigurationError);
+    assert.deepEqual(error.missing, [
+      "INFISICAL_PROJECT_ID",
+      "INFISICAL_ENVIRONMENT",
+      "INFISICAL_SECRET_PATH",
+    ]);
+    assert.equal(error.message.includes("configured-nvidia"), false);
+    return true;
+  };
+
+  await assert.rejects(assertSecretPresence(), rejectsMissingMetadata);
+  await assert.rejects(loadProviderSecrets(), rejectsMissingMetadata);
 });
 
 test("requires KYZO project, environment, and secret path provenance", () => {
-  configureInfisicalRuntime();
-  delete process.env.INFISICAL_PROJECT_ID;
+  process.env.INFISICAL_PROJECT_ID = "another-project";
   assert.throws(
     () => assertInfisicalRuntimeConfiguration(),
     (error: unknown) => {
@@ -100,6 +113,7 @@ test("resolves optional credentials and never includes them in configuration err
   });
 
   clearProviderEnvironment();
+  configureInfisicalRuntime();
   await assert.rejects(loadProviderSecrets(), (error: unknown) => {
     assert.ok(error instanceof ProviderSecretConfigurationError);
     for (const value of Object.values(resolved)) {
