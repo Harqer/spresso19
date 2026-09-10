@@ -21,6 +21,9 @@ const files = await collectTypeScriptFiles(sourceRoot);
 const sources = await Promise.all(files.map(async (file) => [file, await fs.readFile(file, "utf8")]));
 const allSource = sources.map(([, source]) => source).join("\n");
 const terraform = await fs.readFile(terraformPath, "utf8");
+const toolServerTerraform = terraform.slice(
+  terraform.indexOf('resource "google_cloud_run_v2_service" "tool_server"'),
+);
 const declaredSecrets = [...new Set([...allSource.matchAll(/defineSecret\(\s*["']([^"']+)["']\s*\)/g)].map((match) => match[1]))].sort();
 const exportedFunctions = [...new Set([...allSource.matchAll(/export\s+const\s+([A-Za-z0-9_]+)\s*=\s*on(?:Call|Request|MessagePublished)\b/g)].map((match) => match[1]))].sort();
 const terraformSecrets = new Set([...terraform.matchAll(/"([A-Z][A-Z0-9_]+)"/g)].map((match) => match[1]));
@@ -59,6 +62,12 @@ if (!/DISCOVERY_INFRASTRUCTURE_UNAVAILABLE:\s*SERPAPI_API_KEY/.test(searchProduc
 }
 if (!/PARALLEL_API_KEY is not configured for this environment/.test(aiSource)) {
   errors.push("discoverPersonalizedProducts does not fail closed when Parallel infrastructure is unavailable.");
+}
+if (!/resource\s+"google_secret_manager_secret_iam_member"\s+"tool_server_apify_secret_accessor"[\s\S]*?secret_id\s*=\s*google_secret_manager_secret\.secrets\["APIFY_API_TOKEN"\]\.secret_id[\s\S]*?role\s*=\s*"roles\/secretmanager\.secretAccessor"[\s\S]*?member\s*=\s*"serviceAccount:\$\{google_service_account\.tool_server_sa\[0\]\.email\}"/.test(terraform)) {
+  errors.push("tool_server_sa does not have per-secret access to APIFY_API_TOKEN.");
+}
+if (/secret_key_ref\s*\{/.test(toolServerTerraform)) {
+  errors.push("tool_server injects Secret Manager values that its runtime does not consume.");
 }
 
 const report = {

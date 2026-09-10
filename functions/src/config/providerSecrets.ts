@@ -1,22 +1,10 @@
-import { defineSecret, SecretParam } from "firebase-functions/params";
-
 /**
  * Provider credentials are injected into these server-only runtime names by
  * the deployment secret mechanism (Infisical KYZO in deployed environments).
  * The values are intentionally never read at module load time or logged.
+ * Deployment entrypoints bind only the credentials they consume; this shared
+ * resolver does not declare Firebase Secret Manager bindings of its own.
  */
-export const nvidiaApiKey = defineSecret("NVIDIA_API_KEY");
-export const geminiApiKey = defineSecret("GEMINI_API_KEY");
-export const higgsfieldKeyId = defineSecret("HIGGSFIELD_API_KEY_ID");
-export const higgsfieldKeySecret = defineSecret("HIGGSFIELD_KEY_SECRET");
-
-export const providerSecretBindings: SecretParam[] = [
-  nvidiaApiKey,
-  geminiApiKey,
-  higgsfieldKeyId,
-  higgsfieldKeySecret,
-];
-
 const INFISICAL_PROJECT = "KYZO" as const;
 const infisicalProjectEnv = "INFISICAL_PROJECT_ID";
 const infisicalEnvironmentEnv = "INFISICAL_ENVIRONMENT";
@@ -71,13 +59,9 @@ export function assertInfisicalRuntimeConfiguration(): InfisicalRuntimeConfigura
   return { project: INFISICAL_PROJECT, environment: environment as string, secretPath: secretPath as string };
 }
 
-function readSecret(secret: SecretParam): string | undefined {
-  // SecretParam.value() warns when its dependency is not bound. Checking the
-  // runtime injection marker first keeps optional credentials quiet while
-  // retaining the deployment-managed SecretParam accessor.
-  if (process.env[secret.name] === undefined) return undefined;
-  const value = secret.value().trim();
-  return value.length > 0 ? value : undefined;
+function readSecret(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value && value.length > 0 ? value : undefined;
 }
 
 /**
@@ -86,23 +70,23 @@ function readSecret(secret: SecretParam): string | undefined {
  */
 export async function loadProviderSecrets(): Promise<ProviderSecrets> {
   assertInfisicalRuntimeConfiguration();
-  const nvidia = readSecret(nvidiaApiKey);
+  const nvidia = readSecret("NVIDIA_API_KEY");
   if (!nvidia) {
     throw new ProviderSecretConfigurationError(["NVIDIA_API_KEY"]);
   }
 
   return {
     nvidiaApiKey: nvidia,
-    geminiApiKey: readSecret(geminiApiKey),
-    higgsfieldKeyId: readSecret(higgsfieldKeyId),
-    higgsfieldKeySecret: readSecret(higgsfieldKeySecret),
+    geminiApiKey: readSecret("GEMINI_API_KEY"),
+    higgsfieldKeyId: readSecret("HIGGSFIELD_API_KEY_ID"),
+    higgsfieldKeySecret: readSecret("HIGGSFIELD_KEY_SECRET"),
   };
 }
 
 /** Return configuration status without exposing credential material. */
 export async function assertSecretPresence(): Promise<SecretPresence> {
   assertInfisicalRuntimeConfiguration();
-  const nvidia = Boolean(readSecret(nvidiaApiKey));
-  const mediaFallback = Boolean(readSecret(higgsfieldKeyId) && readSecret(higgsfieldKeySecret));
+  const nvidia = Boolean(readSecret("NVIDIA_API_KEY"));
+  const mediaFallback = Boolean(readSecret("HIGGSFIELD_API_KEY_ID") && readSecret("HIGGSFIELD_KEY_SECRET"));
   return { nvidia, mediaFallback };
 }

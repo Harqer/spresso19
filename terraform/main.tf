@@ -139,6 +139,14 @@ resource "google_service_account" "tool_server_sa" {
   display_name = "Spresso Tool Server Service Account"
 }
 
+resource "google_secret_manager_secret_iam_member" "tool_server_apify_secret_accessor" {
+  count     = var.enable_tool_server ? 1 : 0
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.secrets["APIFY_API_TOKEN"].secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.tool_server_sa[0].email}"
+}
+
 resource "google_cloud_run_v2_service" "tool_server" {
   count    = var.enable_tool_server ? 1 : 0
   name     = "spresso-tool-server"
@@ -153,25 +161,6 @@ resource "google_cloud_run_v2_service" "tool_server" {
         name  = "GOOGLE_CLOUD_PROJECT"
         value = var.project_id
       }
-      dynamic "env" {
-        for_each = toset([
-          "GEMINI_API_KEY",
-          "APIFY_API_TOKEN",
-          "STRIPE_SECRET_KEY",
-          "STRIPE_WEBHOOK_SECRET",
-          "CLOUDFLARE_ACCOUNT_ID",
-          "CLOUDFLARE_API_TOKEN",
-        ])
-        content {
-          name = env.value
-          value_source {
-            secret_key_ref {
-              secret  = google_secret_manager_secret.secrets[env.value].secret_id
-              version = "latest"
-            }
-          }
-        }
-      }
     }
 
     scaling {
@@ -179,5 +168,8 @@ resource "google_cloud_run_v2_service" "tool_server" {
       max_instance_count = 20
     }
   }
-  depends_on = [google_project_service.services]
+  depends_on = [
+    google_project_service.services,
+    google_secret_manager_secret_iam_member.tool_server_apify_secret_accessor,
+  ]
 }
