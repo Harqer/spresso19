@@ -15,6 +15,12 @@
     "test:contracts": "node scripts/test/verify-function-contracts.test.mjs",
     "test:bundle-budget": "node scripts/test/bundle-budget.test.mjs",
     "test:mcp": "node --test mcp-server/server.test.mjs",
+    "gitnexus:status": "node scripts/gitnexus/guard.mjs status",
+    "gitnexus:analyze": "node scripts/gitnexus/guard.mjs analyze",
+    "gitnexus:refresh": "node scripts/gitnexus/guard.mjs refresh",
+    "gitnexus:watch": "node scripts/gitnexus/guard.mjs watch",
+    "gitnexus:handoff": "node scripts/gitnexus/handoff.mjs",
+    "gitnexus:hooks": "node scripts/gitnexus/install-hooks.mjs",
     "start:mcp": "node mcp-server/server.mjs",
     "lavish": "tsx scripts/lavish.ts"
   },

@@ -17,6 +17,8 @@ kotlin-js-store/
 !.gitignore
 !.gitattributes
 !.github/
+!.githooks/
+!.githooks/*
 !.firebaserc
 !.agents/
 !.editorconfig

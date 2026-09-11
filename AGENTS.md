@@ -96,14 +96,35 @@ When updating this file, preserve this bar for all agents and keep entries conci
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Spresso19** (11058 symbols, 18427 relationships, 217 execution flows).
+This project is indexed by GitNexus as **Spresso19**. The index is derived state and valid only for the active repository and worktree.
 
-> Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
+## Freshness and handoff gate
+
+Before graph-dependent planning, impact analysis, debugging, refactoring, review, or commit:
+
+```bash
+node scripts/gitnexus/guard.mjs status
+```
+
+The gate reports repository, worktree, branch, indexed commit, current commit, dirty-tree state, and last refresh. `fresh` permits graph queries. `stale`, `wrong-repository`, `unknown`, or failed status blocks graph use; run `node scripts/gitnexus/guard.mjs refresh` first. Never present stale graph output as repository truth.
+
+Run one watcher per active worktree with `node scripts/gitnexus/guard.mjs watch`. The wrapper assigns a distinct `<worktree>-<branch>` name and refreshes the exact worktree. Refresh after pull, merge, rebase, cherry-pick, branch switching, worktree creation, or generated schema/dependency changes. Hooks in `.githooks/` cover checkout, merge, rewrite, and commit when `core.hooksPath` is explicitly configured.
+
+Dirty trees are implementation state, not handoff evidence. Stage only owned coherent paths; never use `git add -A`, `git reset --hard`, or `git clean -fdx`. Run `node scripts/gitnexus/handoff.mjs` only after a focused commit; it requires a clean tree and a fresh index and reports every remaining dirty path.
+
+After the freshness gate passes, use the guarded graph commands:
+
+```bash
+node scripts/gitnexus/guard.mjs impact "symbolName" --direction upstream --repo .
+node scripts/gitnexus/guard.mjs detect-changes --scope all --repo .
+```
+
+Partial, truncated, failed, empty-but-unknown, and wrong-worktree results are unresolved. Read the matching GitNexus skill under `.agents/skills/gitnexus-*.md` before using exploration, impact, debugging, or refactoring workflows.
 
 ## Always Do
 
-- **MUST run impact analysis before editing.** Use `impact({target: "symbolName", direction: "upstream"})` (MCP) or `node .gitnexus/run.cjs impact "symbolName" --direction upstream --repo .` (CLI fallback); report callers, processes, and risk. Never substitute grep for graph analysis.
-- **MUST analyze graph changes before committing.** Use `detect_changes({scope: "all"})` (MCP) or `node .gitnexus/run.cjs detect-changes --scope all --repo .` (CLI fallback). `partial: true` or `truncated: true` is not a clean check — a zero means unseen, not unaffected; re-run it. For regression review: `detect_changes({scope: "compare", base_ref: "main"})` or `node .gitnexus/run.cjs detect-changes --scope compare --base-ref "main" --repo .`.
+- **MUST run impact analysis before editing.** Use `impact({target: "symbolName", direction: "upstream"})` (MCP) or `node scripts/gitnexus/guard.mjs impact "symbolName" --direction upstream --repo .` (CLI fallback); report callers, processes, and risk. Never substitute grep for graph analysis.
+- **MUST analyze graph changes before committing.** Use `detect_changes({scope: "all"})` (MCP) or `node scripts/gitnexus/guard.mjs detect-changes --scope all --repo .` (CLI fallback). `partial: true` or `truncated: true` is not a clean check — a zero means unseen, not unaffected; re-run it. For regression review: `detect_changes({scope: "compare", base_ref: "main"})` or `node scripts/gitnexus/guard.mjs detect-changes --scope compare --base-ref "main" --repo .`.
 - **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
 - **MUST treat `risk: UNKNOWN` as unresolved, not as low.** An empty caller set is not evidence the symbol is unused — it can also mean the callers are not resolvable by the index (plain-object property access, dynamic dispatch, cross-language calls). `impact` pairs `UNKNOWN` with a `riskNote` saying so. Confirm with a text search before treating the symbol as safe to change or delete; do not proceed on the strength of a zero.
 - When exploring unfamiliar code, use `query({search_query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.

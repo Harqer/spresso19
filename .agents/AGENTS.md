@@ -1,6 +1,13 @@
 # Workspace Rules
 
-## Persistent Context Memory
+## GitNexus freshness and handoff
+
+GitNexus is derived state. Before graph-dependent planning, impact analysis, debugging, refactoring, review, or commit, run `node scripts/gitnexus/guard.mjs status` from the active worktree. It must report the same repository path, worktree, branch, indexed commit, current commit, dirty-tree coverage, and refresh timestamp. `stale`, `wrong-repository`, `unknown`, or failed status blocks graph use; run `node scripts/gitnexus/guard.mjs refresh` first. Never trust or report stale graph output as repository truth.
+
+Run one watcher per worktree with `node scripts/gitnexus/guard.mjs watch`; it names indexes by worktree and branch. Refresh after pull, merge, rebase, cherry-pick, branch switching, worktree creation, and generated schema/dependency changes. `.githooks/` contains non-destructive refresh hooks for checkout, merge, rewrite, and commit, but hooks activate only when `core.hooksPath` is explicitly configured.
+
+Dirty files are implementation state, not handoff evidence. Inspect diffs, stage only owned coherent paths, and never use broad staging or destructive cleanup. After a focused commit, run `node scripts/gitnexus/handoff.mjs`; it requires a clean tree and fresh index and lists every remaining dirty path when blocked.
+
 
 The user prefers an agent that retains long-term memory of this specific architecture (Spresso, Kotlin Multiplatform Android, Firebase-first serverless services, Gemini Live and Meta DAT) so they do not have to repeatedly explain the context.
 
