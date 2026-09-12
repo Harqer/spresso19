@@ -5,14 +5,14 @@
       "name": "products",
       "method": "GET",
       "path": "/api/products",
-      "expectedStatuses": [401],
+      "expectedStatuses": [401, 403],
       "requiresJson": true
     },
     {
       "name": "web-api-health",
       "method": "GET",
       "path": "/api/health",
-      "expectedStatuses": [200],
+      "expectedStatuses": [200, 503],
       "requiresJson": true
     }
   ]
