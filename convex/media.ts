@@ -45,3 +45,17 @@ export const getOwnedAsset = internalQuery({
     return asset;
   },
 });
+
+export const getOwnedAssetByKey = internalQuery({
+  args: { mediaKey: v.string(), tokenIdentifier: v.string() },
+  returns: v.union(v.id("mediaAssets"), v.null()),
+  handler: async (ctx, args) => {
+    const asset = await ctx.db
+      .query("mediaAssets")
+      .withIndex("by_token_identifier_and_media_key", (q) =>
+        q.eq("tokenIdentifier", args.tokenIdentifier).eq("mediaKey", args.mediaKey),
+      )
+      .unique();
+    return asset?._id ?? null;
+  },
+});

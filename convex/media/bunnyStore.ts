@@ -30,6 +30,25 @@ export function bunnyConfigFromEnv(env: Record<string, string | undefined>): Bun
   };
 }
 
+/**
+ * Enforces that a media key belongs to the private per-user boundary and is
+ * owned by the given Firebase UID. Shared by every server-side consumer of a
+ * client-supplied media key (uploads, signed reads, server-side byte reads).
+ */
+export function assertOwnedPrivateMediaKey(ownerUid: string, mediaKey: string): void {
+  const uid = ownerUid.trim();
+  if (!uid) throw new Error("A valid media owner is required.");
+  if (mediaKey.length < 8 || mediaKey.length > 512) {
+    throw new Error("A valid media key is required.");
+  }
+  if (!mediaKey.startsWith("private/users/")) {
+    throw new Error("Media keys must come from the private user media boundary.");
+  }
+  if (mediaKey.split("/")[2] !== uid) {
+    throw new Error("Media key does not belong to the authenticated user.");
+  }
+}
+
 export class BunnyMediaStore {
   constructor(private readonly config: BunnyConfig, private readonly fetchImpl: typeof fetch = fetch) {}
 
@@ -76,5 +95,19 @@ export class BunnyMediaStore {
     url.searchParams.set("token", token);
     url.searchParams.set("expires", String(expires));
     return url.toString();
+  }
+
+  /**
+   * Downloads the exact private bytes for a media key. Storage paths are
+   * re-encoded the same way uploads encode them.
+   */
+  async getPrivateBytes(mediaKey: string): Promise<ArrayBuffer> {
+    const path = mediaKey.split("/").map(encodeURIComponent).join("/");
+    const url = `${this.config.storageHost}/${encodeURIComponent(this.config.storageZone)}/${path}`;
+    const response = await this.fetchImpl(url, { headers: { AccessKey: this.config.storageAccessKey } });
+    if (!response.ok) throw new Error(`Bunny media read failed (${response.status}).`);
+    const buffer = await response.arrayBuffer();
+    if (buffer.byteLength === 0) throw new Error("Bunny media read returned no bytes.");
+    return buffer;
   }
 }

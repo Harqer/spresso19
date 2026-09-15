@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireFirebaseIdentity } from "./lib/identity";
 
@@ -15,6 +15,17 @@ const galleryPermission = v.union(
   v.literal("UNDETERMINED"),
   v.literal("GRANTED"),
   v.literal("DENIED"),
+);
+
+const theme = v.union(v.literal("system"), v.literal("light"), v.literal("dark"));
+const coordinates = v.object({ lat: v.number(), lng: v.number() });
+const weatherCondition = v.union(
+  v.literal("SUMMER_HEAT"),
+  v.literal("MILD_SPRING_AUTUMN"),
+  v.literal("WINTER_COLD"),
+  v.literal("ALL_WEATHER"),
+  v.literal("HOT_SUMMER"),
+  v.literal("COLD_WINTER"),
 );
 
 const weatherSuitability = v.union(
@@ -62,6 +73,25 @@ export const getPreferences = query({
       _creationTime: v.number(),
       tokenIdentifier: v.string(),
       galleryPermission,
+      theme: v.optional(theme),
+      seedHex: v.optional(v.string()),
+      secondarySeedHex: v.optional(v.string()),
+      location: v.optional(v.string()),
+      radius: v.optional(v.number()),
+      coords: v.optional(coordinates),
+      onboardingCompleted: v.optional(v.boolean()),
+      locationEnabled: v.optional(v.boolean()),
+      searchInquiries: v.optional(v.array(v.string())),
+      vibes: v.optional(v.array(v.string())),
+      pushNotifications: v.optional(v.boolean()),
+      avatarProfile: v.optional(v.object({
+        usePersonalAvatar: v.boolean(),
+        mediaKey: v.optional(v.string()),
+        age: v.optional(v.string()),
+        height: v.optional(v.string()),
+        weight: v.optional(v.string()),
+        fitPreference: v.optional(v.union(v.literal("tailored"), v.literal("regular"), v.literal("relaxed"), v.literal("oversized"))),
+      })),
       updatedAt: v.number(),
     }),
     v.null(),
@@ -78,6 +108,25 @@ export const getPreferences = query({
 export const setPreferences = mutation({
   args: {
     galleryPermission: v.optional(galleryPermission),
+    theme: v.optional(theme),
+    seedHex: v.optional(v.string()),
+    secondarySeedHex: v.optional(v.string()),
+    location: v.optional(v.string()),
+    radius: v.optional(v.number()),
+    coords: v.optional(coordinates),
+    onboardingCompleted: v.optional(v.boolean()),
+    locationEnabled: v.optional(v.boolean()),
+    searchInquiries: v.optional(v.array(v.string())),
+    vibes: v.optional(v.array(v.string())),
+    pushNotifications: v.optional(v.boolean()),
+    avatarProfile: v.optional(v.object({
+      usePersonalAvatar: v.boolean(),
+      mediaKey: v.optional(v.string()),
+      age: v.optional(v.string()),
+      height: v.optional(v.string()),
+      weight: v.optional(v.string()),
+      fitPreference: v.optional(v.union(v.literal("tailored"), v.literal("regular"), v.literal("relaxed"), v.literal("oversized"))),
+    })),
   },
   returns: v.id("preferences"),
   handler: async (ctx, args) => {
@@ -88,18 +137,33 @@ export const setPreferences = mutation({
       .unique();
     const now = Date.now();
 
+    const patch = {
+      ...(args.galleryPermission === undefined ? {} : { galleryPermission: args.galleryPermission }),
+      ...(args.theme === undefined ? {} : { theme: args.theme }),
+      ...(args.seedHex === undefined ? {} : { seedHex: args.seedHex }),
+      ...(args.secondarySeedHex === undefined ? {} : { secondarySeedHex: args.secondarySeedHex }),
+      ...(args.location === undefined ? {} : { location: args.location }),
+      ...(args.radius === undefined ? {} : { radius: args.radius }),
+      ...(args.coords === undefined ? {} : { coords: args.coords }),
+      ...(args.onboardingCompleted === undefined ? {} : { onboardingCompleted: args.onboardingCompleted }),
+      ...(args.locationEnabled === undefined ? {} : { locationEnabled: args.locationEnabled }),
+      ...(args.searchInquiries === undefined ? {} : { searchInquiries: args.searchInquiries.slice(-50) }),
+      ...(args.vibes === undefined ? {} : { vibes: args.vibes }),
+      ...(args.pushNotifications === undefined ? {} : { pushNotifications: args.pushNotifications }),
+      ...(args.avatarProfile === undefined ? {} : { avatarProfile: args.avatarProfile }),
+      updatedAt: now,
+    };
+    if (Object.keys(patch).length === 1) throw new Error("At least one preference is required.");
+
     if (existing) {
-      await ctx.db.patch("preferences", existing._id, {
-        ...(args.galleryPermission === undefined ? {} : { galleryPermission: args.galleryPermission }),
-        updatedAt: now,
-      });
+      await ctx.db.patch("preferences", existing._id, patch);
       return existing._id;
     }
 
     return await ctx.db.insert("preferences", {
       tokenIdentifier: identity.tokenIdentifier,
       galleryPermission: args.galleryPermission ?? "UNDETERMINED",
-      updatedAt: now,
+      ...patch,
     });
   },
 });
@@ -219,6 +283,22 @@ export const addCartItem = mutation({
   },
 });
 
+export const removeCartItem = mutation({
+  args: { productId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const existing = await ctx.db
+      .query("cartItems")
+      .withIndex("by_token_identifier_and_product_id", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier).eq("productId", args.productId),
+      )
+      .unique();
+    if (existing) await ctx.db.delete("cartItems", existing._id);
+    return null;
+  },
+});
+
 export const setCartQuantity = mutation({
   args: {
     productId: v.string(),
@@ -254,6 +334,8 @@ const wardrobeItemArgs = {
   productId: v.optional(v.string()),
   addedAt: v.number(),
   color: v.optional(v.string()),
+  mediaAssetId: v.optional(v.id("mediaAssets")),
+  mediaKey: v.optional(v.string()),
 };
 
 export const listWardrobeItems = query({
@@ -286,12 +368,191 @@ export const addWardrobeItem = mutation({
         q.eq("tokenIdentifier", identity.tokenIdentifier).eq("clientId", args.clientId),
       )
       .unique();
-    if (existing) return existing._id;
+    if (args.mediaAssetId) {
+      const asset = await ctx.db.get(args.mediaAssetId);
+      if (!asset || asset.tokenIdentifier !== identity.tokenIdentifier || asset.mediaKey !== args.mediaKey) {
+        throw new Error("Wardrobe media ownership could not be verified.");
+      }
+    }
+    if (args.kind === "user_upload" && (!args.mediaAssetId || !args.mediaKey)) {
+      throw new Error("Uploaded wardrobe items require verified media ownership.");
+    }
+    if (existing) {
+      if (existing.kind !== args.kind) throw new Error("Wardrobe item kind cannot change.");
+      await ctx.db.patch("wardrobeItems", existing._id, {
+        ...args,
+        updatedAt: Date.now(),
+      });
+      return existing._id;
+    }
     return await ctx.db.insert("wardrobeItems", {
       tokenIdentifier: identity.tokenIdentifier,
       ...args,
       updatedAt: Date.now(),
     });
+  },
+});
+
+export const listLikedProducts = query({
+  args: { limit: v.number() },
+  returns: v.array(v.object({
+    _id: v.id("likedProducts"),
+    _creationTime: v.number(),
+    tokenIdentifier: v.string(),
+    productId: v.string(),
+    updatedAt: v.number(),
+  })),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    return await ctx.db
+      .query("likedProducts")
+      .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .order("desc")
+      .take(boundedLimit(args.limit));
+  },
+});
+
+export const setLikedProduct = mutation({
+  args: { productId: v.string(), liked: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const existing = await ctx.db
+      .query("likedProducts")
+      .withIndex("by_token_identifier_and_product_id", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier).eq("productId", args.productId),
+      )
+      .unique();
+    if (args.liked && !existing) {
+      await ctx.db.insert("likedProducts", {
+        tokenIdentifier: identity.tokenIdentifier,
+        productId: args.productId,
+        updatedAt: Date.now(),
+      });
+    }
+    if (!args.liked && existing) await ctx.db.delete("likedProducts", existing._id);
+    return null;
+  },
+});
+
+const outfitItem = v.object({
+  id: v.string(),
+  kind: v.union(v.literal("user_upload"), v.literal("bookmarked_product")),
+  name: v.string(),
+  category: v.string(),
+  weatherSuitability,
+  image: v.string(),
+  brand: v.optional(v.string()),
+  price: v.optional(v.number()),
+  productId: v.optional(v.string()),
+  addedAt: v.number(),
+  color: v.optional(v.string()),
+  mediaKey: v.optional(v.string()),
+});
+
+export const listWardrobeOutfits = query({
+  args: { limit: v.number() },
+  returns: v.array(v.object({
+    _id: v.id("wardrobeOutfits"),
+    _creationTime: v.number(),
+    tokenIdentifier: v.string(),
+    clientId: v.string(),
+    title: v.string(),
+    weatherCondition: weatherSuitability,
+    temperatureText: v.string(),
+    items: v.array(outfitItem),
+    stylingAdvice: v.string(),
+    weatherMatchScore: v.number(),
+    savedAt: v.number(),
+    updatedAt: v.number(),
+  })),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    return await ctx.db
+      .query("wardrobeOutfits")
+      .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .order("desc")
+      .take(boundedLimit(args.limit));
+  },
+});
+
+const outfitArgs = {
+  clientId: v.string(),
+  title: v.string(),
+  weatherCondition,
+  temperatureText: v.string(),
+  items: v.array(outfitItem),
+  stylingAdvice: v.string(),
+  weatherMatchScore: v.number(),
+  savedAt: v.number(),
+};
+
+export const saveWardrobeOutfitInternal = internalMutation({
+  args: {
+    tokenIdentifier: v.string(),
+    ...outfitArgs,
+  },
+  returns: v.id("wardrobeOutfits"),
+  handler: async (ctx, args) => {
+    const { tokenIdentifier, ...outfit } = args;
+    const existing = await ctx.db
+      .query("wardrobeOutfits")
+      .withIndex("by_token_identifier_and_client_id", (q) =>
+        q.eq("tokenIdentifier", tokenIdentifier).eq("clientId", outfit.clientId),
+      )
+      .unique();
+    if (existing) return existing._id;
+    return await ctx.db.insert("wardrobeOutfits", {
+      tokenIdentifier,
+      ...outfit,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const saveWardrobeOutfit = mutation({
+  args: {
+    clientId: v.string(),
+    title: v.string(),
+    weatherCondition,
+    temperatureText: v.string(),
+    items: v.array(outfitItem),
+    stylingAdvice: v.string(),
+    weatherMatchScore: v.number(),
+    savedAt: v.number(),
+  },
+  returns: v.id("wardrobeOutfits"),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const existing = await ctx.db
+      .query("wardrobeOutfits")
+      .withIndex("by_token_identifier_and_client_id", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier).eq("clientId", args.clientId),
+      )
+      .unique();
+    if (existing) return existing._id;
+    return await ctx.db.insert("wardrobeOutfits", {
+      tokenIdentifier: identity.tokenIdentifier,
+      ...args,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const removeWardrobeOutfit = mutation({
+  args: { clientId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const existing = await ctx.db
+      .query("wardrobeOutfits")
+      .withIndex("by_token_identifier_and_client_id", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier).eq("clientId", args.clientId),
+      )
+      .unique();
+    if (!existing) throw new Error("Wardrobe outfit not found.");
+    await ctx.db.delete("wardrobeOutfits", existing._id);
+    return null;
   },
 });
 

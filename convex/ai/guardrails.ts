@@ -22,6 +22,21 @@ export const AssistantResponseSchema = z.object({
   products: z.array(ToolResultSchema).max(20).optional(),
 }).strict();
 
+/** Outfit-provider output: descriptive selection only, bounded like all model output. */
+export const OutfitProposalSchema = z.object({
+  title: z.string().trim().min(1).max(240).optional(),
+  stylingAdvice: z.string().trim().min(1).max(2000).optional(),
+  selectedItemIds: z.array(z.string().min(1).max(160)).min(1).max(50),
+  weatherMatchScore: z.number().min(0).max(100),
+}).strict();
+
+/** Creator-campaign output: descriptive marketing copy only, bounded. */
+export const CreatorCampaignSchema = z.object({
+  campaignTitle: z.string().trim().min(1).max(240),
+  socialMediaCopy: z.string().trim().min(1).max(2000),
+  suggestedTags: z.array(z.string().trim().min(1).max(60)).min(1).max(20),
+}).strict();
+
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
 export type AssistantResponse = z.infer<typeof AssistantResponseSchema>;
 

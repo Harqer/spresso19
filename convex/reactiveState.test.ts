@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { expect, test } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
@@ -74,6 +74,16 @@ test("saved products are idempotent and data-scoped", async () => {
   expect(await authenticated.query(api.reactiveState.listSavedProducts, { limit: 100 })).toEqual([]);
 });
 
+test("liked products and search preferences are authenticated and owner-scoped", async () => {
+  const t = convexTest(schema, modules);
+  const authenticated = t.withIdentity(owner);
+  await authenticated.mutation(api.reactiveState.setLikedProduct, { productId: "product-1", liked: true });
+  await authenticated.mutation(api.reactiveState.setPreferences, { searchInquiries: ["winter jackets"] });
+  expect(await authenticated.query(api.reactiveState.listLikedProducts, { limit: 100 })).toMatchObject([{ productId: "product-1" }]);
+  expect(await authenticated.query(api.reactiveState.getPreferences, {})).toMatchObject({ searchInquiries: ["winter jackets"] });
+  expect(await t.withIdentity(other).query(api.reactiveState.listLikedProducts, { limit: 100 })).toEqual([]);
+});
+
 test("cart validates quantity, deduplicates by listing, and never exposes another user's intent", async () => {
   const t = convexTest(schema, modules);
   const authenticated = t.withIdentity(owner);
@@ -103,13 +113,22 @@ test("wardrobe mutations are O(1), idempotent by client key, and cross-user safe
   const t = convexTest(schema, modules);
   const authenticated = t.withIdentity(owner);
 
+  const assetId = await t.mutation(internal.media.recordAsset, {
+    tokenIdentifier: owner.tokenIdentifier,
+    mediaKey: "private/users/firebase-uid-owner/generated/blue-shirt.jpg",
+    mimeType: "image/jpeg",
+    byteLength: 128,
+    sha256: "c".repeat(64),
+  });
   const item = {
     clientId: "upload-1",
     kind: "user_upload" as const,
     name: "Blue shirt",
     category: "TOP",
     weatherSuitability: "ALL_WEATHER" as const,
-    image: "https://cdn.example/images/blue-shirt.jpg",
+    image: "private/users/firebase-uid-owner/generated/blue-shirt.jpg",
+    mediaAssetId: assetId,
+    mediaKey: "private/users/firebase-uid-owner/generated/blue-shirt.jpg",
     addedAt: 1725753600000,
   };
   await authenticated.mutation(api.reactiveState.addWardrobeItem, item);

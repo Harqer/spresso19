@@ -12,10 +12,17 @@ const app = defineApp({
     BUNNY_CDN_TOKEN_KEY: v.optional(v.string()),
     BUNNY_SOURCE_HOSTS: v.optional(v.string()),
     SPRESSO_LLM_MODEL: v.optional(v.string()),
+    FAL_API_KEY: v.optional(v.string()),
+    APIFY_API_TOKEN: v.optional(v.string()),
+    GEMINI_API_KEY: v.optional(v.string()),
     PARALLEL_API_KEY: v.optional(v.string()),
     SERPAPI_API_KEY: v.optional(v.string()),
     CLOUDFLARE_ACCOUNT_ID: v.optional(v.string()),
     CLOUDFLARE_API_TOKEN: v.optional(v.string()),
+    KITESURF_ALLOWED_DOMAINS: v.optional(v.string()),
+    STRIPE_SECRET_KEY: v.optional(v.string()),
+    STRIPE_WEBHOOK_SECRET: v.optional(v.string()),
+    STRIPE_PUBLISHABLE_KEY: v.optional(v.string()),
   },
 });
 app.use(agent);

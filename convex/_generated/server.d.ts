@@ -30,6 +30,7 @@ import type { DataModel } from "./dataModel.js";
 type Env = {
   readonly CONVEX_CLOUD_URL: string;
   readonly CONVEX_SITE_URL: string;
+  readonly APIFY_API_TOKEN: string | undefined;
   readonly BUNNY_CDN_BASE_URL: string | undefined;
   readonly BUNNY_CDN_TOKEN_KEY: string | undefined;
   readonly BUNNY_SOURCE_HOSTS: string | undefined;
@@ -38,9 +39,15 @@ type Env = {
   readonly BUNNY_STORAGE_ZONE: string | undefined;
   readonly CLOUDFLARE_ACCOUNT_ID: string | undefined;
   readonly CLOUDFLARE_API_TOKEN: string | undefined;
+  readonly FAL_API_KEY: string | undefined;
+  readonly GEMINI_API_KEY: string | undefined;
+  readonly KITESURF_ALLOWED_DOMAINS: string | undefined;
   readonly PARALLEL_API_KEY: string | undefined;
   readonly SERPAPI_API_KEY: string | undefined;
   readonly SPRESSO_LLM_MODEL: string | undefined;
+  readonly STRIPE_PUBLISHABLE_KEY: string | undefined;
+  readonly STRIPE_SECRET_KEY: string | undefined;
+  readonly STRIPE_WEBHOOK_SECRET: string | undefined;
 };
 
 /**

@@ -1,263 +1,195 @@
-import { internalMutation, mutation, query } from "../_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 import { requireFirebaseIdentity } from "../lib/identity";
 
-const checkoutStatus = v.union(
-  v.literal("NEW"),
-  v.literal("QUOTING"),
-  v.literal("AWAITING_STEP_UP"),
-  v.literal("READY_FOR_PAYMENT"),
-  v.literal("PROCESSING"),
-  v.literal("COMPLETED"),
-  v.literal("FAILED"),
-);
-
-const webhookStatus = v.union(
-  v.literal("PROCESSING"),
-  v.literal("COMPLETED"),
-  v.literal("IGNORED"),
-  v.literal("FAILED"),
-);
-
-const checkoutAttempt = v.object({
-  _id: v.id("checkoutAttempts"),
-  _creationTime: v.number(),
-  tokenIdentifier: v.string(),
-  listingId: v.string(),
-  quantity: v.number(),
-  idempotencyKey: v.string(),
-  status: checkoutStatus,
-  amountCents: v.optional(v.number()),
-  currency: v.optional(v.string()),
-  merchantUrl: v.optional(v.string()),
-  quoteObservedAt: v.optional(v.string()),
-  paymentIntentId: v.optional(v.string()),
-  orderId: v.optional(v.string()),
-  failureCode: v.optional(v.string()),
-  createdAt: v.number(),
-  updatedAt: v.number(),
+export const listing = v.object({
+  id: v.string(),
+  name: v.string(),
+  brand: v.optional(v.string()),
+  category: v.optional(v.string()),
+  imageUrl: v.optional(v.string()),
+  merchantUrl: v.string(),
+  source: v.union(v.literal("parallel"), v.literal("serpapi"), v.literal("apify"), v.literal("kitesurf")),
+  providerListingId: v.optional(v.string()),
+  observedPrice: v.optional(v.object({ amount: v.number(), currency: v.string(), evidenceUrl: v.string() })),
+  videoUrl: v.optional(v.string()),
+  rating: v.optional(v.number()),
+  reviewCount: v.optional(v.number()),
+  reviewSummary: v.optional(v.string()),
+  discoveredAt: v.string(),
+  expiresAt: v.optional(v.string()),
+  confidence: v.optional(v.number()),
 });
 
+const checkoutStatus = v.union(
+  v.literal("NEW"), v.literal("QUOTING"), v.literal("AWAITING_STEP_UP"),
+  v.literal("READY_FOR_PAYMENT"), v.literal("PROCESSING"), v.literal("COMPLETED"), v.literal("FAILED"),
+);
+const orderStatus = v.union(
+  v.literal("AUTHORIZED"), v.literal("PROCESSING"), v.literal("IN_TRANSIT"),
+  v.literal("DELIVERED"), v.literal("RETURN_REQUESTED"), v.literal("RETURNED"), v.literal("CANCELLED"),
+);
+const returnStatus = v.union(v.literal("NONE"), v.literal("REQUESTED"), v.literal("APPROVED"), v.literal("COMPLETED"));
+const webhookStatus = v.union(v.literal("PROCESSING"), v.literal("COMPLETED"), v.literal("IGNORED"), v.literal("FAILED"));
+
+const checkoutAttempt = v.object({
+  _id: v.id("checkoutAttempts"), _creationTime: v.number(), tokenIdentifier: v.string(), listingId: v.string(),
+  listing, quantity: v.number(), idempotencyKey: v.string(), status: checkoutStatus,
+  amountCents: v.optional(v.number()), currency: v.optional(v.string()), merchantUrl: v.optional(v.string()),
+  quoteObservedAt: v.optional(v.string()), paymentIntentId: v.optional(v.string()), orderId: v.optional(v.string()),
+  failureCode: v.optional(v.string()), createdAt: v.number(), updatedAt: v.number(),
+});
 const order = v.object({
-  _id: v.id("orders"),
-  _creationTime: v.number(),
-  tokenIdentifier: v.string(),
-  checkoutAttemptId: v.id("checkoutAttempts"),
-  paymentIntentId: v.string(),
-  listingId: v.string(),
-  quantity: v.number(),
-  amountCents: v.number(),
-  currency: v.string(),
-  merchantUrl: v.string(),
-  createdAt: v.number(),
+  _id: v.id("orders"), _creationTime: v.number(), tokenIdentifier: v.string(),
+  checkoutAttemptId: v.id("checkoutAttempts"), paymentIntentId: v.string(), listingId: v.string(), listing,
+  quantity: v.number(), amountCents: v.number(), currency: v.string(), merchantUrl: v.string(), status: orderStatus,
+  deviceSource: v.optional(v.string()), humanConfirmedAt: v.optional(v.string()), mcpTransactionHash: v.optional(v.string()),
+  shippingAddress: v.optional(v.string()), trackingStatus: v.optional(v.string()), carrier: v.optional(v.string()),
+  trackingNumber: v.optional(v.string()), estimatedDelivery: v.optional(v.string()), returnStatus: v.optional(returnStatus),
+  returnReason: v.optional(v.string()), reminderSet: v.optional(v.boolean()), reminderTime: v.optional(v.string()),
+  paymentMethod: v.optional(v.string()), createdAt: v.number(),
 });
 
 export const getCheckoutAttempt = query({
-  args: { attemptId: v.id("checkoutAttempts") },
-  returns: v.union(checkoutAttempt, v.null()),
+  args: { attemptId: v.id("checkoutAttempts") }, returns: v.union(checkoutAttempt, v.null()),
   handler: async (ctx, args) => {
     const identity = await requireFirebaseIdentity(ctx);
     const attempt = await ctx.db.get(args.attemptId);
-    if (!attempt || attempt.tokenIdentifier !== identity.tokenIdentifier) return null;
-    return attempt;
+    return attempt && attempt.tokenIdentifier === identity.tokenIdentifier ? attempt : null;
   },
+});
+
+export const getCheckoutAttemptInternal = internalQuery({
+  args: { attemptId: v.id("checkoutAttempts") }, returns: v.union(checkoutAttempt, v.null()),
+  handler: async (ctx, args) => ctx.db.get(args.attemptId),
 });
 
 export const listOrders = query({
-  args: { limit: v.number() },
-  returns: v.array(order),
+  args: { limit: v.number() }, returns: v.array(order),
   handler: async (ctx, args) => {
     const identity = await requireFirebaseIdentity(ctx);
-    if (!Number.isInteger(args.limit) || args.limit < 1 || args.limit > 50) {
-      throw new Error("Order limit must be a whole number between 1 and 50.");
-    }
-    return await ctx.db
-      .query("orders")
-      .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-      .order("desc")
-      .take(args.limit);
+    if (!Number.isInteger(args.limit) || args.limit < 1 || args.limit > 50) throw new Error("Order limit must be a whole number between 1 and 50.");
+    return ctx.db.query("orders").withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier)).order("desc").take(args.limit);
   },
 });
 
-function requireHttpsUrl(value: string, fieldName: string): string {
-  const normalized = value.trim();
-  let parsed: URL;
-  try {
-    parsed = new URL(normalized);
-  } catch {
-    throw new Error(`${fieldName} must be a valid HTTPS URL.`);
-  }
-  if (parsed.protocol !== "https:" || !parsed.hostname) {
-    throw new Error(`${fieldName} must use HTTPS.`);
-  }
-  return parsed.toString();
-}
-
 export const acquireCheckoutAttempt = mutation({
-  args: {
-    listingId: v.string(),
-    quantity: v.number(),
-    idempotencyKey: v.string(),
-  },
-  returns: v.id("checkoutAttempts"),
+  args: { listingId: v.string(), listing, quantity: v.number(), idempotencyKey: v.string() }, returns: v.id("checkoutAttempts"),
   handler: async (ctx, args) => {
     const identity = await requireFirebaseIdentity(ctx);
     const listingId = args.listingId.trim();
     const idempotencyKey = args.idempotencyKey.trim();
-    if (!listingId) throw new Error("listingId is required.");
+    if (!listingId || args.listing.id !== listingId) throw new Error("Checkout listing identity is invalid.");
     if (!idempotencyKey) throw new Error("idempotencyKey is required.");
-    if (!Number.isInteger(args.quantity) || args.quantity < 1 || args.quantity > 25) {
-      throw new Error("quantity must be an integer between 1 and 25.");
-    }
-
-    const existing = await ctx.db
-      .query("checkoutAttempts")
-      .withIndex("by_token_identifier_and_idempotency_key", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier).eq("idempotencyKey", idempotencyKey),
-      )
-      .unique();
+    if (!Number.isInteger(args.quantity) || args.quantity < 1 || args.quantity > 25) throw new Error("quantity must be an integer between 1 and 25.");
+    const existing = await ctx.db.query("checkoutAttempts").withIndex("by_token_identifier_and_idempotency_key", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier).eq("idempotencyKey", idempotencyKey)).unique();
     if (existing) return existing._id;
-
     const now = Date.now();
-    return await ctx.db.insert("checkoutAttempts", {
-      tokenIdentifier: identity.tokenIdentifier,
-      listingId,
-      quantity: args.quantity,
-      idempotencyKey,
-      status: "NEW",
-      createdAt: now,
-      updatedAt: now,
-    });
+    return ctx.db.insert("checkoutAttempts", { tokenIdentifier: identity.tokenIdentifier, listingId, listing: args.listing, quantity: args.quantity, idempotencyKey, status: "NEW", createdAt: now, updatedAt: now });
   },
 });
 
 export const markQuoted = internalMutation({
-  args: {
-    attemptId: v.id("checkoutAttempts"),
-    amountCents: v.number(),
-    currency: v.string(),
-    merchantUrl: v.string(),
-    observedAt: v.string(),
-  },
-  returns: v.object({
-    _id: v.id("checkoutAttempts"),
-    status: checkoutStatus,
-  }),
+  args: { attemptId: v.id("checkoutAttempts"), amountCents: v.number(), currency: v.string(), merchantUrl: v.string(), observedAt: v.string() },
+  returns: v.object({ attemptId: v.id("checkoutAttempts"), amountCents: v.number(), currency: v.string(), merchantUrl: v.string(), observedAt: v.string() }),
   handler: async (ctx, args) => {
-    const attempt = await ctx.db.get("checkoutAttempts", args.attemptId);
+    const attempt = await ctx.db.get(args.attemptId);
     if (!attempt) throw new Error("Checkout attempt not found.");
     if (attempt.status !== "NEW" && attempt.status !== "QUOTING") {
-      throw new Error(`Cannot mark quoted from state ${attempt.status}.`);
+      if (attempt.status === "AWAITING_STEP_UP" && attempt.amountCents === args.amountCents && attempt.currency === args.currency.trim().toUpperCase()) return { attemptId: args.attemptId, amountCents: args.amountCents, currency: args.currency.trim().toUpperCase(), merchantUrl: requireHttpsUrl(args.merchantUrl), observedAt: args.observedAt };
+      throw new Error(`Cannot quote from state ${attempt.status}.`);
     }
-    if (!Number.isInteger(args.amountCents) || args.amountCents <= 0) {
-      throw new Error("amountCents must be a positive integer.");
-    }
+    if (!Number.isInteger(args.amountCents) || args.amountCents <= 0) throw new Error("amountCents must be a positive integer.");
     const currency = args.currency.trim().toUpperCase();
     if (!/^[A-Z]{3}$/.test(currency)) throw new Error("currency must be a 3-letter code.");
-    const merchantUrl = requireHttpsUrl(args.merchantUrl, "merchantUrl");
-    await ctx.db.patch("checkoutAttempts", args.attemptId, {
-      amountCents: args.amountCents,
-      currency,
-      merchantUrl,
-      quoteObservedAt: args.observedAt,
-      status: "AWAITING_STEP_UP",
-      updatedAt: Date.now(),
-    });
-    const updated = await ctx.db.get("checkoutAttempts", args.attemptId);
-    if (!updated) throw new Error("Checkout attempt missing after update.");
-    return { _id: updated._id, status: updated.status };
+    const merchantUrl = requireHttpsUrl(args.merchantUrl);
+    await ctx.db.patch(args.attemptId, { amountCents: args.amountCents, currency, merchantUrl, quoteObservedAt: args.observedAt, status: "AWAITING_STEP_UP", updatedAt: Date.now() });
+    return { attemptId: args.attemptId, amountCents: args.amountCents, currency, merchantUrl, observedAt: args.observedAt };
   },
 });
 
-export const finalizeQuote = internalMutation({
-  args: {
-    attemptId: v.id("checkoutAttempts"),
-    amountCents: v.number(),
-    currency: v.string(),
-    merchantUrl: v.string(),
-    observedAt: v.string(),
-  },
-  returns: v.object({
-    _id: v.id("checkoutAttempts"),
-    status: checkoutStatus,
-  }),
+export const attachPaymentIntent = internalMutation({
+  args: { attemptId: v.id("checkoutAttempts"), paymentIntentId: v.string(), amountCents: v.number(), currency: v.string() },
+  returns: v.object({ paymentIntentId: v.string() }),
   handler: async (ctx, args) => {
-    const attempt = await ctx.db.get("checkoutAttempts", args.attemptId);
+    const attempt = await ctx.db.get(args.attemptId);
     if (!attempt) throw new Error("Checkout attempt not found.");
-    if (attempt.status !== "AWAITING_STEP_UP") {
-      throw new Error(`Cannot finalize quote from state ${attempt.status}.`);
-    }
-    // Ensure the finalized quote matches the previously quoted values
-    if (attempt.amountCents !== undefined && attempt.amountCents !== args.amountCents) {
-      throw new Error("Quoted amount mismatch.");
-    }
-    if (attempt.currency !== undefined && attempt.currency !== args.currency.trim().toUpperCase()) {
-      throw new Error("Quoted currency mismatch.");
-    }
-    const merchantUrl = requireHttpsUrl(args.merchantUrl, "merchantUrl");
-    await ctx.db.patch("checkoutAttempts", args.attemptId, {
-      amountCents: args.amountCents,
-      currency: args.currency.trim().toUpperCase(),
-      merchantUrl,
-      quoteObservedAt: args.observedAt,
-      status: "READY_FOR_PAYMENT",
-      updatedAt: Date.now(),
-    });
-    const updated = await ctx.db.get("checkoutAttempts", args.attemptId);
-    if (!updated) throw new Error("Checkout attempt missing after update.");
-    return { _id: updated._id, status: updated.status };
+    if (attempt.paymentIntentId) return { paymentIntentId: attempt.paymentIntentId };
+    if (attempt.status !== "AWAITING_STEP_UP") throw new Error(`Cannot attach payment from state ${attempt.status}.`);
+    if (attempt.amountCents !== args.amountCents || attempt.currency !== args.currency.toUpperCase()) throw new Error("Payment does not match the verified quote.");
+    await ctx.db.patch(args.attemptId, { paymentIntentId: args.paymentIntentId, status: "PROCESSING", updatedAt: Date.now() });
+    return { paymentIntentId: args.paymentIntentId };
+  },
+});
+
+export const setOrderReminder = mutation({
+  args: { orderId: v.id("orders"), reminderTime: v.string() }, returns: v.null(),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const existing = await ctx.db.get(args.orderId);
+    if (!existing || existing.tokenIdentifier !== identity.tokenIdentifier) throw new Error("Order not found.");
+    if (!args.reminderTime.trim()) throw new Error("reminderTime is required.");
+    await ctx.db.patch(args.orderId, { reminderSet: true, reminderTime: args.reminderTime.trim() });
+    return null;
+  },
+});
+
+export const requestReturn = mutation({
+  args: { orderId: v.id("orders"), reason: v.string(), idempotencyKey: v.string() }, returns: v.null(),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const existing = await ctx.db.get(args.orderId);
+    if (!existing || existing.tokenIdentifier !== identity.tokenIdentifier) throw new Error("Order not found.");
+    const reason = args.reason.trim();
+    const key = args.idempotencyKey.trim();
+    if (reason.length < 3 || reason.length > 500 || !key) throw new Error("A valid return reason and idempotency key are required.");
+    if (existing.returnStatus === "REQUESTED" || existing.returnStatus === "COMPLETED" || existing.status === "CANCELLED") return null;
+    await ctx.db.patch(args.orderId, { status: "RETURN_REQUESTED", returnStatus: "REQUESTED", returnReason: reason });
+    return null;
   },
 });
 
 export const acquireWebhookEvent = internalMutation({
-  args: {
-    provider: v.string(),
-    eventId: v.string(),
-    payloadHash: v.string(),
-  },
-  returns: v.object({ acquired: v.boolean() }),
+  args: { provider: v.string(), eventId: v.string(), payloadHash: v.string() }, returns: v.object({ acquired: v.boolean() }),
   handler: async (ctx, args) => {
-    const provider = args.provider.trim();
-    const eventId = args.eventId.trim();
-    if (!provider || !eventId) throw new Error("provider and eventId are required.");
-    const existing = await ctx.db
-      .query("webhookInbox")
-      .withIndex("by_provider_and_event_id", (q) => q.eq("provider", provider).eq("eventId", eventId))
-      .unique();
-    if (existing) return { acquired: false };
-    const now = Date.now();
-    await ctx.db.insert("webhookInbox", {
-      provider,
-      eventId,
-      payloadHash: args.payloadHash,
-      status: "PROCESSING",
-      createdAt: now,
-      updatedAt: now,
-    });
-    return { acquired: true };
+    const provider = args.provider.trim(); const eventId = args.eventId.trim(); const payloadHash = args.payloadHash.trim();
+    if (!provider || !eventId || !payloadHash) throw new Error("provider, eventId, and payloadHash are required.");
+    const existing = await ctx.db.query("webhookInbox").withIndex("by_provider_and_event_id", (q) => q.eq("provider", provider).eq("eventId", eventId)).unique();
+    if (existing) { if (existing.payloadHash !== payloadHash) throw new Error("Webhook event payload mismatch."); return { acquired: false }; }
+    const now = Date.now(); await ctx.db.insert("webhookInbox", { provider, eventId, payloadHash, status: "PROCESSING", createdAt: now, updatedAt: now }); return { acquired: true };
   },
 });
 
-// Public webhook status helper kept internal for now; exposed via HTTP action later
-export const completeWebhookEvent = internalMutation({
-  args: {
-    provider: v.string(),
-    eventId: v.string(),
-    status: webhookStatus,
-  },
-  returns: v.null(),
+export const completePayment = internalMutation({
+  args: { provider: v.string(), eventId: v.string(), paymentIntentId: v.string(), amountCents: v.number(), currency: v.string() },
+  returns: v.object({ orderId: v.id("orders"), created: v.boolean() }),
   handler: async (ctx, args) => {
-    const doc = await ctx.db
-      .query("webhookInbox")
-      .withIndex("by_provider_and_event_id", (q) =>
-        q.eq("provider", args.provider.trim()).eq("eventId", args.eventId.trim()),
-      )
-      .unique();
-    if (!doc) throw new Error("Webhook event not found.");
-    await ctx.db.patch("webhookInbox", doc._id, {
-      status: args.status,
-      updatedAt: Date.now(),
-    });
+    const event = await ctx.db.query("webhookInbox").withIndex("by_provider_and_event_id", (q) => q.eq("provider", args.provider).eq("eventId", args.eventId)).unique();
+    if (!event) throw new Error("Webhook event has not been acquired.");
+    const existingOrder = await ctx.db.query("orders").withIndex("by_payment_intent_id", (q) => q.eq("paymentIntentId", args.paymentIntentId)).unique();
+    if (existingOrder) return { orderId: existingOrder._id, created: false };
+    const attempt = await ctx.db.query("checkoutAttempts").withIndex("by_payment_intent_id", (q) => q.eq("paymentIntentId", args.paymentIntentId)).unique();
+    if (!attempt || attempt.amountCents !== args.amountCents || attempt.currency !== args.currency.toUpperCase()) throw new Error("Payment does not match a verified checkout attempt.");
+    const orderId = await ctx.db.insert("orders", { tokenIdentifier: attempt.tokenIdentifier, checkoutAttemptId: attempt._id, paymentIntentId: args.paymentIntentId, listingId: attempt.listingId, listing: attempt.listing, quantity: attempt.quantity, amountCents: args.amountCents, currency: args.currency.toUpperCase(), merchantUrl: attempt.merchantUrl ?? attempt.listing.merchantUrl, status: "PROCESSING", humanConfirmedAt: new Date().toISOString(), createdAt: Date.now() });
+    await ctx.db.patch(attempt._id, { orderId: String(orderId), status: "COMPLETED", updatedAt: Date.now() });
+    await ctx.db.patch(event._id, { status: "COMPLETED", updatedAt: Date.now() });
+    return { orderId, created: true };
+  },
+});
+
+export const completeWebhookEvent = internalMutation({
+  args: { provider: v.string(), eventId: v.string(), status: webhookStatus }, returns: v.null(),
+  handler: async (ctx, args) => {
+    const event = await ctx.db.query("webhookInbox").withIndex("by_provider_and_event_id", (q) => q.eq("provider", args.provider.trim()).eq("eventId", args.eventId.trim())).unique();
+    if (!event) throw new Error("Webhook event not found.");
+    await ctx.db.patch(event._id, { status: args.status, updatedAt: Date.now() });
     return null;
   },
 });
+
+function requireHttpsUrl(value: string): string {
+  let parsed: URL;
+  try { parsed = new URL(value.trim()); } catch { throw new Error("merchantUrl must be a valid HTTPS URL."); }
+  if (parsed.protocol !== "https:" || !parsed.hostname) throw new Error("merchantUrl must use HTTPS.");
+  return parsed.toString();
+}

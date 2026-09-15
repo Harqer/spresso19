@@ -1,117 +1,48 @@
 /// <reference types="vite/client" />
+import Stripe from "stripe";
 import { convexTest } from "convex-test";
 import { expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
+import { stripeWebhook } from "./http";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
-const identityA = {
-  issuer: "https://securetoken.google.com/get-spresso",
-  subject: "commerce-user-a",
-  tokenIdentifier: "https://securetoken.google.com/get-spresso:commerce-user-a",
+const identityA = { issuer: "https://securetoken.google.com/get-spresso", subject: "commerce-user-a", tokenIdentifier: "https://securetoken.google.com/get-spresso:commerce-user-a" };
+const identityB = { issuer: "https://securetoken.google.com/get-spresso", subject: "commerce-user-b", tokenIdentifier: "https://securetoken.google.com/get-spresso:commerce-user-b" };
+const listing = {
+  id: "listing-1", name: "Verified jacket", brand: "Merchant", category: "outerwear",
+  imageUrl: "https://merchant.example/jacket.jpg", merchantUrl: "https://merchant.example/item", source: "kitesurf" as const,
+  observedPrice: { amount: 12.5, currency: "USD", evidenceUrl: "https://merchant.example/item" }, discoveredAt: "2026-09-08T00:00:00.000Z",
 };
-const identityB = {
-  issuer: "https://securetoken.google.com/get-spresso",
-  subject: "commerce-user-b",
-  tokenIdentifier: "https://securetoken.google.com/get-spresso:commerce-user-b",
-};
-
-function testConvex() {
-  return convexTest(schema, modules);
+function testConvex() { return convexTest(schema, modules); }
+function acquire(t: ReturnType<typeof testConvex>, identity = identityA, key = "checkout-key-1") {
+  return t.withIdentity(identity).mutation(api.commerce.checkout.acquireCheckoutAttempt, { listingId: listing.id, listing, quantity: 2, idempotencyKey: key });
 }
 
 test("acquireCheckoutAttempt requires authentication and rejects client pricing", async () => {
   const t = testConvex();
-  await expect(
-    t.mutation(api.commerce.checkout.acquireCheckoutAttempt, {
-      listingId: "listing-1",
-      quantity: 1,
-      idempotencyKey: "checkout-key-1",
-      amountCents: 100,
-    } as never),
-  ).rejects.toThrow();
+  await expect(t.mutation(api.commerce.checkout.acquireCheckoutAttempt, { listingId: listing.id, listing, quantity: 1, idempotencyKey: "checkout-key-1", amountCents: 100 } as never)).rejects.toThrow();
 });
 
 test("acquireCheckoutAttempt is idempotent per authenticated user and key", async () => {
   const t = testConvex();
-  const authed = t.withIdentity(identityA);
-  const first = await authed.mutation(api.commerce.checkout.acquireCheckoutAttempt, {
-    listingId: "listing-1",
-    quantity: 2,
-    idempotencyKey: "checkout-key-1",
-  });
-  const second = await authed.mutation(api.commerce.checkout.acquireCheckoutAttempt, {
-    listingId: "listing-1",
-    quantity: 2,
-    idempotencyKey: "checkout-key-1",
-  });
-  expect(second).toEqual(first);
-
-  const otherUser = t.withIdentity(identityB);
-  const other = await otherUser.mutation(api.commerce.checkout.acquireCheckoutAttempt, {
-    listingId: "listing-1",
-    quantity: 2,
-    idempotencyKey: "checkout-key-1",
-  });
-  expect(other).not.toBe(first);
+  const first = await acquire(t);
+  expect(await acquire(t)).toEqual(first);
+  expect(await acquire(t, identityB)).not.toBe(first);
 });
 
-test("checkout attempt can only advance through an expected state", async () => {
+test("checkout quote advances only from a new state and validates HTTPS", async () => {
   const t = testConvex();
-  const attemptId = await t.withIdentity(identityA).mutation(api.commerce.checkout.acquireCheckoutAttempt, {
-    listingId: "listing-1",
-    quantity: 1,
-    idempotencyKey: "checkout-key-2",
-  });
-
-  await expect(
-    t.mutation(internal.commerce.checkout.finalizeQuote, {
-      attemptId,
-      amountCents: 1250,
-      currency: "USD",
-      merchantUrl: "https://merchant.example/item",
-      observedAt: "2026-09-08T00:00:00.000Z",
-    }),
-  ).rejects.toThrow(/state/i);
-
-  const quoted = await t.mutation(internal.commerce.checkout.markQuoted, {
-    attemptId,
-    amountCents: 1250,
-    currency: "USD",
-    merchantUrl: "https://merchant.example/item",
-    observedAt: "2026-09-08T00:00:00.000Z",
-  });
-  expect(quoted.status).toBe("AWAITING_STEP_UP");
-
-  await expect(
-    t.mutation(internal.commerce.checkout.finalizeQuote, {
-      attemptId,
-      amountCents: 1250,
-      currency: "USD",
-      merchantUrl: "http://merchant.example/item",
-      observedAt: "2026-09-08T00:00:00.000Z",
-    }),
-  ).rejects.toThrow(/HTTPS/);
-
-  const finalized = await t.mutation(internal.commerce.checkout.finalizeQuote, {
-    attemptId,
-    amountCents: 1250,
-    currency: "USD",
-    merchantUrl: "https://merchant.example/item",
-    observedAt: "2026-09-08T00:00:00.000Z",
-  });
-  expect(finalized.status).toBe("READY_FOR_PAYMENT");
+  const attemptId = await acquire(t, identityA, "checkout-key-2");
+  const quoted = await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 1250, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  expect(quoted).toMatchObject({ attemptId, amountCents: 1250, currency: "USD" });
+  await expect(t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 1250, currency: "USD", merchantUrl: "http://merchant.example/item", observedAt: "2026-09-08T00:00:00.000Z" })).rejects.toThrow(/HTTPS/);
 });
 
 test("checkout status is visible only to its owner", async () => {
   const t = testConvex();
-  const attemptId = await t.withIdentity(identityA).mutation(api.commerce.checkout.acquireCheckoutAttempt, {
-    listingId: "listing-owner-only",
-    quantity: 1,
-    idempotencyKey: "status-key",
-  });
-  expect(await t.withIdentity(identityA).query(api.commerce.checkout.getCheckoutAttempt, { attemptId }))
-    .toMatchObject({ listingId: "listing-owner-only", status: "NEW" });
+  const attemptId = await acquire(t, identityA, "status-key");
+  expect(await t.withIdentity(identityA).query(api.commerce.checkout.getCheckoutAttempt, { attemptId })).toMatchObject({ listingId: listing.id, status: "NEW" });
   expect(await t.withIdentity(identityB).query(api.commerce.checkout.getCheckoutAttempt, { attemptId })).toBeNull();
 });
 
@@ -122,18 +53,121 @@ test("orders are bounded and scoped to the authenticated user", async () => {
   expect(await t.withIdentity(identityB).query(api.commerce.checkout.listOrders, { limit: 10 })).toEqual([]);
 });
 
-test("webhook inbox is idempotent by provider and event id", async () => {
+test("webhook inbox is idempotent and rejects payload mismatch", async () => {
   const t = testConvex();
-  const first = await t.mutation(internal.commerce.checkout.acquireWebhookEvent, {
-    provider: "stripe",
-    eventId: "evt_123",
-    payloadHash: "sha256:abc",
+  const input = { provider: "stripe", eventId: "evt_123", payloadHash: "sha256:abc" };
+  expect(await t.mutation(internal.commerce.checkout.acquireWebhookEvent, input)).toEqual({ acquired: true });
+  expect(await t.mutation(internal.commerce.checkout.acquireWebhookEvent, input)).toEqual({ acquired: false });
+  await expect(t.mutation(internal.commerce.checkout.acquireWebhookEvent, { ...input, payloadHash: "sha256:different" })).rejects.toThrow(/payload mismatch/);
+});
+
+test("payment completion writes one owner-scoped order and replays are idempotent", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "order-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_test_1", amountCents: 2500, currency: "USD" });
+  await expect(t.mutation(internal.commerce.checkout.completePayment, { provider: "stripe", eventId: "evt_order", paymentIntentId: "pi_test_1", amountCents: 2500, currency: "USD" })).rejects.toThrow(/not been acquired/);
+  await t.mutation(internal.commerce.checkout.acquireWebhookEvent, { provider: "stripe", eventId: "evt_order", payloadHash: "sha256:order" });
+  const first = await t.mutation(internal.commerce.checkout.completePayment, { provider: "stripe", eventId: "evt_order", paymentIntentId: "pi_test_1", amountCents: 2500, currency: "USD" });
+  expect(first.created).toBe(true);
+  const replay = await t.mutation(internal.commerce.checkout.completePayment, { provider: "stripe", eventId: "evt_order", paymentIntentId: "pi_test_1", amountCents: 2500, currency: "USD" });
+  expect(replay).toEqual({ orderId: first.orderId, created: false });
+  const orders = await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 });
+  expect(orders).toHaveLength(1);
+  expect(orders[0]).toMatchObject({ listingId: listing.id, amountCents: 2500, currency: "USD", status: "PROCESSING" });
+  expect(await t.withIdentity(identityB).query(api.commerce.checkout.listOrders, { limit: 10 })).toEqual([]);
+
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.setOrderReminder, { orderId: first.orderId, reminderTime: "Today at 5:00 PM" });
+  await expect(t.withIdentity(identityB).mutation(api.commerce.checkout.setOrderReminder, { orderId: first.orderId, reminderTime: "Today" })).rejects.toThrow(/Order not found/);
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.requestReturn, { orderId: first.orderId, reason: "Item defective or damaged", idempotencyKey: "return-1" });
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.requestReturn, { orderId: first.orderId, reason: "Duplicate request", idempotencyKey: "return-2" });
+  const returned = await t.withIdentity(identityA).query(api.commerce.checkout.getCheckoutAttempt, { attemptId });
+  expect(returned).not.toBeNull();
+  const ordersAfterReturn = await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 });
+  expect(ordersAfterReturn[0]).toMatchObject({ status: "RETURN_REQUESTED", returnStatus: "REQUESTED", returnReason: "Item defective or damaged" });
+});
+
+const WEBHOOK_SECRET = "whsec_test_secret";
+const STRIPE_TEST_SECRET_KEY = "sk_test_webhook_boundary";
+function succeededEventBody(): string {
+  return JSON.stringify({
+    id: "evt_http_1",
+    object: "event",
+    api_version: "2025-01-27.acacia",
+    created: Math.floor(Date.now() / 1000),
+    data: { object: { id: "pi_http_1", object: "payment_intent", amount: 2500, currency: "usd", status: "succeeded" } },
+    livemode: false,
+    pending_webhooks: 1,
+    request: { id: null, idempotency_key: null },
+    type: "payment_intent.succeeded",
   });
-  const second = await t.mutation(internal.commerce.checkout.acquireWebhookEvent, {
-    provider: "stripe",
-    eventId: "evt_123",
-    payloadHash: "sha256:abc",
-  });
-  expect(first).toEqual({ acquired: true });
-  expect(second).toEqual({ acquired: false });
+}
+
+async function runWebhook(t: ReturnType<typeof testConvex>, payload: string, header?: string | null, secret = WEBHOOK_SECRET): Promise<Response> {
+  // convex-test resolves Convex env vars from the test process environment.
+  process.env.STRIPE_SECRET_KEY = STRIPE_TEST_SECRET_KEY;
+  process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET;
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (header !== null) headers["stripe-signature"] = header ?? Stripe.webhooks.generateTestHeaderString({ payload, secret });
+  return t.fetch("/stripe_webhook", { method: "POST", headers, body: payload });
+}
+
+test("stripe webhook rejects missing and invalid signatures without touching data", async () => {
+  const t = testConvex();
+  const payload = succeededEventBody();
+  const missing = await runWebhook(t, payload, null);
+  expect(missing.status).toBe(400);
+  const invalid = await runWebhook(t, payload, "t=1,v1=deadbeef");
+  expect(invalid.status).toBe(400);
+  const wrongSecret = await runWebhook(t, payload, undefined, "whsec_not_the_secret");
+  expect(wrongSecret.status).toBe(400);
+});
+
+test("stripe webhook completes a verified payment into one owner-visible order", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "http-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_http_1", amountCents: 2500, currency: "USD" });
+
+  const response = await runWebhook(t, succeededEventBody());
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({ created: true });
+
+  const orders = await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 });
+  expect(orders).toHaveLength(1);
+  expect(orders[0]).toMatchObject({ paymentIntentId: "pi_http_1", amountCents: 2500, currency: "USD", status: "PROCESSING" });
+});
+
+test("stripe webhook replays do not create duplicate orders", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "http-replay-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_http_replay", amountCents: 2500, currency: "USD" });
+
+  const payload = succeededEventBody().replace("pi_http_1", "pi_http_replay").replace("evt_http_1", "evt_http_replay");
+  const first = await runWebhook(t, payload);
+  expect(first.status).toBe(200);
+  const replay = await runWebhook(t, payload);
+  expect(replay.status).toBe(409);
+
+  const orders = await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 });
+  expect(orders).toHaveLength(1);
+});
+
+test("stripe webhook ignores non-payment events after signature verification", async () => {
+  const t = testConvex();
+  const payload = succeededEventBody().replace("payment_intent.succeeded", "charge.refunded").replace("evt_http_1", "evt_http_ignore");
+  const response = await runWebhook(t, payload);
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({ ignored: "charge.refunded" });
+  expect(await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 })).toEqual([]);
+});
+
+test("stripe webhook reports internal reconciliation failure honestly", async () => {
+  const t = testConvex();
+  // Verified event for a payment intent with no matching checkout attempt:
+  // completePayment must fail and the handler must surface 500 so Stripe retries.
+  const payload = succeededEventBody().replace("pi_http_1", "pi_http_orphan");
+  const response = await runWebhook(t, payload);
+  expect(response.status).toBe(500);
 });
