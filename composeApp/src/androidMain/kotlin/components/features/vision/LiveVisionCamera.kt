@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
@@ -36,11 +38,24 @@ actual fun LiveVisionCamera(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val currentOnObjectDetected by rememberUpdatedState(onObjectDetected)
 
     var hasCameraPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
     }
     var permissionPromptDismissed by remember { mutableStateOf(false) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                hasCameraPermission = granted
+                if (granted) permissionPromptDismissed = false
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -72,6 +87,8 @@ actual fun LiveVisionCamera(
         return
     }
 
+    val cameraExecutor = remember { java.util.concurrent.Executors.newSingleThreadExecutor() }
+
     val cameraController =
         remember {
             LifecycleCameraController(context).apply {
@@ -99,7 +116,7 @@ actual fun LiveVisionCamera(
 
     LaunchedEffect(Unit) {
         cameraController.setImageAnalysisAnalyzer(
-            ContextCompat.getMainExecutor(context),
+            cameraExecutor,
             androidx.camera.mlkit.vision.MlKitAnalyzer(
                 listOf(objectDetector),
                 androidx.camera.core.ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
@@ -122,7 +139,7 @@ actual fun LiveVisionCamera(
                                         val b = obj.boundingBox
                                         listOf(b.left.toFloat(), b.top.toFloat(), b.right.toFloat(), b.bottom.toFloat())
                                     }
-                                onObjectDetected(stream.toByteArray(), boundingBoxes)
+                                currentOnObjectDetected(stream.toByteArray(), boundingBoxes)
                             }
                         }
                     }
@@ -135,6 +152,8 @@ actual fun LiveVisionCamera(
 
     DisposableEffect(Unit) {
         onDispose {
+            cameraController.clearImageAnalysisAnalyzer()
+            cameraExecutor.shutdown()
             objectDetector.close()
         }
     }

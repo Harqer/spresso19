@@ -26,6 +26,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -51,6 +53,17 @@ fun CameraCaptureView(
     }
     var hasAudioPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                hasCameraPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                hasAudioPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val permissionLauncher =
@@ -139,7 +152,7 @@ fun CameraCaptureView(
 
     LaunchedEffect(Unit) {
         cameraController.setImageAnalysisAnalyzer(
-            ContextCompat.getMainExecutor(context),
+            cameraExecutor,
             androidx.camera.mlkit.vision.MlKitAnalyzer(
                 listOf(objectDetector),
                 androidx.camera.core.ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
@@ -158,6 +171,7 @@ fun CameraCaptureView(
     DisposableEffect(Unit) {
         onDispose {
             activeRecording?.stop()
+            cameraController.clearImageAnalysisAnalyzer()
             cameraExecutor.shutdown()
             objectDetector.close()
             imageLabeler.close()
