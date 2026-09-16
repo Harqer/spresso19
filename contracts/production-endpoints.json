@@ -1,5 +1,15 @@
 {
   "baseUrl": "https://get-spresso.web.app",
+  "routes": [
+    { "path": "/health", "methods": ["GET"] },
+    { "path": "/user/sync", "methods": ["POST"] },
+    { "path": "/user/preferences", "methods": ["GET", "POST"] },
+    { "path": "/user/wallet/coinbase", "methods": ["POST"] },
+    { "path": "/cart", "methods": ["GET", "POST"] },
+    { "path": "/orders", "methods": ["GET"] },
+    { "path": "/products", "methods": ["GET"] },
+    { "path": "/products/:productId", "methods": ["GET"] }
+  ],
   "endpoints": [
     {
       "name": "products",

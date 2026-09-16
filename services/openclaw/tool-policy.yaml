@@ -1,0 +1,61 @@
+# Spresso OpenClaw tool policy.
+# The runtime executes only these tools inside NemoClaw/OpenShell.
+# The orchestration boundary (functions/src/ai/orchestration/agentOrchestrator.ts)
+# is the authority for identity, budget, and confirmation; this file declares the
+# sandbox-facing allowlist so no purchase-submitting tool can be registered.
+schema: spresso.tool-policy/v1
+tools:
+  - name: search_products
+    description: Discover public merchant listings for a text query. Read-only.
+    requires_confirmation: false
+    input:
+      query:
+        type: string
+        min_length: 2
+        max_length: 240
+  - name: read_product_page
+    description: Fetch a bounded, sanitized snapshot of a product page. Read-only.
+    requires_confirmation: false
+    input:
+      url:
+        type: string
+        max_length: 2048
+        https_only: true
+  - name: prepare_cart
+    description: Stage cart items for the user. Never completes a purchase.
+    requires_confirmation: true
+    input:
+      listingId:
+        type: string
+        min_length: 1
+        max_length: 256
+  - name: request_checkout_confirmation
+    description: Ask the trusted UI to confirm a prepared cart. Final purchase stays in the trusted UI.
+    requires_confirmation: true
+    input:
+      correlationId:
+        type: string
+        min_length: 1
+        max_length: 200
+denied_tools:
+  - submit_payment
+  - stripe_charge
+  - wallet_sign
+  - enter_credentials
+  - shell_exec
+  - delete_inventory
+filesystem:
+  write_paths:
+    - /sandbox
+    - /tmp
+  deny_paths:
+    - /etc
+    - /root
+    - /home
+credentials:
+  source: openshell_gateway
+  raw_values_exposed_to_agent: false
+network:
+  deny_by_default: true
+  allowed_hosts:
+    - integrate.api.nvidia.com

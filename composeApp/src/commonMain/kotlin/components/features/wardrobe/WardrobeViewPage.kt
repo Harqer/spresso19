@@ -36,6 +36,7 @@ data class WardrobePhoto(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun WardrobeViewPage(
     displayMediaUrl: String? = null,
     httpClient: HttpClient? = null,

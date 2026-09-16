@@ -1,0 +1,28 @@
+colang_version: "1.0"
+
+models:
+  - type: main
+    engine: nim
+    model: ${NEMO_GUARDRAILS_MODEL}
+    api_key_env_var: NVIDIA_API_KEY
+    parameters:
+      base_url: ${NVIDIA_NIM_BASE_URL}
+
+rails:
+  input:
+    parallel: false
+    flows:
+      - content safety check input
+      - jailbreak detection heuristics
+      - detect sensitive data on input
+  output:
+    parallel: false
+    flows:
+      - content safety check output
+      - detect sensitive data on output
+  tool_output:
+    flows:
+      - tool call validation
+  tool_input:
+    flows:
+      - tool result validation

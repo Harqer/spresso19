@@ -49,7 +49,9 @@ fun WardrobePermissionModal(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                "Allow Spresso to sync with your photo gallery to automatically detect, import, and organize your physical garments. This enables Spresso's AI to style custom personal outfits for summer, winter, and other seasonal collections.",
+                "Allow Spresso to sync with your photo gallery to automatically detect, import, and organize your " +
+                    "physical garments. This enables Spresso's AI to style custom personal outfits for summer, winter, " +
+                    "and other seasonal collections.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

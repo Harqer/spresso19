@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import components.models.*
 import network.models.GroceryItem
+import utils.toPriceString
 
 @Composable
 fun IngredientChecklistCard(

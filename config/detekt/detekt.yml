@@ -1,0 +1,62 @@
+build:
+  maxIssues: 0
+
+complexity:
+  LongMethod:
+    active: true
+    threshold: 750
+  LongParameterList:
+    active: true
+    functionThreshold: 26
+    constructorThreshold: 16
+    ignoreDefaultParameters: true
+  TooManyFunctions:
+    active: false
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 50
+  LargeClass:
+    active: true
+    threshold: 1200
+  NestedBlockDepth:
+    active: true
+    threshold: 6
+
+naming:
+  FunctionNaming:
+    active: true
+    # Composable functions follow PascalCase by convention.
+    ignoreAnnotated: ['Composable']
+  MatchingDeclarationName:
+    active: false
+  TopLevelPropertyNaming:
+    active: true
+    constantPattern: '[A-Za-z][_A-Za-z0-9]*'
+
+style:
+  MaxLineLength:
+    active: true
+    maxLineLength: 170
+    excludePackageStatements: true
+    excludeImportStatements: true
+    excludeCommentStatements: false
+  MagicNumber:
+    active: false
+  ReturnCount:
+    active: false
+  UnusedPrivateMember:
+    active: true
+    ignoreAnnotated: ['Preview', 'Composable']
+  UnusedParameter:
+    active: true
+    allowedNames: '^(ignored|expected|_|vars)$'
+  LoopWithTooManyJumpStatements:
+    active: false
+  WildcardImport:
+    active: false
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+  SwallowedException:
+    active: false

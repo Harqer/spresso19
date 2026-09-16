@@ -49,7 +49,8 @@ fun ProductCatalogHeader(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "We are curating your personalized recommendations, exclusive deals, and trending styles based on your unique fashion profile as we learn more about your tastes.",
+                        text = "We are curating your personalized recommendations, exclusive deals, and trending styles " +
+                            "based on your unique fashion profile as we learn more about your tastes.",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

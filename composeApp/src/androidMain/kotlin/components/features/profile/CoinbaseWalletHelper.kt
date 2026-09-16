@@ -15,7 +15,6 @@ import network.ApiClient
 import kotlin.coroutines.resume
 
 object CoinbaseWalletManager {
-    private const val WALLET_PACKAGE = "org.toshi"
     private const val CALLBACK_SCHEME = "spresso"
     private const val CALLBACK_HOST = "coinbase-wallet-sdk"
     const val CALLBACK_URL = "$CALLBACK_SCHEME://$CALLBACK_HOST"

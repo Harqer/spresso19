@@ -193,7 +193,6 @@ class ChatViewModel(
     }
 
     fun startVoiceStream(
-        agentType: String = "SHOPPING_CONCIERGE",
         onReceiveAudio: ((ByteArray) -> Unit)? = null,
     ) {
         isVoiceActive = true
@@ -203,19 +202,6 @@ class ChatViewModel(
 
         val voiceMsgId = "voice-live-" + messages.size
         var accumulatedText = ""
-
-        val systemInstructions =
-            when (agentType) {
-                "BARGAIN_CHEF" ->
-                    "Help the user cook in real time. Observe the kitchen counter or ingredients, " +
-                        "listen to questions, and give concise step-by-step guidance and substitutions. " +
-                        "Keep responses natural and focused on the user's next action. Do not mention " +
-                        "system behavior or technical details."
-                else ->
-                    "You are the Spresso AI Personal Shopper. Help the user find products, manage their " +
-                        "cart, and answer questions. Keep responses concise, helpful, and friendly. " +
-                        "Use a premium, conversational tone. Do not use technical jargon in responses."
-            }
 
         scope.launch {
             try {

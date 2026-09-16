@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import components.models.*
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun WardrobeHeaderToolbar(
     itemCount: Int,
     onOpenUploadModal: () -> Unit,

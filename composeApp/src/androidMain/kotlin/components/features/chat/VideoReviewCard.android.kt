@@ -69,7 +69,9 @@ private fun renderVideoUrl(webView: WebView, videoUrl: String) {
                         } else {
                             videoUrl.substringAfter("youtu.be/").substringBefore("?")
                         }
-                        val iframe = "<iframe src=\"https://www.youtube.com/embed/$videoId?playsinline=1&autoplay=0\" allow=\"autoplay; fullscreen\" allowfullscreen></iframe>"
+                        val iframe =
+                            "<iframe src=\"https://www.youtube.com/embed/$videoId?playsinline=1&autoplay=0\" " +
+                                "allow=\"autoplay; fullscreen\" allowfullscreen></iframe>"
         val fullHtml = htmlPrefix + iframe + htmlSuffix
         webView.loadDataWithBaseURL("https://www.youtube.com", fullHtml, "text/html", "UTF-8", null)
     } else if (videoUrl.contains("tiktok.com")) {

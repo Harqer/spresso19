@@ -10,5 +10,5 @@ output "agent_engine_staging_bucket" {
 
 output "tool_server_url" {
   description = "The URL of the Cloud Run tool server"
-  value       = google_cloud_run_v2_service.tool_server.uri
+  value       = var.enable_tool_server ? google_cloud_run_v2_service.tool_server[0].uri : null
 }

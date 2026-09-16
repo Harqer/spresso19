@@ -43,3 +43,4 @@ trace_processor
 .env
 .env.*
 !.env.example
+index.html

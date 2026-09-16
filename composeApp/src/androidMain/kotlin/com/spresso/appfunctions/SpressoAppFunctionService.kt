@@ -203,7 +203,7 @@ abstract class BaseSpressoAppFunctionService : AppFunctionService() {
                     ),
                 )
             if (!result.optBoolean("success")) {
-                throw IllegalStateException("The item could not be added to the cart")
+                error("The item could not be added to the cart")
             }
 
             CoffeeOrderResult(
@@ -309,7 +309,7 @@ abstract class BaseSpressoAppFunctionService : AppFunctionService() {
                             .toString(),
                     ),
                 )
-            if (!result.optBoolean("success")) throw IllegalStateException("Delivery acknowledgement failed")
+            error("Delivery acknowledgement failed")
             AcknowledgeDeliveryResult(confirmationMessage = "Thanks — delivery for ${params.orderId} is confirmed.")
         }
 
@@ -340,7 +340,7 @@ abstract class BaseSpressoAppFunctionService : AppFunctionService() {
                             .toString(),
                     ),
                 )
-            if (!result.optBoolean("success")) throw IllegalStateException("The cart could not be updated")
+            error("The cart could not be updated")
             AddToCartResult(
                 confirmationMessage = "Added ${params.quantity} to your cart.",
                 totalItems = result.getInt("totalItems"),

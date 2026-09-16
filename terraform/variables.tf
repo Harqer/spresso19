@@ -14,6 +14,12 @@ variable "region" {
   default     = "us-central1"
 }
 
+variable "enable_tool_server" {
+  description = "Whether the approved Cloud Run tool-server boundary is enabled."
+  type        = bool
+  default     = false
+}
+
 variable "tool_server_image" {
   description = "Immutable production Artifact Registry image for the Spresso tool server"
   type        = string

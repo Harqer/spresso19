@@ -11,7 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import components.features.grocery.toPriceString
+import utils.toPriceString
 import components.shared.elements.SpressoButton
 import components.shared.elements.SpressoButtonVariant
 import network.ApiClient

@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import network.ApiClient
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun DiscoveryCard(
     id: String,
     isErrorTheme: Boolean,

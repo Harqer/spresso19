@@ -112,7 +112,8 @@ fun WardrobeStylingEngineSection(
                                 }
                                 if (fit.styleTips.isNotEmpty()) {
                                     Column(
-                                        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp)).padding(10.dp),
+                                        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                            RoundedCornerShape(8.dp)).padding(10.dp),
                                         verticalArrangement = Arrangement.spacedBy(6.dp),
                                     ) {
                                         Text(

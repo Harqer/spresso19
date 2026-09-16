@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import components.models.*
 import components.shared.elements.SpressoButton
 import components.shared.elements.SpressoButtonVariant
 import components.shared.widgets.MediaActionCard
@@ -28,6 +27,7 @@ import network.models.HITLPayload
 import network.models.HITLProduct
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun SmartVisionDetectionOverlay(
     item: DetectedItem,
     matchedProduct: ProductItem?,
@@ -80,12 +80,13 @@ fun SmartVisionDetectionOverlay(
             MediaActionCard(
                 imageUrl = matchedProduct?.imageUrl ?: "",
                 title = item.detectedName,
-                subtitle = "${item.brandGuess} · ${item.category}",
+                subtitle = "\${item.brandGuess} · \${item.category}",
                 modifier =
                     Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(8.dp),
-                trackingId = "vision_product_${item.detectedName.replace(" ", "_")}",
+                        .padding(8.dp)
+                        .widthIn(max = 240.dp),
+                trackingId = "vision_product_\${item.detectedName.replace(' ', '_')}",
                 trackingAction = "view",
                 actionRow = {
                     matchedProduct?.rating?.takeIf { it > 0.0 }?.let { rating ->

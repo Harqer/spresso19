@@ -13,6 +13,7 @@ import io.ktor.client.HttpClient
 import network.ProductItem
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun ChatProductCard(
     product: ProductItem,
     onAddToCart: (ProductItem) -> Unit = { },

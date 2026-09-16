@@ -291,10 +291,19 @@ class SpressoWearablesService : Service() {
     private fun sendSetupMessage(webSocket: WebSocket) {
         val systemPrompt =
             when (currentAction) {
-                ACTION_GROCERY_SCANNER -> "You are Spresso, a friendly personal shopping assistant. Help the shopper identify ingredients and manage their grocery list. Keep every spoken answer concise and natural."
-                ACTION_BARGAIN_CHEF -> "You are Spresso. Help the shopper understand ingredients, find good-value options, and cook with confidence. Keep every spoken answer concise and natural."
-                ACTION_HANDS_FREE_CHECKOUT -> "You are Spresso, a friendly personal shopping assistant. Help the shopper review their cart and move to checkout. Never say an item was added or an order was placed until the app confirms it."
-                else -> "You are Spresso, a natural general assistant that can help people shop. Use familiar language such as Add to cart, Checkout, Place order, and Track order. Never expose technical steps or claim success before the app confirms it."
+                ACTION_GROCERY_SCANNER ->
+                    "You are Spresso, a friendly personal shopping assistant. Help the shopper identify ingredients " +
+                        "and manage their grocery list. Keep every spoken answer concise and natural."
+                ACTION_BARGAIN_CHEF ->
+                    "You are Spresso. Help the shopper understand ingredients, find good-value options, and cook " +
+                        "with confidence. Keep every spoken answer concise and natural."
+                ACTION_HANDS_FREE_CHECKOUT ->
+                    "You are Spresso, a friendly personal shopping assistant. Help the shopper review their cart and " +
+                        "move to checkout. Never say an item was added or an order was placed until the app confirms it."
+                else ->
+                    "You are Spresso, a natural general assistant that can help people shop. Use familiar language " +
+                        "such as Add to cart, Checkout, Place order, and Track order. Never expose technical steps or " +
+                        "claim success before the app confirms it."
             }
         val declarations =
             JSONArray()
@@ -810,8 +819,15 @@ class SpressoWearablesService : Service() {
                 var hasBeenActive = false
                 currentCamera.stream.state.collect { state ->
                     Log.i(TAG, "DAT camera stream state: $state")
-                    if (state != StreamState.STOPPED && state != StreamState.CLOSED) hasBeenActive = true
-                    if (hasBeenActive && (state == StreamState.CLOSED || state == StreamState.STOPPED) && camera === currentCamera) {
+                    val cameraReusable =
+                        state != StreamState.STOPPED &&
+                            state != StreamState.CLOSED
+                    if (cameraReusable) hasBeenActive = true
+                    val cameraFinished =
+                        hasBeenActive &&
+                            (state == StreamState.CLOSED || state == StreamState.STOPPED) &&
+                            camera === currentCamera
+                    if (cameraFinished) {
                         releaseCamera(currentCamera)
                     }
                 }
@@ -848,7 +864,12 @@ class SpressoWearablesService : Service() {
                 .joinToString(", ") { "${it.text} (${(it.confidence * 100).toInt()}%)" }
         }.getOrDefault("")
         val contextMessage = JSONObject()
-            .put("text", "On-device camera labels: ${if (labels.isBlank()) "No confident item label" else labels}. Use product search to identify current listings and prices. Do not claim a product or price until search returns a match.")
+            .put(
+                "text",
+                "On-device camera labels: ${if (labels.isBlank()) "No confident item label" else labels}. " +
+                    "Use product search to identify current listings and prices. " +
+                    "Do not claim a product or price until search returns a match.",
+            )
         if (webSocket?.send(contextMessage.toString()) != true) return false
 
         // Do not upload the camera image during routine wearable scanning. The local

@@ -1,6 +1,5 @@
 package com.spresso.engage
 
-import android.content.Context
 import android.net.Uri
 import com.google.android.engage.common.datamodel.RecommendationCluster
 import com.google.android.engage.common.datamodel.RecommendationClusterType
@@ -20,9 +19,7 @@ import com.google.android.engage.shopping.service.PublishShoppingReorderClusterR
  * All deep links use the spresso:// scheme registered in AndroidManifest.xml.
  * Item counts are sourced from real data passed by EngageWorker — no hardcoded values.
  */
-class ClusterRequestFactory(
-    context: Context,
-) {
+class ClusterRequestFactory {
     fun constructRecommendationClustersRequest(items: List<ProductItem>): PublishRecommendationClustersRequest {
         val recommendationCluster =
             RecommendationCluster

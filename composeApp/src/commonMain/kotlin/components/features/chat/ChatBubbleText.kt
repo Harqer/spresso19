@@ -11,6 +11,7 @@ import components.models.*
 import network.models.GroundingSource
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun ChatBubbleText(
     text: String,
     isUser: Boolean,

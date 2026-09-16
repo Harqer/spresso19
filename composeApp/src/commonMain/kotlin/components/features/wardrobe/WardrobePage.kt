@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun WardrobePage(
     onNavigateToTryOn: (String) -> Unit,
     onOpenLens: () -> Unit,

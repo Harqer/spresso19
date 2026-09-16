@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -71,44 +70,10 @@ fun TravelTripsPage(
     val currentTrip = trips.find { it.id == activeTripId } ?: trips.firstOrNull()
     val tripEvents = events.filter { it.tripId == activeTripId }
     val tripExpenses = expenses.filter { it.tripId == activeTripId }
-    val tripVoiceNotes = voiceNotes.filter { it.tripId == activeTripId }
-
     val scope = rememberCoroutineScope()
-    var isRecording by remember { mutableStateOf(false) }
     var activeQrModalEvent by remember { mutableStateOf<ItineraryEvent?>(null) }
 
-    val speechRecognizer =
-        ui.rememberSpeechRecognizer(
-            onResult = { text ->
-                isRecording = false
 
-                scope.launch {
-                    try {
-                        network.SpressoBackend.createVoiceNote(tripId = activeTripId, transcript = text)
-                        val refreshed = apiClient.fetchVoiceNotes(activeTripId)
-                        voiceNotes = voiceNotes.filterNot { it.tripId == activeTripId } + refreshed
-                        snackbarHostState.showSnackbar("Voice note saved.")
-                    } catch (e: Exception) {
-                        snackbarHostState.showSnackbar("Unable to save this voice note. Please try again.")
-                    }
-                }
-            },
-            onError = {
-                isRecording = false
-                scope.launch {
-                    snackbarHostState.showSnackbar("I couldn't understand that recording. Please try again.")
-                }
-            },
-        )
-
-    fun toggleRecording() {
-        if (!isRecording) {
-            isRecording = true
-            speechRecognizer()
-        } else {
-            isRecording = false
-        }
-    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -157,7 +122,6 @@ fun TravelTripsPage(
 
                     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
                         BoardingPassList(tripEvents) { activeQrModalEvent = it }
-                        VoiceNotesSection(tripVoiceNotes, isRecording) { toggleRecording() }
                         BudgetOverviewCard(currentTrip, tripExpenses)
                         ReceiptScannerSection(
                             activeTripId = activeTripId,
@@ -187,7 +151,7 @@ fun TravelTripsPage(
             }
 
             activeQrModalEvent?.let { event ->
-                QrModal(event) { activeQrModalEvent = null }
+                QrModal(activeQrModalEvent = event, onClose = { activeQrModalEvent = null })
             }
         }
     }

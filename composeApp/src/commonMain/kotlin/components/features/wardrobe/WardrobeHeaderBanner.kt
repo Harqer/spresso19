@@ -53,14 +53,18 @@ fun WardrobeHeaderBanner(
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 SpressoButton(
-                    text = "Screen Lens",
+                    text = "Lens",
                     onClick = onOpenLens,
                     variant = SpressoButtonVariant.OUTLINE,
                     icon = Icons.Default.CenterFocusWeak,
                     trackingId = "wardrobe_view",
                     trackingAction = "click_screen_lens",
+                    modifier = Modifier.weight(1f)
                 )
 
                 SpressoButton(
@@ -70,6 +74,7 @@ fun WardrobeHeaderBanner(
                     icon = Icons.Default.Add,
                     trackingId = "wardrobe_view",
                     trackingAction = "click_add_look",
+                    modifier = Modifier.weight(1f)
                 )
             }
         }

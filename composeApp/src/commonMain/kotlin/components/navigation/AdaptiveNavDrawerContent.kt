@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import navigation.NavKey
-import org.jetbrains.compose.resources.vectorResource
 
 @Composable
 fun AdaptiveNavDrawerContent(
@@ -33,18 +32,7 @@ fun AdaptiveNavDrawerContent(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            Icon(
-                imageVector = Icons.Default.Coffee,
-                contentDescription = "Spresso Logo",
-                modifier = Modifier.size(28.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "Spresso",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Black,
-            )
+            components.core.SpressoLogo(size = components.core.LogoSize.Small, showText = true)
         }
         Spacer(modifier = Modifier.height(16.dp))
         defaultNavDestinations.forEach { item ->
@@ -52,11 +40,10 @@ fun AdaptiveNavDrawerContent(
             NavigationDrawerItem(
                 label = { Text(item.label) },
                 icon = {
-                    if (item.icon != null) {
-                        Icon(item.icon, contentDescription = item.label)
-                    } else if (item.iconResource != null) {
-                        Icon(vectorResource(item.iconResource), contentDescription = item.label)
-                    }
+                    Icon(
+                        imageVector = if (selected) item.selectedIcon else item.icon,
+                        contentDescription = item.label
+                    )
                 },
                 selected = selected,
                 onClick = { onNavigate(item.key) },

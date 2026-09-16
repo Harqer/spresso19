@@ -11,6 +11,7 @@ import network.ProductItem
 import viewmodels.ChatViewModel
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun PersonalAIShopperChatPage(
     chatViewModel: ChatViewModel,
     isVideoPlaying: Boolean,

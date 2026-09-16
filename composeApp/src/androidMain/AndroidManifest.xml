@@ -113,6 +113,14 @@
             android:foregroundServiceType="camera|microphone" />
 
         <service
+            android:name="network.SpressoMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <service
             android:name="com.spresso.appfunctions.SpressoAppFunctionService"
             android:permission="android.permission.BIND_APP_FUNCTION_SERVICE"
             android:exported="true"

@@ -10,7 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import components.features.grocery.toPriceString
+import utils.toPriceString
 import components.models.*
 import components.shared.widgets.SpressoListItem
 import kotlinx.coroutines.launch

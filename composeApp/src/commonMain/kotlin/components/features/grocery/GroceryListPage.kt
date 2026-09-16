@@ -29,6 +29,7 @@ import components.shared.widgets.SpressoListItem
 import kotlinx.coroutines.launch
 import network.ApiClient
 import network.models.GroceryItem
+import utils.toPriceString
 
 @Composable
 fun GroceryListPage(
@@ -42,9 +43,6 @@ fun GroceryListPage(
     var isLoading by remember { mutableStateOf(true) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var newItemName by remember { mutableStateOf("") }
-    var recipePrompt by remember { mutableStateOf("") }
-    var isGeneratingRecipe by remember { mutableStateOf(false) }
-    var recipeStatusMessage by remember { mutableStateOf<String?>(null) }
     var selectedCategory by remember { mutableStateOf("All") }
     val scope = rememberCoroutineScope()
     val categories = listOf("All", "Produce", "Dairy", "Bakery", "Pantry", "Beverages")
@@ -144,16 +142,20 @@ fun GroceryListPage(
             ) {
                 items(categories) { cat ->
                     val isSelected = selectedCategory == cat
-                    TextButton(
+                    FilterChip(
+                        selected = isSelected,
                         onClick = { selectedCategory = cat },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.textButtonColors(
-                            containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
-                            contentColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                    ) {
-                        Text(cat, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
-                    }
+                        label = { Text(cat) },
+                        leadingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(FilterChipDefaults.IconSize)
+                                )
+                            }
+                        } else null
+                    )
                 }
             }
 
@@ -225,9 +227,4 @@ fun GroceryListPage(
             }
         }
     }
-}
-
-fun Double.toPriceString(): String {
-    val rounded = (this * 100).toInt()
-    return "${rounded / 100}.${(rounded % 100).toString().padStart(2, '0')}"
 }

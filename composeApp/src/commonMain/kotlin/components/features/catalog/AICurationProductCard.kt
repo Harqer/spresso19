@@ -1,7 +1,6 @@
 package components.features.catalog
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,10 +30,8 @@ fun AICurationProductCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier =
-            modifier
-                .width(220.dp)
-                .clickable { onTryOnRequested(product) },
+        onClick = { onTryOnRequested(product) },
+        modifier = modifier.width(220.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         shape = RoundedCornerShape(18.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),

@@ -6,7 +6,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import navigation.NavKey
-import org.jetbrains.compose.resources.vectorResource
 
 @Composable
 fun MainAppBottomBar(
@@ -20,13 +19,7 @@ fun MainAppBottomBar(
                 selected = selected,
                 onClick = { onNavigate(item.key) },
                 label = { Text(item.label) },
-                icon = {
-                    if (item.icon != null) {
-                        Icon(item.icon, contentDescription = item.label)
-                    } else if (item.iconResource != null) {
-                        Icon(vectorResource(item.iconResource), contentDescription = item.label)
-                    }
-                },
+                icon = { Icon(item.icon, contentDescription = item.label) },
             )
         }
     }

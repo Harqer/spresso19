@@ -25,9 +25,9 @@ class EngageWorker(
     workerParams: WorkerParameters,
 ) : CoroutineWorker(context, workerParams) {
     private val client = AppEngageShoppingClient(context)
-    private val clusterRequestFactory = ClusterRequestFactory(context)
+    private val clusterRequestFactory = ClusterRequestFactory()
     private val connector = SpressoConnectorConnector.instance
-    private val TAG = "EngageWorker"
+    private val logTag = "EngageWorker"
 
     override suspend fun doWork(): Result {
         if (runAttemptCount > Constants.MAX_PUBLISHING_ATTEMPTS) {
@@ -67,7 +67,7 @@ class EngageWorker(
             Constants.PUBLISH_TYPE_SHOPPING_REORDER -> publishShoppingReorder()
             Constants.PUBLISH_TYPE_SHOPPING_ORDER_TRACKING -> publishShoppingOrderTracking()
             else -> {
-                Log.w(TAG, "Unknown publish type: $publishType")
+                Log.w(logTag, "Unknown publish type: $publishType")
                 Result.failure()
             }
         }
@@ -97,7 +97,7 @@ class EngageWorker(
             }
 
         if (products.isEmpty()) {
-            Log.w(TAG, "No products from discovery API — skipping recommendations publish")
+            Log.w(logTag, "No products from discovery API — skipping recommendations publish")
             return Result.success()
         }
 
@@ -132,7 +132,7 @@ class EngageWorker(
             }
 
         if (topItems.isEmpty()) {
-            Log.w(TAG, "No featured items from discovery API — skipping featured publish")
+            Log.w(logTag, "No featured items from discovery API — skipping featured publish")
             return Result.success()
         }
 
@@ -289,9 +289,9 @@ class EngageWorker(
         client
             .updatePublishStatus(PublishStatusRequest.Builder().setStatusCode(statusCode).build())
             .addOnSuccessListener {
-                Log.i(TAG, "Successfully updated publish status code to $statusCode")
+                Log.i(logTag, "Successfully updated publish status code to $statusCode")
             }.addOnFailureListener { exception ->
-                Log.e(TAG, "Failed to update publish status code to $statusCode\n${exception.stackTraceToString()}")
+                Log.e(logTag, "Failed to update publish status code to $statusCode\n${exception.stackTraceToString()}")
             }
     }
 
@@ -307,7 +307,7 @@ class EngageWorker(
                 AppEngageErrorCode.SERVICE_CALL_RESOURCE_EXHAUSTED -> "Resource exhausted"
                 else -> "Unknown error"
             }
-        Log.d(TAG, message)
+        Log.d(logTag, message)
     }
 
     private fun isErrorRecoverable(publishingException: AppEngageException): Boolean =

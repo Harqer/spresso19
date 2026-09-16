@@ -30,7 +30,7 @@ actual suspend fun callFirebaseFunction(
             else -> resultData?.toString() ?: "{}"
         }
     } catch (e: Exception) {
-        throw Exception("Failed to call $functionName: ${e.message}", e)
+        throw IllegalStateException("Failed to call $functionName: ${e.message}", e)
     }
 
 private fun jsonToMap(jsonObject: JSONObject): Map<String, Any> {

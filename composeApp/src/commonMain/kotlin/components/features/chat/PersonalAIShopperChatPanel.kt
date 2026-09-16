@@ -29,6 +29,7 @@ import network.ChatMessage
 import network.ProductItem
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun PersonalAIShopperChatPanel(
     messages: List<ChatMessage>,
     onSendMessage: (String) -> Unit,

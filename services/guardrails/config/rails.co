@@ -1,0 +1,7 @@
+import guardrails
+
+flow user asks for unsafe content
+  bot refuse to respond
+
+flow guardrails service unavailable
+  bot refuse to respond

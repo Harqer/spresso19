@@ -41,13 +41,6 @@ fun AdaptiveScaffoldBody(
     onAskAI: (String) -> Unit = {},
     entryProvider: (NavKey) -> NavEntry<NavKey>,
 ) {
-    val isDark =
-        when (themeMode) {
-            ThemeMode.LIGHT -> false
-            ThemeMode.DARK -> true
-            ThemeMode.SYSTEM -> isSystemInDarkTheme()
-        }
-
     var isNavBarVisible by remember { mutableStateOf(showBottomBar) }
 
     LaunchedEffect(showBottomBar) {
@@ -97,11 +90,11 @@ fun AdaptiveScaffoldBody(
                         selected = isSameDestinationGroup(navigationState.topLevelRoute, item.key),
                         onClick = { navigator.navigate(item.key) },
                         icon = {
-                            if (item.icon != null) {
-                                Icon(imageVector = item.icon, contentDescription = item.label)
-                            } else if (item.iconResource != null) {
-                                Icon(imageVector = vectorResource(item.iconResource), contentDescription = item.label)
-                            }
+                            val isSelected = isSameDestinationGroup(navigationState.topLevelRoute, item.key)
+                            Icon(
+                                imageVector = if (isSelected) item.selectedIcon else item.icon,
+                                contentDescription = item.label
+                            )
                         },
                         label = { Text(item.label) },
                     )

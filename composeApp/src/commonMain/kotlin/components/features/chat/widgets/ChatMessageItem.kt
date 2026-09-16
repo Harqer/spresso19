@@ -57,7 +57,6 @@ fun ChatMessageItem(
         ) {
             ChatMessageHeader(isUser = isUser, timestamp = message.timestamp)
             val biometricMatch = "\\[BIOMETRIC_CHECKOUT:(.*?)\\]".toRegex().find(message.text)
-            val orderId = biometricMatch?.groupValues?.get(1)
             val displayText =
                 if (biometricMatch != null) {
                     message.text.replace(biometricMatch.value, "").trim()

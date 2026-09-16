@@ -78,6 +78,7 @@ export interface HITLPayload {
     sku: string;
     image: string;
   };
+  listing?: DiscoveredListing;
   quantity: number;
   totalAmount: number;
   currency: string;
@@ -155,6 +156,8 @@ export interface CustomWardrobeItem {
   productId?: string;
   addedAt: number;
   color?: string;
+  mediaAssetId?: string;
+  mediaKey?: string;
 }
 
 export interface GeneratedOutfit {
@@ -212,7 +215,7 @@ export interface TravelExpense {
   tripId: string;
   amount: number;
   currency: string;
-  category: "Dining" | "Flight" | "Hotel" | "Shopping" | "Transport" | "Activities";
+  category: "Dining" | "Flight" | "Hotel" | "Shopping" | "Transport" | "Activities" | "Other";
   merchant: string;
   date: string;
   receiptImageUrl?: string;

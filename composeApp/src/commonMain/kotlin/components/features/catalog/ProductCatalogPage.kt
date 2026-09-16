@@ -17,6 +17,7 @@ import network.models.*
 fun ProductCatalogPage(
     apiClient: ApiClient,
     httpClient: HttpClient,
+    catalogViewModel: viewmodels.CatalogViewModel? = null,
     onProductSelected: (String) -> Unit,
     onTryOnRequested: (ProductItem) -> Unit,
     onMediaGenerated: (String, String) -> Unit,
@@ -33,7 +34,7 @@ fun ProductCatalogPage(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    val catalogViewModel = remember { viewmodels.CatalogViewModel(scope) }
+    val resolvedCatalogViewModel = catalogViewModel ?: remember { viewmodels.CatalogViewModel(scope) }
 
     LaunchedEffect(Unit) {
         isLoading = true
@@ -80,7 +81,7 @@ fun ProductCatalogPage(
         onCheckoutRequested = onCheckoutRequested,
         apiClient = apiClient,
         onRetry = { retry() },
-        catalogViewModel = catalogViewModel,
+        catalogViewModel = resolvedCatalogViewModel,
         modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing),
     )
 }

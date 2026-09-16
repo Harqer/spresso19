@@ -244,7 +244,7 @@ open class ApiClient {
         val responseJson = callFirebaseFunction(FirebaseRoutes.GENERATE_VIRTUAL_TRY_ON, payload.toString())
         val response = json.parseToJsonElement(responseJson).jsonObject
         val result = response["result"]?.jsonObject ?: response
-        return result["mediaUrl"]?.jsonPrimitive?.content ?: throw Exception("Missing mediaUrl in response")
+        return result["mediaUrl"]?.jsonPrimitive?.content ?: error("Missing mediaUrl in response")
     }
 
     suspend fun requestSpin360(productId: String): String {
@@ -252,7 +252,7 @@ open class ApiClient {
         val responseJson = callFirebaseFunction(FirebaseRoutes.GENERATE_SPIN_360, payload.toString())
         val response = json.parseToJsonElement(responseJson).jsonObject
         val result = response["result"]?.jsonObject ?: response
-        return result["mediaUrl"]?.jsonPrimitive?.content ?: throw Exception("Missing mediaUrl in response")
+        return result["mediaUrl"]?.jsonPrimitive?.content ?: error("Missing mediaUrl in response")
     }
 
     open fun streamChat(
@@ -288,7 +288,7 @@ open class ApiClient {
                     }
 
                 if (response.status.value !in 200..299) {
-                    throw Exception("Chat request failed with HTTP ${response.status.value}")
+                    error("Chat request failed with HTTP ${response.status.value}")
                 }
                 val channel = response.bodyAsChannel()
                 var completed = false
@@ -322,7 +322,7 @@ open class ApiClient {
             val result = response["result"]?.jsonObject ?: response
             json.decodeFromJsonElement<LensSearchResponse>(result)
         } catch (e: Exception) {
-            throw Exception("Failed to perform Spresso Lens Search: \${e.message}", e)
+            throw IllegalStateException("Failed to perform Spresso Lens Search: \${e.message}", e)
         }
 
     suspend fun performAccessibilityLensSearch(base64Image: String): LensSearchResponse = performLensSearch(base64Image)
@@ -508,16 +508,6 @@ open class ApiClient {
         audioData: ByteArray,
         mimeType: String = "audio/mp3",
     ): String {
-        val token = getCurrentUserIdToken() ?: throw Exception("User not authenticated")
-        val functionsUrl =
-            try {
-                SpressoConfig.cloudFunctionsBaseUrl
-            } catch (
-                _: Exception,
-            ) {
-                "https://us-central1-get-spresso.cloudfunctions.net"
-            }
-
         val payload =
             buildJsonObject {
                 put("prompt", prompt)
@@ -526,7 +516,7 @@ open class ApiClient {
             }
         val response = json.parseToJsonElement(callFirebaseFunction(FirebaseRoutes.GENERATE_RESPONSE_FROM_AUDIO, payload.toString())).jsonObject
         return (response["result"]?.jsonObject ?: response)["text"]?.jsonPrimitive?.content
-            ?: throw Exception("Invalid response format")
+            ?: error("Invalid response format")
     }
 
     suspend fun createPaymentMethod(stripePaymentMethodId: String): Boolean {
@@ -582,7 +572,7 @@ open class ApiClient {
             ?.get("temperature")
             ?.jsonPrimitive
             ?.content
-            ?.toDoubleOrNull() ?: throw IllegalStateException("Weather data unavailable")
+            ?.toDoubleOrNull() ?: error("Weather data unavailable")
     }
 
     suspend fun fetchProduct(productId: String): ProductItem {

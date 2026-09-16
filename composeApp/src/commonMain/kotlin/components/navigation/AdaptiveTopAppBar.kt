@@ -1,7 +1,6 @@
 package components.navigation
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -42,16 +41,15 @@ fun AdaptiveTopAppBar(
 
     TopAppBar(
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onToggleDrawer) {
-                    SpressoLogo(size = LogoSize.Small, showText = false)
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Spresso",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
-                )
+            Text(
+                text = "Spresso",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onToggleDrawer) {
+                SpressoLogo(size = LogoSize.Small, showText = false)
             }
         },
         actions = {

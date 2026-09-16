@@ -44,8 +44,8 @@ fun SpressoAndroidTheme(
                 val context = LocalContext.current
                 if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             }
-            useDarkTheme -> darkScheme
-            else -> lightScheme
+            useDarkTheme -> DarkColorScheme
+            else -> LightColorScheme
         }
 
     MaterialTheme(

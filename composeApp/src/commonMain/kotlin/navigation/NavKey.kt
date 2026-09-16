@@ -47,9 +47,6 @@ sealed interface NavKey : AndroidXNavKey {
     data object CatalogKey : NavKey
 
     @Serializable
-    data object ProductCatalogScreenKey : NavKey
-
-    @Serializable
     data class ProductDetailKey(
         val productId: String,
     ) : NavKey
@@ -123,24 +120,6 @@ sealed interface NavKey : AndroidXNavKey {
     // 9. Travel & Expenses Flow
     @Serializable
     data object TravelKey : NavKey
-
-    @Serializable
-    data class TravelQrModalKey(
-        val eventTitle: String = "Flight Ticket",
-        val eventLocation: String = "Gate A4",
-        val qrData: String = "SPRESSO-PASS-2026",
-    ) : NavKey
-
-    @Serializable
-    data class TravelReceiptScannerKey(
-        val activeTripId: String = "trip-current",
-    ) : NavKey
-
-    @Serializable
-    data object TravelVoiceNotesKey : NavKey
-
-    @Serializable
-    data object TravelBoardingPassKey : NavKey
 
     // 10. Profile & Account Settings Flow
     @Serializable

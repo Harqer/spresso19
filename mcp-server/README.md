@@ -36,6 +36,17 @@ There are no cart, checkout, payment, wallet, account, or purchase tools in this
 surface. Adding those requires the separately designed OAuth and trusted-user
 confirmation phase.
 
+### OpenClaw relationship
+
+Sandbox-facing OpenClaw tools (search, bounded page reading, confirmation-gated
+cart preparation) live in `services/openclaw/` and are validated by the NeMo
+Guardrails boundary in `services/guardrails/`. They are executed only inside a
+NemoClaw/OpenShell sandbox and are reachable only through the authenticated
+orchestration boundary (`functions/src/ai/orchestration/agentOrchestrator.ts`).
+This ChatGPT-facing MCP surface never exposes those preparation tools, and no
+tool anywhere in the stack submits payment, signs transactions, or claims a
+completed purchase — final purchase remains exclusively in the trusted UI.
+
 ## Catalog boundary
 
 The environment must explicitly provide:

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.outlined.*
@@ -67,19 +68,20 @@ fun OrdersTrackerPage(
                     bottom = innerPadding.calculateBottomPadding() + 24.dp,
                 ),
             verticalArrangement = Arrangement.spacedBy(24.dp),
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            item {
+            item(span = { GridItemSpan(this.maxCurrentLineSpan) }) {
                 OrderTrackerHeroHeader()
             }
 
             returnResultMessage?.let { msg ->
-                item {
+                item(span = { GridItemSpan(this.maxCurrentLineSpan) }) {
                     OrderReturnResultCard(msg = msg, onDismiss = { returnResultMessage = null })
                 }
             }
 
             if (loadError != null) {
-                item {
+                item(span = { GridItemSpan(this.maxCurrentLineSpan) }) {
                     Text(
                         text = loadError!!,
                         style = MaterialTheme.typography.bodyMedium,
@@ -87,7 +89,7 @@ fun OrdersTrackerPage(
                     )
                 }
             } else if (!isLoading && orders.isEmpty()) {
-                item {
+                item(span = { GridItemSpan(this.maxCurrentLineSpan) }) {
                     OrderTrackerEmptyState()
                 }
             } else {

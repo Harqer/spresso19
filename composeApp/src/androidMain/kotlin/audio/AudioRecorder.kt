@@ -28,7 +28,7 @@ actual class AudioRecorder {
         val bufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
 
         if (bufferSize == AudioRecord.ERROR || bufferSize == AudioRecord.ERROR_BAD_VALUE) {
-            throw IllegalStateException("Unsupported audio recording hardware buffer size.")
+            error("Unsupported audio recording hardware buffer size.")
         }
 
         try {
@@ -47,7 +47,7 @@ actual class AudioRecorder {
                 } catch (e: Exception) {
                     network.Telemetry.recordError("Error releasing uninitialized AudioRecord", e)
                 }
-                throw IllegalStateException("Failed to initialize AudioRecord instance.")
+                error("Failed to initialize AudioRecord instance.")
             }
 
             audioRecord = record

@@ -22,6 +22,6 @@ actual fun ByteArray.makeImageBitmap(): ImageBitmap {
             BitmapFactory.Options().apply {
                 inSampleSize = sampleSize
             },
-        ) ?: throw Exception("Failed to decode image bytes on Android")
+        ) ?: error("Failed to decode image bytes on Android")
     return bitmap.asImageBitmap()
 }

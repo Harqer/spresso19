@@ -11,7 +11,8 @@ serialization = "1.6.3"
 camerax = "1.3.4"
 screenshot = "0.0.1-alpha16"
 androidx-ui = "1.6.8"
-ksp = "2.1.0-1.0.29"
+ksp = "2.1.21-2.0.2"
+detekt = "1.23.7"
 appfunctions = "1.0.0-alpha10"
 credentials = "1.6.0"
 googleid = "1.2.0"
@@ -124,3 +125,4 @@ kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", versio
 screenshot = { id = "com.android.compose.screenshot", version.ref = "screenshot" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 dropshots = { id = "com.dropbox.dropshots", version.ref = "dropshots" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }

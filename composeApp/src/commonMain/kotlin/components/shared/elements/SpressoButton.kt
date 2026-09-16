@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -81,7 +81,7 @@ fun SpressoButton(
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             SpressoButtonVariant.OUTLINE -> ButtonDefaults.outlinedButtonColors()
-            SpressoButtonVariant.GHOST -> ButtonDefaults.textButtonColors()
+            SpressoButtonVariant.GHOST -> ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
             SpressoButtonVariant.DANGER ->
                 ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
@@ -89,8 +89,8 @@ fun SpressoButton(
                 )
         }
 
-    val shape = RoundedCornerShape(12.dp)
-    val contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+    val shape = CircleShape
+    val contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
 
     val content: @Composable RowScope.() -> Unit = {
         if (isLoading) {

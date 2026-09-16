@@ -25,7 +25,7 @@ class LocationManager(private val context: Context) {
                 null
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            System.err.println("Location lookup failed: ${e.message}")
             null
         }
     }

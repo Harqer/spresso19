@@ -27,6 +27,7 @@ import network.signInWithGoogle
  * Responsive layout with official brand assets and identical Web UI parity.
  */
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun AuthPage(
     initialMode: String = "signin",
     onSuccess: () -> Unit = {},

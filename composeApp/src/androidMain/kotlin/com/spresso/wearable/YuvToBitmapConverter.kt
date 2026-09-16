@@ -74,11 +74,11 @@ internal object YuvToBitmapConverter {
 
             // Reuse or create bitmap - Bitmap.createBitmap is expensive (~5-10ms)
             val currentBitmap = cachedBitmap
+            val dimensionUnchanged = lastWidth == width && lastHeight == height
             val bitmap =
                 if (
                     currentBitmap != null &&
-                    lastWidth == width &&
-                    lastHeight == height &&
+                    dimensionUnchanged &&
                     !currentBitmap.isRecycled
                 ) {
                     currentBitmap

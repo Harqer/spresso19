@@ -100,7 +100,11 @@ class MainActivity : FragmentActivity() {
             val response = res.idpResponse
             if (res.resultCode == RESULT_OK) {
                 Toast.makeText(this, "Phone authentication successful!", Toast.LENGTH_SHORT).show()
+            } else if (response?.error != null) {
+                Toast.makeText(this, "Phone sign-in failed. Please try again.", Toast.LENGTH_SHORT).show()
+                network.Telemetry.recordError("Phone auth error", response.error!!)
             } else {
+                Toast.makeText(this, "Phone sign-in was cancelled.", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -119,6 +123,11 @@ class MainActivity : FragmentActivity() {
                     Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+
+    private val notificationPermissionRequest =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ ->
+            // POST_NOTIFICATIONS is optional; notifications simply stay disabled when declined.
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -142,21 +151,12 @@ class MainActivity : FragmentActivity() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
         }
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            setPictureInPictureParams(
-                android.app.PictureInPictureParams
-                    .Builder()
-                    .setAutoEnterEnabled(true)
-                    .build(),
-            )
-        }
         currentIntentState.value = intent
         if (intent?.action == ACTION_USER_SCREEN_CAPTURE) {
             requestUserInitiatedScreenCapture()
         }
 
         setContent {
-            val darkTheme = isSystemInDarkTheme()
             val currentIntent by currentIntentState
 
             val isAccessEnabled by isAccessibilityEnabledState
@@ -251,14 +251,16 @@ class MainActivity : FragmentActivity() {
                                             require(
                                                 !productId.isNullOrBlank() && !actionId.isNullOrBlank() && !idempotencyKey.isNullOrBlank(),
                                             )
-                                            network.callFirebaseFunction(
-                                                "addToCart",
-                                                JSONObject()
-                                                    .put("productId", productId)
-                                                    .put("quantity", 1)
-                                                    .put("idempotencyKey", idempotencyKey)
-                                                    .toString(),
-                                            )
+                                            withContext(Dispatchers.IO) {
+                                                network.callFirebaseFunction(
+                                                    "addToCart",
+                                                    JSONObject()
+                                                        .put("productId", productId)
+                                                        .put("quantity", 1)
+                                                        .put("idempotencyKey", idempotencyKey)
+                                                        .toString(),
+                                                )
+                                            }
                                             externalNavKey = NavKey.ProductDetailKey(productId)
                                             sendBroadcast(
                                                 Intent(SpressoWearablesService.ACTION_WEARABLE_ACTION_RESULT)
@@ -294,13 +296,15 @@ class MainActivity : FragmentActivity() {
                                         try {
                                             require(query.isNotBlank() && !actionId.isNullOrBlank())
                                             val products =
-                                                SpressoConnectorConnector.instance.listProducts
-                                                    .execute()
-                                                    .data.products
-                                                    .filter {
-                                                        "${it.name} ${it.brand} ${it.category} ${it.description.orEmpty()}"
-                                                            .contains(query, ignoreCase = true)
-                                                    }.take(5)
+                                                withContext(Dispatchers.IO) {
+                                                    SpressoConnectorConnector.instance.listProducts
+                                                        .execute()
+                                                        .data.products
+                                                        .filter {
+                                                            "${it.name} ${it.brand} ${it.category} ${it.description.orEmpty()}"
+                                                                .contains(query, ignoreCase = true)
+                                                        }
+                                                }.take(5)
                                             val message =
                                                 if (products.isEmpty()) {
                                                     "I couldn't find a current catalog match for $query."
@@ -414,7 +418,8 @@ class MainActivity : FragmentActivity() {
                             title = { Text("Data & Privacy Consent") },
                             text = {
                                 Text(
-                                    "Spresso uses interaction data to improve product recommendations and requires camera access in the background when the wearable AI assistant is active. Do you consent to these features?",
+                                    "Spresso uses interaction data to improve product recommendations and requires camera access " +
+                                        "in the background when the wearable AI assistant is active. Do you consent to these features?",
                                 )
                             },
                             confirmButton = {
@@ -423,6 +428,16 @@ class MainActivity : FragmentActivity() {
                                     consentManager.grantCameraConsent()
                                     analyticsConsent = true
                                     showDataConsentDialog = false
+                                    if (
+                                        android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+                                        !androidx.core.content.ContextCompat
+                                            .checkSelfPermission(
+                                                this@MainActivity,
+                                                Manifest.permission.POST_NOTIFICATIONS,
+                                            ).let { it == android.content.pm.PackageManager.PERMISSION_GRANTED }
+                                    ) {
+                                        notificationPermissionRequest.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    }
                                 }) { Text("I Agree") }
                             },
                             dismissButton = {
@@ -439,7 +454,9 @@ class MainActivity : FragmentActivity() {
                             title = { Text("Location Collection Disclosure") },
                             text = {
                                 Text(
-                                    "Spresso collects your precise location to provide personalized, location-based product recommendations and realistic weather context during AI chat sessions. This location data is securely transmitted to our backend during your chat sessions.",
+                                    "Spresso collects your precise location to provide personalized, location-based product recommendations " +
+                                        "and realistic weather context during AI chat sessions. This location data is securely transmitted " +
+                                        "to our backend during your chat sessions.",
                                 )
                             },
                             confirmButton = {
@@ -700,17 +717,6 @@ class MainActivity : FragmentActivity() {
         }
         if (intent.action == ACTION_USER_SCREEN_CAPTURE) {
             requestUserInitiatedScreenCapture()
-        }
-    }
-
-    override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val params =
-                android.app.PictureInPictureParams
-                    .Builder()
-                    .build()
-            enterPictureInPictureMode(params)
         }
     }
 

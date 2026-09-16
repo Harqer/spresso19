@@ -57,11 +57,32 @@ plugins {
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.detekt)
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
     alias(libs.plugins.screenshot)
+    alias(libs.plugins.ksp)
     
     jacoco
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    parallel = true
+    // Detekt's smoky parser rejects JVM targets above 22; the app compiles with 17.
+    // jvmTarget is a task-level property, not a plugin extension property.
+    // The KMP plugin does not auto-register source sets with Detekt.
+    source.setFrom(
+        "src/commonMain/kotlin",
+        "src/androidMain/kotlin",
+        "src/androidUnitTest/kotlin",
+        "src/commonTest/kotlin",
+        "src/wasmJsMain/kotlin",
+        "src/iosMain/kotlin",
+        "src/desktopMain/kotlin",
+    )
 }
 
 // Kotlin/Wasm currently hits an IR compiler crash while intrinsic remember
@@ -158,7 +179,6 @@ kotlin {
             implementation(libs.androidx.xr.runtime)
             implementation(libs.androidx.xr.scenecore)
             implementation(libs.coinbase.wallet.mobile.sdk)
-            implementation(libs.zxing.core)
             implementation(libs.zxing.core)
         }
         val androidUnitTest = sourceSets.getByName("androidUnitTest")
@@ -279,9 +299,24 @@ android {
     }
 }
 
+ksp {
+    arg("appfunctions:aggregateAppFunctions", "true")
+}
+
 dependencies {
     // MockDeviceKit is available to debug builds and instrumentation tests, never release runtime.
     add("debugImplementation", libs.mwdat.mockdevice)
+    add("kspAndroid", libs.androidx.appfunctions.compiler)
+}
+
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    jvmTarget = "17"
+    // Firebase Data Connect generated sources are not hand-maintained code.
+    exclude("**/com/spresso/dataconnect/**")
+}
+tasks.withType<io.gitlab.arturbosch.detekt.DetektCreateBaselineTask>().configureEach {
+    jvmTarget = "17"
+    exclude("**/com/spresso/dataconnect/**")
 }
 
 // Robolectric 4.11's bytecode reader cannot instrument Java 25 classes. Keep

@@ -1,6 +1,6 @@
 # Harqer RLM Skill Router and Continual Harness Design
 
-**Status:** Approved in conversation; pending written-spec review
+**Status:** Approved for implementation
 
 **Date:** 2026-09-06
 

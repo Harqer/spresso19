@@ -1,26 +1,17 @@
 import Logger from "./Logger";
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, PhoneAuthCredential } from 'firebase/auth';
-import { getFirestore, collection, addDoc, doc, getDocFromServer, serverTimestamp } from 'firebase/firestore';
-import { getDatabase } from 'firebase/database';
-import { getStorage } from 'firebase/storage';
-import { getFunctions } from 'firebase/functions';
+import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { getToken as getAppCheckToken, initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from 'firebase/app-check';
-import { getDataConnect, connectDataConnectEmulator } from 'firebase/data-connect';
 import type { Analytics } from 'firebase/analytics';
-import type { FirebasePerformance } from 'firebase/performance';
-import { connectorConfig } from '../dataconnect';
 import firebaseConfig from '../../firebase-applet-config.json';
 
+// Firebase is the identity provider only. Application state lives in Convex;
+// media bytes live in Bunny. Firestore, Realtime Database, Storage, Cloud
+// Functions, and Data Connect are retired from this app.
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const rtdb = getDatabase(app, "https://get-spresso-default-rtdb.firebaseio.com");
 export const auth = getAuth(app);
-export const dataConnect = getDataConnect(app, connectorConfig);
-export const functions = getFunctions(app);
-export const storage = getStorage(app);
 
-// App Check is required by the authenticated AI endpoints. The production
+// App Check protects the authenticated Convex AI endpoints. The production
 // reCAPTCHA key is supplied at build time; leaving it unset keeps local
 // development usable while making the missing production configuration
 // explicit in deployment checks.
@@ -35,25 +26,20 @@ if (typeof window !== "undefined") {
   }
 }
 
-// Initialize Telemetry: Firebase Performance Monitoring & Google Analytics
+// Google Analytics receives error/app telemetry from Logger.
 let analytics: Analytics | null = null;
-let perf: FirebasePerformance | null = null;
 
 if (typeof window !== "undefined") {
-  // We only initialize Analytics and Performance in browser environments
   import("firebase/analytics").then(({ getAnalytics }) => {
     analytics = getAnalytics(app);
   });
-  import("firebase/performance").then(({ getPerformance }) => {
-    perf = getPerformance(app);
-  });
 }
 
-export { analytics, perf };
+export { analytics };
 
 // Enforce browser local persistence for seamless cross-session user state
 setPersistence(auth, browserLocalPersistence).catch((err) => {
-  logToCrashlytics("warn", "Could not enable browser local persistence", { error: String(err) });
+  console.warn("[auth] Could not enable browser local persistence:", err);
 });
 
 export const googleProvider = new GoogleAuthProvider();
@@ -68,62 +54,15 @@ getRedirectResult(auth).then((_result) => {
   // Non-fatal — user may simply not have come from a redirect flow
 });
 
-export enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-export interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-  };
-}
-
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-    },
-    operationType,
-    path
-  };
-  logToCrashlytics("error", "Firestore Permission Error: " + errInfo.error, errInfo);
-  throw new Error(JSON.stringify(errInfo));
-}
-
-// Crashlytics & Error Logging Service
+/** Console crash-breadcrumb sink. Errors also reach Google Analytics via Logger. */
 export async function logToCrashlytics(
   level: "info" | "warn" | "error" | "fatal",
   message: string,
   extraData?: Record<string, any>
 ) {
-  const logPayload = {
-    level,
-    message: extraData ? `${message} ${JSON.stringify(extraData)}`.slice(0, 2000) : message.slice(0, 2000),
-    timestamp: serverTimestamp(),
-  };
-
-  // Write to Firestore logs collection (acts as the Crashlytics sink for the web platform)
-
-  try {
-    await addDoc(collection(db, "logs"), logPayload);
-  } catch (_err) {
-    // Silently handle log dispatch errors to avoid infinite recursion
-  }
+  const rendered = extraData ? `${message} ${JSON.stringify(extraData)}`.slice(0, 2000) : message.slice(0, 2000);
+  if (level === "error" || level === "fatal") console.error(`[${level}]`, rendered);
+  else console.warn(`[${level}]`, rendered);
 }
 
 export const loginAnonymously = async () => {
@@ -234,7 +173,6 @@ export const logoutUser = async () => {
 
 /**
  * Helper to get the current user's ID token for authenticated API requests.
- * Following best practices from the firebase-auth-basics skill.
  */
 export const getAuthToken = async (): Promise<string | null> => {
   if (!auth.currentUser) return null;
@@ -249,7 +187,6 @@ export const getAuthToken = async (): Promise<string | null> => {
 /**
  * Authenticated Fetch Wrapper
  * Automatically injects the Firebase ID token into the Authorization header.
- * Following best practices from the firebase-auth-basics skill.
  */
 export const authFetch = async (url: string, options: RequestInit = {}) => {
   const token = await getAuthToken();

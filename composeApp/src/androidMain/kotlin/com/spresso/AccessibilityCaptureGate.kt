@@ -23,7 +23,8 @@ internal class AccessibilityCaptureGate(
         hasConsent: Boolean,
         serviceEnabled: Boolean,
     ): Boolean {
-        if (!hasConsent || !serviceEnabled || !isFresh(request) || request.token.isBlank()) {
+        val gateOpen = hasConsent && serviceEnabled && isFresh(request) && request.token.isNotBlank()
+        if (!gateOpen) {
             return false
         }
         if (activeToken != null || request.token == lastAcceptedToken) {

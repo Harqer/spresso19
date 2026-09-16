@@ -1,34 +1,28 @@
 package components.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
-import androidx.compose.material.icons.outlined.Checkroom
-import androidx.compose.material.icons.outlined.FlightTakeoff
-import androidx.compose.material.icons.outlined.Forum
-import androidx.compose.material.icons.outlined.LocalGroceryStore
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.ui.graphics.vector.ImageVector
 import navigation.NavKey
-import org.jetbrains.compose.resources.DrawableResource
-import spresso.composeapp.generated.resources.Res
-import spresso.composeapp.generated.resources.ic_deployed_code_account
-import spresso.composeapp.generated.resources.ic_for_you
-
 data class NavDestinationItem(
     val key: NavKey,
     val label: String,
-    val icon: ImageVector? = null,
-    val iconResource: DrawableResource? = null,
+    val icon: ImageVector,
+    val selectedIcon: ImageVector,
 )
 
 val defaultNavDestinations =
     listOf(
-        NavDestinationItem(NavKey.ChatKey(), "Chat", icon = Icons.Outlined.Forum),
-        NavDestinationItem(NavKey.CreatorKey(), "Creator", iconResource = Res.drawable.ic_deployed_code_account),
-        NavDestinationItem(NavKey.TravelKey, "Travel & Expenses", icon = Icons.Outlined.FlightTakeoff),
-        NavDestinationItem(NavKey.CatalogKey, "For You", iconResource = Res.drawable.ic_for_you),
-        NavDestinationItem(NavKey.WardrobeKey(), "Wardrobe", icon = Icons.Outlined.Checkroom),
-        NavDestinationItem(NavKey.OrdersKey, "Orders", icon = Icons.AutoMirrored.Outlined.ReceiptLong),
-        NavDestinationItem(NavKey.GroceryKey, "Grocery", icon = Icons.Outlined.LocalGroceryStore),
+        NavDestinationItem(NavKey.ChatKey(), "Chat", icon = Icons.Outlined.Forum, selectedIcon = Icons.Filled.Forum),
+        NavDestinationItem(NavKey.CreatorKey(), "Creator", icon = Icons.Outlined.AutoAwesome, selectedIcon = Icons.Filled.AutoAwesome),
+        NavDestinationItem(NavKey.TravelKey, "Travel & Expenses", icon = Icons.Outlined.FlightTakeoff, selectedIcon = Icons.Filled.FlightTakeoff),
+        NavDestinationItem(NavKey.CatalogKey, "For You", icon = Icons.Outlined.Recommend, selectedIcon = Icons.Filled.Recommend),
+        NavDestinationItem(NavKey.WardrobeKey(), "Wardrobe", icon = Icons.Outlined.Checkroom, selectedIcon = Icons.Filled.Checkroom),
+        NavDestinationItem(NavKey.OrdersKey, "Orders", icon = Icons.AutoMirrored.Outlined.ReceiptLong, selectedIcon = Icons.AutoMirrored.Filled.ReceiptLong),
+        NavDestinationItem(NavKey.GroceryKey, "Grocery", icon = Icons.Outlined.LocalGroceryStore, selectedIcon = Icons.Filled.LocalGroceryStore),
     )
 
 fun isSameDestinationGroup(

@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun CameraBottomBar(
     activeMode: String,
     isRecording: Boolean,

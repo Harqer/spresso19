@@ -13,6 +13,7 @@ import components.shared.widgets.MediaActionCard
 import io.ktor.client.HttpClient
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun WardrobeItemCard(
     title: String,
     category: String,

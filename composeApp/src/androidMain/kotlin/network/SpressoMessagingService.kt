@@ -23,9 +23,10 @@ class SpressoMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // In a production app, we would sync this token with the backend
-        // to associate it with the current user's UID for targeted messaging.
-        println("FCM Token refreshed: $token")
+        getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(TOKEN_KEY, token)
+            .apply()
     }
 
     private fun sendNotification(
@@ -72,5 +73,10 @@ class SpressoMessagingService : FirebaseMessagingService() {
         }
 
         notificationManager.notify(0, notificationBuilder.build())
+    }
+
+    companion object {
+        private const val PREFERENCES_NAME = "spresso_fcm_prefs"
+        private const val TOKEN_KEY = "fcm_token"
     }
 }

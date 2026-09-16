@@ -36,23 +36,14 @@ import components.features.onboarding.SplashScreenPage
 import components.features.orders.OrderReturnDialog
 import components.features.orders.OrderReturnResultCard
 import components.features.orders.OrdersTrackerPage
-import components.features.profile.AccountManagementSection
 import components.features.profile.LegalSecuritySection
-import components.features.profile.PaymentWalletSection
 import components.features.profile.PaymentWalletRoute
-import components.features.profile.PreferencesSection
 import components.features.profile.PreferencesRoute
 import components.features.profile.ProfilePage
 import components.features.profile.SubscriptionMembershipRoute
-import components.features.profile.SubscriptionMembershipSection
 import components.features.profile.SupportPage
-import components.features.profile.SubscriptionMembershipRoute
 import components.features.spatial.LiquidGlassCard
-import components.features.travel.BoardingPassList
-import components.features.travel.QrModal
-import components.features.travel.ReceiptScannerSection
 import components.features.travel.TravelTripsPage
-import components.features.travel.VoiceNotesSection
 import components.features.vision.SmartVisionDetectionOverlay
 import components.features.vision.SmartVisionPage
 import components.features.wardrobe.GallerySyncDisabledView
@@ -60,7 +51,6 @@ import components.features.wardrobe.StackedWardrobeDecks
 import components.features.wardrobe.WardrobePage
 import components.features.wardrobe.WardrobeViewPage
 import components.features.wearables.MetaWearablesPage
-import components.models.ItineraryEvent
 import components.navigation.MainAppTemplate
 import components.navigation.defaultNavDestinations
 import components.shared.MerchantHandoffDialog
@@ -77,9 +67,7 @@ import network.ApiClient
 import network.DetectedItem
 import network.LiveApiClient
 import network.ProductItem
-import network.SpressoBackend
 import network.models.GroceryItem
-import network.models.SubscriptionTier
 import theme.AppTheme
 import theme.ThemeMode
 import ui.rememberImagePicker
@@ -93,6 +81,7 @@ import kotlin.io.encoding.ExperimentalEncodingApi
  * Orchestrates 25+ screens, modals, dialogs, overlays, and adaptive destinations.
  */
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun App(
     modifier: Modifier = Modifier,
     currentUserUid: String? = null,
@@ -204,7 +193,7 @@ fun App(
                     if (bytes != null) {
                         scope.launch {
                             @OptIn(ExperimentalEncodingApi::class)
-                            val base64Image = Base64.Default.encode(bytes)
+                            val base64Image = Base64.encode(bytes)
                             try {
                                 displayMediaUrl = apiClient.requestVirtualTryOn(base64Image)
                                 isVideoPlaying = false
@@ -232,13 +221,12 @@ fun App(
                     audioRecorder.onAudioChunk = { chunk ->
                         scope.launch {
                             @OptIn(ExperimentalEncodingApi::class)
-                            liveApiClient.sendAudioChunk(Base64.Default.encode(chunk))
+                            liveApiClient.sendAudioChunk(Base64.encode(chunk))
                         }
                     }
                     audioRecorder.startRecording()
                     if (audioRecorder.isRecording()) {
                         chatViewModel.startVoiceStream(
-                            agentType = "SHOPPING_CONCIERGE",
                             onReceiveAudio = { chunk -> audioPlayer.playChunk(chunk) },
                         )
                         isVoiceRecording = true
@@ -349,7 +337,7 @@ fun App(
                                     audioRecorder.onAudioChunk = { chunk ->
                                         scope.launch {
                                             @OptIn(ExperimentalEncodingApi::class)
-                                            liveApiClient.sendAudioChunk(Base64.Default.encode(chunk))
+                                            liveApiClient.sendAudioChunk(Base64.encode(chunk))
                                         }
                                     }
                                     audioRecorder.startRecording()
@@ -397,36 +385,7 @@ fun App(
                         ProductCatalogPage(
                             apiClient = apiClient,
                             httpClient = apiClient.client,
-                            onProductSelected = { id ->
-                                activeProductId = id
-                                navigator.navigate(NavKey.ProductDetailKey(id))
-                            },
-                            onTryOnRequested = { product ->
-                                activeProductId = product.id
-                                pickImage()
-                            },
-                            onMediaGenerated = { mediaUrl, mediaType ->
-                                displayMediaUrl = mediaUrl
-                                navigator.navigate(
-                                    NavKey.WardrobeKey(
-                                        displayMediaUrl = mediaUrl,
-                                        isVideoPlaying = mediaType == "video",
-                                    ),
-                                )
-                            },
-                            onShareRequested = onShare,
-                            onAskAI = { prompt ->
-                                navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
-                            },
-                            onCheckoutRequested = {
-                                navigator.navigate(NavKey.HITLCheckoutKey)
-                            },
-                        )
-                    }
-                    entry<NavKey.ProductCatalogScreenKey> { currentDestinationKey ->
-                        ProductCatalogPage(
-                            apiClient = apiClient,
-                            httpClient = apiClient.client,
+                            catalogViewModel = catalogViewModel,
                             onProductSelected = { id ->
                                 activeProductId = id
                                 navigator.navigate(NavKey.ProductDetailKey(id))
@@ -809,30 +768,6 @@ fun App(
                             },
                         )
                     }
-                    entry<NavKey.TravelQrModalKey> { currentDestinationKey ->
-                        if (
-                            currentDestinationKey.qrData.isBlank() ||
-                            currentDestinationKey.qrData == "SPRESSO-PASS-2026"
-                        ) {
-                            ColumnWithRouteMessage("This pass is unavailable. Open a confirmed itinerary item to view its QR code.") {}
-                        } else {
-                            QrModal(
-                                title = currentDestinationKey.eventTitle,
-                                location = currentDestinationKey.eventLocation,
-                                qrData = currentDestinationKey.qrData,
-                                onClose = { navigator.goBack() },
-                            )
-                        }
-                    }
-                    entry<NavKey.TravelReceiptScannerKey> { currentDestinationKey ->
-                        TravelTripsPage(apiClient = apiClient, onAskAI = { prompt -> navigator.navigate(NavKey.ChatKey(initialPrompt = prompt)) })
-                    }
-                    entry<NavKey.TravelVoiceNotesKey> { currentDestinationKey ->
-                        TravelTripsPage(apiClient = apiClient, onAskAI = { prompt -> navigator.navigate(NavKey.ChatKey(initialPrompt = prompt)) })
-                    }
-                    entry<NavKey.TravelBoardingPassKey> { currentDestinationKey ->
-                        TravelTripsPage(apiClient = apiClient, onAskAI = { prompt -> navigator.navigate(NavKey.ChatKey(initialPrompt = prompt)) })
-                    }
 
                     // 10. Profile & Account Settings Flow
                     entry<NavKey.ProfileKey> { currentDestinationKey ->
@@ -929,7 +864,7 @@ private fun ColumnWithRouteMessage(
     content: @Composable () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.safeDrawing).padding(24.dp),
+        modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         message?.let {

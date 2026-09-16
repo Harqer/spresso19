@@ -9,6 +9,7 @@ import io.ktor.websocket.*
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -32,14 +33,14 @@ data class AgentEngineBidiStreamOutput(
 
 @Serializable
 data class AgentEngineOutput(
-    val inline_data: AgentEngineInlineData? = null,
+    @SerialName("inline_data") val inlineData: AgentEngineInlineData? = null,
     val part: AgentEnginePart? = null,
-    val end_of_turn: Boolean? = null,
+    @SerialName("end_of_turn") val endOfTurn: Boolean? = null,
 )
 
 @Serializable
 data class AgentEngineInlineData(
-    val mime_type: String? = null,
+    @SerialName("mime_type") val mimeType: String? = null,
     val data: String? = null,
 )
 
@@ -194,7 +195,7 @@ open class LiveApiClient {
                         }.bodyAsText()
                 val tokenJson = json.parseToJsonElement(tokenResponse)
                 val ephemeralToken =
-                    tokenJson.jsonObject["token"]?.jsonPrimitive?.content ?: throw Exception("Failed to retrieve ephemeral token")
+                    tokenJson.jsonObject["token"]?.jsonPrimitive?.content ?: error("Failed to retrieve ephemeral token")
                 // Gemini Interactions Live API Endpoint
                 val wsUrl = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=$ephemeralToken"
 
@@ -258,12 +259,12 @@ open class LiveApiClient {
                                 // Handle Agent Engine ADK Protocol (bidiStreamOutput)
                                 serverMsg.bidiStreamOutput?.let { bidi ->
                                     val output = bidi.output
-                                    if (output?.end_of_turn == true) {
+                                    if (output?.endOfTurn == true) {
                                         onInterrupted()
                                     }
                                     output?.part?.text?.let { t -> onReceiveText(t) }
-                                    output?.inline_data?.let { inline ->
-                                        if (inline.mime_type?.startsWith("audio") == true && !isMuted && !isPaused) {
+                                    output?.inlineData?.let { inline ->
+                                        if (inline.mimeType?.startsWith("audio") == true && !isMuted && !isPaused) {
                                             inline.data?.let { data ->
                                                 val bytes = Base64.Default.decode(data)
                                                 onReceiveAudio(bytes)

@@ -1,7 +1,9 @@
 package components.features.creators
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,22 +27,27 @@ fun CreatorStudioTabsRow(
         color = MaterialTheme.colorScheme.surfaceVariant,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Row(modifier = Modifier.padding(4.dp)) {
+        Row(
+            modifier = Modifier.padding(4.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             SpressoButton(
-                text = "Community & Media",
+                text = "Community",
                 icon = Icons.Outlined.GridView,
                 variant = if (activeTab == 0) SpressoButtonVariant.PRIMARY else SpressoButtonVariant.GHOST,
                 onClick = { onTabSelected(0) },
                 trackingId = "creator_tab_community",
                 trackingAction = "click",
+                modifier = Modifier.weight(1f)
             )
             SpressoButton(
-                text = "GenAI Agent Workspaces",
+                text = "Agents",
                 icon = Icons.Outlined.SupportAgent,
                 variant = if (activeTab == 1) SpressoButtonVariant.PRIMARY else SpressoButtonVariant.GHOST,
                 onClick = { onTabSelected(1) },
                 trackingId = "creator_tab_agents",
                 trackingAction = "click",
+                modifier = Modifier.weight(1f)
             )
         }
     }

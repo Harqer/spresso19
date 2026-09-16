@@ -14,6 +14,7 @@ import components.core.SpressoLogo
 import components.models.*
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun SplashLogoBrandHeader(
     modifier: Modifier = Modifier,
     titleText: String = "SPRESSO",

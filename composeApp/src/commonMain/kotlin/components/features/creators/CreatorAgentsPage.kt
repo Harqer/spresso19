@@ -15,6 +15,7 @@ import components.models.*
 import network.ApiClient
 
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun CreatorAgentsPage(
     apiClient: ApiClient,
     selectedTemplateId: String = "tmpl-1",
@@ -48,11 +49,14 @@ fun CreatorAgentsPage(
                     if (maxWidth > 650.dp) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            CreatorStudioHeader()
-                            CreatorStudioTabsRow(activeTab) { activeTab = it }
+                            CreatorStudioHeader(modifier = Modifier.weight(1f))
+                            CreatorStudioTabsRow(
+                                activeTab = activeTab,
+                                onTabSelected = { activeTab = it }
+                            )
                         }
                     } else {
                         Column(

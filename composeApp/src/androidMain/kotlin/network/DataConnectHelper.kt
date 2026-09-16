@@ -9,15 +9,11 @@ actual suspend fun upsertUserPreference(
     pushNotifications: Boolean?,
     emailAlerts: Boolean?,
 ) {
-    try {
         com.spresso.dataconnect.SpressoConnectorConnector.instance.upsertUserPreference.execute {
             this.theme = theme
             this.pushNotifications = pushNotifications
             this.emailAlerts = emailAlerts
         }
-    } catch (e: Exception) {
-        throw e
-    }
 }
 
 actual suspend fun upsertUserProfile(
@@ -25,15 +21,11 @@ actual suspend fun upsertUserProfile(
     displayName: String?,
     avatarUrl: String?,
 ) {
-    try {
         com.spresso.dataconnect.SpressoConnectorConnector.instance.upsertUserProfile.execute {
             this.email = email
             this.displayName = displayName
             this.avatarUrl = avatarUrl
         }
-    } catch (e: Exception) {
-        throw e
-    }
 }
 
 actual suspend fun addGroceryItem(
@@ -42,7 +34,6 @@ actual suspend fun addGroceryItem(
     productId: String?,
     addedVia: String,
 ) {
-    try {
         com.spresso.dataconnect.SpressoConnectorConnector.instance.addGroceryItem.execute(
             listId = java.util.UUID.fromString(listId),
             productName = productName,
@@ -50,66 +41,43 @@ actual suspend fun addGroceryItem(
         ) {
             this.productId = productId
         }
-    } catch (e: Exception) {
-        throw e
-    }
 }
 
 actual suspend fun toggleGroceryItem(
     id: String,
     isPurchased: Boolean,
 ) {
-    try {
         com.spresso.dataconnect.SpressoConnectorConnector.instance.toggleGroceryItem.execute(
             id = java.util.UUID.fromString(id),
             isPurchased = isPurchased,
         )
-    } catch (e: Exception) {
-        throw e
-    }
 }
 
 actual suspend fun deleteGroceryItem(id: String) {
-    try {
         com.spresso.dataconnect.SpressoConnectorConnector.instance.deleteGroceryItem.execute(
             id = java.util.UUID.fromString(id),
         )
-    } catch (e: Exception) {
-        throw e
-    }
 }
 
 actual suspend fun createPaymentMethod(stripePaymentMethodId: String) {
-    try {
         com.spresso.dataconnect.SpressoConnectorConnector.instance.createPaymentMethod.execute(
             stripePaymentMethodId = stripePaymentMethodId,
         )
-    } catch (e: Exception) {
-        throw e
-    }
 }
 
 actual suspend fun deletePaymentMethod(id: String) {
-    try {
         com.spresso.dataconnect.SpressoConnectorConnector.instance.deletePaymentMethod.execute(
             id = java.util.UUID.fromString(id),
         )
-    } catch (e: Exception) {
-        throw e
-    }
 }
 
 actual suspend fun updateUserSubscription(
     id: String,
     tier: String,
 ) {
-    try {
         com.spresso.dataconnect.SpressoConnectorConnector.instance.upsertUserSubscription.execute(
             tier = tier,
         )
-    } catch (e: Exception) {
-        throw e
-    }
 }
 
 actual suspend fun createOrder(
@@ -122,7 +90,6 @@ actual suspend fun createOrder(
     paymentMethod: String,
     userConfirmedToken: String?,
 ) {
-    try {
         com.spresso.dataconnect.SpressoConnectorConnector.instance.createOrder.execute(
             authorizationId = authorizationId,
             productId = productId,
@@ -134,17 +101,10 @@ actual suspend fun createOrder(
             this.shippingAddress = shippingAddress
             this.userConfirmedToken = userConfirmedToken
         }
-    } catch (e: Exception) {
-        throw e
-    }
 }
 
 actual suspend fun connectCoinbaseWallet(address: String) {
-    try {
         com.spresso.dataconnect.SpressoConnectorConnector.instance.connectCoinbaseWallet.execute(
             walletAddress = address,
         )
-    } catch (e: Exception) {
-        throw e
-    }
 }
