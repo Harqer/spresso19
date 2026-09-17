@@ -1,6 +1,9 @@
 package components.features.catalog
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
@@ -13,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import components.features.creators.ReviewVideoModel
 import components.features.creators.VideoReviewItem
-import components.models.*
 
 @Composable
 fun ProductReviewsSection(

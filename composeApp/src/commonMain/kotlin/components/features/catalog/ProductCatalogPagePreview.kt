@@ -1,7 +1,6 @@
 package components.features.catalog
 
 import androidx.compose.runtime.Composable
-import components.models.*
 import io.ktor.client.HttpClient
 import network.ApiClient
 import org.jetbrains.compose.ui.tooling.preview.Preview

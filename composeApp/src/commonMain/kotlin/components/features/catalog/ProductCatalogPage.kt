@@ -1,17 +1,21 @@
 package components.features.catalog
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import components.features.catalog.screens.ProductCatalogScreen
-import components.models.*
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.launch
 import network.ApiClient
 import network.ProductItem
-import network.models.*
 
 @Composable
 fun ProductCatalogPage(
