@@ -16,7 +16,6 @@ import com.spresso.dataconnect.SpressoConnectorConnector
 import com.spresso.dataconnect.execute
 import com.spresso.dataconnect.instance
 import kotlinx.coroutines.tasks.await
-import network.ApiClient
 import network.ConvexApi
 import network.Telemetry
 import network.getCurrentUserUid

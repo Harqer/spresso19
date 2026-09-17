@@ -1,6 +1,5 @@
 package components.navigation
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -23,7 +22,6 @@ import components.features.chat.AIShopperInputBar
 import navigation.NavKey
 import navigation.NavigationState
 import navigation.Navigator
-import org.jetbrains.compose.resources.vectorResource
 import theme.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,7 +91,7 @@ fun AdaptiveScaffoldBody(
                             val isSelected = isSameDestinationGroup(navigationState.topLevelRoute, item.key)
                             Icon(
                                 imageVector = if (isSelected) item.selectedIcon else item.icon,
-                                contentDescription = item.label
+                                contentDescription = item.label,
                             )
                         },
                         label = { Text(item.label) },

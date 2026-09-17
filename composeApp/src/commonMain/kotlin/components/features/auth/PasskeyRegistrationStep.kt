@@ -8,10 +8,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
 
 sealed interface PasskeyRegistrationRequest {
     data class Ready(
@@ -60,9 +60,7 @@ data class PasskeyRegistrationState(
 }
 
 @Composable
-fun PasskeyRegistrationStep(
-    onRegistrationRequested: suspend () -> PasskeyRegistrationResult,
-) {
+fun PasskeyRegistrationStep(onRegistrationRequested: suspend () -> PasskeyRegistrationResult) {
     val scope = rememberCoroutineScope()
     var state by remember { mutableStateOf(PasskeyRegistrationState()) }
 
@@ -75,11 +73,12 @@ fun PasskeyRegistrationStep(
                 onClick = {
                     scope.launch {
                         state = state.begin()
-                        val result = try {
-                            onRegistrationRequested()
-                        } catch (_: Exception) {
-                            PasskeyRegistrationResult.BackendFailure()
-                        }
+                        val result =
+                            try {
+                                onRegistrationRequested()
+                            } catch (_: Exception) {
+                                PasskeyRegistrationResult.BackendFailure()
+                            }
                         state = state.after(result)
                     }
                 },

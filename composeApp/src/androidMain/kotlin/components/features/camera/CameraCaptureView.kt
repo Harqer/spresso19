@@ -56,12 +56,15 @@ fun CameraCaptureView(
     }
 
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                hasCameraPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                hasAudioPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    hasCameraPermission =
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                    hasAudioPermission =
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -144,7 +147,8 @@ fun CameraCaptureView(
     val imageLabeler =
         remember {
             com.google.mlkit.vision.label.defaults.ImageLabelerOptions.DEFAULT_OPTIONS.let {
-                com.google.mlkit.vision.label.ImageLabeling.getClient(it)
+                com.google.mlkit.vision.label.ImageLabeling
+                    .getClient(it)
             }
         }
 
@@ -191,14 +195,18 @@ fun CameraCaptureView(
                     callback(stream.toByteArray())
                 }
                 onVisionContextCaptured?.let { callback ->
-                    val image = com.google.mlkit.vision.common.InputImage.fromBitmap(bmp, 0)
-                    imageLabeler.process(image)
+                    val image =
+                        com.google.mlkit.vision.common.InputImage
+                            .fromBitmap(bmp, 0)
+                    imageLabeler
+                        .process(image)
                         .addOnSuccessListener { labels ->
-                            val context = labels
-                                .sortedByDescending { it.confidence }
-                                .take(5)
-                                .filter { it.confidence >= 0.55f }
-                                .joinToString(", ") { "${it.text} (${(it.confidence * 100).toInt()}%)" }
+                            val context =
+                                labels
+                                    .sortedByDescending { it.confidence }
+                                    .take(5)
+                                    .filter { it.confidence >= 0.55f }
+                                    .joinToString(", ") { "${it.text} (${(it.confidence * 100).toInt()}%)" }
                             if (context.isNotBlank()) callback(context)
                         }
                 }

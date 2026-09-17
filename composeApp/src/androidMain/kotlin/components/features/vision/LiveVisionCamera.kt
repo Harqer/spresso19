@@ -46,13 +46,15 @@ actual fun LiveVisionCamera(
     var permissionPromptDismissed by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                hasCameraPermission = granted
-                if (granted) permissionPromptDismissed = false
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    val granted =
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                    hasCameraPermission = granted
+                    if (granted) permissionPromptDismissed = false
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -64,7 +66,7 @@ actual fun LiveVisionCamera(
 
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
-        permissionLauncher.launch(Manifest.permission.CAMERA)
+            permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
@@ -87,7 +89,11 @@ actual fun LiveVisionCamera(
         return
     }
 
-    val cameraExecutor = remember { java.util.concurrent.Executors.newSingleThreadExecutor() }
+    val cameraExecutor =
+        remember {
+            java.util.concurrent.Executors
+                .newSingleThreadExecutor()
+        }
 
     val cameraController =
         remember {

@@ -9,7 +9,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-actual fun VideoReviewCard(videoUrl: String, modifier: Modifier) {
+actual fun VideoReviewCard(
+    videoUrl: String,
+    modifier: Modifier,
+) {
     Box(modifier = modifier.fillMaxWidth().padding(16.dp)) {
         Text("Video reviews are currently only supported on Android: $videoUrl")
     }

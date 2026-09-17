@@ -1,0 +1,20 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+max_line_length = 140
+
+[*.kt]
+ktlint_code_style = ktlint_official
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+# Compose entry points are conventionally PascalCase; this is a project policy,
+# not a blanket suppression of formatting or correctness rules.
+ktlint_standard_function-naming = disabled
+# Existing Compose/KMP code intentionally groups common UI imports; changing
+# these imports is high risk without IDE symbol resolution.
+ktlint_standard_no-wildcard-imports = disabled

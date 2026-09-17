@@ -83,7 +83,7 @@ fun OrderReturnDialog(
                         onValueChange = onReturnReasonChange,
                         placeholder = {
                             Text(
-                            "For example, item arrived damaged",
+                                "For example, item arrived damaged",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

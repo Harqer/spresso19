@@ -14,6 +14,10 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.google.android.gms.tasks.Tasks
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.label.ImageLabeling
+import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 import com.meta.wearable.dat.camera.Camera
 import com.meta.wearable.dat.camera.addCamera
 import com.meta.wearable.dat.camera.removeCamera
@@ -57,10 +61,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
-import com.google.android.gms.tasks.Tasks
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.label.ImageLabeling
-import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 
 class SpressoWearablesService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -215,8 +215,9 @@ class SpressoWearablesService : Service() {
                 val request =
                     Request
                         .Builder()
-                        .url("wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=$token")
-                        .build()
+                        .url(
+                            "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=$token",
+                        ).build()
 
                 webSocket = okHttpClient.newWebSocket(request, createWebSocketListener(generation))
             } catch (error: Exception) {
@@ -228,7 +229,10 @@ class SpressoWearablesService : Service() {
 
     private fun createWebSocketListener(generation: Long) =
         object : WebSocketListener() {
-            override fun onOpen(webSocket: WebSocket, response: Response) {
+            override fun onOpen(
+                webSocket: WebSocket,
+                response: Response,
+            ) {
                 if (generation != socketGeneration || isStopping) {
                     webSocket.close(1000, "Superseded")
                     return
@@ -241,7 +245,10 @@ class SpressoWearablesService : Service() {
                 if (currentSessionState == DeviceSessionState.STARTED) audioRecorder?.startRecording()
             }
 
-            override fun onMessage(webSocket: WebSocket, text: String) {
+            override fun onMessage(
+                webSocket: WebSocket,
+                text: String,
+            ) {
                 if (generation != socketGeneration || isStopping) return
                 Log.d(TAG, "Glasses assistant message received (${text.length} characters)")
                 runCatching { handleServerMessage(text) }
@@ -255,7 +262,11 @@ class SpressoWearablesService : Service() {
                     }
             }
 
-            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+            override fun onClosed(
+                webSocket: WebSocket,
+                code: Int,
+                reason: String,
+            ) {
                 if (generation != socketGeneration || isStopping) return
                 socketConnected = false
                 audioRecorder?.stopRecording()
@@ -263,7 +274,11 @@ class SpressoWearablesService : Service() {
                 scheduleWebSocketReconnect(generation)
             }
 
-            override fun onFailure(webSocket: WebSocket, throwable: Throwable, response: Response?) {
+            override fun onFailure(
+                webSocket: WebSocket,
+                throwable: Throwable,
+                response: Response?,
+            ) {
                 if (generation != socketGeneration || isStopping) return
                 socketConnected = false
                 audioRecorder?.stopRecording()
@@ -316,8 +331,7 @@ class SpressoWearablesService : Service() {
                         JSONObject().put("query", JSONObject().put("type", "string")),
                         JSONArray().put("query"),
                     ),
-                )
-                .put(
+                ).put(
                     functionDeclaration(
                         "addToCart",
                         "Add a selected product to the shopper's cart",
@@ -452,7 +466,10 @@ class SpressoWearablesService : Service() {
         }
     }
 
-    private fun awaitAppResult(call: WearableToolCall, intent: Intent) {
+    private fun awaitAppResult(
+        call: WearableToolCall,
+        intent: Intent,
+    ) {
         val timeoutJob =
             serviceScope.launch {
                 delay(ACTION_RESULT_TIMEOUT_MILLIS)
@@ -471,7 +488,10 @@ class SpressoWearablesService : Service() {
 
     private val actionResultReceiver =
         object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
+            override fun onReceive(
+                context: Context?,
+                intent: Intent?,
+            ) {
                 val callId = intent?.getStringExtra(EXTRA_ACTION_ID)?.trim().orEmpty()
                 if (callId.isEmpty()) return
                 val pending = pendingActions.remove(callId) ?: return
@@ -488,7 +508,11 @@ class SpressoWearablesService : Service() {
             }
         }
 
-    private fun completeToolCall(call: WearableToolCall, success: Boolean, message: String) {
+    private fun completeToolCall(
+        call: WearableToolCall,
+        success: Boolean,
+        message: String,
+    ) {
         pendingActions.remove(call.id)?.timeoutJob?.cancel()
         val response =
             JSONObject()
@@ -712,24 +736,46 @@ class SpressoWearablesService : Service() {
                     flexBox(gap = 10, padding = 24, background = FlexBoxBackground.CARD) {
                         icon(name = IconName.SHOPPING_BAG)
                         text("Spresso preview", style = TextStyle.HEADING, color = TextColor.PRIMARY)
-                        text("Find products, review details, and keep checkout in your hands.", style = TextStyle.BODY, color = TextColor.SECONDARY)
+                        text(
+                            "Find products, review details, and keep checkout in your hands.",
+                            style = TextStyle.BODY,
+                            color = TextColor.SECONDARY,
+                        )
                         button(
                             label = "Try on",
                             style = ButtonStyle.PRIMARY,
                             iconName = IconName.SHOPPING_BAG,
-                            onClick = { sendDisplayMessage("Try on", "Open Spresso to choose a product and start a private preview.", IconName.SHOPPING_BAG) },
+                            onClick = {
+                                sendDisplayMessage(
+                                    "Try on",
+                                    "Open Spresso to choose a product and start a private preview.",
+                                    IconName.SHOPPING_BAG,
+                                )
+                            },
                         )
                         button(
                             label = "Add to cart",
                             style = ButtonStyle.SECONDARY,
                             iconName = IconName.SHOPPING_BAG,
-                            onClick = { sendDisplayMessage("Your choice", "Open Spresso to review the product before adding it to your cart.", IconName.SHOPPING_BAG) },
+                            onClick = {
+                                sendDisplayMessage(
+                                    "Your choice",
+                                    "Open Spresso to review the product before adding it to your cart.",
+                                    IconName.SHOPPING_BAG,
+                                )
+                            },
                         )
                         button(
                             label = "Track order",
                             style = ButtonStyle.SECONDARY,
                             iconName = IconName.SHOPPING_BAG,
-                            onClick = { sendDisplayMessage("Track order", "Open Spresso to view delivery progress and reminders.", IconName.SHOPPING_BAG) },
+                            onClick = {
+                                sendDisplayMessage(
+                                    "Track order",
+                                    "Open Spresso to view delivery progress and reminders.",
+                                    IconName.SHOPPING_BAG,
+                                )
+                            },
                         )
                     }
                 }.onFailure { error, _ -> Log.e(TAG, "Failed to send component preview: ${error.description}") }
@@ -854,22 +900,25 @@ class SpressoWearablesService : Service() {
             } ?: return false
 
         frameOutStream.reset()
-        val labels = runCatching {
-            val labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
-            val result = Tasks.await(labeler.process(InputImage.fromBitmap(bitmap, 0)))
-            labeler.close()
-            result.sortedByDescending { it.confidence }
-                .take(6)
-                .filter { it.confidence >= 0.55f }
-                .joinToString(", ") { "${it.text} (${(it.confidence * 100).toInt()}%)" }
-        }.getOrDefault("")
-        val contextMessage = JSONObject()
-            .put(
-                "text",
-                "On-device camera labels: ${if (labels.isBlank()) "No confident item label" else labels}. " +
-                    "Use product search to identify current listings and prices. " +
-                    "Do not claim a product or price until search returns a match.",
-            )
+        val labels =
+            runCatching {
+                val labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
+                val result = Tasks.await(labeler.process(InputImage.fromBitmap(bitmap, 0)))
+                labeler.close()
+                result
+                    .sortedByDescending { it.confidence }
+                    .take(6)
+                    .filter { it.confidence >= 0.55f }
+                    .joinToString(", ") { "${it.text} (${(it.confidence * 100).toInt()}%)" }
+            }.getOrDefault("")
+        val contextMessage =
+            JSONObject()
+                .put(
+                    "text",
+                    "On-device camera labels: ${if (labels.isBlank()) "No confident item label" else labels}. " +
+                        "Use product search to identify current listings and prices. " +
+                        "Do not claim a product or price until search returns a match.",
+                )
         if (webSocket?.send(contextMessage.toString()) != true) return false
 
         // Do not upload the camera image during routine wearable scanning. The local
@@ -954,7 +1003,10 @@ class SpressoWearablesService : Service() {
         }
     }
 
-    private fun updateNotification(title: String, text: String) {
+    private fun updateNotification(
+        title: String,
+        text: String,
+    ) {
         getSystemService(NotificationManager::class.java).notify(
             NOTIFICATION_ID,
             NotificationCompat

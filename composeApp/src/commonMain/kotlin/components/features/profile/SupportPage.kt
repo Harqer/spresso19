@@ -14,9 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SupportPage(
-    modifier: Modifier = Modifier,
-) {
+fun SupportPage(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

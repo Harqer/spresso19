@@ -98,20 +98,21 @@ actual fun MetaWearablesPage(
 
     var pendingExperience by remember { mutableStateOf<WearableExperience?>(null) }
     val requiresCamera = pendingExperience != WearableExperience.PREVIEW
-    val requiredAndroidPermissions = remember(requiresCamera) {
-        buildList {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                add(Manifest.permission.BLUETOOTH_CONNECT)
-            } else {
-                add(Manifest.permission.BLUETOOTH)
-                add(Manifest.permission.BLUETOOTH_ADMIN)
-            }
-            if (requiresCamera) {
-                add(Manifest.permission.CAMERA)
-                add(Manifest.permission.RECORD_AUDIO)
+    val requiredAndroidPermissions =
+        remember(requiresCamera) {
+            buildList {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    add(Manifest.permission.BLUETOOTH_CONNECT)
+                } else {
+                    add(Manifest.permission.BLUETOOTH)
+                    add(Manifest.permission.BLUETOOTH_ADMIN)
+                }
+                if (requiresCamera) {
+                    add(Manifest.permission.CAMERA)
+                    add(Manifest.permission.RECORD_AUDIO)
+                }
             }
         }
-    }
 
     var androidPermissionsGranted by remember(requiresCamera) {
         mutableStateOf(requiredAndroidPermissions.all { context.hasPermission(it) })
@@ -126,9 +127,10 @@ actual fun MetaWearablesPage(
     val androidPermissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
             androidPermissionRequestInFlight = false
-            androidPermissionsGranted = requiredAndroidPermissions.all { permission ->
-                results[permission] == true || context.hasPermission(permission)
-            }
+            androidPermissionsGranted =
+                requiredAndroidPermissions.all { permission ->
+                    results[permission] == true || context.hasPermission(permission)
+                }
             if (!androidPermissionsGranted) {
                 customerMessage = "Camera, microphone, and nearby-device access are needed to use Spresso with your glasses."
                 pendingExperience = null
@@ -405,20 +407,19 @@ actual fun MetaWearablesPage(
 }
 
 @Composable
-private fun rememberDeviceMetadata(
-    deviceIdentifiers: Set<DeviceIdentifier>,
-) = produceState<Map<DeviceIdentifier, Device>>(emptyMap(), deviceIdentifiers) {
-    value = value.filterKeys(deviceIdentifiers::contains)
-    coroutineScope {
-        deviceIdentifiers.forEach { identifier ->
-            launch {
-                Wearables.devicesMetadata[identifier]?.collect { device ->
-                    value = value + (identifier to device)
+private fun rememberDeviceMetadata(deviceIdentifiers: Set<DeviceIdentifier>) =
+    produceState<Map<DeviceIdentifier, Device>>(emptyMap(), deviceIdentifiers) {
+        value = value.filterKeys(deviceIdentifiers::contains)
+        coroutineScope {
+            deviceIdentifiers.forEach { identifier ->
+                launch {
+                    Wearables.devicesMetadata[identifier]?.collect { device ->
+                        value = value + (identifier to device)
+                    }
                 }
             }
         }
     }
-}
 
 private fun Context.hasPermission(permission: String): Boolean =
     ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED

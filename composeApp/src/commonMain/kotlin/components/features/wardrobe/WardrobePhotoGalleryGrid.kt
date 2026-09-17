@@ -68,7 +68,12 @@ fun LazyGridScope.wardrobePhotoGalleryGrid(
                 modifier = Modifier.fillMaxWidth().height(224.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)), // Dashed isn't natively supported easily, using solid with alpha
+                // Dashed isn't natively supported easily; use a translucent solid border.
+                border =
+                    BorderStroke(
+                        2.dp,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                    ),
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize(),

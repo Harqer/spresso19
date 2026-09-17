@@ -11,7 +11,6 @@ import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -454,9 +453,9 @@ class MainActivity : FragmentActivity() {
                             title = { Text("Location Collection Disclosure") },
                             text = {
                                 Text(
-                                    "Spresso collects your precise location to provide personalized, location-based product recommendations " +
-                                        "and realistic weather context during AI chat sessions. This location data is securely transmitted " +
-                                        "to our backend during your chat sessions.",
+                                    "Spresso collects your precise location to provide personalized, location-based product " +
+                                        "recommendations and realistic weather context during AI chat sessions. This location " +
+                                        "data is securely transmitted to our backend during your chat sessions.",
                                 )
                             },
                             confirmButton = {

@@ -5,9 +5,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,8 +72,8 @@ import network.models.GroceryItem
 import theme.AppTheme
 import theme.ThemeMode
 import ui.rememberImagePicker
-import viewmodels.ChatViewModel
 import viewmodels.CatalogViewModel
+import viewmodels.ChatViewModel
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -308,7 +308,8 @@ fun App(
                                 scope.launch {
                                     try {
                                         apiClient.recordInteraction(product.id, "add_to_cart")
-                                    } catch (_: Exception) { }
+                                    } catch (_: Exception) {
+                                    }
                                 }
                                 catalogViewModel.initiateCheckout(product)
                                 navigator.navigate(NavKey.HITLCheckoutKey)
@@ -484,18 +485,24 @@ fun App(
                             }
                         }
                         when {
-                            curationError != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text(curationError!!, color = MaterialTheme.colorScheme.error)
-                            }
-                            curatedProducts == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                            else -> AICurationFeed(
-                                curatedProducts = curatedProducts!!,
-                                httpClient = apiClient.client,
-                                onTryOnRequested = { product ->
-                                    activeProductId = product.id
-                                    pickImage()
-                                },
-                            )
+                            curationError != null ->
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text(curationError!!, color = MaterialTheme.colorScheme.error)
+                                }
+                            curatedProducts == null ->
+                                Box(
+                                    Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ) { CircularProgressIndicator() }
+                            else ->
+                                AICurationFeed(
+                                    curatedProducts = curatedProducts!!,
+                                    httpClient = apiClient.client,
+                                    onTryOnRequested = { product ->
+                                        activeProductId = product.id
+                                        pickImage()
+                                    },
+                                )
                         }
                     }
 
@@ -696,7 +703,8 @@ fun App(
                                         try {
                                             val response = apiClient.requestOrderReturn(currentDestinationKey.orderId, returnReason.trim())
                                             if (response["success"]?.jsonPrimitive?.boolean == true) {
-                                                returnResultMessage = "Your return request was submitted. We'll send the next steps when they are ready."
+                                                returnResultMessage =
+                                                    "Your return request was submitted. We'll send the next steps when they are ready."
                                                 navigator.replace(NavKey.OrderReturnResultKey(currentDestinationKey.orderId))
                                             } else {
                                                 returnError = "Unable to submit this return. Please try again."
@@ -727,16 +735,18 @@ fun App(
                         val payload by catalogViewModel.hitlCheckoutPayload.collectAsState()
                         val checkoutStatus by catalogViewModel.checkoutStatus.collectAsState()
                         when {
-                            payload != null -> MerchantHandoffDialog(
-                                payload = payload,
-                                onDismiss = {
-                                    catalogViewModel.dismissCheckout()
-                                    navigator.goBack()
-                                },
-                            )
-                            else -> ColumnWithRouteMessage(
-                                checkoutStatus ?: "Choose a product before starting checkout.",
-                            ) {}
+                            payload != null ->
+                                MerchantHandoffDialog(
+                                    payload = payload,
+                                    onDismiss = {
+                                        catalogViewModel.dismissCheckout()
+                                        navigator.goBack()
+                                    },
+                                )
+                            else ->
+                                ColumnWithRouteMessage(
+                                    checkoutStatus ?: "Choose a product before starting checkout.",
+                                ) {}
                         }
                     }
 

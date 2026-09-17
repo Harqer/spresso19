@@ -62,30 +62,32 @@ fun SmartVisionPage(
                                 // Lens results are canonical merchant listings. Keep the
                                 // legacy overlay shape only as a presentation adapter; the
                                 // listing remains the sole source of merchant/price data.
-                                val lensProducts = response.listings.map { listing ->
-                                    ProductItem(
-                                        id = listing.id,
-                                        name = listing.name,
-                                        brand = listing.brand.orEmpty(),
-                                        category = listing.category.orEmpty(),
-                                        price = listing.observedPrice?.amount,
-                                        imageUrl = listing.imageUrl.orEmpty(),
-                                        merchantUrl = listing.merchantUrl,
-                                        source = listing.source,
-                                        providerListingId = listing.providerListingId,
-                                    )
-                                }
+                                val lensProducts =
+                                    response.listings.map { listing ->
+                                        ProductItem(
+                                            id = listing.id,
+                                            name = listing.name,
+                                            brand = listing.brand.orEmpty(),
+                                            category = listing.category.orEmpty(),
+                                            price = listing.observedPrice?.amount,
+                                            imageUrl = listing.imageUrl.orEmpty(),
+                                            merchantUrl = listing.merchantUrl,
+                                            source = listing.source,
+                                            providerListingId = listing.providerListingId,
+                                        )
+                                    }
                                 inventory = (inventory + lensProducts).distinctBy { it.id }
-                                detectedItems = response.listings.map { listing ->
-                                    DetectedItem(
-                                        detectedName = listing.name,
-                                        brandGuess = listing.brand.orEmpty(),
-                                        category = listing.category.orEmpty(),
-                                        priceEstimate = listing.observedPrice?.amount ?: 0.0,
-                                        confidenceScore = listing.confidence ?: 0.0,
-                                        matchingCatalogId = listing.id,
-                                    )
-                                }
+                                detectedItems =
+                                    response.listings.map { listing ->
+                                        DetectedItem(
+                                            detectedName = listing.name,
+                                            brandGuess = listing.brand.orEmpty(),
+                                            category = listing.category.orEmpty(),
+                                            priceEstimate = listing.observedPrice?.amount ?: 0.0,
+                                            confidenceScore = listing.confidence ?: 0.0,
+                                            matchingCatalogId = listing.id,
+                                        )
+                                    }
                             } else {
                                 detectedItems = emptyList()
                                 snackbarHostState.showSnackbar("Visual search is unavailable right now.")

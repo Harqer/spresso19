@@ -16,8 +16,6 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import components.models.*
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.jsonPrimitive
 import network.ApiClient
 import network.models.OrderRecord
 
@@ -101,10 +99,14 @@ fun OrdersTrackerPage(
                         onSetReminder = { orderId ->
                             scope.launch {
                                 try {
-                                    val success = convexApi.setOrderReminder(
-                                        orderId = orderId,
-                                        reminderTime = kotlinx.datetime.Clock.System.now().toString(),
-                                    )
+                                    val success =
+                                        convexApi.setOrderReminder(
+                                            orderId = orderId,
+                                            reminderTime =
+                                                kotlinx.datetime.Clock.System
+                                                    .now()
+                                                    .toString(),
+                                        )
                                     if (success) {
                                         orders = orders.map { order -> if (order.id == orderId) order.copy(reminderSet = true) else order }
                                         onSetReminder(orderId)

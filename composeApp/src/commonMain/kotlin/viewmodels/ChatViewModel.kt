@@ -192,9 +192,7 @@ class ChatViewModel(
         }
     }
 
-    fun startVoiceStream(
-        onReceiveAudio: ((ByteArray) -> Unit)? = null,
-    ) {
+    fun startVoiceStream(onReceiveAudio: ((ByteArray) -> Unit)? = null) {
         isVoiceActive = true
         isVoiceListening = true
         isVoiceSpeaking = false

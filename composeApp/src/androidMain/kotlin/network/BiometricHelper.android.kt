@@ -98,8 +98,15 @@ actual suspend fun promptBiometricAuth(
                                             ""
                                         }
 
-                                    val escapedPayload = payload.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
-                                    val jsonString = "{\"payload\":\"${escapedPayload}\",\"signature\":\"$base64Sig\",\"publicKey\":\"$base64PubKey\"}"
+                                    val escapedPayload =
+                                        payload
+                                            .replace("\\", "\\\\")
+                                            .replace("\"", "\\\"")
+                                            .replace("\n", "\\n")
+                                    val jsonString =
+                                        "{\"payload\":\"${escapedPayload}\"," +
+                                            "\"signature\":\"$base64Sig\"," +
+                                            "\"publicKey\":\"$base64PubKey\"}"
                                     val token =
                                         android.util.Base64.encodeToString(
                                             jsonString.toByteArray(Charsets.UTF_8),

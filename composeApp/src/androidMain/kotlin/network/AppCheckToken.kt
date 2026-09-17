@@ -12,8 +12,7 @@ actual suspend fun getCurrentAppCheckToken(): String? =
                 .getLimitedUseToken()
                 .addOnSuccessListener { result ->
                     if (continuation.isActive) continuation.resume(result.token)
-                }
-                .addOnFailureListener {
+                }.addOnFailureListener {
                     if (continuation.isActive) continuation.resume(null)
                 }
         } catch (e: Exception) {

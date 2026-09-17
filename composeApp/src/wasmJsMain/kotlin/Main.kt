@@ -72,7 +72,7 @@ private fun handlePhoneSignIn() {
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     ComposeViewport(document.body!!) {
-        app(
+        App(
             onShare = ::ignoreShare,
             onGoogleSignInRequested = ::handleGoogleSignIn,
             onPhoneSignInRequested = ::handlePhoneSignIn,

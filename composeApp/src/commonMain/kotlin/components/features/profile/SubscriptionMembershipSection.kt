@@ -68,7 +68,8 @@ fun SubscriptionMembershipSection(
                 text =
                     when (currentTier) {
                         SubscriptionTier.FREE -> "Upgrade to Spresso VIP for free shipping and priority AI recommendations."
-                        SubscriptionTier.SPRESSO_VIP -> "Enjoy unlimited free delivery, 5% cashback on grocery plans, and 24/7 AI shopping support."
+                        SubscriptionTier.SPRESSO_VIP ->
+                            "Enjoy unlimited free delivery, 5% cashback on grocery plans, and 24/7 AI shopping support."
                         SubscriptionTier.CHEF_PRO -> "Get full cooking help, grocery planning, and shopping support."
                     },
                 style = MaterialTheme.typography.bodyMedium,

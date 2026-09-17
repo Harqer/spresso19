@@ -55,7 +55,7 @@ fun WardrobeHeaderBanner(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SpressoButton(
                     text = "Lens",
@@ -64,7 +64,7 @@ fun WardrobeHeaderBanner(
                     icon = Icons.Default.CenterFocusWeak,
                     trackingId = "wardrobe_view",
                     trackingAction = "click_screen_lens",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
 
                 SpressoButton(
@@ -74,7 +74,7 @@ fun WardrobeHeaderBanner(
                     icon = Icons.Default.Add,
                     trackingId = "wardrobe_view",
                     trackingAction = "click_add_look",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
             }
         }

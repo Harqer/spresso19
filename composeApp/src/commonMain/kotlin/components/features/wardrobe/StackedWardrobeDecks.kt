@@ -61,30 +61,30 @@ fun StackedWardrobeDecks(
                 }
             decks =
                 wardrobeDecks +
-                    if (products.isNotEmpty()) {
-                        listOf(
-                            ComposeWardrobeDeck(
-                                id = "recommendations",
-                                title = "Recommended for you",
-                                subtitle = "Products selected from your live recommendations",
-                                products = products,
-                            ),
-                        )
-                    } else {
-                        emptyList()
-                    } +
-                    if (likedProducts.isNotEmpty()) {
-                        listOf(
-                            ComposeWardrobeDeck(
-                                id = "liked",
-                                title = "Your liked styles",
-                                subtitle = "Liked pieces to inspire your outfit",
-                                products = likedProducts,
-                            ),
-                        )
-                    } else {
-                        emptyList()
-                    }
+                if (products.isNotEmpty()) {
+                    listOf(
+                        ComposeWardrobeDeck(
+                            id = "recommendations",
+                            title = "Recommended for you",
+                            subtitle = "Products selected from your live recommendations",
+                            products = products,
+                        ),
+                    )
+                } else {
+                    emptyList()
+                } +
+                if (likedProducts.isNotEmpty()) {
+                    listOf(
+                        ComposeWardrobeDeck(
+                            id = "liked",
+                            title = "Your liked styles",
+                            subtitle = "Liked pieces to inspire your outfit",
+                            products = likedProducts,
+                        ),
+                    )
+                } else {
+                    emptyList()
+                }
             expandedDeckId = decks.firstOrNull()?.id
         } catch (e: Exception) {
             errorMessage = "Unable to load your wardrobe collections. Please try again."
@@ -124,12 +124,18 @@ fun StackedWardrobeDecks(
 
         when {
             isLoading -> Text("Loading your wardrobe…", style = MaterialTheme.typography.bodyMedium)
-            errorMessage != null -> Text(errorMessage!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
-            decks.isEmpty() -> Text(
-                "No wardrobe collections yet. Add a look to start building your wardrobe.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            errorMessage != null ->
+                Text(
+                    errorMessage!!,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            decks.isEmpty() ->
+                Text(
+                    "No wardrobe collections yet. Add a look to start building your wardrobe.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
         }
 
         decks.forEach { deck ->
@@ -151,7 +157,11 @@ fun StackedWardrobeDecks(
                             Column(modifier = Modifier.weight(1f, fill = false)) {
                                 Text(deck.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                                 if (deck.subtitle.isNotBlank()) {
-                                    Text(deck.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        deck.subtitle,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
                                 }
                                 Text(
                                     "${deck.products.size} ${if (deck.products.size == 1) "item" else "items"}",
@@ -179,15 +189,22 @@ fun StackedWardrobeDecks(
                                         Text(
                                             listOfNotNull(
                                                 product.brand.takeIf { it.isNotBlank() },
-                                                product.price?.let { "$${it}" },
+                                                product.price?.let { "$$it" },
                                             ).joinToString(" · "),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                         product.rating?.takeIf { it > 0.0 }?.let { rating ->
-                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                Icon(Icons.Default.Star, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary,
-                                                    modifier = Modifier.size(16.dp))
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Star,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.tertiary,
+                                                    modifier = Modifier.size(16.dp),
+                                                )
                                                 Text(rating.toString(), style = MaterialTheme.typography.bodySmall)
                                             }
                                         }

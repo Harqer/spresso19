@@ -197,7 +197,8 @@ open class LiveApiClient {
                 val ephemeralToken =
                     tokenJson.jsonObject["token"]?.jsonPrimitive?.content ?: error("Failed to retrieve ephemeral token")
                 // Gemini Interactions Live API Endpoint
-                val wsUrl = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=$ephemeralToken"
+                val wsUrl =
+                    "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=$ephemeralToken"
 
                 client.webSocket(
                     urlString = wsUrl,

@@ -1,8 +1,8 @@
 package navigation
 
 object ActionDestination {
-    fun resolve(action: SpressoAction): NavKey {
-        return when (action) {
+    fun resolve(action: SpressoAction): NavKey =
+        when (action) {
             is SpressoAction.OpenProduct -> NavKey.ProductDetailKey(action.productId.requireIdentifier("productId"))
             is SpressoAction.SaveListing -> NavKey.WardrobeMainKey
             is SpressoAction.AddToCart -> NavKey.ProductDetailKey(action.listingId.requireIdentifier("listingId"))
@@ -14,8 +14,6 @@ object ActionDestination {
             SpressoAction.OpenPaymentWallet -> NavKey.PaymentWalletKey
             SpressoAction.OpenWearables -> NavKey.MetaWearablesKey
         }
-    }
 
-    private fun String.requireIdentifier(name: String): String =
-        trim().also { require(it.isNotEmpty()) { "$name must not be empty" } }
+    private fun String.requireIdentifier(name: String): String = trim().also { require(it.isNotEmpty()) { "$name must not be empty" } }
 }

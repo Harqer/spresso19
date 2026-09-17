@@ -78,7 +78,12 @@ fun AIShopperInputBar(
                     Icon(Icons.Default.Add, "Attach", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
                 }
                 IconButton(onClick = { onRequestLocationPermission?.invoke() }) {
-                    Icon(Icons.Default.LocationOn, "Set Location", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+                    Icon(
+                        Icons.Default.LocationOn,
+                        "Set Location",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
+                    )
                 }
                 Box(
                     modifier =

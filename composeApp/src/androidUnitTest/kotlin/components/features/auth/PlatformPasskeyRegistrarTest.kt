@@ -5,76 +5,80 @@ import androidx.credentials.exceptions.CreateCredentialCancellationException
 import androidx.credentials.exceptions.CreateCredentialProviderConfigurationException
 import components.features.catalog.DiscoveredListing
 import components.features.catalog.MerchantHandoffState
+import kotlinx.coroutines.test.runTest
+import org.junit.runner.RunWith
+import org.robolectric.Robolectric
+import org.robolectric.RobolectricTestRunner
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import kotlinx.coroutines.test.runTest
-import org.robolectric.Robolectric
-import org.robolectric.RobolectricTestRunner
-import org.junit.runner.RunWith
 
 @RunWith(RobolectricTestRunner::class)
 class PlatformPasskeyRegistrarTest {
     @Test
-    fun returnsRegistrationResponseAfterCredentialManagerCreatesPasskey() = runTest {
-        val registrar =
-            PlatformPasskeyRegistrar(activity) {
-                CreatePublicKeyCredentialResponse("""{"id":"credential-123","type":"public-key"}""")
-            }
+    fun returnsRegistrationResponseAfterCredentialManagerCreatesPasskey() =
+        runTest {
+            val registrar =
+                PlatformPasskeyRegistrar(activity) {
+                    CreatePublicKeyCredentialResponse("""{"id":"credential-123","type":"public-key"}""")
+                }
 
-        val result =
-            registrar.register(
-                PasskeyRegistrationRequest.Ready(
-                    requestJson = requestJson,
-                    completeRegistration = { PasskeyRegistrationResult.Registered },
-                ),
-            )
+            val result =
+                registrar.register(
+                    PasskeyRegistrationRequest.Ready(
+                        requestJson = requestJson,
+                        completeRegistration = { PasskeyRegistrationResult.Registered },
+                    ),
+                )
 
-        assertEquals(PasskeyRegistrationResult.Registered, result)
-    }
-
-    @Test
-    fun returnsCancelledWhenUserDismissesCredentialManager() = runTest {
-        val registrar =
-            PlatformPasskeyRegistrar(activity) {
-                throw CreateCredentialCancellationException()
-            }
-
-        val result = registrar.register(PasskeyRegistrationRequest.Ready(requestJson) { PasskeyRegistrationResult.Registered })
-
-        assertEquals(PasskeyRegistrationResult.Cancelled, result)
-    }
+            assertEquals(PasskeyRegistrationResult.Registered, result)
+        }
 
     @Test
-    fun returnsProviderFailureWhenCredentialProviderIsUnavailable() = runTest {
-        val registrar =
-            PlatformPasskeyRegistrar(activity) {
-                throw CreateCredentialProviderConfigurationException()
-            }
+    fun returnsCancelledWhenUserDismissesCredentialManager() =
+        runTest {
+            val registrar =
+                PlatformPasskeyRegistrar(activity) {
+                    throw CreateCredentialCancellationException()
+                }
 
-        val result = registrar.register(PasskeyRegistrationRequest.Ready(requestJson) { PasskeyRegistrationResult.Registered })
+            val result = registrar.register(PasskeyRegistrationRequest.Ready(requestJson) { PasskeyRegistrationResult.Registered })
 
-        assertIs<PasskeyRegistrationResult.ProviderFailure>(result)
-    }
+            assertEquals(PasskeyRegistrationResult.Cancelled, result)
+        }
 
     @Test
-    fun missingRegistrationBackendDoesNotCompleteOnboardingOrInvokeCredentialManager() = runTest {
-        var credentialManagerInvoked = false
-        val registrar =
-            PlatformPasskeyRegistrar(activity) {
-                credentialManagerInvoked = true
-                error("Credential Manager must not run without server registration options")
-            }
+    fun returnsProviderFailureWhenCredentialProviderIsUnavailable() =
+        runTest {
+            val registrar =
+                PlatformPasskeyRegistrar(activity) {
+                    throw CreateCredentialProviderConfigurationException()
+                }
 
-        val result = registrar.register(PasskeyRegistrationRequest.BackendUnavailable)
-        val state = PasskeyRegistrationState().after(result)
+            val result = registrar.register(PasskeyRegistrationRequest.Ready(requestJson) { PasskeyRegistrationResult.Registered })
 
-        assertEquals(PasskeyRegistrationResult.BackendUnavailable, result)
-        assertFalse(credentialManagerInvoked)
-        assertFalse(state.isCompleted)
-    }
+            assertIs<PasskeyRegistrationResult.ProviderFailure>(result)
+        }
+
+    @Test
+    fun missingRegistrationBackendDoesNotCompleteOnboardingOrInvokeCredentialManager() =
+        runTest {
+            var credentialManagerInvoked = false
+            val registrar =
+                PlatformPasskeyRegistrar(activity) {
+                    credentialManagerInvoked = true
+                    error("Credential Manager must not run without server registration options")
+                }
+
+            val result = registrar.register(PasskeyRegistrationRequest.BackendUnavailable)
+            val state = PasskeyRegistrationState().after(result)
+
+            assertEquals(PasskeyRegistrationResult.BackendUnavailable, result)
+            assertFalse(credentialManagerInvoked)
+            assertFalse(state.isCompleted)
+        }
 
     @Test
     fun biometricApprovalDoesNotCreatePurchaseSuccess() {

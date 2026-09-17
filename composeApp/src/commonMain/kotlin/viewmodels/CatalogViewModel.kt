@@ -20,6 +20,7 @@ class CatalogViewModel(
 
     private val _checkoutStatus = MutableStateFlow<String?>(null)
     val checkoutStatus: StateFlow<String?> = _checkoutStatus.asStateFlow()
+
     fun clearCheckoutStatus() {
         _checkoutStatus.value = null
     }

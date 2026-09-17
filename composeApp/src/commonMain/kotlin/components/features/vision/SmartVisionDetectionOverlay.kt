@@ -53,7 +53,8 @@ fun SmartVisionDetectionOverlay(
     Box(
         modifier =
             Modifier
-                .absoluteOffset(x = boxLeft, y = boxTop) // The absoluteOffset must be handled by caller if it's in BoxWithConstraints, but we'll use simple Box
+                // The caller supplies the containing Box coordinates.
+                .absoluteOffset(x = boxLeft, y = boxTop)
                 .size(width = boxWidth, height = boxHeight),
     ) {
         Box(
@@ -135,7 +136,8 @@ fun SmartVisionDetectionOverlay(
                                         }
                                         onHitlCheckout(
                                             HITLPayload(
-                                                authorizationId = "authorization-$productId-${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}",
+                                                authorizationId =
+                                                    "authorization-$productId-${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}",
                                                 product =
                                                     HITLProduct(
                                                         id = productId,

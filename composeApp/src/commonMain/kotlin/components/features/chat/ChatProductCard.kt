@@ -7,7 +7,6 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import components.models.*
 import io.ktor.client.HttpClient
 import network.ProductItem

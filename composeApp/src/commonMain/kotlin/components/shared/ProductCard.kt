@@ -35,9 +35,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import components.core.NetworkImage
-import utils.toPriceString
 import io.ktor.client.HttpClient
 import network.ProductItem
+import utils.toPriceString
 
 @Composable
 fun ProductCard(

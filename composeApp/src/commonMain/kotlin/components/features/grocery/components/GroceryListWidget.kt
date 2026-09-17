@@ -10,12 +10,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import utils.toPriceString
 import components.models.*
 import components.shared.widgets.SpressoListItem
 import kotlinx.coroutines.launch
 import network.ApiClient
 import network.models.GroceryItem
+import utils.toPriceString
 
 @Composable
 fun GroceryListWidget(
@@ -93,7 +93,16 @@ fun GroceryListWidget(
                             scope.launch {
                                 try {
                                     convexApi.setGroceryChecked(item.id, !item.checked)
-                                    items = items.map { current -> if (current.id == item.id) current.copy(checked = !current.checked) else current }
+                                    items =
+                                        items.map { current ->
+                                            if (current.id ==
+                                                item.id
+                                            ) {
+                                                current.copy(checked = !current.checked)
+                                            } else {
+                                                current
+                                            }
+                                        }
                                 } catch (e: Exception) {
                                     snackbarHostState.showSnackbar("Unable to update this item. Please try again.")
                                 }
@@ -104,7 +113,11 @@ fun GroceryListWidget(
                                 IconButton(onClick = {
                                     onAskAI("Find deals for ${item.name}")
                                 }) {
-                                    Icon(Icons.Default.AutoAwesome, contentDescription = "Ask Spresso", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(
+                                        Icons.Default.AutoAwesome,
+                                        contentDescription = "Ask Spresso",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
                                 }
                                 IconButton(onClick = {
                                     scope.launch {

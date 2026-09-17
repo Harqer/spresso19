@@ -74,8 +74,6 @@ fun TravelTripsPage(
     val scope = rememberCoroutineScope()
     var activeQrModalEvent by remember { mutableStateOf<ItineraryEvent?>(null) }
 
-
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
@@ -130,13 +128,14 @@ fun TravelTripsPage(
                             onAddExpense = { expense ->
                                 scope.launch {
                                     try {
-                                        val saved = convexApi.addTravelExpense(
-                                            tripId = activeTripId,
-                                            amount = expense.amount,
-                                            currency = expense.currency,
-                                            category = expense.category,
-                                            merchant = expense.merchant,
-                                        )
+                                        val saved =
+                                            convexApi.addTravelExpense(
+                                                tripId = activeTripId,
+                                                amount = expense.amount,
+                                                currency = expense.currency,
+                                                category = expense.category,
+                                                merchant = expense.merchant,
+                                            )
                                         check(saved) { "Expense was not saved." }
                                         val refreshed = apiClient.fetchTravelExpenses(activeTripId)
                                         expenses = expenses.filterNot { it.tripId == activeTripId } + refreshed

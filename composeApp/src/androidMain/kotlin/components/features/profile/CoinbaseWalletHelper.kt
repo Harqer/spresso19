@@ -58,11 +58,12 @@ object CoinbaseWalletManager {
         try {
             pendingCallback = onResult
             pendingApiClient = apiClient
-            val client = CoinbaseWalletSDK(
-                Uri.parse(CALLBACK_URL),
-                targetActivity.applicationContext,
-                "Spresso",
-            ) { intent -> targetActivity.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            val client =
+                CoinbaseWalletSDK(
+                    Uri.parse(CALLBACK_URL),
+                    targetActivity.applicationContext,
+                    "Spresso",
+                ) { intent -> targetActivity.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
             sdk = client
             val requestAccounts = Web3JsonRPC.RequestAccounts().action(false)
             client.initiateHandshake(listOf(requestAccounts)) { result, account ->

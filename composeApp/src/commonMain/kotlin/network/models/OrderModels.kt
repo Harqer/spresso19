@@ -61,9 +61,7 @@ data class HITLPayload(
     val humanInTheLoopChallenge: HITLChallenge? = null,
 )
 
-fun DetectedItem.toHITLPayload(
-    authorizationId: String = "AUTH-LENS-${this.hashCode()}",
-): HITLPayload {
+fun DetectedItem.toHITLPayload(authorizationId: String = "AUTH-LENS-${this.hashCode()}"): HITLPayload {
     val safePrice = priceEstimate ?: 0.0
     return HITLPayload(
         authorizationId = authorizationId,

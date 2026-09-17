@@ -100,15 +100,16 @@ fun WardrobeViewPage(
             stylingLoading = true
             val outfit =
                 apiClient.generateOutfit(
-                    items = photos.map { photo ->
-                        network.WardrobeItemData(
-                            id = photo.id,
-                            category = photo.category,
-                            brand = photo.title,
-                            imageUrl = photo.photoUrl,
-                            color = null,
-                        )
-                    },
+                    items =
+                        photos.map { photo ->
+                            network.WardrobeItemData(
+                                id = photo.id,
+                                category = photo.category,
+                                brand = photo.title,
+                                imageUrl = photo.photoUrl,
+                                color = null,
+                            )
+                        },
                     weatherCondition = activeSeason ?: "All seasons",
                     temperatureText = temperatureText ?: "",
                     userLocation = currentLatLng?.let { "${it.first},${it.second}" },

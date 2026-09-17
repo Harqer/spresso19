@@ -185,7 +185,10 @@ abstract class BaseSpressoAppFunctionService : AppFunctionService() {
             }
 
             val query = "${params.size} ${params.coffeeType}".lowercase()
-            val products = SpressoConnectorConnector.instance.listProducts.execute().data.products
+            val products =
+                SpressoConnectorConnector.instance.listProducts
+                    .execute()
+                    .data.products
             val product =
                 products.firstOrNull {
                     val searchable = "${it.name} ${it.brand} ${it.category} ${it.description.orEmpty()}".lowercase()
@@ -238,7 +241,9 @@ abstract class BaseSpressoAppFunctionService : AppFunctionService() {
                     color = params.color
                 }
             SaveWardrobeItemResult(
-                itemId = mutation.data.wardrobeItem_insert.id.toString(),
+                itemId =
+                    mutation.data.wardrobeItem_insert.id
+                        .toString(),
                 confirmationMessage = "Saved ${params.itemName} to your ${params.category.lowercase()} items.",
             )
         }
@@ -362,7 +367,9 @@ abstract class BaseSpressoAppFunctionService : AppFunctionService() {
 
             val query = params.query.trim().lowercase()
             val products =
-                SpressoConnectorConnector.instance.listProducts.execute().data.products
+                SpressoConnectorConnector.instance.listProducts
+                    .execute()
+                    .data.products
                     .filter {
                         "${it.name} ${it.brand} ${it.category} ${it.description.orEmpty()}".lowercase().contains(query)
                     }.take(5)

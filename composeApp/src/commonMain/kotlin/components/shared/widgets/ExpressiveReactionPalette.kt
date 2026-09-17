@@ -62,13 +62,13 @@ fun ExpressiveReactionPalette(
                 REACTION_ICONS.forEach { icon ->
                     IconButton(
                         onClick = { onReactionSelected(icon) },
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(48.dp),
                     ) {
                         Icon(
                             imageVector = icon,
                             contentDescription = icon.name,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(24.dp),
                         )
                     }
                 }

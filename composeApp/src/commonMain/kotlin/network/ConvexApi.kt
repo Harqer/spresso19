@@ -1,5 +1,8 @@
 package network
 
+import components.features.catalog.DiscoveredListing
+import components.features.catalog.ObservedPrice
+import components.features.catalog.toProductItem
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
@@ -23,9 +26,6 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import network.models.OrderItem
 import network.models.OrderRecord
-import components.features.catalog.DiscoveredListing
-import components.features.catalog.ObservedPrice
-import components.features.catalog.toProductItem
 
 /**
  * Convex transport for the KMP clients.
@@ -38,8 +38,9 @@ import components.features.catalog.toProductItem
  * the caller's Firebase ID token, which Convex verifies against
  * `auth.config.ts` before any domain function runs.
  */
-class ConvexApi(private val idTokenProvider: suspend () -> String? = { getCurrentUserIdToken() }) {
-
+class ConvexApi(
+    private val idTokenProvider: suspend () -> String? = { getCurrentUserIdToken() },
+) {
     private val json = Json { ignoreUnknownKeys = true }
     private val client: HttpClient
         get() = sharedClient
@@ -50,19 +51,30 @@ class ConvexApi(private val idTokenProvider: suspend () -> String? = { getCurren
         return response.requireBody()
     }
 
-    private suspend fun post(path: String, body: JsonObject): String {
-        val response = client.post("$baseUrl$path") {
-            contentType(ContentType.Application.Json)
-            attachAuth()
-            setBody(body.toString())
-        }
+    private suspend fun post(
+        path: String,
+        body: JsonObject,
+    ): String {
+        val response =
+            client.post("$baseUrl$path") {
+                contentType(ContentType.Application.Json)
+                attachAuth()
+                setBody(body.toString())
+            }
         return response.requireBody()
     }
 
     private suspend fun HttpResponse.requireBody(): String {
         val body = bodyAsText()
         if (status.value !in 200..299) {
-            val message = runCatching { json.parseToJsonElement(body).jsonObject["error"]?.jsonPrimitive?.content }.getOrNull()
+            val message =
+                runCatching {
+                    json
+                        .parseToJsonElement(body)
+                        .jsonObject["error"]
+                        ?.jsonPrimitive
+                        ?.content
+                }.getOrNull()
             throw IllegalStateException(message ?: "Convex request failed (${status.value}).")
         }
         return body
@@ -75,11 +87,15 @@ class ConvexApi(private val idTokenProvider: suspend () -> String? = { getCurren
 
     // ---- Discovery: external-provider search + preference-derived feed ----
 
-    suspend fun searchProducts(query: String, location: String? = null): List<ProductItem> {
-        val body = buildJsonObject {
-            put("query", query)
-            if (!location.isNullOrBlank()) put("location", location)
-        }
+    suspend fun searchProducts(
+        query: String,
+        location: String? = null,
+    ): List<ProductItem> {
+        val body =
+            buildJsonObject {
+                put("query", query)
+                if (!location.isNullOrBlank()) put("location", location)
+            }
         val response = json.parseToJsonElement(post("/api/discovery/search", body)).jsonObject
         return response["listings"]?.jsonArray?.mapNotNull { element ->
             runCatching { json.decodeFromString<DiscoveredListing>(element.toString()).toProductItem() }.getOrNull()
@@ -108,28 +124,40 @@ class ConvexApi(private val idTokenProvider: suspend () -> String? = { getCurren
         } ?: emptyList()
     }
 
-    suspend fun setSavedProduct(product: ProductItem, saved: Boolean): Boolean {
-        val listing = DiscoveredListing(
-            id = product.id,
-            name = product.name,
-            brand = product.brand.ifBlank { null },
-            category = product.category.ifBlank { null },
-            imageUrl = product.imageUrl.ifBlank { null },
-            merchantUrl = product.merchantUrl ?: throw IllegalArgumentException("A merchant URL is required to save a listing."),
-            source = product.source ?: "parallel",
-            providerListingId = product.providerListingId,
-            observedPrice = product.price?.let { ObservedPrice(it, "USD", product.merchantUrl) },
-            discoveredAt = kotlinx.datetime.Clock.System.now().toString(),
-        )
+    suspend fun setSavedProduct(
+        product: ProductItem,
+        saved: Boolean,
+    ): Boolean {
+        val listing =
+            DiscoveredListing(
+                id = product.id,
+                name = product.name,
+                brand = product.brand.ifBlank { null },
+                category = product.category.ifBlank { null },
+                imageUrl = product.imageUrl.ifBlank { null },
+                merchantUrl = product.merchantUrl ?: throw IllegalArgumentException("A merchant URL is required to save a listing."),
+                source = product.source ?: "parallel",
+                providerListingId = product.providerListingId,
+                observedPrice = product.price?.let { ObservedPrice(it, "USD", product.merchantUrl) },
+                discoveredAt =
+                    kotlinx.datetime.Clock.System
+                        .now()
+                        .toString(),
+            )
         return setSavedListing(product.id, saved, listing)
     }
 
-    suspend fun setSavedListing(productId: String, saved: Boolean, listing: DiscoveredListing? = null): Boolean {
-        val body = buildJsonObject {
-            put("productId", productId)
-            put("saved", saved)
-            if (listing != null) put("listing", json.parseToJsonElement(json.encodeToString(listing)))
-        }
+    suspend fun setSavedListing(
+        productId: String,
+        saved: Boolean,
+        listing: DiscoveredListing? = null,
+    ): Boolean {
+        val body =
+            buildJsonObject {
+                put("productId", productId)
+                put("saved", saved)
+                if (listing != null) put("listing", json.parseToJsonElement(json.encodeToString(listing)))
+            }
         val response = json.parseToJsonElement(post("/api/saved", body)).jsonObject
         return response["success"]?.jsonPrimitive?.boolean == true
     }
@@ -142,30 +170,33 @@ class ConvexApi(private val idTokenProvider: suspend () -> String? = { getCurren
             runCatching {
                 val obj = element.jsonObject
                 val listing = obj["listing"]?.jsonObject
-                val product = DiscoveredListing(
-                    id = listing?.get("id")?.jsonPrimitive?.content ?: obj["listingId"]?.jsonPrimitive?.content ?: "",
-                    name = listing?.get("name")?.jsonPrimitive?.content ?: "",
-                    merchantUrl = listing?.get("merchantUrl")?.jsonPrimitive?.content ?: "",
-                    source = listing?.get("source")?.jsonPrimitive?.content ?: "parallel",
-                    imageUrl = listing?.get("imageUrl")?.jsonPrimitive?.content,
-                    category = listing?.get("category")?.jsonPrimitive?.content,
-                    observedPrice = listing?.get("observedPrice")?.jsonObject?.let { price ->
-                        ObservedPrice(
-                            amount = price["amount"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0,
-                            currency = price["currency"]?.jsonPrimitive?.content ?: "USD",
-                            evidenceUrl = price["evidenceUrl"]?.jsonPrimitive?.content ?: "",
-                        )
-                    },
-                    discoveredAt = listing?.get("discoveredAt")?.jsonPrimitive?.content ?: "",
-                )
+                val product =
+                    DiscoveredListing(
+                        id = listing?.get("id")?.jsonPrimitive?.content ?: obj["listingId"]?.jsonPrimitive?.content ?: "",
+                        name = listing?.get("name")?.jsonPrimitive?.content ?: "",
+                        merchantUrl = listing?.get("merchantUrl")?.jsonPrimitive?.content ?: "",
+                        source = listing?.get("source")?.jsonPrimitive?.content ?: "parallel",
+                        imageUrl = listing?.get("imageUrl")?.jsonPrimitive?.content,
+                        category = listing?.get("category")?.jsonPrimitive?.content,
+                        observedPrice =
+                            listing?.get("observedPrice")?.jsonObject?.let { price ->
+                                ObservedPrice(
+                                    amount = price["amount"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0,
+                                    currency = price["currency"]?.jsonPrimitive?.content ?: "USD",
+                                    evidenceUrl = price["evidenceUrl"]?.jsonPrimitive?.content ?: "",
+                                )
+                            },
+                        discoveredAt = listing?.get("discoveredAt")?.jsonPrimitive?.content ?: "",
+                    )
                 OrderRecord(
                     id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null,
-                    items = listOf(
-                        OrderItem(
-                            product = product.toProductItem(),
-                            quantity = obj["quantity"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1,
+                    items =
+                        listOf(
+                            OrderItem(
+                                product = product.toProductItem(),
+                                quantity = obj["quantity"]?.jsonPrimitive?.content?.toIntOrNull() ?: 1,
+                            ),
                         ),
-                    ),
                     totalAmount = (obj["amountCents"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0) / 100.0,
                     status = obj["status"]?.jsonPrimitive?.content ?: "",
                     trackingStatus = obj["trackingStatus"]?.jsonPrimitive?.content,
@@ -182,20 +213,28 @@ class ConvexApi(private val idTokenProvider: suspend () -> String? = { getCurren
         } ?: emptyList()
     }
 
-    suspend fun setOrderReminder(orderId: String, reminderTime: String): Boolean {
-        val body = buildJsonObject {
-            put("orderId", orderId)
-            put("reminderTime", reminderTime)
-        }
+    suspend fun setOrderReminder(
+        orderId: String,
+        reminderTime: String,
+    ): Boolean {
+        val body =
+            buildJsonObject {
+                put("orderId", orderId)
+                put("reminderTime", reminderTime)
+            }
         val response = json.parseToJsonElement(post("/api/orders/reminder", body)).jsonObject
         return response["success"]?.jsonPrimitive?.boolean == true
     }
 
-    suspend fun requestOrderReturn(orderId: String, reason: String): Boolean {
-        val body = buildJsonObject {
-            put("orderId", orderId)
-            put("reason", reason)
-        }
+    suspend fun requestOrderReturn(
+        orderId: String,
+        reason: String,
+    ): Boolean {
+        val body =
+            buildJsonObject {
+                put("orderId", orderId)
+                put("reason", reason)
+            }
         val response = json.parseToJsonElement(post("/api/orders/return", body)).jsonObject
         return response["success"]?.jsonPrimitive?.boolean == true
     }
@@ -209,28 +248,37 @@ class ConvexApi(private val idTokenProvider: suspend () -> String? = { getCurren
         } ?: emptyList()
     }
 
-    suspend fun addGroceryItem(name: String, category: String = "Other"): Boolean {
-        val body = buildJsonObject {
-            put("name", name)
-            put("category", category)
-        }
+    suspend fun addGroceryItem(
+        name: String,
+        category: String = "Other",
+    ): Boolean {
+        val body =
+            buildJsonObject {
+                put("name", name)
+                put("category", category)
+            }
         val response = json.parseToJsonElement(post("/api/grocery/item", body)).jsonObject
         return response["success"]?.jsonPrimitive?.boolean == true
     }
 
-    suspend fun setGroceryChecked(itemId: String, checked: Boolean): Boolean {
-        val body = buildJsonObject {
-            put("itemId", itemId)
-            put("checked", checked)
-        }
+    suspend fun setGroceryChecked(
+        itemId: String,
+        checked: Boolean,
+    ): Boolean {
+        val body =
+            buildJsonObject {
+                put("itemId", itemId)
+                put("checked", checked)
+            }
         val response = json.parseToJsonElement(post("/api/grocery/checked", body)).jsonObject
         return response["success"]?.jsonPrimitive?.boolean == true
     }
 
     suspend fun removeGroceryItem(itemId: String): Boolean {
-        val body = buildJsonObject {
-            put("itemId", itemId)
-        }
+        val body =
+            buildJsonObject {
+                put("itemId", itemId)
+            }
         val response = json.parseToJsonElement(post("/api/grocery/remove", body)).jsonObject
         return response["success"]?.jsonPrimitive?.boolean == true
     }
@@ -256,13 +304,14 @@ class ConvexApi(private val idTokenProvider: suspend () -> String? = { getCurren
         category: String,
         merchant: String,
     ): Boolean {
-        val body = buildJsonObject {
-            put("tripId", tripId)
-            put("amount", amount)
-            put("currency", currency)
-            put("category", category)
-            put("merchant", merchant)
-        }
+        val body =
+            buildJsonObject {
+                put("tripId", tripId)
+                put("amount", amount)
+                put("currency", currency)
+                put("category", category)
+                put("merchant", merchant)
+            }
         val response = json.parseToJsonElement(post("/api/travel/expense", body)).jsonObject
         return response["success"]?.jsonPrimitive?.boolean == true
     }

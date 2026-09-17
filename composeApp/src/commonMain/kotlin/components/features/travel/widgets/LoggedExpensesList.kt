@@ -16,14 +16,14 @@ import components.models.TravelExpense
 @Composable
 fun LoggedExpensesList(
     tripExpenses: List<TravelExpense>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var showAll by remember { mutableStateOf(false) }
     val displayList = if (showAll) tripExpenses else tripExpenses.take(5)
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
@@ -33,7 +33,7 @@ fun LoggedExpensesList(
             text = "LOGGED EXPENSES",
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.semantics { heading() }
+            modifier = Modifier.semantics { heading() },
         )
 
         if (tripExpenses.isEmpty()) {
@@ -41,7 +41,7 @@ fun LoggedExpensesList(
                 text = "No expenses logged yet. Scan a receipt or add manually.",
                 style = MaterialTheme.typography.bodySmall,
                 fontStyle = FontStyle.Italic,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -55,11 +55,11 @@ fun LoggedExpensesList(
             if (tripExpenses.size > 5 && !showAll) {
                 TextButton(
                     onClick = { showAll = true },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
                 ) {
                     Text(
                         text = "View All (\${tripExpenses.size})",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     )
                 }
             }

@@ -78,9 +78,13 @@ fun CategoryTilesBar(
                             .size(
                                 40.dp,
                             ).background(
-                                if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(
-                                    alpha = 0.2f,
-                                ) else MaterialTheme.colorScheme.surface,
+                                if (isSelected) {
+                                    MaterialTheme.colorScheme.onPrimary.copy(
+                                        alpha = 0.2f,
+                                    )
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
                                 CircleShape,
                             ),
                     contentAlignment = Alignment.Center,

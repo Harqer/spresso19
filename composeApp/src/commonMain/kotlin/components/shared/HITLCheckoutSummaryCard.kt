@@ -16,8 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import utils.toPriceString
 import network.models.HITLPayload
+import utils.toPriceString
 
 @Composable
 fun HITLCheckoutSummaryCard(payload: HITLPayload) {

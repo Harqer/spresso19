@@ -85,11 +85,11 @@ fun HeaderBanner(
                             onClick = { onTripSelected(trip.id) },
                             text = { Text(trip.title, style = MaterialTheme.typography.labelLarge) },
                             icon = {
-                            Icon(
-                                imageVector = Icons.Default.Place,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                            )
+                                Icon(
+                                    imageVector = Icons.Default.Place,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                )
                             },
                         )
                     }

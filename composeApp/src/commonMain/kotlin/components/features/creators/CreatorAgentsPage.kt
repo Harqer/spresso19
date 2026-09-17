@@ -55,7 +55,7 @@ fun CreatorAgentsPage(
                             CreatorStudioHeader(modifier = Modifier.weight(1f))
                             CreatorStudioTabsRow(
                                 activeTab = activeTab,
-                                onTabSelected = { activeTab = it }
+                                onTabSelected = { activeTab = it },
                             )
                         }
                     } else {

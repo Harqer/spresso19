@@ -6,17 +6,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import components.core.NetworkImage
 import components.features.chat.ChatBubbleText
 import components.features.chat.ChatMessageHeader
 import components.features.chat.ChatProductCard
 import components.features.chat.VideoReviewCard
-import components.core.NetworkImage
 import components.models.*
 import io.ktor.client.HttpClient
-import kotlinx.coroutines.launch
 import network.ChatMessage
 import network.ProductItem
-import org.jetbrains.compose.resources.stringResource
 import spresso.composeapp.generated.resources.*
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -81,9 +79,10 @@ fun ChatMessageItem(
 
             message.mediaUrl?.takeIf { it.isNotBlank() }?.let { mediaUrl ->
                 Box(
-                    modifier = Modifier
-                        .padding(start = if (isUser) 0.dp else 32.dp, top = 8.dp)
-                        .fillMaxWidth(),
+                    modifier =
+                        Modifier
+                            .padding(start = if (isUser) 0.dp else 32.dp, top = 8.dp)
+                            .fillMaxWidth(),
                 ) {
                     if (message.mediaType?.startsWith("video", ignoreCase = true) == true) {
                         VideoReviewCard(videoUrl = mediaUrl, modifier = Modifier.fillMaxWidth())

@@ -18,7 +18,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import components.features.catalog.StoreLocationHeader
@@ -106,12 +105,13 @@ fun GroceryListPage(
                                         return@launch
                                     }
                                     try {
-                                        val success = apiClient.addGroceryItem(
-                                            listId = activeListId,
-                                            productName = newItemName,
-                                            productId = null,
-                                            addedVia = "MANUAL_INPUT",
-                                        )
+                                        val success =
+                                            apiClient.addGroceryItem(
+                                                listId = activeListId,
+                                                productName = newItemName,
+                                                productId = null,
+                                                addedVia = "MANUAL_INPUT",
+                                            )
                                         if (success) {
                                             newItemName = ""
                                             items = apiClient.fetchGroceryList(activeListId)
@@ -143,15 +143,18 @@ fun GroceryListPage(
                         selected = isSelected,
                         onClick = { selectedCategory = cat },
                         label = { Text(cat) },
-                        leadingIcon = if (isSelected) {
-                            {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(FilterChipDefaults.IconSize)
-                                )
-                            }
-                        } else null
+                        leadingIcon =
+                            if (isSelected) {
+                                {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(FilterChipDefaults.IconSize),
+                                    )
+                                }
+                            } else {
+                                null
+                            },
                     )
                 }
             }
@@ -202,7 +205,11 @@ fun GroceryListPage(
                                     scope.launch { apiClient.recordInteraction("grocery_ai_deals_${item.id}", "click") }
                                     onAskAI("Find deals for ${item.name}")
                                 }) {
-                                    Icon(Icons.Default.AutoAwesome, contentDescription = "Ask Spresso", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(
+                                        Icons.Default.AutoAwesome,
+                                        contentDescription = "Ask Spresso",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
                                 }
                                 IconButton(onClick = {
                                     scope.launch {

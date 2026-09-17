@@ -89,8 +89,8 @@ fun AgentTemplateCard(
             ) {
                 Text("Reference Template", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 TextButton(onClick = onUseStyle, shape = RoundedCornerShape(8.dp)) {
-                        Icon(Icons.Default.Animation, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
-                        Text("Use Style", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Animation, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text("Use Style", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
             }
         }

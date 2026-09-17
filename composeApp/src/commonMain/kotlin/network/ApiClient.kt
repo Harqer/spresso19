@@ -1,24 +1,24 @@
 package network
 
-import components.models.TripRecord
 import components.features.catalog.DiscoveredListing
+import components.models.TripRecord
 import io.ktor.client.HttpClient
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.plugin
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.bodyAsChannel
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.utils.io.readUTF8Line
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import io.ktor.utils.io.readUTF8Line
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -146,7 +146,6 @@ open class ApiClient {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-
     suspend fun analyzeUserBehavior(
         explicitInterests: List<String>,
         chatHistory: List<String>? = null,
@@ -164,6 +163,7 @@ open class ApiClient {
     }
 
     private val cloudFunctionsBaseUrl = SpressoConfig.cloudFunctionsBaseUrl
+
     /** Firebase Hosting is the canonical HTTP boundary for non-callable REST resources. */
     private val backendBaseUrl = SpressoConfig.backendBaseUrl
     private val convexApi by lazy { ConvexApi() }
@@ -198,10 +198,11 @@ open class ApiClient {
     }
 
     open suspend fun streamTelemetry(event: VideoInteractionEvent): Boolean {
-        val payload = buildJsonObject {
-            put("productId", event.itemId)
-            put("action", "video_interaction")
-        }
+        val payload =
+            buildJsonObject {
+                put("productId", event.itemId)
+                put("action", "video_interaction")
+            }
         callFirebaseFunction(FirebaseRoutes.INGEST_INTERACTION, payload.toString())
         return true
     }
@@ -268,8 +269,13 @@ open class ApiClient {
                         emit(ChatStreamChunk(type = "done"))
                         break
                     }
-                    runCatching { json.parseToJsonElement(data).jsonObject["text"]?.jsonPrimitive?.content }
-                        .getOrNull()
+                    runCatching {
+                        json
+                            .parseToJsonElement(data)
+                            .jsonObject["text"]
+                            ?.jsonPrimitive
+                            ?.content
+                    }.getOrNull()
                         ?.let { emit(ChatStreamChunk(type = "text", text = it)) }
                 }
                 if (!completed) {
@@ -394,32 +400,49 @@ open class ApiClient {
         }
 
     suspend fun fetchTravelEvents(tripId: String): List<components.models.ItineraryEvent> =
-        convexApi.fetchTripDetail(tripId)?.events?.map { event ->
-            components.models.ItineraryEvent(
-                id = event.id,
-                tripId = tripId,
-                type = event.type,
-                title = event.title,
-                description = event.description,
-                eventTime = event.eventTime,
-                location = event.location,
-                price = event.price,
-                qrData = event.qrData,
-                confirmationCode = event.confirmationCode,
-                gate = event.gate,
-                seat = event.seat,
-            )
-        }.orEmpty()
+        convexApi
+            .fetchTripDetail(tripId)
+            ?.events
+            ?.map { event ->
+                components.models.ItineraryEvent(
+                    id = event.id,
+                    tripId = tripId,
+                    type = event.type,
+                    title = event.title,
+                    description = event.description,
+                    eventTime = event.eventTime,
+                    location = event.location,
+                    price = event.price,
+                    qrData = event.qrData,
+                    confirmationCode = event.confirmationCode,
+                    gate = event.gate,
+                    seat = event.seat,
+                )
+            }.orEmpty()
 
     suspend fun fetchTravelExpenses(tripId: String): List<components.models.TravelExpense> =
-        convexApi.fetchTripDetail(tripId)?.expenses?.map { expense ->
-            components.models.TravelExpense(expense.id, tripId, expense.amount, expense.currency, expense.category, expense.merchant, expense.date)
-        }.orEmpty()
+        convexApi
+            .fetchTripDetail(tripId)
+            ?.expenses
+            ?.map { expense ->
+                components.models.TravelExpense(
+                    expense.id,
+                    tripId,
+                    expense.amount,
+                    expense.currency,
+                    expense.category,
+                    expense.merchant,
+                    expense.date,
+                )
+            }.orEmpty()
 
     suspend fun fetchVoiceNotes(tripId: String): List<components.models.VoiceNote> =
-        convexApi.fetchTripDetail(tripId)?.voiceNotes?.map { note ->
-            components.models.VoiceNote(note.id, tripId, note.transcript, note.createdAt.toString())
-        }.orEmpty()
+        convexApi
+            .fetchTripDetail(tripId)
+            ?.voiceNotes
+            ?.map { note ->
+                components.models.VoiceNote(note.id, tripId, note.transcript, note.createdAt.toString())
+            }.orEmpty()
 
     @Suppress("UNUSED_PARAMETER")
     suspend fun fetchGroceryList(listId: String): List<network.models.GroceryItem> =
@@ -448,7 +471,11 @@ open class ApiClient {
     }
 
     suspend fun connectCoinbaseWallet(address: String): Boolean {
-        val payload = buildJsonObject { put("address", address); put("network", "base") }
+        val payload =
+            buildJsonObject {
+                put("address", address)
+                put("network", "base")
+            }
         val response = json.parseToJsonElement(callFirebaseFunction(FirebaseRoutes.CONNECT_COINBASE_WALLET, payload.toString())).jsonObject
         return (response["result"]?.jsonObject ?: response)["success"]?.jsonPrimitive?.boolean == true
     }
@@ -463,16 +490,12 @@ open class ApiClient {
         productName: String,
         productId: String?,
         addedVia: String,
-    ): Boolean {
-        return convexApi.addGroceryItem(productName, addedVia)
-    }
+    ): Boolean = convexApi.addGroceryItem(productName, addedVia)
 
     suspend fun toggleGroceryItem(
         id: String,
         isPurchased: Boolean,
-    ): Boolean {
-        return convexApi.setGroceryChecked(id, isPurchased)
-    }
+    ): Boolean = convexApi.setGroceryChecked(id, isPurchased)
 
     suspend fun deleteGroceryItem(id: String): Boolean = convexApi.removeGroceryItem(id)
 
@@ -493,7 +516,11 @@ open class ApiClient {
                 put("audioBase64", Base64.encode(audioData))
                 put("mimeType", mimeType)
             }
-        val response = json.parseToJsonElement(callFirebaseFunction(FirebaseRoutes.GENERATE_RESPONSE_FROM_AUDIO, payload.toString())).jsonObject
+        val response =
+            json
+                .parseToJsonElement(
+                    callFirebaseFunction(FirebaseRoutes.GENERATE_RESPONSE_FROM_AUDIO, payload.toString()),
+                ).jsonObject
         return (response["result"]?.jsonObject ?: response)["text"]?.jsonPrimitive?.content
             ?: error("Invalid response format")
     }
@@ -571,26 +598,27 @@ open class ApiClient {
         userLocation: String? = null,
     ): GeneratedOutfit? {
         if (items.isEmpty()) return null
-        val payload = buildJsonObject {
-            put(
-                "items",
-                buildJsonArray {
-                    items.forEach { item ->
-                        add(
-                            buildJsonObject {
-                                put("id", item.id)
-                                put("name", item.brand?.takeIf { it.isNotBlank() } ?: item.category)
-                                put("category", item.category)
-                                item.color?.let { put("color", it) }
-                            },
-                        )
-                    }
-                },
-            )
-            put("weatherCondition", weatherCondition)
-            put("temperatureText", temperatureText)
-            userLocation?.let { put("userLocation", it) }
-        }
+        val payload =
+            buildJsonObject {
+                put(
+                    "items",
+                    buildJsonArray {
+                        items.forEach { item ->
+                            add(
+                                buildJsonObject {
+                                    put("id", item.id)
+                                    put("name", item.brand?.takeIf { it.isNotBlank() } ?: item.category)
+                                    put("category", item.category)
+                                    item.color?.let { put("color", it) }
+                                },
+                            )
+                        }
+                    },
+                )
+                put("weatherCondition", weatherCondition)
+                put("temperatureText", temperatureText)
+                userLocation?.let { put("userLocation", it) }
+            }
         val responseStr = callFirebaseFunction(FirebaseRoutes.GENERATE_OUTFIT, payload.toString())
         val response = json.parseToJsonElement(responseStr).jsonObject
         val result = response["result"]?.jsonObject ?: response
@@ -616,16 +644,20 @@ open class ApiClient {
         weight: String? = null,
         vibes: List<String>? = null,
     ): Boolean {
-        val payload = buildJsonObject {
-            fitPreference?.let { put("fitPreference", it) }
-            height?.let { put("height", it) }
-            weight?.let { put("weight", it) }
-            vibes?.let { list ->
-                put("vibes", buildJsonArray {
-                    list.forEach { add(it) }
-                })
+        val payload =
+            buildJsonObject {
+                fitPreference?.let { put("fitPreference", it) }
+                height?.let { put("height", it) }
+                weight?.let { put("weight", it) }
+                vibes?.let { list ->
+                    put(
+                        "vibes",
+                        buildJsonArray {
+                            list.forEach { add(it) }
+                        },
+                    )
+                }
             }
-        }
         val responseStr = callFirebaseFunction(FirebaseRoutes.UPDATE_USER_PREFERENCES, payload.toString())
         val response = json.parseToJsonElement(responseStr).jsonObject
         val result = response["result"]?.jsonObject ?: response
@@ -634,17 +666,18 @@ open class ApiClient {
 
     companion object {
         private val sharedClient: HttpClient by lazy {
-            val client = HttpClient {
-                install(ContentNegotiation) {
-                    json(
-                        Json {
-                            prettyPrint = true
-                            isLenient = true
-                            ignoreUnknownKeys = true
-                        },
-                    )
+            val client =
+                HttpClient {
+                    install(ContentNegotiation) {
+                        json(
+                            Json {
+                                prettyPrint = true
+                                isLenient = true
+                                ignoreUnknownKeys = true
+                            },
+                        )
+                    }
                 }
-            }
             client.plugin(HttpSend).intercept { request ->
                 val appCheckToken = getCurrentAppCheckToken()
                 if (!appCheckToken.isNullOrBlank()) {

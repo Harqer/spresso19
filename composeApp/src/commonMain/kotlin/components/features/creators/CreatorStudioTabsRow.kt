@@ -29,7 +29,7 @@ fun CreatorStudioTabsRow(
     ) {
         Row(
             modifier = Modifier.padding(4.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             SpressoButton(
                 text = "Community",
@@ -38,7 +38,7 @@ fun CreatorStudioTabsRow(
                 onClick = { onTabSelected(0) },
                 trackingId = "creator_tab_community",
                 trackingAction = "click",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
             SpressoButton(
                 text = "Agents",
@@ -47,7 +47,7 @@ fun CreatorStudioTabsRow(
                 onClick = { onTabSelected(1) },
                 trackingId = "creator_tab_agents",
                 trackingAction = "click",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
         }
     }

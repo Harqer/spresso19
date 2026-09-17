@@ -24,8 +24,9 @@ class PlatformPasskeyRegistrar(
     private suspend fun createCredential(request: PasskeyRegistrationRequest.Ready): PasskeyRegistrationResult =
         try {
             val response = createCredential(CreatePublicKeyCredentialRequest(request.requestJson))
-            val passkeyResponse = response as? CreatePublicKeyCredentialResponse
-                ?: return PasskeyRegistrationResult.ProviderFailure()
+            val passkeyResponse =
+                response as? CreatePublicKeyCredentialResponse
+                    ?: return PasskeyRegistrationResult.ProviderFailure()
             try {
                 request.completeRegistration(passkeyResponse.registrationResponseJson)
             } catch (_: Exception) {

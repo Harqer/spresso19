@@ -14,9 +14,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import utils.toPriceString
 import components.models.*
 import network.models.OrderRecord
+import utils.toPriceString
 
 @Composable
 fun OrderTrackerCard(

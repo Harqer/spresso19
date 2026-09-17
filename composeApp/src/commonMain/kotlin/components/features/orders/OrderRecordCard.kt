@@ -11,11 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import utils.toPriceString
 import components.shared.elements.SpressoButton
 import components.shared.elements.SpressoButtonVariant
 import network.ApiClient
 import network.models.OrderRecord
+import utils.toPriceString
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -39,7 +39,8 @@ fun OrderRecordCard(
                         order.items
                             .firstOrNull()
                             ?.product
-                            ?.imageUrl.orEmpty(),
+                            ?.imageUrl
+                            .orEmpty(),
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     client = apiClient.client,
@@ -51,7 +52,10 @@ fun OrderRecordCard(
                             append(order.status)
                             order.trackingStatus?.takeIf { it.isNotBlank() }?.let { append(" · $it") }
                             append("\n")
-                            append(order.estimatedDelivery?.takeIf { it.isNotBlank() }?.let { "Estimated arrival: $it" } ?: "Tracking estimate unavailable")
+                            append(
+                                order.estimatedDelivery?.takeIf { it.isNotBlank() }?.let { "Estimated arrival: $it" }
+                                    ?: "Tracking estimate unavailable",
+                            )
                             append(" · Total: $${order.totalAmount.toPriceString()}")
                         },
                         style = MaterialTheme.typography.bodyMedium,

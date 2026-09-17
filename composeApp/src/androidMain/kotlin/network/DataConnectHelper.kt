@@ -9,11 +9,11 @@ actual suspend fun upsertUserPreference(
     pushNotifications: Boolean?,
     emailAlerts: Boolean?,
 ) {
-        com.spresso.dataconnect.SpressoConnectorConnector.instance.upsertUserPreference.execute {
-            this.theme = theme
-            this.pushNotifications = pushNotifications
-            this.emailAlerts = emailAlerts
-        }
+    com.spresso.dataconnect.SpressoConnectorConnector.instance.upsertUserPreference.execute {
+        this.theme = theme
+        this.pushNotifications = pushNotifications
+        this.emailAlerts = emailAlerts
+    }
 }
 
 actual suspend fun upsertUserProfile(
@@ -21,11 +21,11 @@ actual suspend fun upsertUserProfile(
     displayName: String?,
     avatarUrl: String?,
 ) {
-        com.spresso.dataconnect.SpressoConnectorConnector.instance.upsertUserProfile.execute {
-            this.email = email
-            this.displayName = displayName
-            this.avatarUrl = avatarUrl
-        }
+    com.spresso.dataconnect.SpressoConnectorConnector.instance.upsertUserProfile.execute {
+        this.email = email
+        this.displayName = displayName
+        this.avatarUrl = avatarUrl
+    }
 }
 
 actual suspend fun addGroceryItem(
@@ -34,50 +34,50 @@ actual suspend fun addGroceryItem(
     productId: String?,
     addedVia: String,
 ) {
-        com.spresso.dataconnect.SpressoConnectorConnector.instance.addGroceryItem.execute(
-            listId = java.util.UUID.fromString(listId),
-            productName = productName,
-            addedVia = addedVia,
-        ) {
-            this.productId = productId
-        }
+    com.spresso.dataconnect.SpressoConnectorConnector.instance.addGroceryItem.execute(
+        listId = java.util.UUID.fromString(listId),
+        productName = productName,
+        addedVia = addedVia,
+    ) {
+        this.productId = productId
+    }
 }
 
 actual suspend fun toggleGroceryItem(
     id: String,
     isPurchased: Boolean,
 ) {
-        com.spresso.dataconnect.SpressoConnectorConnector.instance.toggleGroceryItem.execute(
-            id = java.util.UUID.fromString(id),
-            isPurchased = isPurchased,
-        )
+    com.spresso.dataconnect.SpressoConnectorConnector.instance.toggleGroceryItem.execute(
+        id = java.util.UUID.fromString(id),
+        isPurchased = isPurchased,
+    )
 }
 
 actual suspend fun deleteGroceryItem(id: String) {
-        com.spresso.dataconnect.SpressoConnectorConnector.instance.deleteGroceryItem.execute(
-            id = java.util.UUID.fromString(id),
-        )
+    com.spresso.dataconnect.SpressoConnectorConnector.instance.deleteGroceryItem.execute(
+        id = java.util.UUID.fromString(id),
+    )
 }
 
 actual suspend fun createPaymentMethod(stripePaymentMethodId: String) {
-        com.spresso.dataconnect.SpressoConnectorConnector.instance.createPaymentMethod.execute(
-            stripePaymentMethodId = stripePaymentMethodId,
-        )
+    com.spresso.dataconnect.SpressoConnectorConnector.instance.createPaymentMethod.execute(
+        stripePaymentMethodId = stripePaymentMethodId,
+    )
 }
 
 actual suspend fun deletePaymentMethod(id: String) {
-        com.spresso.dataconnect.SpressoConnectorConnector.instance.deletePaymentMethod.execute(
-            id = java.util.UUID.fromString(id),
-        )
+    com.spresso.dataconnect.SpressoConnectorConnector.instance.deletePaymentMethod.execute(
+        id = java.util.UUID.fromString(id),
+    )
 }
 
 actual suspend fun updateUserSubscription(
     id: String,
     tier: String,
 ) {
-        com.spresso.dataconnect.SpressoConnectorConnector.instance.upsertUserSubscription.execute(
-            tier = tier,
-        )
+    com.spresso.dataconnect.SpressoConnectorConnector.instance.upsertUserSubscription.execute(
+        tier = tier,
+    )
 }
 
 actual suspend fun createOrder(
@@ -90,21 +90,21 @@ actual suspend fun createOrder(
     paymentMethod: String,
     userConfirmedToken: String?,
 ) {
-        com.spresso.dataconnect.SpressoConnectorConnector.instance.createOrder.execute(
-            authorizationId = authorizationId,
-            productId = productId,
-            quantity = quantity,
-            totalAmount = totalAmount.toDouble(),
-            deviceSource = deviceSource,
-            paymentMethod = paymentMethod,
-        ) {
-            this.shippingAddress = shippingAddress
-            this.userConfirmedToken = userConfirmedToken
-        }
+    com.spresso.dataconnect.SpressoConnectorConnector.instance.createOrder.execute(
+        authorizationId = authorizationId,
+        productId = productId,
+        quantity = quantity,
+        totalAmount = totalAmount.toDouble(),
+        deviceSource = deviceSource,
+        paymentMethod = paymentMethod,
+    ) {
+        this.shippingAddress = shippingAddress
+        this.userConfirmedToken = userConfirmedToken
+    }
 }
 
 actual suspend fun connectCoinbaseWallet(address: String) {
-        com.spresso.dataconnect.SpressoConnectorConnector.instance.connectCoinbaseWallet.execute(
-            walletAddress = address,
-        )
+    com.spresso.dataconnect.SpressoConnectorConnector.instance.connectCoinbaseWallet.execute(
+        walletAddress = address,
+    )
 }
