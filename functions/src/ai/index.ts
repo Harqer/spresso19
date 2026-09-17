@@ -7,14 +7,12 @@ import { randomUUID } from "node:crypto";
 const pubsub = new PubSub();
 import { GoogleGenAI } from "@google/genai";
 import { behavioralAnalysisFlow } from "./flows/behavioralAnalysisFlow";
-import { discoverPersonalizedProductsFlow } from "./flows/discoverPersonalizedProductsFlow";
 import { ai } from "./genkit";
 import "./tools/addToCart";
 import "./tools/searchProducts";
 import "./tools/parallelWebSearch";
 import "./tools/parallelDeepResearch";
 import "./tools/chefAgent";
-import "./tools/ecommerceAgent";
 import "./tools/virtualTryOnAgent";
 import "./tools/marketResearchUKAgent";
 import "./tools/marketResearchUSAgent";
@@ -26,8 +24,6 @@ import { z } from "zod";
 import { generateMediaWithFallback } from "./mediaGeneration";
 import { consumeBudget, withCache } from "./costControls";
 import { selectShopperModel } from "./modelRouting";
-import Parallel from "parallel-web";
-import { normalizeParallelResults } from "./providers/parallelAdapter";
 import { fetchApifyLensResults } from "./lensSearch";
 import { db } from "../shared/db";
 import {
@@ -133,33 +129,6 @@ export const analyzeUserBehavior = onCall({ enforceAppCheck: true, secrets: [gem
         return result;
     } catch (e) {
         throw new HttpsError("internal", "Failed to run behavioral analysis flow");
-    }
-});
-
-export const discoverPersonalizedProducts = onCall({ enforceAppCheck: true, secrets: [geminiApiKey, parallelApiKey], maxInstances: 20, minInstances: 0 }, async (request) => {
-    if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
-    const configuredParallelApiKey = parallelApiKey.value();
-    if (!configuredParallelApiKey) {
-        throw new HttpsError(
-            "failed-precondition",
-            "Product discovery is unavailable because PARALLEL_API_KEY is not configured for this environment.",
-        );
-    }
-    try {
-        const queries = Array.isArray(request.data?.searchQueries) ? request.data.searchQueries.filter((q: unknown): q is string => typeof q === "string" && Boolean(q.trim())).slice(0, 3) : [];
-        if (queries.length === 0) throw new HttpsError("invalid-argument", "At least one search query is required.");
-        const parallel = new Parallel({ apiKey: configuredParallelApiKey });
-        const research = await parallel.search({
-            objective: `Find current merchant product listings for ${queries.join(", ")}. Return listing pages with title, merchant, price when shown, image when shown, and direct product URL. Do not claim inventory or availability.`,
-            search_queries: queries,
-            mode: "advanced",
-            max_chars_total: 12000,
-        });
-        const providerListings = normalizeParallelResults(Array.isArray(research.results) ? research.results : []);
-        const result = await discoverPersonalizedProductsFlow({ searchQueries: queries, requesterUid: request.auth.uid, providerListings });
-        return result;
-    } catch (e) {
-        throw new HttpsError("internal", "Failed to run discover personalized products flow");
     }
 });
 

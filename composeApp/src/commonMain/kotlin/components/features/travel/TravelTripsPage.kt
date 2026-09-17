@@ -31,6 +31,7 @@ fun TravelTripsPage(
     var activeTripId by remember { mutableStateOf(trips.firstOrNull()?.id ?: "") }
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val convexApi = remember { network.ConvexApi() }
 
     LaunchedEffect(Unit) {
         try {
@@ -129,14 +130,14 @@ fun TravelTripsPage(
                             onAddExpense = { expense ->
                                 scope.launch {
                                     try {
-                                        network.SpressoBackend.createTravelExpense(
+                                        val saved = convexApi.addTravelExpense(
                                             tripId = activeTripId,
                                             amount = expense.amount,
                                             currency = expense.currency,
                                             category = expense.category,
                                             merchant = expense.merchant,
-                                            items = null,
                                         )
+                                        check(saved) { "Expense was not saved." }
                                         val refreshed = apiClient.fetchTravelExpenses(activeTripId)
                                         expenses = expenses.filterNot { it.tripId == activeTripId } + refreshed
                                         snackbarHostState.showSnackbar("Expense added.")

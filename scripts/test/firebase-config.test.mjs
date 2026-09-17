@@ -25,11 +25,7 @@ test("the production endpoint contract documents every web API route", () => {
   const routePaths = new Set(endpointContract.routes.map((route) => route.path));
   const routeNames = [...webApiSource.matchAll(/name: "([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual([...routePaths].sort(), [
-    "/cart",
     "/health",
-    "/orders",
-    "/products",
-    "/products/:productId",
     "/user/preferences",
     "/user/sync",
     "/user/wallet/coinbase",

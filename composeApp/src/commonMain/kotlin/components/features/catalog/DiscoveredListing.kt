@@ -55,6 +55,22 @@ fun parseDiscoveredListingsCallableResponse(responseJson: String): List<Discover
     }
 }
 
+/** Map a backend discovered listing onto the shared UI product model. */
+fun DiscoveredListing.toProductItem(): network.ProductItem =
+    network.ProductItem(
+        id = id,
+        name = name,
+        brand = brand.orEmpty(),
+        category = category.orEmpty(),
+        price = observedPrice?.amount,
+        imageUrl = imageUrl.orEmpty(),
+        merchantUrl = merchantUrl,
+        source = source,
+        providerListingId = providerListingId,
+        description = reviewSummary,
+        rating = rating,
+    )
+
 fun stableListingId(
     source: String,
     merchantUrl: String,

@@ -15,7 +15,6 @@ import components.models.*
 import components.shared.widgets.SpressoListItem
 import kotlinx.coroutines.launch
 import network.ApiClient
-import network.SpressoBackend
 import network.models.GroceryItem
 
 @Composable
@@ -30,6 +29,7 @@ fun GroceryListWidget(
     var newItemName by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
     val scope = rememberCoroutineScope()
+    val convexApi = remember { network.ConvexApi() }
     val categories = remember(items) { listOf("All") + items.map { it.category }.filter { it.isNotBlank() }.distinct() }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -45,15 +45,11 @@ fun GroceryListWidget(
             onNameChange = { newItemName = it },
             onAdd = {
                 scope.launch {
-                    val activeListId = listId
-                    if (activeListId == null) {
-                        snackbarHostState.showSnackbar("Your grocery list is unavailable right now.")
-                        return@launch
-                    }
+                    if (newItemName.isBlank()) return@launch
                     try {
-                        SpressoBackend.addGroceryItem(listId = activeListId, productName = newItemName, productId = null, addedVia = "APP")
+                        convexApi.addGroceryItem(newItemName, "Other")
                         newItemName = ""
-                        items = apiClient.fetchGroceryList(activeListId)
+                        items = apiClient.fetchGroceryList(listId.orEmpty())
                     } catch (e: Exception) {
                         snackbarHostState.showSnackbar("Unable to add this item. Please try again.")
                     }
@@ -96,7 +92,7 @@ fun GroceryListWidget(
                         onClick = {
                             scope.launch {
                                 try {
-                                    SpressoBackend.toggleGroceryItem(itemId = item.id, isPurchased = !item.checked)
+                                    convexApi.setGroceryChecked(item.id, !item.checked)
                                     items = items.map { current -> if (current.id == item.id) current.copy(checked = !current.checked) else current }
                                 } catch (e: Exception) {
                                     snackbarHostState.showSnackbar("Unable to update this item. Please try again.")
@@ -113,7 +109,7 @@ fun GroceryListWidget(
                                 IconButton(onClick = {
                                     scope.launch {
                                         try {
-                                            SpressoBackend.deleteGroceryItem(itemId = item.id)
+                                            convexApi.removeGroceryItem(item.id)
                                             items = items.filterNot { current -> current.id == item.id }
                                         } catch (e: Exception) {
                                             snackbarHostState.showSnackbar("Unable to delete this item. Please try again.")

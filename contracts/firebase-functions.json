@@ -5,7 +5,6 @@
     "generateRecipeBargainChef",
     "updateUserProfile",
     "generateVirtualTryOn",
-    "discoverPersonalizedProducts",
     "createStripeIntent",
     "confirmPurchase",
     "getUserOrders",

@@ -13,6 +13,7 @@ type CallableListing = {
   source: unknown;
   providerListingId?: unknown;
   priceEvidence?: unknown;
+  observedPrice?: { amount?: unknown; currency?: unknown; evidenceUrl?: unknown };
   discoveredAt?: unknown;
   expiresAt?: unknown;
   confidence?: unknown;
@@ -202,9 +203,12 @@ export class DiscoveryRepository {
     const name = stringValue(candidate.name);
     const merchantUrl = httpsUrl(candidate.merchantUrl);
     if (!id || !name || !merchantUrl || !isSource(candidate.source)) return undefined;
-    const price = typeof candidate.price === "number" && Number.isFinite(candidate.price) && candidate.price > 0 ? candidate.price : undefined;
-    const currency = stringValue(candidate.currency)?.toUpperCase();
-    const evidenceUrl = httpsUrl(candidate.priceEvidence);
+    const observedAmount = typeof candidate.observedPrice?.amount === "number" && Number.isFinite(candidate.observedPrice.amount) && candidate.observedPrice.amount > 0
+      ? candidate.observedPrice.amount
+      : undefined;
+    const price = observedAmount ?? (typeof candidate.price === "number" && Number.isFinite(candidate.price) && candidate.price > 0 ? candidate.price : undefined);
+    const currency = stringValue(candidate.observedPrice?.currency ?? candidate.currency)?.toUpperCase();
+    const evidenceUrl = httpsUrl(candidate.observedPrice?.evidenceUrl ?? candidate.priceEvidence) || merchantUrl;
     const observedPrice = price && currency && /^[A-Z]{3}$/.test(currency) && evidenceUrl
       ? { amount: price, currency, evidenceUrl }
       : undefined;
@@ -269,21 +273,3 @@ export class DiscoveryRepository {
     return next;
   }
 }
-
-export const firebaseDiscoveryCallable: DiscoveryCallable = async (request, signal) => {
-  const { authFetch } = await import("./firebase");
-  const response = await authFetch(
-    "https://us-central1-get-spresso.cloudfunctions.net/discoverPersonalizedProducts",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: request }),
-      signal,
-    },
-  );
-  const body = await response.json();
-  if (!response.ok) throw new Error(body?.error?.message || "Discovery is unavailable.");
-  const result = body?.result;
-  if (!result || (!Array.isArray(result.listings) && !Array.isArray(result.items))) throw new Error("Discovery returned an invalid listing response.");
-  return { listings: Array.isArray(result.listings) ? result.listings : undefined, items: Array.isArray(result.items) ? result.items : undefined };
-};

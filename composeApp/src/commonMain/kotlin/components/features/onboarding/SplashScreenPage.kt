@@ -31,7 +31,7 @@ fun SplashScreenPage(
 ) {
     var isVisible by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    val apiClient = remember { network.ApiClient() }
+    val convexApi = remember { network.ConvexApi() }
 
     LaunchedEffect(Unit) {
         val startTime =
@@ -39,7 +39,7 @@ fun SplashScreenPage(
                 .now()
                 .toEpochMilliseconds()
         try {
-            apiClient.discoverPersonalizedProducts()
+            convexApi.fetchRecommendedProducts()
         } catch (e: Exception) {
             errorMessage = "Spresso could not finish loading. You can continue and try again."
         }

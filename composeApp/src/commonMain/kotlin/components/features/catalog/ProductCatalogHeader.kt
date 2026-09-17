@@ -11,6 +11,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +28,9 @@ fun ProductCatalogHeader(
     userLocation: String?,
     searchRadius: Int,
     onRequestLocationPermission: () -> Unit,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    onSearch: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -86,6 +92,27 @@ fun ProductCatalogHeader(
                             modifier = Modifier.size(14.dp),
                         )
                     }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    label = { Text("Search external stores") },
+                    placeholder = { Text("What are you looking for?") },
+                )
+                IconButton(
+                    onClick = { if (searchQuery.isNotBlank()) onSearch(searchQuery.trim()) },
+                    enabled = searchQuery.isNotBlank(),
+                ) {
+                    Icon(Icons.Outlined.Search, contentDescription = "Search external stores")
                 }
             }
 

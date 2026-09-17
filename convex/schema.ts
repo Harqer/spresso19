@@ -38,6 +38,8 @@ export default defineSchema({
   savedProducts: defineTable({
     tokenIdentifier: v.string(),
     productId: v.string(),
+    // Snapshot of the external listing at bookmark time; never an inventory row.
+    listing: v.optional(v.any()),
     updatedAt: v.number(),
   })
     .index("by_token_identifier", ["tokenIdentifier"])

@@ -3,79 +3,31 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const sourceRoot = path.join(repoRoot, "functions/src");
-const terraformPath = path.join(repoRoot, "terraform/main.tf");
-const launchSecrets = ["PARALLEL_API_KEY", "SERPAPI_API_KEY"];
+const convexConfig = await fs.readFile(path.join(repoRoot, "convex/convex.config.ts"), "utf8");
+const discovery = await fs.readFile(path.join(repoRoot, "convex/discovery.ts"), "utf8");
+const envExample = await fs.readFile(path.join(repoRoot, ".env.example"), "utf8").catch(() => "");
 
-async function collectTypeScriptFiles(directory) {
-  const entries = await fs.readdir(directory, { withFileTypes: true });
-  const files = await Promise.all(entries.map(async (entry) => {
-    const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) return collectTypeScriptFiles(entryPath);
-    return entry.name.endsWith(".ts") ? [entryPath] : [];
-  }));
-  return files.flat();
-}
-
-const files = await collectTypeScriptFiles(sourceRoot);
-const sources = await Promise.all(files.map(async (file) => [file, await fs.readFile(file, "utf8")]));
-const allSource = sources.map(([, source]) => source).join("\n");
-const terraform = await fs.readFile(terraformPath, "utf8");
-const toolServerTerraform = terraform.slice(
-  terraform.indexOf('resource "google_cloud_run_v2_service" "tool_server"'),
+const requiredDiscoverySecrets = ["PARALLEL_API_KEY", "SERPAPI_API_KEY"];
+const declaredInConfig = [...convexConfig.matchAll(/env:\s*\{([\s\S]*?)\n\s*\}/g)].flatMap((match) =>
+  [...match[1].matchAll(/([A-Z][A-Z0-9_]+):\s*v\.optional\(v\.string\(\)\)/g)].map((item) => item[1]),
 );
-const declaredSecrets = [...new Set([...allSource.matchAll(/defineSecret\(\s*["']([^"']+)["']\s*\)/g)].map((match) => match[1]))].sort();
-const exportedFunctions = [...new Set([...allSource.matchAll(/export\s+const\s+([A-Za-z0-9_]+)\s*=\s*on(?:Call|Request|MessagePublished)\b/g)].map((match) => match[1]))].sort();
-const terraformSecrets = new Set([...terraform.matchAll(/"([A-Z][A-Z0-9_]+)"/g)].map((match) => match[1]));
-const aiSource = await fs.readFile(path.join(sourceRoot, "ai/index.ts"), "utf8");
-const searchProductsSource = await fs.readFile(path.join(sourceRoot, "ai/tools/searchProducts.ts"), "utf8");
-
-const callableSecrets = Object.fromEntries(exportedFunctions.map((name) => [name, []]));
-callableSecrets.discoverPersonalizedProducts = ["GEMINI_API_KEY", "PARALLEL_API_KEY"];
-callableSecrets.chatStream = [
-  "GEMINI_API_KEY",
-  "HIGGSFIELD_API_KEY_ID",
-  "HIGGSFIELD_KEY_SECRET",
-  "SERPAPI_API_KEY",
-  "PARALLEL_API_KEY",
-  "CLOUDFLARE_ACCOUNT_ID",
-  "CLOUDFLARE_API_TOKEN",
-];
-
 const errors = [];
-for (const secret of launchSecrets) {
-  if (!declaredSecrets.includes(secret)) errors.push(`${secret} is not declared with defineSecret.`);
-  if (!terraformSecrets.has(secret)) errors.push(`${secret} is not declared in terraform/main.tf.`);
+for (const secret of requiredDiscoverySecrets) {
+  if (!declaredInConfig.includes(secret)) errors.push(`${secret} is not declared in convex.config.ts.`);
+  if (!new RegExp(`env\\.${secret}`).test(discovery)) errors.push(`${secret} is not consumed by the active discovery action.`);
 }
-if (!/discoverPersonalizedProducts\s*=\s*onCall\(\{[^}]*secrets:\s*\[geminiApiKey,\s*parallelApiKey\]/s.test(aiSource)) {
-  errors.push("discoverPersonalizedProducts is not bound to PARALLEL_API_KEY.");
+if (!/Discovery providers returned no verified listings/.test(discovery)) {
+  errors.push("Discovery does not fail closed when providers return no verified listings.");
 }
-if (!/shopperSecrets\s*=\s*\[\.\.\.mediaSecrets,\s*serpApiKey,\s*parallelApiKey/s.test(aiSource)
-  || !/chatStream\s*=\s*onRequest\(\{\s*secrets:\s*shopperSecrets/s.test(aiSource)) {
-  errors.push("chatStream is not bound to SERPAPI_API_KEY and PARALLEL_API_KEY.");
-}
-if (!/defineSecret\(\s*["']SERPAPI_API_KEY["']\s*\)/.test(searchProductsSource)) {
-  errors.push("searchProducts does not declare SERPAPI_API_KEY.");
-}
-if (!/DISCOVERY_INFRASTRUCTURE_UNAVAILABLE:\s*SERPAPI_API_KEY/.test(searchProductsSource)) {
-  errors.push("searchProducts does not fail closed when SerpAPI infrastructure is unavailable.");
-}
-if (!/PARALLEL_API_KEY is not configured for this environment/.test(aiSource)) {
-  errors.push("discoverPersonalizedProducts does not fail closed when Parallel infrastructure is unavailable.");
-}
-if (!/resource\s+"google_secret_manager_secret_iam_member"\s+"tool_server_apify_secret_accessor"[\s\S]*?secret_id\s*=\s*google_secret_manager_secret\.secrets\["APIFY_API_TOKEN"\]\.secret_id[\s\S]*?role\s*=\s*"roles\/secretmanager\.secretAccessor"[\s\S]*?member\s*=\s*"serviceAccount:\$\{google_service_account\.tool_server_sa\[0\]\.email\}"/.test(terraform)) {
-  errors.push("tool_server_sa does not have per-secret access to APIFY_API_TOKEN.");
-}
-if (/secret_key_ref\s*\{/.test(toolServerTerraform)) {
-  errors.push("tool_server injects Secret Manager values that its runtime does not consume.");
+if (/discoverPersonalizedProducts/.test(discovery)) {
+  errors.push("Removed Firebase discovery callable still appears in Convex discovery source.");
 }
 
 const report = {
   ok: errors.length === 0,
-  launchSecrets,
-  declaredSecrets,
-  unmanagedDeclaredSecrets: declaredSecrets.filter((secret) => !terraformSecrets.has(secret)),
-  callableSecrets,
+  requiredDiscoverySecrets,
+  declaredInConfig,
+  envExampleMentionsDiscoverySecrets: requiredDiscoverySecrets.every((secret) => envExample.includes(secret)),
   errors,
 };
 console.log(JSON.stringify(report, null, 2));

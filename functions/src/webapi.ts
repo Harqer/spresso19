@@ -2,8 +2,6 @@ import { onRequest } from "firebase-functions/v2/https";
 import { getAuth } from "firebase-admin/auth";
 import { getAppCheck } from "firebase-admin/app-check";
 import { db } from "./shared/db";
-import { orderCollectionRef } from "./shared/orderRefs";
-import { parseWebCart } from "./cart/webCart";
 
 type Request = import("express").Request;
 type Response = import("express").Response;
@@ -57,10 +55,6 @@ export const WEB_API_ROUTES = [
   { name: "userSync", path: "/user/sync", methods: ["POST"] },
   { name: "userPreferences", path: "/user/preferences", methods: ["GET", "POST"] },
   { name: "coinbaseWallet", path: "/user/wallet/coinbase", methods: ["POST"] },
-  { name: "cart", path: "/cart", methods: ["GET", "POST"] },
-  { name: "orders", path: "/orders", methods: ["GET"] },
-  { name: "products", path: "/products", methods: ["GET"] },
-  { name: "product", path: "/products/:productId", methods: ["GET"] },
 ] as const;
 
 type WebApiRoute = (typeof WEB_API_ROUTES)[number];
@@ -93,16 +87,10 @@ function normalizePath(path: string): string {
 
 function routeForPath(path: string): WebApiRoute | null {
   const normalizedPath = normalizePath(path);
-  const parts = normalizedPath.split("/").filter(Boolean);
-
-  if (normalizedPath === "health") return WEB_API_ROUTES[0];
-  if (normalizedPath === "user/sync") return WEB_API_ROUTES[1];
-  if (normalizedPath === "user/preferences") return WEB_API_ROUTES[2];
-  if (normalizedPath === "user/wallet/coinbase") return WEB_API_ROUTES[3];
-  if (normalizedPath === "cart") return WEB_API_ROUTES[4];
-  if (normalizedPath === "orders") return WEB_API_ROUTES[5];
-  if (parts[0] === "products" && parts.length === 1) return WEB_API_ROUTES[6];
-  if (parts[0] === "products" && parts.length === 2) return WEB_API_ROUTES[7];
+  if (normalizedPath === "health") return WEB_API_ROUTES.find((route) => route.name === "health") ?? null;
+  if (normalizedPath === "user/sync") return WEB_API_ROUTES.find((route) => route.name === "userSync") ?? null;
+  if (normalizedPath === "user/preferences") return WEB_API_ROUTES.find((route) => route.name === "userPreferences") ?? null;
+  if (normalizedPath === "user/wallet/coinbase") return WEB_API_ROUTES.find((route) => route.name === "coinbaseWallet") ?? null;
   return null;
 }
 
@@ -347,62 +335,16 @@ async function handleCoinbaseWallet(req: Request, uid: string): Promise<{ succes
   return { success: true };
 }
 
-async function handleCart(req: Request, uid: string): Promise<unknown> {
-  const ref = db.collection("carts").doc(uid);
-  if (req.method === "GET") {
-    const snapshot = await ref.get();
-    try {
-      const cart = parseWebCart({ cart: snapshot.data()?.items || [] });
-      return { cart };
-    } catch (error) {
-      console.error("Malformed persisted cart state", { uid, error });
-      throw malformed("A valid cart is required.");
-    }
-  }
-  let items;
-  try {
-    items = parseWebCart(req.body);
-  } catch {
-    throw malformed("A valid cart is required.");
-  }
-  await ref.set({ userId: uid, items, updatedAt: new Date().toISOString() }, { merge: true });
-  return { success: true, totalItems: items.reduce((sum, item) => sum + item.quantity, 0) };
-}
-
-async function handleOrders(uid: string): Promise<{ orders: unknown[] }> {
-  const snapshot = await orderCollectionRef(uid).orderBy("createdAt", "desc").limit(50).get();
-  return { orders: snapshot.docs.map((document) => ({ id: document.id, ...document.data() })) };
-}
-
-async function handleProducts(req: Request, uid: string, parts: string[]): Promise<unknown> {
-  const snapshot = await db.collection("discovered_listings").limit(100).get();
-  const visibleListings: Array<{ id: string; [key: string]: unknown }> = snapshot.docs
-    .map((document) => ({ id: document.id, ...document.data() }) as { id: string; [key: string]: unknown })
-    .filter((listing) => typeof listing.userId !== "string" || listing.userId === uid);
-  if (parts.length === 1) return { products: visibleListings };
-
-  const productId = parts[1];
-  if (!/^[A-Za-z0-9_-]{1,128}$/.test(productId)) throw malformed("A valid product ID is required.");
-  const product = visibleListings.find((listing) => listing.id === productId);
-  if (!product) throw webApiError({ category: "not_found", status: 404, message: "Product listing not found." });
-  return { product };
-}
-
-async function dispatchAuthenticatedRequest(req: Request, uid: string, route: WebApiRoute, parts: string[]): Promise<unknown> {
+async function dispatchAuthenticatedRequest(req: Request, uid: string, route: WebApiRoute): Promise<unknown> {
   switch (route.name) {
     case "userSync": return handleUserSync(req, uid);
     case "userPreferences": return handlePreferences(req, uid);
     case "coinbaseWallet": return handleCoinbaseWallet(req, uid);
-    case "cart": return handleCart(req, uid);
-    case "orders": return handleOrders(uid);
-    case "products":
-    case "product": return handleProducts(req, uid, parts);
     default: throw webApiError({ category: "internal", status: 500, message: "An unexpected server error occurred." });
   }
 }
 
 export async function handleWebApiRequest(req: Request, res: Response): Promise<void> {
-  const normalizedPath = normalizePath(req.path);
   const route = routeForPath(req.path);
   if (!route) {
     writeError(res, webApiError({ category: "not_found", status: 404, message: "Route not found." }));
@@ -419,8 +361,7 @@ export async function handleWebApiRequest(req: Request, res: Response): Promise<
 
     const uid = await authenticate(req);
     await verifyAppCheck(req);
-    const parts = normalizedPath.split("/").filter(Boolean);
-    const result = await dispatchAuthenticatedRequest(req, uid, route, parts);
+    const result = await dispatchAuthenticatedRequest(req, uid, route);
     writeJson(res, 200, result);
   } catch (error) {
     writeError(res, error);

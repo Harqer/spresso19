@@ -51,13 +51,10 @@ fun GroceryListPage(
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        if (listId.isNullOrBlank()) {
-            loadError = "Your grocery list is unavailable right now. Please try again later."
-            isLoading = false
-            return@LaunchedEffect
-        }
         try {
-            items = apiClient.fetchGroceryList(listId)
+            // Convex owns one user-scoped list; the legacy list id is retained
+            // only for source compatibility with older navigation callers.
+            items = apiClient.fetchGroceryList(listId.orEmpty())
         } catch (e: Exception) {
             loadError = "Unable to load your grocery list. Please try again."
         } finally {

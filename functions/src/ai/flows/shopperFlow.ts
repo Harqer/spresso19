@@ -8,7 +8,6 @@ import "../tools/searchProducts";
 import "../tools/parallelWebSearch";
 import "../tools/parallelDeepResearch";
 import "../tools/chefAgent";
-import "../tools/ecommerceAgent";
 import "../tools/virtualTryOnAgent";
 import "../tools/mediaGeneration";
 import "../tools/marketResearchUKAgent";

@@ -30,6 +30,9 @@ fun ProductCatalogScreen(
     products: List<ProductItem>,
     isLoading: Boolean,
     errorMessage: String?,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    onSearch: (String) -> Unit = {},
     httpClient: HttpClient,
     onProductSelected: (String) -> Unit,
     onTryOnRequested: (ProductItem) -> Unit,
@@ -52,6 +55,7 @@ fun ProductCatalogScreen(
     val hitlCheckoutPayload by catalogViewModel.hitlCheckoutPayload.collectAsState()
 
     val scope = rememberCoroutineScope()
+    val convexApi = remember { network.ConvexApi() }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(checkoutStatus) {
@@ -113,10 +117,16 @@ fun ProductCatalogScreen(
                     modifier = Modifier.fillMaxSize().consumeWindowInsets(innerPadding),
                 ) {
                     item(span = { GridItemSpan(this.maxCurrentLineSpan) }) {
-                        ProductCatalogHeader(selectedCategoryId = selectedCategoryId, onCategorySelected = {
-                            selectedCategoryId =
-                                it
-                        }, userLocation = userLocation, searchRadius = searchRadius, onRequestLocationPermission = onRequestLocationPermission)
+                        ProductCatalogHeader(
+                            selectedCategoryId = selectedCategoryId,
+                            onCategorySelected = { selectedCategoryId = it },
+                            userLocation = userLocation,
+                            searchRadius = searchRadius,
+                            onRequestLocationPermission = onRequestLocationPermission,
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = onSearchQueryChange,
+                            onSearch = onSearch,
+                        )
                     }
 
                     if (errorMessage != null) {
@@ -216,7 +226,7 @@ fun ProductCatalogScreen(
                     onLike = {
                         scope.launch {
                             try {
-                                apiClient.recordInteraction(prod.id, "like")
+                                convexApi.setSavedProduct(prod, saved = true)
                                 catalogViewModel.setCheckoutStatus("Saved to favorites.")
                             } catch (e: Exception) {
                                 catalogViewModel.setCheckoutStatus("Unable to save this product. Please try again.")

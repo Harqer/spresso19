@@ -4,7 +4,6 @@ import "./genkit";
 import "./tools/addToCart";
 import "./tools/searchProducts";
 import "./tools/chefAgent";
-import "./tools/ecommerceAgent";
 import "./tools/virtualTryOnAgent";
 import "./tools/mediaGeneration";
 import "./tools/parallelWebSearch";
@@ -14,7 +13,6 @@ import "./tools/marketResearchUSAgent";
 import "./tools/kitesurfSearch";
 import "./flows/shopperFlow";
 import "./flows/virtualTryOnFlow";
-import "./flows/discoverPersonalizedProductsFlow";
 import "./flows/behavioralAnalysisFlow";
 
 console.log("Genkit flows and tools loaded.");

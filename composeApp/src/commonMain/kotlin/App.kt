@@ -24,6 +24,7 @@ import components.features.auth.AuthPage
 import components.features.catalog.AICurationFeed
 import components.features.catalog.ProductCatalogDetailDialog
 import components.features.catalog.ProductCatalogPage
+import components.features.catalog.toProductItem
 import components.features.chat.PersonalAIShopperChatPage
 import components.features.chat.cards.DiscoveryCard
 import components.features.creators.CreatorAgentsPage
@@ -154,6 +155,7 @@ fun App(
 
         val scope = rememberCoroutineScope()
         val apiClient = remember { ApiClient() }
+        val convexApi = remember { network.ConvexApi() }
         val liveApiClient = remember { LiveApiClient() }
         val chatViewModel = remember { ChatViewModel(apiClient, scope, liveApiClient) }
         val catalogViewModel = remember { CatalogViewModel(scope) }
@@ -418,7 +420,7 @@ fun App(
 
                         LaunchedEffect(currentDestinationKey.productId) {
                             try {
-                                detailProduct = apiClient.fetchProduct(currentDestinationKey.productId)
+                                detailProduct = convexApi.fetchProductById(currentDestinationKey.productId)
                             } catch (e: Exception) {
                                 loadError = "Failed to fetch product details"
                             }
@@ -476,7 +478,7 @@ fun App(
                         var curationError by remember { mutableStateOf<String?>(null) }
                         LaunchedEffect(Unit) {
                             try {
-                                curatedProducts = apiClient.discoverPersonalizedProducts()
+                                curatedProducts = convexApi.fetchRecommendedProducts()
                             } catch (e: Exception) {
                                 curationError = "Recommendations are unavailable right now. Please try again later."
                             }
@@ -522,13 +524,13 @@ fun App(
                         var recommendationsError by remember { mutableStateOf<String?>(null) }
                         LaunchedEffect(Unit) {
                             try {
-                                recommendedProducts = apiClient.discoverPersonalizedProducts()
+                                recommendedProducts = convexApi.fetchRecommendedProducts()
                             } catch (e: Exception) {
                                 recommendationsError = "Live product recommendations are unavailable right now."
                                 recommendedProducts = emptyList()
                             }
                             runCatching {
-                                likedProducts = apiClient.fetchFavorites()
+                                likedProducts = convexApi.fetchSavedListings().mapNotNull { it.listing?.toProductItem() }
                             }
                         }
                         ColumnWithRouteMessage(recommendationsError) {

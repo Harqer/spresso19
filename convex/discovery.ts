@@ -3,7 +3,9 @@
 import Parallel from "parallel-web";
 import { action, env } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { requireFirebaseIdentity } from "./lib/identity";
+import { deriveRecommendationQueries } from "./recommendationQueries";
 
 const listing = v.object({
   id: v.string(),
@@ -90,39 +92,137 @@ async function fetchKitesurfVerification(merchantUrl: string, productName: strin
   return data.result ?? {};
 }
 
-export const search = action({
-  args: { query: v.string(), location: v.optional(v.string()), radius: v.optional(v.number()) },
-  returns: v.object({ listings: v.array(listing) }),
-  handler: async (ctx, args) => {
-    await requireFirebaseIdentity(ctx);
-    const query = args.query.trim().replace(/\s+/g, " ");
-    if (query.length < 2 || query.length > 240) throw new Error("A valid discovery query is required.");
-    const scopedQuery = args.location?.trim() ? `${query} near ${args.location.trim()}` : query;
-    const discoveredAt = new Date().toISOString();
-    const run = async <T>(task: (signal: AbortSignal) => Promise<T>) => {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10_000);
-      try { return await task(controller.signal); } finally { clearTimeout(timeout); }
-    };
-    let raw: Record<string, unknown>[] = [];
-    let source: "parallel" | "serpapi" = "parallel";
-    if (env.PARALLEL_API_KEY) {
-      try { raw = await run(signal => fetchParallel(scopedQuery, env.PARALLEL_API_KEY!, signal)); } catch { raw = []; }
+/**
+ * Product discovery — Convex owns orchestration of external store/search
+ * providers. There is no canonical product inventory: listings come from
+ * Parallel (primary), SerpAPI (fallback), and Kitesurf (verification) per
+ * request. Only user-scoped context (preferences, saved/liked products,
+ * cart snapshots, orders) is persisted, never a shared product database.
+ *
+ * `search` serves explicit user queries; `recommendations` derives queries
+ * from the caller's durable preferences/likes and fans out through the same
+ * provider tools. Both are authenticated, validated, and rate limited.
+ */
+
+const runWithTimeout = async <T>(task: (signal: AbortSignal) => Promise<T>): Promise<T> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  try {
+    return await task(controller.signal);
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+async function fetchWithSource(
+  scopedQuery: string,
+): Promise<{ raw: Record<string, unknown>[]; source: "parallel" | "serpapi" }> {
+  let raw: Record<string, unknown>[] = [];
+  let source: "parallel" | "serpapi" = "parallel";
+  if (env.PARALLEL_API_KEY) {
+    try {
+      raw = await runWithTimeout((signal) => fetchParallel(scopedQuery, env.PARALLEL_API_KEY!, signal));
+    } catch {
+      raw = [];
     }
-    if (raw.length < 3 && env.SERPAPI_API_KEY) {
-      source = "serpapi";
-      try { raw = await run(signal => fetchSerpApi(scopedQuery, env.SERPAPI_API_KEY!, signal)); } catch { raw = []; }
+  }
+  if (raw.length < 3 && env.SERPAPI_API_KEY) {
+    source = "serpapi";
+    try {
+      raw = await runWithTimeout((signal) => fetchSerpApi(scopedQuery, env.SERPAPI_API_KEY!, signal));
+    } catch {
+      raw = [];
     }
-    if (raw.length === 0) throw new Error("Discovery providers returned no verified listings.");
-    const seen = new Set<string>();
-    const listings = raw.flatMap(item => {
+  }
+  return { raw, source };
+}
+
+function normalizeListings(
+  raw: Record<string, unknown>[],
+  source: "parallel" | "serpapi",
+  discoveredAt: string,
+) {
+  const seen = new Set<string>();
+  return raw
+    .flatMap((item) => {
       const normalized = normalize(source, item, discoveredAt);
       if (!normalized || seen.has(normalized.id)) return [];
       seen.add(normalized.id);
       return [normalized];
-    }).slice(0, 50);
+    })
+    .slice(0, 50);
+}
+
+export const search = action({
+  args: { query: v.string(), location: v.optional(v.string()), radius: v.optional(v.number()) },
+  returns: v.object({ listings: v.array(listing) }),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const query = args.query.trim().replace(/\s+/g, " ");
+    if (query.length < 2 || query.length > 240) throw new Error("A valid discovery query is required.");
+    const scopedQuery = args.location?.trim() ? `${query} near ${args.location.trim()}` : query;
+    const discoveredAt = new Date().toISOString();
+
+    // Per-user quota before any external provider call.
+    await ctx.runMutation(internal.rateLimits.consume, {
+      key: identity.tokenIdentifier,
+      name: "discoverySearch",
+    });
+
+    const { raw, source } = await fetchWithSource(scopedQuery);
+    if (raw.length === 0) throw new Error("Discovery providers returned no verified listings.");
+    const listings = normalizeListings(raw, source, discoveredAt);
     if (listings.length === 0) throw new Error("Discovery providers returned no verified listings.");
     return { listings };
+  },
+});
+
+/**
+ * Server-derived recommendation feed. Reads the caller's durable user state
+ * (preferences, saved/liked products, recent orders), derives a small set of
+ * external search queries, and fans them out through the same provider tools
+ * as `search`. Nothing is read from or written to a product database; results
+ * are live external listings scoped to this user's intent.
+ */
+export const recommendations = action({
+  args: {},
+  returns: v.object({ listings: v.array(listing), derivedFrom: v.array(v.string()) }),
+  handler: async (ctx) => {
+    const identity = await requireFirebaseIdentity(ctx);
+
+    // Durable user context is the only recommendation input.
+    const [preferences, saved, liked, recentOrders] = await Promise.all([
+      ctx.runQuery(internal.discoveryState.myPreferences, {}),
+      ctx.runQuery(internal.discoveryState.mySavedProductIds, {}),
+      ctx.runQuery(internal.discoveryState.myLikedProductIds, {}),
+      ctx.runQuery(internal.discoveryState.myRecentOrderListingNames, {}),
+    ]);
+
+    const derivedFrom = deriveRecommendationQueries({
+      searchInquiries: preferences?.searchInquiries ?? [],
+      vibes: preferences?.vibes ?? [],
+      savedProductIds: saved,
+      likedProductIds: liked,
+      recentOrderNames: recentOrders,
+    });
+    if (derivedFrom.length === 0) throw new Error("NO_PREFERENCES: no durable preference, saved, or order context is available to derive recommendations.");
+
+    const discoveredAt = new Date().toISOString();
+    const batches = await Promise.all(
+      derivedFrom.map(async (query) => {
+        await ctx.runMutation(internal.rateLimits.consume, {
+          key: identity.tokenIdentifier,
+          name: "discoverySearch",
+        });
+        return fetchWithSource(query).catch(() => ({ raw: [] as Record<string, unknown>[], source: "parallel" as const }));
+      }),
+    );
+    const listings = batches
+      .flatMap((batch) => normalizeListings(batch.raw, batch.source, discoveredAt))
+      .filter((listing, index, all) => all.findIndex((candidate) => candidate.id === listing.id) === index)
+      .slice(0, 50);
+    if (listings.length === 0) throw new Error("Discovery providers returned no verified listings.");
+    return { listings, derivedFrom };
   },
 });
 

@@ -175,6 +175,7 @@ export const listSavedProducts = query({
     _creationTime: v.number(),
     tokenIdentifier: v.string(),
     productId: v.string(),
+    listing: v.optional(v.any()),
     updatedAt: v.number(),
   })),
   handler: async (ctx, args) => {
@@ -191,6 +192,7 @@ export const setSavedProduct = mutation({
   args: {
     productId: v.string(),
     saved: v.boolean(),
+    listing: v.optional(v.any()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -206,8 +208,11 @@ export const setSavedProduct = mutation({
       await ctx.db.insert("savedProducts", {
         tokenIdentifier: identity.tokenIdentifier,
         productId: args.productId,
+        ...(args.listing ? { listing: args.listing } : {}),
         updatedAt: Date.now(),
       });
+    } else if (args.saved && existing && args.listing) {
+      await ctx.db.patch(existing._id, { listing: args.listing, updatedAt: Date.now() });
     } else if (!args.saved && existing) {
       await ctx.db.delete("savedProducts", existing._id);
     }

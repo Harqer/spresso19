@@ -39,7 +39,7 @@ fun SmartVisionPage(
 
     LaunchedEffect(Unit) {
         try {
-            inventory = apiClient.discoverPersonalizedProducts()
+            inventory = network.ConvexApi().fetchRecommendedProducts()
         } catch (e: Exception) {
             scope.launch { snackbarHostState.showSnackbar("Product availability could not be loaded. Please try again.") }
         }

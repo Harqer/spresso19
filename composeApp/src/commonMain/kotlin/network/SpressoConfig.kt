@@ -8,4 +8,7 @@ expect object SpressoConfig {
     val cloudFunctionsBaseUrl: String
     val googlePayMerchantId: String
     val stripePublishableKey: String
+
+    /** Convex HTTP bridge origin (`*.convex.site`) used by the KMP clients. */
+    val convexSiteUrl: String
 }

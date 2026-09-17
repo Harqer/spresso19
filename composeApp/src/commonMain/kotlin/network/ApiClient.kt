@@ -2,7 +2,6 @@ package network
 
 import components.models.TripRecord
 import components.features.catalog.DiscoveredListing
-import components.features.catalog.parseDiscoveredListingsCallableResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.HttpSend
@@ -32,19 +31,14 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import kotlin.time.TimeSource
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import network.models.ChatStreamChunk
 import network.models.UserProfileData
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-import network.addGroceryItem as addGroceryItemTopLevel
 import network.createPaymentMethod as createPaymentMethodTopLevel
-import network.deleteGroceryItem as deleteGroceryItemTopLevel
 import network.deletePaymentMethod as deletePaymentMethodTopLevel
-
-import network.toggleGroceryItem as toggleGroceryItemTopLevel
 import network.updateUserSubscription as updateUserSubscriptionTopLevel
 
 @Serializable
@@ -152,34 +146,6 @@ open class ApiClient {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    private fun JsonObject.string(key: String): String = this[key]?.jsonPrimitive?.content ?: ""
-    private fun JsonObject.double(key: String): Double = this[key]?.jsonPrimitive?.content?.toDoubleOrNull() ?: 0.0
-    private fun JsonObject.jsonArray(key: String) = this[key]?.jsonArray ?: emptyList<kotlinx.serialization.json.JsonElement>()
-
-    suspend fun discoverPersonalizedProducts(): List<ProductItem> {
-        discoverCache?.let { cached ->
-            if (cached.mark.elapsedNow().inWholeMilliseconds < DISCOVER_CACHE_TTL_MS) {
-                return cached.value
-            }
-        }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.DISCOVER_PERSONALIZED_PRODUCTS, "{}")
-        val products =
-            parseDiscoveredListingsCallableResponse(responseStr).map { listing ->
-                ProductItem(
-                    id = listing.id,
-                    name = listing.name,
-                    brand = listing.brand.orEmpty(),
-                    category = listing.category.orEmpty(),
-                    price = listing.observedPrice?.amount,
-                    imageUrl = listing.imageUrl.orEmpty(),
-                    merchantUrl = listing.merchantUrl,
-                    source = listing.source,
-                    providerListingId = listing.providerListingId,
-                )
-            }
-        discoverCache = DiscoverCache(TimeSource.Monotonic.markNow(), products)
-        return products
-    }
 
     suspend fun analyzeUserBehavior(
         explicitInterests: List<String>,
@@ -200,6 +166,7 @@ open class ApiClient {
     private val cloudFunctionsBaseUrl = SpressoConfig.cloudFunctionsBaseUrl
     /** Firebase Hosting is the canonical HTTP boundary for non-callable REST resources. */
     private val backendBaseUrl = SpressoConfig.backendBaseUrl
+    private val convexApi by lazy { ConvexApi() }
 
     suspend fun verifyEmailCredential(
         credential: String,
@@ -411,46 +378,62 @@ open class ApiClient {
         return true
     }
 
-    suspend fun fetchTravelTrips(): List<TripRecord> {
-        val responseStr = callFirebaseFunction(FirebaseRoutes.GET_TRAVEL_TRIPS, "{}")
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        val tripsArray = result["trips"]?.jsonArray
-        return tripsArray?.mapNotNull { item ->
-            val obj = item.jsonObject
+    suspend fun fetchTravelTrips(): List<TripRecord> =
+        convexApi.fetchTrips().map { trip ->
             TripRecord(
-                id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null,
-                title = obj.string("title"),
-                destination = obj.string("destination"),
-                startDate = obj.string("start_date").ifEmpty { obj.string("startDate") },
-                endDate = obj.string("end_date").ifEmpty { obj.string("endDate") },
-                status = obj.string("status"),
-                coverImage = obj.string("cover_image").ifEmpty { obj.string("coverImage") },
-                budgetTotal = obj.double("budget_total"),
-                spentTotal = obj.double("spent_total"),
+                id = trip.id,
+                title = trip.title,
+                destination = trip.destination,
+                startDate = trip.startDate,
+                endDate = trip.endDate,
+                status = trip.status,
+                coverImage = trip.coverImage.orEmpty(),
+                budgetTotal = trip.budgetTotal ?: 0.0,
+                spentTotal = 0.0,
             )
-        } ?: emptyList()
-    }
+        }
 
-    suspend fun fetchTravelEvents(tripId: String): List<components.models.ItineraryEvent> {
-        val response = client.get("$backendBaseUrl/travel/trips/$tripId/events").bodyAsText()
-        return json.decodeFromString(response)
-    }
+    suspend fun fetchTravelEvents(tripId: String): List<components.models.ItineraryEvent> =
+        convexApi.fetchTripDetail(tripId)?.events?.map { event ->
+            components.models.ItineraryEvent(
+                id = event.id,
+                tripId = tripId,
+                type = event.type,
+                title = event.title,
+                description = event.description,
+                eventTime = event.eventTime,
+                location = event.location,
+                price = event.price,
+                qrData = event.qrData,
+                confirmationCode = event.confirmationCode,
+                gate = event.gate,
+                seat = event.seat,
+            )
+        }.orEmpty()
 
-    suspend fun fetchTravelExpenses(tripId: String): List<components.models.TravelExpense> {
-        val response = client.get("$backendBaseUrl/travel/trips/$tripId/expenses").bodyAsText()
-        return json.decodeFromString(response)
-    }
+    suspend fun fetchTravelExpenses(tripId: String): List<components.models.TravelExpense> =
+        convexApi.fetchTripDetail(tripId)?.expenses?.map { expense ->
+            components.models.TravelExpense(expense.id, tripId, expense.amount, expense.currency, expense.category, expense.merchant, expense.date)
+        }.orEmpty()
 
-    suspend fun fetchVoiceNotes(tripId: String): List<components.models.VoiceNote> {
-        val response = client.get("$backendBaseUrl/travel/trips/$tripId/voicenotes").bodyAsText()
-        return json.decodeFromString(response)
-    }
+    suspend fun fetchVoiceNotes(tripId: String): List<components.models.VoiceNote> =
+        convexApi.fetchTripDetail(tripId)?.voiceNotes?.map { note ->
+            components.models.VoiceNote(note.id, tripId, note.transcript, note.createdAt.toString())
+        }.orEmpty()
 
-    suspend fun fetchGroceryList(listId: String): List<network.models.GroceryItem> {
-        val response = client.get("$backendBaseUrl/grocery/lists/$listId/items").bodyAsText()
-        return json.decodeFromString(response)
-    }
+    @Suppress("UNUSED_PARAMETER")
+    suspend fun fetchGroceryList(listId: String): List<network.models.GroceryItem> =
+        convexApi.fetchGroceryItems().map { item ->
+            network.models.GroceryItem(
+                id = item.id,
+                name = item.name,
+                quantity = 1,
+                unit = "item",
+                category = item.category,
+                estimatedPrice = 0.0,
+                checked = item.checked,
+            )
+        }
 
     suspend fun initializeOnboarding(
         uid: String,
@@ -474,28 +457,24 @@ open class ApiClient {
         client.close()
     }
 
+    @Suppress("UNUSED_PARAMETER")
     suspend fun addGroceryItem(
         listId: String,
         productName: String,
         productId: String?,
         addedVia: String,
     ): Boolean {
-        addGroceryItemTopLevel(listId, productName, productId, addedVia)
-        return true
+        return convexApi.addGroceryItem(productName, addedVia)
     }
 
     suspend fun toggleGroceryItem(
         id: String,
         isPurchased: Boolean,
     ): Boolean {
-        toggleGroceryItemTopLevel(id, isPurchased)
-        return true
+        return convexApi.setGroceryChecked(id, isPurchased)
     }
 
-    suspend fun deleteGroceryItem(id: String): Boolean {
-        deleteGroceryItemTopLevel(id)
-        return true
-    }
+    suspend fun deleteGroceryItem(id: String): Boolean = convexApi.removeGroceryItem(id)
 
     suspend fun removePaymentMethod(id: String): Boolean {
         deletePaymentMethodTopLevel(id)
@@ -575,11 +554,6 @@ open class ApiClient {
             ?.toDoubleOrNull() ?: error("Weather data unavailable")
     }
 
-    suspend fun fetchProduct(productId: String): ProductItem {
-        val response = client.get("$backendBaseUrl/products/$productId").bodyAsText()
-        return json.decodeFromString(response)
-    }
-
     suspend fun fetchDetection(detectionId: String): DetectedItem {
         val response = client.get("$backendBaseUrl/vision/detections/$detectionId").bodyAsText()
         return json.decodeFromString(response)
@@ -588,45 +562,6 @@ open class ApiClient {
     suspend fun fetchRecipe(recipeName: String): network.models.GroceryItem {
         val response = client.get("$backendBaseUrl/recipes/$recipeName").bodyAsText()
         return json.decodeFromString(response)
-    }
-
-    suspend fun fetchOrders(): List<network.models.OrderRecord> {
-        val response = client.get("$backendBaseUrl/orders/history").bodyAsText()
-        return json.decodeFromString(response)
-    }
-
-    suspend fun fetchLikedProductIds(): List<String> {
-        val payload = buildJsonObject { }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.GET_USER_PREFERENCES, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        val likedIds = result["likedIds"]?.jsonArray ?: return emptyList()
-        return likedIds.mapNotNull { it.jsonPrimitive.content }
-    }
-
-    suspend fun fetchProductsByIds(productIds: List<String>): List<ProductItem> {
-        if (productIds.isEmpty()) return emptyList()
-        val payload = buildJsonObject {
-            put("productIds", buildJsonArray {
-                productIds.forEach { add(it) }
-            })
-        }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.FETCH_PRODUCTS_BY_IDS, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        val listings = result["listings"]?.jsonArray ?: return emptyList()
-        return listings.mapNotNull { element ->
-            try {
-                json.decodeFromJsonElement<ProductItem>(element.jsonObject)
-            } catch (e: Exception) {
-                null
-            }
-        }
-    }
-
-    suspend fun fetchFavorites(): List<ProductItem> {
-        val likedIds = fetchLikedProductIds()
-        return fetchProductsByIds(likedIds)
     }
 
     suspend fun generateOutfit(
@@ -719,8 +654,5 @@ open class ApiClient {
             }
             client
         }
-        private var discoverCache: DiscoverCache? = null
-        private const val DISCOVER_CACHE_TTL_MS = 5 * 60 * 1000L
-        private data class DiscoverCache(val mark: kotlin.time.TimeMark, val value: List<ProductItem>)
     }
 }

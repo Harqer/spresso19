@@ -31,6 +31,8 @@ fun ProductCatalogPage(
 ) {
     var products by remember { mutableStateOf<List<ProductItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var searchQuery by remember { mutableStateOf("") }
+    val convexApi = remember { network.ConvexApi() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
@@ -39,7 +41,7 @@ fun ProductCatalogPage(
     LaunchedEffect(Unit) {
         isLoading = true
         try {
-            products = apiClient.discoverPersonalizedProducts()
+            products = convexApi.fetchRecommendedProducts()
         } catch (
             e: Exception,
         ) {
@@ -54,7 +56,7 @@ fun ProductCatalogPage(
             isLoading = true
             errorMessage = null
             try {
-                products = apiClient.discoverPersonalizedProducts()
+                products = convexApi.fetchRecommendedProducts()
             } catch (
                 e: Exception,
             ) {
@@ -67,6 +69,18 @@ fun ProductCatalogPage(
 
     ProductCatalogScreen(
         products = products,
+        searchQuery = searchQuery,
+        onSearchQueryChange = { searchQuery = it },
+        onSearch = { query ->
+            scope.launch {
+                isLoading = true
+                errorMessage = null
+                runCatching { convexApi.searchProducts(query, userLocation) }
+                    .onSuccess { products = it }
+                    .onFailure { errorMessage = "External product search is unavailable right now. Please try again." }
+                isLoading = false
+            }
+        },
         isLoading = isLoading,
         errorMessage = errorMessage,
         httpClient = httpClient,

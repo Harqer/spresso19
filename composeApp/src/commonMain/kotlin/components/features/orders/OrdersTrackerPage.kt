@@ -37,10 +37,11 @@ fun OrdersTrackerPage(
     var isSubmittingReturn by remember { mutableStateOf(false) }
     var returnResultMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val convexApi = remember { network.ConvexApi() }
 
     LaunchedEffect(Unit) {
         try {
-            orders = apiClient.fetchOrders()
+            orders = convexApi.fetchOrders()
         } catch (e: Exception) {
             loadError = "Unable to load your orders. Please try again."
         } finally {
@@ -100,11 +101,10 @@ fun OrdersTrackerPage(
                         onSetReminder = { orderId ->
                             scope.launch {
                                 try {
-                                    val response = apiClient.setOrderReminder(
+                                    val success = convexApi.setOrderReminder(
                                         orderId = orderId,
                                         reminderTime = kotlinx.datetime.Clock.System.now().toString(),
                                     )
-                                    val success = response["success"]?.jsonPrimitive?.boolean == true
                                     if (success) {
                                         orders = orders.map { order -> if (order.id == orderId) order.copy(reminderSet = true) else order }
                                         onSetReminder(orderId)
@@ -137,8 +137,7 @@ fun OrdersTrackerPage(
                 scope.launch {
                     isSubmittingReturn = true
                     try {
-                        val response = apiClient.requestOrderReturn(orderId = orderId, reason = reason)
-                        val success = response["success"]?.jsonPrimitive?.boolean == true
+                        val success = convexApi.requestOrderReturn(orderId = orderId, reason = reason)
                         if (success) {
                             returnResultMessage = "Return request successfully submitted."
                         } else {

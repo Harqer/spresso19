@@ -9,4 +9,6 @@ actual object SpressoConfig {
         get() = "BCR2DN6DTK6ZNGLF"
     actual val stripePublishableKey: String
         get() = ""
+    actual val convexSiteUrl: String
+        get() = "https://woozy-anteater-572.convex.site"
 }

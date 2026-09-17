@@ -13,7 +13,7 @@
     "test:contracts": "node scripts/test/verify-function-contracts.test.mjs",
     "test:mcp": "node --test mcp-server/server.test.mjs",
     "test:ci-wiring": "node --test scripts/test/ci-wiring.test.mjs",
-    "test:convex-cutover": "node --test scripts/test/convex-cutover.test.mjs scripts/test/wardrobe-convex-cutover.test.mjs scripts/test/catalog-convex-cutover.test.mjs scripts/test/commerce-convex-cutover.test.mjs scripts/test/profile-convex-cutover.test.mjs",
+    "test:convex-cutover": "node --test scripts/test/convex-cutover.test.mjs",
     "gitnexus:status": "node scripts/gitnexus/guard.mjs status",
     "gitnexus:analyze": "node scripts/gitnexus/guard.mjs analyze",
     "gitnexus:refresh": "node scripts/gitnexus/guard.mjs refresh",

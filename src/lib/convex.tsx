@@ -4,6 +4,9 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 
 import { resolveConvexUrl } from "./convexConfig";
+import { api } from "../../convex/_generated/api";
+import type { DiscoveryCallable } from "./discoveryRepository";
+import { DiscoveryRepository } from "./discoveryRepository";
 
 const convexUrl = resolveConvexUrl({
   configuredUrl: import.meta.env.VITE_CONVEX_URL,
@@ -11,6 +14,18 @@ const convexUrl = resolveConvexUrl({
 });
 
 export const convexClient = convexUrl ? new ConvexReactClient(convexUrl) : null;
+
+/** Create the external-provider discovery repository backed by Convex actions. */
+export function createConvexDiscoveryRepository(): DiscoveryRepository | null {
+  if (!convexClient) return null;
+  const discover: DiscoveryCallable = async (request, signal) => {
+    if (signal.aborted) throw new DOMException("Discovery request was cancelled.", "AbortError");
+    const query = request.searchQueries.join(" ").trim();
+    if (!query) throw new Error("A discovery query is required.");
+    return convexClient.action(api.discovery.search, { query });
+  };
+  return new DiscoveryRepository({ discover });
+}
 
 function useFirebaseConvexAuth() {
   const [isLoading, setIsLoading] = useState(true);

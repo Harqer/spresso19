@@ -17,6 +17,7 @@ import com.spresso.dataconnect.execute
 import com.spresso.dataconnect.instance
 import kotlinx.coroutines.tasks.await
 import network.ApiClient
+import network.ConvexApi
 import network.Telemetry
 import network.getCurrentUserUid
 
@@ -79,9 +80,8 @@ class EngageWorker(
     private suspend fun publishRecommendations(): Result {
         val products =
             try {
-                val apiClient = ApiClient()
-                val result = apiClient.discoverPersonalizedProducts()
-                apiClient.close()
+                val convexApi = ConvexApi()
+                val result = convexApi.fetchRecommendedProducts()
                 result.map { p: network.ProductItem ->
                     ProductItem(
                         id = p.id,
@@ -114,9 +114,8 @@ class EngageWorker(
     private suspend fun publishFeatured(): Result {
         val topItems =
             try {
-                val apiClient = ApiClient()
-                val result = apiClient.discoverPersonalizedProducts()
-                apiClient.close()
+                val convexApi = ConvexApi()
+                val result = convexApi.fetchRecommendedProducts()
                 result.take(5).map { p: network.ProductItem ->
                     ProductItem(
                         id = p.id,

@@ -11,7 +11,6 @@ object FirebaseRoutes {
     const val GET_QUICK_PROMPTS = "getQuickPrompts"
     const val LOG_SEARCH_HISTORY = "logSearchHistory"
     const val CHAT_STREAM = "chatStream"
-    const val DISCOVER_PERSONALIZED_PRODUCTS = "discoverPersonalizedProducts"
     const val ANALYZE_USER_BEHAVIOR = "analyzeUserBehavior"
     const val VERIFY_EMAIL_CREDENTIAL = "verifyEmailCredential"
     const val INGEST_INTERACTION = "ingestInteraction"
@@ -30,6 +29,5 @@ object FirebaseRoutes {
     const val GET_USER_PREFERENCES = "getUserPreferences"
     const val UPDATE_USER_PREFERENCES = "updateUserPreferences"
     const val TOGGLE_USER_LIKE = "toggleUserLike"
-    const val FETCH_PRODUCTS_BY_IDS = "fetchProductsByIds"
     const val GENERATE_OUTFIT = "generateOutfit"
 }
