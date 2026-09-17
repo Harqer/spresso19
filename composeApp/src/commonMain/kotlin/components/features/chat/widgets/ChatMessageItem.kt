@@ -1,8 +1,21 @@
 package components.features.chat.widgets
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -11,11 +24,9 @@ import components.features.chat.ChatBubbleText
 import components.features.chat.ChatMessageHeader
 import components.features.chat.ChatProductCard
 import components.features.chat.VideoReviewCard
-import components.models.*
 import io.ktor.client.HttpClient
 import network.ChatMessage
 import network.ProductItem
-import spresso.composeapp.generated.resources.*
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

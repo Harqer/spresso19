@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import components.models.*
 import components.shared.ParallaxCard
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import theme.AppTheme
