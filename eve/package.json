@@ -8,6 +8,7 @@
     "eval": "eve eval --strict"
   },
   "devDependencies": {
+    "@types/node": "^26.6.1",
     "eve": "0.59.1"
   }
 }
