@@ -1,0 +1,1 @@
+Required bundle: convex-design, convex schema, queries, mutations, actions, auth, authz, indexes, rate limiting, testing, cost, environment, and verification. Use .agents/skills/convex-* plus convex/_generated/ai/guidelines.md as sources of truth.

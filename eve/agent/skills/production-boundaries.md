@@ -1,0 +1,1 @@
+Spresso is a discovery and merchant-routing product, not a retailer. Never invent inventory, availability, prices, orders, credentials, or successful provider responses. Agents may research and stage commerce actions but must stop before payment, order submission, wallet signing, or security changes. Keep Eve development-only and do not deploy it.

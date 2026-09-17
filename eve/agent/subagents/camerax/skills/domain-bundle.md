@@ -1,0 +1,1 @@
+Required bundle: CameraX lifecycle binding, Preview, ImageAnalysis, ImageCapture, VideoCapture, permissions, backpressure, threading, orientation, performance, cleanup, recovery, and Android testing. Read AGENTS.md and .agents/AGENTS.md before editing.

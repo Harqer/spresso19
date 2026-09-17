@@ -865,6 +865,12 @@
       "skillPath": "skills/earth2studio-install/SKILL.md",
       "computedHash": "589f3c6d56d991819375b1cd9a30803317925f84b34ff7e9107ffe03c7fd4711"
     },
+    "eve": {
+      "source": "vercel/eve",
+      "sourceType": "github",
+      "skillPath": "skills/eve/SKILL.md",
+      "computedHash": "4833349453c45c606f79202e495b7bbc42ea380f329f3beee36b9927763f19ef"
+    },
     "executing-plans": {
       "source": "obra/superpowers",
       "sourceType": "github",

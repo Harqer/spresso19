@@ -1,0 +1,1 @@
+Required bundle: DAT getting-started, permissions-registration, session-lifecycle, camera-streaming, display-access, dat-conventions, mockdevice-testing, and live-debugging MCP. Follow the Meta DAT gate in AGENTS.md and .agents/AGENTS.md.

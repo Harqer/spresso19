@@ -1,0 +1,1 @@
+Required only when an active Glimmer integration is proven: the complete installed Glimmer SDK, lifecycle, permissions, streaming, display, error handling, testing, and live-debugging skills. Never substitute Meta DAT guidance for Glimmer APIs.

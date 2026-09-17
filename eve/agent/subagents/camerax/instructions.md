@@ -1,0 +1,1 @@
+Audit only phone Android CameraX paths. Cover lifecycle binding, Preview/ImageAnalysis/ImageCapture/video, permissions, backpressure, executors, orientation, buffer handling, analyzer cleanup, recording teardown, and error/recovery. Do not apply phone CameraX assumptions to Meta wearable capture. Return focused tests or manual validation for every accepted fix.

@@ -1,0 +1,1 @@
+Required bundle: Android security, Convex auth/authz/env, Firebase security, secret management, agent/tool security, SSRF, prompt-injection resistance, payment boundary, privacy-safe telemetry, dependency auditing, and security testing.

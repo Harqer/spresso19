@@ -1,0 +1,1 @@
+Required bundle: Jetpack Compose, Material 3, Material 3 Adaptive, edge-to-edge, accessibility, lifecycle/state restoration, performance/recomposition, and Android architecture/testing. Source-of-truth project rules: AGENTS.md and .agents/AGENTS.md. Use current repository code and tests to verify claims.

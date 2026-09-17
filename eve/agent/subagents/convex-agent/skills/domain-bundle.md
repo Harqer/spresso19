@@ -1,0 +1,1 @@
+Required bundle: Convex Agent, tools, context, streaming, workflows, actions, rate limiting, authz, testing, and cost controls. Read .agents/skills/convex-agent, convex-design, convex-authz, convex-test, and convex/_generated/ai/guidelines.md.

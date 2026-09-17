@@ -1,0 +1,1 @@
+For every finding, return JSON-shaped Markdown with: severity, confidence, user-flow, evidence, affected files and symbols, root cause, proposed correction, validation command, and unresolved risk. Separate confirmed defects from recommendations and unknowns. Never label an issue pre-existing without evidence.

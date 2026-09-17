@@ -1,0 +1,13 @@
+{
+  "name": "spresso-eve-audit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "info": "eve info",
+    "dev": "eve dev --no-ui",
+    "eval": "eve eval --strict"
+  },
+  "devDependencies": {
+    "eve": "0.59.1"
+  }
+}

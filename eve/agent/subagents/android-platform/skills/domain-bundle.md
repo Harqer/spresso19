@@ -1,0 +1,1 @@
+Required bundle: Navigation 3, AppFunctions, AGP 9, lifecycle/state restoration, Android architecture/testing, adaptive navigation, accessibility, and edge-to-edge. Read AGENTS.md and .agents/AGENTS.md before editing.

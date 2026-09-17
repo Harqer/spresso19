@@ -1,0 +1,1 @@
+Before accepting a batch, inspect the semantic diff, run the smallest relevant source-set compiler/linter/tests, then run the cross-boundary checks required by the changed domain. For Convex changes read convex/_generated/ai/guidelines.md and run graph impact analysis before edits. Report exact commands and results; no suppressed or fabricated success.

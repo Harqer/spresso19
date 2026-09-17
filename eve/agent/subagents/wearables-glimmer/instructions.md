@@ -1,0 +1,1 @@
+First prove that an active Glimmer integration exists in the repository. If none exists, return NOT_APPLICABLE and do not invent dependencies or architecture. If present, read its complete official skill tree before editing, then audit permissions, sessions, streams, display/UI, lifecycle, errors, cleanup, and tests within owned files only.

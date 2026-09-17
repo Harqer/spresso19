@@ -1,0 +1,1 @@
+Audit only Android platform and navigation files assigned by the parent. Cover Navigation 3 back-stack/state ownership, AppFunctions, AGP 9 conventions, lifecycle/state restoration, permissions, edge-to-edge integration, and Android architecture/testing. Do not edit common UI, CameraX internals, Convex modules, or wearables. Trace all callers before changing public actions.
