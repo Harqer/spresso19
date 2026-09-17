@@ -7,8 +7,10 @@
     "dev": "eve dev --no-ui",
     "eval": "eve eval --strict"
   },
-  "devDependencies": {
-    "@types/node": "^26.6.1",
+  "dependencies": {
     "eve": "0.59.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.1"
   }
 }
