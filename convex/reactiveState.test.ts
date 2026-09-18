@@ -74,6 +74,26 @@ test("saved products are idempotent and data-scoped", async () => {
   expect(await authenticated.query(api.reactiveState.listSavedProducts, { limit: 100 })).toEqual([]);
 });
 
+test("saved product listings are validated as external snapshots", async () => {
+  const t = convexTest(schema, modules);
+  const authenticated = t.withIdentity(owner);
+
+  await authenticated.mutation(api.reactiveState.setSavedProduct, {
+    productId: listing.id,
+    saved: true,
+    listing,
+  });
+  expect(await authenticated.query(api.reactiveState.listSavedProducts, { limit: 10 })).toMatchObject([
+    { productId: listing.id, listing: { merchantUrl: listing.merchantUrl } },
+  ]);
+
+  await expect(authenticated.mutation(api.reactiveState.setSavedProduct, {
+    productId: "invalid-listing",
+    saved: true,
+    listing: { ...listing, merchantUrl: undefined } as never,
+  })).rejects.toThrow();
+});
+
 test("liked products and search preferences are authenticated and owner-scoped", async () => {
   const t = convexTest(schema, modules);
   const authenticated = t.withIdentity(owner);
