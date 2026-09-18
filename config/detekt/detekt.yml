@@ -1,26 +1,23 @@
-build:
-  maxIssues: 0
-
 complexity:
   LongMethod:
     active: true
-    threshold: 750
+    allowedLines: 750
   LongParameterList:
     active: true
-    functionThreshold: 26
-    constructorThreshold: 16
+    allowedFunctionParameters: 26
+    allowedConstructorParameters: 16
     ignoreDefaultParameters: true
   TooManyFunctions:
     active: false
   CyclomaticComplexMethod:
     active: true
-    threshold: 50
+    allowedComplexity: 50
   LargeClass:
     active: true
-    threshold: 1200
+    allowedLines: 1200
   NestedBlockDepth:
     active: true
-    threshold: 6
+    allowedDepth: 6
 
 naming:
   FunctionNaming:
@@ -44,9 +41,12 @@ style:
     active: false
   ReturnCount:
     active: false
-  UnusedPrivateMember:
+  UnusedPrivateClass:
     active: true
-    ignoreAnnotated: ['Preview', 'Composable']
+  UnusedPrivateFunction:
+    active: true
+  UnusedPrivateProperty:
+    active: true
   UnusedParameter:
     active: true
     allowedNames: '^(ignored|expected|_|vars)$'

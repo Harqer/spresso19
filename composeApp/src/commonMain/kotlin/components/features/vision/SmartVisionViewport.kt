@@ -29,17 +29,15 @@ fun SmartVisionViewport(
     if (activeImage == null) return
 
     val activeImageBitmap = remember(activeImage) { activeImage.makeImageBitmap() }
-    if (activeImageBitmap != null) {
-        Image(
-            bitmap = activeImageBitmap,
-            contentDescription = "Camera Stream",
-            contentScale = ContentScale.Crop,
-            modifier =
-                modifier
-                    .fillMaxSize()
-                    .then(if (isScanning) Modifier.blur(1.dp) else Modifier),
-        )
-    }
+    Image(
+        bitmap = activeImageBitmap,
+        contentDescription = "Camera Stream",
+        contentScale = ContentScale.Crop,
+        modifier =
+            modifier
+                .fillMaxSize()
+                .then(if (isScanning) Modifier.blur(1.dp) else Modifier),
+    )
 
     if (isScanning) {
         SmartVisionScanningOverlay()

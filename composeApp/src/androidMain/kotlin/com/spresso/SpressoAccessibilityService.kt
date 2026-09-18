@@ -242,7 +242,7 @@ class SpressoAccessibilityService : AccessibilityService() {
         var softwareBitmap: Bitmap? = null
         try {
             if (!isRequestStillAllowed(request)) return
-            val buffer = screenshot.hardwareBuffer ?: return
+            val buffer = screenshot.hardwareBuffer
             try {
                 hardwareBitmap = Bitmap.wrapHardwareBuffer(buffer, screenshot.colorSpace)
                 softwareBitmap = hardwareBitmap?.copy(Bitmap.Config.ARGB_8888, false)

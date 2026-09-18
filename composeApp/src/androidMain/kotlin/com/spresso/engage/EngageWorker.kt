@@ -166,8 +166,8 @@ class EngageWorker(
         if (cartItemCount == 0) return Result.success()
 
         val publishTask: Task<Void> =
-            client.publishShoppingCart(
-                clusterRequestFactory.constructShoppingCartClusterRequest(itemCount = cartItemCount),
+            client.publishShoppingCarts(
+                clusterRequestFactory.constructShoppingCartClustersRequest(itemCount = cartItemCount),
             )
         return publishAndProvideResult(publishTask)
     }

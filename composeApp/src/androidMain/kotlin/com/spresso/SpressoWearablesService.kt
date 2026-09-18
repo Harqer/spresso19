@@ -277,13 +277,13 @@ class SpressoWearablesService : Service() {
 
             override fun onFailure(
                 webSocket: WebSocket,
-                throwable: Throwable,
+                t: Throwable,
                 response: Response?,
             ) {
                 if (generation != socketGeneration || isStopping) return
                 socketConnected = false
                 audioRecorder?.stopRecording()
-                Log.e(TAG, "Glasses assistant connection failed", throwable)
+                Log.e(TAG, "Glasses assistant connection failed", t)
                 scheduleWebSocketReconnect(generation)
             }
         }
@@ -493,17 +493,18 @@ class SpressoWearablesService : Service() {
                 context: Context?,
                 intent: Intent?,
             ) {
-                val callId = intent?.getStringExtra(EXTRA_ACTION_ID)?.trim().orEmpty()
+                val receivedIntent = intent ?: return
+                val callId = receivedIntent.getStringExtra(EXTRA_ACTION_ID)?.trim().orEmpty()
                 if (callId.isEmpty()) return
                 val pending = pendingActions.remove(callId) ?: return
                 pending.timeoutJob.cancel()
-                val success = intent?.getBooleanExtra(EXTRA_SUCCESS, false) == true
+                val success = receivedIntent.getBooleanExtra(EXTRA_SUCCESS, false)
                 val message =
-                    intent?.getStringExtra(EXTRA_CUSTOMER_MESSAGE)?.trim().orEmpty().ifEmpty {
+                    receivedIntent.getStringExtra(EXTRA_CUSTOMER_MESSAGE)?.trim().orEmpty().ifEmpty {
                         if (success) "Done." else "That action couldn't be completed. Please try again."
                     }
                 completeToolCall(pending.call, success, message)
-                if (success && intent?.getBooleanExtra(EXTRA_PURCHASE_CONFIRMED, false) == true) {
+                if (success && receivedIntent.getBooleanExtra(EXTRA_PURCHASE_CONFIRMED, false)) {
                     sendDisplayMessage("Purchase confirmed", message, IconName.CHECKMARK_CIRCLE)
                 }
             }
@@ -897,7 +898,6 @@ class SpressoWearablesService : Service() {
                     buffer.get(bytes)
                     android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 }
-                else -> null
             } ?: return false
 
         frameOutStream.reset()

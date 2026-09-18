@@ -74,7 +74,7 @@ fun HeaderBanner(
                 }
             } else {
                 val selectedIndex = trips.indexOfFirst { it.id == activeTripId }.coerceAtLeast(0)
-                ScrollableTabRow(
+                PrimaryScrollableTabRow(
                     selectedTabIndex = selectedIndex,
                     edgePadding = 0.dp,
                     containerColor = MaterialTheme.colorScheme.surface,

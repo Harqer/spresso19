@@ -102,6 +102,7 @@ fun SmartVisionDetectionOverlay(
                         }
                     }
                     if (matchedProduct != null) {
+                        val product = matchedProduct
                         SpressoButton(
                             text = "Style",
                             icon = Icons.Default.Style,
@@ -111,61 +112,60 @@ fun SmartVisionDetectionOverlay(
                             trackingAction = "click_style",
                         )
                     }
-                    matchedProduct?.price?.takeIf { it > 0.0 }?.let { verifiedPrice ->
-                        SpressoButton(
-                            text = "$${verifiedPrice.toString().take(5)}",
-                            icon = Icons.Default.ShoppingBag,
-                            variant = SpressoButtonVariant.PRIMARY,
-                            onClick = {
-                                scope.launch {
-                                    try {
-                                        network.SpressoBackend.logVisionEvent(
-                                            detectedObjects = item.detectedName,
-                                            context = "buy_click",
-                                            imageUrl = matchedProduct?.imageUrl,
-                                        )
-                                        val productId = matchedProduct?.id ?: item.matchingCatalogId
-                                        if (productId == null) {
-                                            apiError = "This item is not available for checkout yet."
-                                            return@launch
+                    if (matchedProduct != null) {
+                        val product = matchedProduct
+                        product.price?.takeIf { it > 0.0 }?.let { verifiedPrice ->
+                            SpressoButton(
+                                text = "$${verifiedPrice.toString().take(5)}",
+                                icon = Icons.Default.ShoppingBag,
+                                variant = SpressoButtonVariant.PRIMARY,
+                                onClick = {
+                                    scope.launch {
+                                        try {
+                                            network.SpressoBackend.logVisionEvent(
+                                                detectedObjects = item.detectedName,
+                                                context = "buy_click",
+                                                imageUrl = product.imageUrl,
+                                            )
+                                            val productId = product.id
+                                            val merchantUrl = product.merchantUrl?.takeIf { it.startsWith("https://") }
+                                            if (merchantUrl == null) {
+                                                apiError = "A verified merchant listing is required before checkout."
+                                                return@launch
+                                            }
+                                            onHitlCheckout(
+                                                HITLPayload(
+                                                    authorizationId =
+                                                        "authorization-$productId-${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}",
+                                                    product =
+                                                        HITLProduct(
+                                                            id = productId,
+                                                            name = product.name,
+                                                            price = verifiedPrice,
+                                                            sku = "",
+                                                            image = product.imageUrl,
+                                                            merchantUrl = merchantUrl,
+                                                        ),
+                                                    quantity = 1,
+                                                    totalAmount = verifiedPrice,
+                                                    deviceSource = "ANDROID_APP",
+                                                    availabilityStatus = "VERIFY_AT_MERCHANT_CHECKOUT",
+                                                    humanInTheLoopChallenge =
+                                                        HITLChallenge(
+                                                            title = "Confirm purchase",
+                                                            message = "Review this order, choose payment, and confirm with your device.",
+                                                        ),
+                                                ),
+                                            )
+                                        } catch (e: Exception) {
+                                            apiError = "Unable to prepare checkout. Please try again."
                                         }
-                                        val merchantUrl = matchedProduct?.merchantUrl?.takeIf { it.startsWith("https://") }
-                                        if (merchantUrl == null) {
-                                            apiError = "A verified merchant listing is required before checkout."
-                                            return@launch
-                                        }
-                                        onHitlCheckout(
-                                            HITLPayload(
-                                                authorizationId =
-                                                    "authorization-$productId-${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}",
-                                                product =
-                                                    HITLProduct(
-                                                        id = productId,
-                                                        name = matchedProduct?.name ?: item.detectedName,
-                                                        price = verifiedPrice,
-                                                        sku = "",
-                                                        image = matchedProduct?.imageUrl.orEmpty(),
-                                                        merchantUrl = merchantUrl,
-                                                    ),
-                                                quantity = 1,
-                                                totalAmount = verifiedPrice,
-                                                deviceSource = "ANDROID_APP",
-                                                availabilityStatus = "VERIFY_AT_MERCHANT_CHECKOUT",
-                                                humanInTheLoopChallenge =
-                                                    HITLChallenge(
-                                                        title = "Confirm purchase",
-                                                        message = "Review this order, choose payment, and confirm with your device.",
-                                                    ),
-                                            ),
-                                        )
-                                    } catch (e: Exception) {
-                                        apiError = "Unable to prepare checkout. Please try again."
                                     }
-                                }
-                            },
-                            trackingId = "btn_buy_${matchedProduct.id}",
-                            trackingAction = "click_buy",
-                        )
+                                },
+                                trackingId = "btn_buy_${matchedProduct.id}",
+                                trackingAction = "click_buy",
+                            )
+                        }
                     }
                 },
             )

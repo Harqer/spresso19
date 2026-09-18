@@ -9,7 +9,7 @@ import com.google.android.engage.shopping.datamodel.ShoppingList
 import com.google.android.engage.shopping.datamodel.ShoppingOrderTrackingCluster
 import com.google.android.engage.shopping.datamodel.ShoppingOrderType
 import com.google.android.engage.shopping.datamodel.ShoppingReorderCluster
-import com.google.android.engage.shopping.service.PublishShoppingCartClusterRequest
+import com.google.android.engage.shopping.service.PublishShoppingCartClustersRequest
 import com.google.android.engage.shopping.service.PublishShoppingListsRequest
 import com.google.android.engage.shopping.service.PublishShoppingOrderTrackingClusterRequest
 import com.google.android.engage.shopping.service.PublishShoppingReorderClusterRequest
@@ -37,19 +37,18 @@ class ClusterRequestFactory {
             .build()
     }
 
-    fun constructShoppingCartClusterRequest(itemCount: Int): PublishShoppingCartClusterRequest {
+    fun constructShoppingCartClustersRequest(itemCount: Int): PublishShoppingCartClustersRequest {
         val shoppingCart =
             ShoppingCart
                 .Builder()
                 .setTitle("Your Cart")
-                // spresso:// deep link registered in AndroidManifest intent-filter
                 .setActionLinkUri(Uri.parse("spresso://cart"))
                 .setNumberOfItems(itemCount)
                 .build()
 
-        return PublishShoppingCartClusterRequest
+        return PublishShoppingCartClustersRequest
             .Builder()
-            .setShoppingCart(shoppingCart)
+            .addShoppingCart(shoppingCart)
             .build()
     }
 

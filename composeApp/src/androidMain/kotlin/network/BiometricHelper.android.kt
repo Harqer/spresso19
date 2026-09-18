@@ -6,7 +6,6 @@ import android.util.Log
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.FragmentActivity
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.Signature
@@ -18,7 +17,7 @@ actual suspend fun promptBiometricAuth(
     payload: String,
 ): String? =
     suspendCoroutine { continuation ->
-        val activity = AndroidActivityBridge.currentActivity as? FragmentActivity
+        val activity = AndroidActivityBridge.currentActivity
         if (activity == null) {
             Log.e("BiometricAuth", "Current activity is null or not FragmentActivity")
             continuation.resume(null)

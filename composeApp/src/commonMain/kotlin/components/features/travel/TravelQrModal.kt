@@ -31,7 +31,7 @@ fun QrModal(
     title: String = activeQrModalEvent.title,
     qrData: String = activeQrModalEvent.qrData.orEmpty(),
 ) {
-    if (activeQrModalEvent.qrData.isNullOrBlank()) {
+    if (qrData.isBlank()) {
         // Production: If pass data is unavailable, handle it gracefully
         PassUnavailableModal(onClose)
         return
@@ -87,8 +87,7 @@ fun QrModal(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        val qrData = activeQrModalEvent.qrData
-                        if (qrData != null) {
+                        if (qrData.isNotBlank()) {
                             val qrBitmap = PlatformUtils.generateQrCode(qrData)
                             if (qrBitmap != null) {
                                 Image(

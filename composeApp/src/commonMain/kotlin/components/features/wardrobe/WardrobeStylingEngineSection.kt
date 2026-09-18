@@ -43,7 +43,7 @@ fun WardrobeStylingEngineSection(
             }
 
             val selectedIndex = seasons.indexOfFirst { it.first == activeSeason }.coerceAtLeast(0)
-            TabRow(selectedTabIndex = selectedIndex, containerColor = MaterialTheme.colorScheme.surface) {
+            PrimaryTabRow(selectedTabIndex = selectedIndex, containerColor = MaterialTheme.colorScheme.surface) {
                 seasons.forEach { (id, label, icon) ->
                     Tab(
                         selected = activeSeason == id,

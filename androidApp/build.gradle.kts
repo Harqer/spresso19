@@ -26,7 +26,7 @@ val debugMetaClientToken = localProperties.getProperty("mwdat_client_token") ?: 
 private fun String.asBuildConfigString(): String =
     "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
 
-val verifyReleaseConfiguration by tasks.registering {
+val verifyReleaseConfiguration = tasks.register("verifyReleaseConfiguration") {
     group = "verification"
     description = "Fails closed when Android release credentials are unavailable."
     doLast {
@@ -35,7 +35,7 @@ val verifyReleaseConfiguration by tasks.registering {
             if (releaseMetaClientToken.isBlank() || releaseMetaClientToken == "0" || releaseMetaClientToken == missingReleaseValue) add("META_CLIENT_TOKEN")
             if (!releaseStripePublishableKey.startsWith("pk_live_")) add("STRIPE_PUBLISHABLE_KEY (pk_live_ required)")
             if (googleWebClientId.isBlank()) add("GOOGLE_WEB_CLIENT_ID")
-            if (!file(releaseKeystorePath).isFile) add("ANDROID_KEYSTORE_PATH ($releaseKeystorePath not found)")
+            if (!rootProject.file(releaseKeystorePath).isFile) add("ANDROID_KEYSTORE_PATH ($releaseKeystorePath not found)")
             if (releaseKeystorePassword.isBlank()) add("KEYSTORE_PASSWORD")
             if (releaseKeyAlias.isBlank()) add("KEY_ALIAS")
             if (releaseKeyPassword.isBlank()) add("KEY_PASSWORD")

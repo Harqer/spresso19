@@ -166,7 +166,7 @@ fun ProfilePage(
                             try {
                                 val success = apiClient?.removePaymentMethod(paymentMethodId) ?: false
                                 if (success && userUid != null) {
-                                    userProfile = apiClient?.fetchUserProfile(userUid)
+                                    userProfile = apiClient.fetchUserProfile(userUid)
                                     snackbarHostState.showSnackbar("Payment card removed.")
                                 } else {
                                     snackbarHostState.showSnackbar("Unable to remove this card. Please try again.")

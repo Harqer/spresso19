@@ -62,7 +62,7 @@ data class HITLPayload(
 )
 
 fun DetectedItem.toHITLPayload(authorizationId: String = "AUTH-LENS-${this.hashCode()}"): HITLPayload {
-    val safePrice = priceEstimate ?: 0.0
+    val safePrice = priceEstimate
     return HITLPayload(
         authorizationId = authorizationId,
         product =

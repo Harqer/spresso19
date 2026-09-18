@@ -16,26 +16,15 @@ plugins {
 detekt {
     buildUponDefaultConfig = true
     allRules = false
-    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    config.setFrom(rootProject.layout.projectDirectory.file("config/detekt/detekt.yml"))
     parallel = true
     source.setFrom(
-        "src/commonMain/kotlin",
-        "src/androidMain/kotlin",
-        "src/commonTest/kotlin",
-        "src/wasmJsMain/kotlin",
-        "src/iosMain/kotlin",
-        "src/desktopMain/kotlin",
-    )
-}
-
-// Kotlin/Wasm currently hits an IR compiler crash while intrinsic remember
-// memoization handles function references in the shared application entrypoint.
-// Disable only that optimization; runtime Compose semantics remain unchanged.
-composeCompiler {
-    featureFlags.set(
-        setOf(
-            org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag.IntrinsicRemember.disabled(),
-        ),
+        rootProject.layout.projectDirectory.dir("composeApp/src/commonMain/kotlin"),
+        rootProject.layout.projectDirectory.dir("composeApp/src/androidMain/kotlin"),
+        rootProject.layout.projectDirectory.dir("composeApp/src/commonTest/kotlin"),
+        rootProject.layout.projectDirectory.dir("composeApp/src/wasmJsMain/kotlin"),
+        rootProject.layout.projectDirectory.dir("composeApp/src/iosMain/kotlin"),
+        rootProject.layout.projectDirectory.dir("composeApp/src/desktopMain/kotlin"),
     )
 }
 
@@ -157,13 +146,13 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.material3.adaptive.navigation.suite)
             implementation(libs.androidx.navigation3.runtime)
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.materialIconsExtended)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
-            implementation(compose.components.uiToolingPreview)
+            implementation("org.jetbrains.compose.runtime:runtime:${libs.versions.compose.plugin.get()}")
+            implementation("org.jetbrains.compose.foundation:foundation:${libs.versions.compose.plugin.get()}")
+            implementation("org.jetbrains.compose.material3:material3:1.9.0")
+            implementation("org.jetbrains.compose.material:material-icons-extended:1.7.3")
+            implementation("org.jetbrains.compose.ui:ui:${libs.versions.compose.plugin.get()}")
+            implementation("org.jetbrains.compose.components:components-resources:${libs.versions.compose.plugin.get()}")
+            implementation("org.jetbrains.compose.ui:ui-tooling-preview:${libs.versions.compose.plugin.get()}")
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
@@ -187,12 +176,12 @@ dependencies {
     add("kspAndroid", libs.androidx.appfunctions.compiler)
 }
 
-tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
     jvmTarget = "17"
     // Firebase Data Connect generated sources are not hand-maintained code.
     exclude("**/com/spresso/dataconnect/**")
 }
-tasks.withType<io.gitlab.arturbosch.detekt.DetektCreateBaselineTask>().configureEach {
+tasks.withType<dev.detekt.gradle.DetektCreateBaselineTask>().configureEach {
     jvmTarget = "17"
     exclude("**/com/spresso/dataconnect/**")
 }

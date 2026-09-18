@@ -7,6 +7,7 @@ import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import network.AndroidActivityBridge
 
+@Suppress("DEPRECATION")
 class SpressoLensTileService : TileService() {
     override fun onClick() {
         super.onClick()
