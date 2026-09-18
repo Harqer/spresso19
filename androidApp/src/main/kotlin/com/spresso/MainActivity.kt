@@ -34,6 +34,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
+import com.spresso.app.BuildConfig
 import com.spresso.dataconnect.SpressoConnectorConnector
 import com.spresso.dataconnect.execute
 import com.spresso.dataconnect.instance
@@ -45,6 +46,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import navigation.NavKey
+import network.AndroidActivityBridge
 import org.json.JSONObject
 import theme.SpressoAndroidTheme
 import theme.ThemeMode
@@ -133,7 +135,8 @@ class MainActivity : FragmentActivity() {
         installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        currentActivity = this
+        AndroidActivityBridge.currentActivity = this
+
         accessibilityConsentStore = AccessibilityConsentStore(this)
         consentManager = ConsentManager(this)
         screenCapture = MediaProjectionScreenCapture(this)
@@ -151,7 +154,7 @@ class MainActivity : FragmentActivity() {
             window.isNavigationBarContrastEnforced = false
         }
         currentIntentState.value = intent
-        if (intent?.action == ACTION_USER_SCREEN_CAPTURE) {
+        if (intent?.action == AndroidActivityBridge.ACTION_USER_SCREEN_CAPTURE) {
             requestUserInitiatedScreenCapture()
         }
 
@@ -714,14 +717,15 @@ class MainActivity : FragmentActivity() {
         if (isAccessibilityDisclosureIntent(intent)) {
             accessibilityDisclosureRequestedState.value = true
         }
-        if (intent.action == ACTION_USER_SCREEN_CAPTURE) {
+        if (intent.action == AndroidActivityBridge.ACTION_USER_SCREEN_CAPTURE) {
             requestUserInitiatedScreenCapture()
         }
     }
 
     override fun onResume() {
         super.onResume()
-        currentActivity = this
+        AndroidActivityBridge.currentActivity = this
+
         if (::accessibilityConsentStore.isInitialized) {
             refreshAccessibilityState()
         }
@@ -729,13 +733,13 @@ class MainActivity : FragmentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (currentActivity == this) {
-            currentActivity = null
+        if (AndroidActivityBridge.currentActivity == this) {
+            AndroidActivityBridge.currentActivity = null
         }
     }
 
     private fun isAccessibilityDisclosureIntent(intent: Intent?): Boolean =
-        intent?.getBooleanExtra(EXTRA_OPEN_ACCESSIBILITY_DISCLOSURE, false) == true ||
+        intent?.getBooleanExtra(AndroidActivityBridge.EXTRA_OPEN_ACCESSIBILITY_DISCLOSURE, false) == true ||
             intent?.getBooleanExtra("open_lens", false) == true
 
     private fun refreshAccessibilityState() {
@@ -782,9 +786,6 @@ class MainActivity : FragmentActivity() {
     }
 
     companion object {
-        const val ACTION_USER_SCREEN_CAPTURE = "com.spresso.action.USER_SCREEN_CAPTURE"
-        const val EXTRA_OPEN_ACCESSIBILITY_DISCLOSURE = "open_accessibility_disclosure"
-        var currentActivity: FragmentActivity? = null
     }
 }
 

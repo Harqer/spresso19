@@ -5,7 +5,6 @@ import android.content.Intent
 import android.net.Uri
 import com.coinbase.android.nativesdk.CoinbaseWalletSDK
 import com.coinbase.android.nativesdk.message.request.Web3JsonRPC
-import com.spresso.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,14 +41,14 @@ object CoinbaseWalletManager {
 
     /**
      * Initiates the handshake connection with Coinbase Wallet.
-     * Uses the active Activity from MainActivity.currentActivity or the passed activity.
+     * Uses the active Activity from network.AndroidActivityBridge.currentActivity or the passed activity.
      */
     fun connect(
         activity: Activity? = null,
         apiClient: ApiClient? = null,
         onResult: ((Boolean, String?) -> Unit)? = null,
     ) {
-        val targetActivity = activity ?: MainActivity.currentActivity
+        val targetActivity = activity ?: network.AndroidActivityBridge.currentActivity
         if (targetActivity == null) {
             onResult?.invoke(false, "No active Activity found to connect Coinbase Wallet")
             return
@@ -118,7 +117,7 @@ actual class CoinbaseWalletHelper actual constructor(
     private val context: Any?,
 ) {
     actual suspend fun connectWallet(): String {
-        val activity = (context as? Activity) ?: MainActivity.currentActivity
+        val activity = (context as? Activity) ?: network.AndroidActivityBridge.currentActivity
         return CoinbaseWalletManager.connectWallet(activity)
     }
 }

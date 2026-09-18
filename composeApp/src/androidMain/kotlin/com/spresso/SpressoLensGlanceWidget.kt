@@ -17,6 +17,7 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
+import network.AndroidActivityBridge
 
 class SpressoLensGlanceWidget : GlanceAppWidget() {
     override suspend fun provideGlance(
@@ -57,8 +58,8 @@ class TriggerLensActionCallback : ActionCallback {
         parameters: ActionParameters,
     ) {
         context.startActivity(
-            Intent(context, MainActivity::class.java).apply {
-                action = MainActivity.ACTION_USER_SCREEN_CAPTURE
+            AndroidActivityBridge.mainActivityIntent(context).apply {
+                action = AndroidActivityBridge.ACTION_USER_SCREEN_CAPTURE
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             },
         )

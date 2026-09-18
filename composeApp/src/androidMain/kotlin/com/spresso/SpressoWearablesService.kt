@@ -42,6 +42,7 @@ import com.meta.wearable.dat.display.views.FlexBoxBackground
 import com.meta.wearable.dat.display.views.IconName
 import com.meta.wearable.dat.display.views.TextColor
 import com.meta.wearable.dat.display.views.TextStyle
+import com.spresso.shared.R
 import components.features.wearables.ToolCallLedger
 import components.features.wearables.WearableToolCall
 import components.features.wearables.WearableToolCallParser
@@ -461,7 +462,7 @@ class SpressoWearablesService : Service() {
         successMessage: String,
     ) {
         sendBroadcast(Intent(action).setPackage(packageName).putCorrelation(call))
-        captureSinglePhotoAndSend { success, message ->
+        capturePhoto { success, message ->
             completeToolCall(call, success, if (success) successMessage else message)
         }
     }
@@ -782,7 +783,7 @@ class SpressoWearablesService : Service() {
         }
     }
 
-    private fun captureSinglePhotoAndSend(onComplete: (Boolean, String) -> Unit) {
+    private fun capturePhoto(onComplete: (Boolean, String) -> Unit) {
         serviceScope.launch {
             var granted = false
             Wearables.checkPermissionStatus(Permission.CAMERA).fold(
@@ -793,11 +794,11 @@ class SpressoWearablesService : Service() {
                 onComplete(false, "Camera access for your glasses is off. Open Spresso to enable it, then try again.")
                 return@launch
             }
-            captureSinglePhotoAndSendInternal(onComplete)
+            capturePhotoInternal(onComplete)
         }
     }
 
-    private fun captureSinglePhotoAndSendInternal(onComplete: (Boolean, String) -> Unit) {
+    private fun capturePhotoInternal(onComplete: (Boolean, String) -> Unit) {
         if (!ConsentManager(this).hasCameraConsent()) {
             Log.w(TAG, "Camera consent is not granted")
             onComplete(false, "Camera access is off. Turn it on in Spresso to continue.")

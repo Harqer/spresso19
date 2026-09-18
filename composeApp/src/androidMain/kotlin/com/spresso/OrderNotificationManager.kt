@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.graphics.drawable.IconCompat
+import network.AndroidActivityBridge
 
 object OrderNotificationManager {
     const val CHANNEL_ID = "order_reminders"
@@ -38,7 +39,7 @@ object OrderNotificationManager {
         createNotificationChannel(context)
 
         val intent =
-            Intent(context, MainActivity::class.java).apply {
+            AndroidActivityBridge.mainActivityIntent(context).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra("order_id", orderId)
             }
@@ -89,7 +90,7 @@ object OrderNotificationManager {
         createNotificationChannel(context)
 
         val intent =
-            Intent(context, MainActivity::class.java).apply {
+            AndroidActivityBridge.mainActivityIntent(context).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra("order_id", orderId)
                 putExtra("action", "view_delay")
@@ -140,7 +141,7 @@ object OrderNotificationManager {
         createNotificationChannel(context)
 
         val intent =
-            Intent(context, MainActivity::class.java).apply {
+            AndroidActivityBridge.mainActivityIntent(context).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra("order_id", orderId)
             }
@@ -162,7 +163,7 @@ object OrderNotificationManager {
 
         // "Yes" action
         val yesIntent =
-            Intent(context, MainActivity::class.java).apply {
+            AndroidActivityBridge.mainActivityIntent(context).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra("order_id", orderId)
                 putExtra("arrival_status", "yes")
@@ -177,7 +178,7 @@ object OrderNotificationManager {
 
         // "No" action
         val noIntent =
-            Intent(context, MainActivity::class.java).apply {
+            AndroidActivityBridge.mainActivityIntent(context).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra("order_id", orderId)
                 putExtra("arrival_status", "no")

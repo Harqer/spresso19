@@ -5,7 +5,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
-import com.spresso.MainActivity
 import java.util.UUID
 
 actual object PlatformUtils {
@@ -27,7 +26,7 @@ actual object PlatformUtils {
         }
 
     actual fun setScreenBrightness(brightness: Float) {
-        val activity = MainActivity.currentActivity ?: return
+        val activity = network.AndroidActivityBridge.currentActivity ?: return
         activity.runOnUiThread {
             val layoutParams = activity.window.attributes
             layoutParams.screenBrightness = brightness

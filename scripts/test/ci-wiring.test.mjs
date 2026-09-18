@@ -16,7 +16,7 @@ test("the normal workflow is the error-report pipeline", () => {
   assert.match(workflow, /zaproxy\/action-baseline@v0\.14\.0/);
   assert.match(workflow, /ZAP_TARGET_URL/);
   assert.match(workflow, /:composeApp:detekt/);
-  assert.match(workflow, /\.\/ktlint composeApp\/src/);
+  assert.match(workflow, /\.\/ktlint composeApp\/src androidApp\/src/);
 });
 
 test("the release workflow remains deployment-only", () => {
@@ -40,7 +40,7 @@ test("the legacy shared production gate retains its required application checks"
     "npm run test:mcp",
     "npm run test:bundle-budget",
     "npm test",
-    "./gradlew :composeApp:lintDebug :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest --no-daemon",
+    "./gradlew :androidApp:lintDebug :androidApp:assembleDebug :composeApp:allTests :composeApp:detekt --no-daemon",
     "terraform validate",
     "SPRESSO_TERRAFORM_PLAN=true",
     "TF_VAR_project_id",

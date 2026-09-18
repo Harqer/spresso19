@@ -57,13 +57,13 @@ Device-only seams (CameraX, Lens, and Meta DAT) require Android/emulator or appr
 ### 1. Local Unit Tests
 Run unit tests for both common and Android source sets locally without an emulator:
 ```bash
-./gradlew :composeApp:testDebugUnitTest
+./gradlew :composeApp:allTests
 ```
 
 ### 2. Instrumented UI Tests
 Run behavior UI and instrumented tests on an emulator or physical device. Ensure your emulator is running before executing this:
 ```bash
-./gradlew :composeApp:connectedDebugAndroidTest
+./gradlew :androidApp:connectedDebugAndroidTest
 ```
 
 ### 3. Screenshot Tests
@@ -77,13 +77,13 @@ The reference images are saved under the module's screenshot reference directory
 **Verify Screenshots**:
 To assert against the recorded reference screenshots:
 ```bash
-./gradlew :composeApp:connectedDebugAndroidTest
+./gradlew :androidApp:connectedDebugAndroidTest
 ```
 
 **Compose Preview Screenshot Validation**:
 To run the Compose Preview Screenshot tests (if applicable):
 ```bash
-./gradlew :composeApp:previewScreenshot
+./gradlew :androidApp:previewScreenshot
 ```
 
 ## Adding Fakes

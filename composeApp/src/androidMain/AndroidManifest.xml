@@ -1,131 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
-
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
-
-    <queries>
-        <package android:name="org.toshi" />
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:scheme="cbwallet" />
-        </intent>
-    </queries>
-
-    <application
-        tools:targetApi="33"
-        android:name=".SpressoApp"
-        android:localeConfig="@xml/locales_config"
-        android:allowBackup="false"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:label="@string/app_name"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:hardwareAccelerated="true"
-        android:networkSecurityConfig="@xml/network_security_config"
-        android:theme="@style/Theme.Spresso.Splash">
-        <meta-data android:name="android.graphics.hwui.render_mode" android:value="vulkan" />
-        <meta-data android:name="com.meta.wearable.mwdat.APPLICATION_ID" android:value="${mwdat_application_id}" />
-        <meta-data android:name="com.meta.wearable.mwdat.CLIENT_TOKEN" android:value="${mwdat_client_token}" />
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:launchMode="singleTop"
-            android:windowSoftInputMode="adjustResize"
-            android:supportsPictureInPicture="true"
-            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
-            android:theme="@style/Theme.Spresso.Splash"
-            android:allowEmbedded="true"
-            android:documentLaunchMode="always"
-            android:resizeableActivity="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="spresso" />
-            </intent-filter>
-            <meta-data
-                android:name="android.app.shortcuts"
-                android:resource="@xml/shortcuts" />
-        </activity>
-
-        <receiver
-            android:name=".SpressoLensShortcutReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.spresso.ACTION_SHORTCUT_LENS" />
-            </intent-filter>
-        </receiver>
-
-        <activity
-            android:name=".AccessibilitySettingsActivity"
-            android:exported="false"
-            android:excludeFromRecents="true"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
-
-        <receiver
-            android:name=".SpressoLensGlanceWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/lens_widget_info" />
-        </receiver>
-
-        <service
-            android:name=".SpressoLensTileService"
-            android:exported="true"
-            android:label="Spresso Lens"
-            android:icon="@drawable/ic_lens"
-            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE" />
-            </intent-filter>
-        </service>
-
-        <service
-            android:name=".SpressoFloatingOverlayService"
-            android:exported="false" />
-
-        <service
-            android:name=".SpressoWearablesService"
-            android:exported="false"
-            android:foregroundServiceType="camera|microphone" />
-
-        <service
-            android:name="network.SpressoMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
-
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
         <service
             android:name="com.spresso.appfunctions.SpressoAppFunctionService"
             android:permission="android.permission.BIND_APP_FUNCTION_SERVICE"
-            android:exported="true"
-            tools:targetApi="36"
-            tools:ignore="MissingClass">
+            android:exported="true">
             <property
                 android:name="android.app.appfunctions.schema"
                 android:value="app_functions_schema.xsd" />
@@ -136,33 +15,5 @@
                 <action android:name="android.app.appfunctions.AppFunctionService" />
             </intent-filter>
         </service>
-        <property
-            android:name="android.app.appfunctions.app_metadata"
-            android:resource="@xml/app_metadata" />
-
-        <receiver
-            android:name=".engage.EngageBroadcastReceiver"
-            android:permission="com.google.android.engage.REQUEST_ENGAGE_DATA"
-            android:exported="true"
-            android:enabled="true">
-            <intent-filter>
-                <action android:name="com.google.android.engage.action.PUBLISH_RECOMMENDATION" />
-                <action android:name="com.google.android.engage.action.PUBLISH_FEATURED" />
-                <action android:name="com.google.android.engage.action.shopping.PUBLISH_SHOPPING_CART" />
-                <action android:name="com.google.android.engage.action.shopping.PUBLISH_SHOPPING_LIST" />
-                <action android:name="com.google.android.engage.action.shopping.PUBLISH_REORDER_CLUSTER" />
-                <action android:name="com.google.android.engage.action.shopping.PUBLISH_ORDER_TRACKING_CLUSTER" />
-            </intent-filter>
-        </receiver>
-        <activity
-            android:name=".SpressoGlimmerActivity"
-            android:exported="true"
-            android:requiredDisplayCategory="xr_projected"
-            tools:targetApi="34">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
-        </activity>
     </application>
-
 </manifest>

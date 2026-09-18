@@ -6,8 +6,6 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import com.spresso.BuildConfig
-import com.spresso.MainActivity
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -67,13 +65,13 @@ actual suspend fun createUserWithEmailAndPassword(
 
 actual suspend fun signInWithGoogle(): Boolean =
     suspendCancellableCoroutine { continuation ->
-        val activity = MainActivity.currentActivity
+        val activity = AndroidActivityBridge.currentActivity
         if (activity == null) {
             if (continuation.isActive) continuation.resume(false)
             return@suspendCancellableCoroutine
         }
 
-        val serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
+        val serverClientId = AndroidRuntimeConfig.googleWebClientId
         if (serverClientId.isBlank()) {
             if (continuation.isActive) continuation.resume(false)
             return@suspendCancellableCoroutine

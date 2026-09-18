@@ -50,5 +50,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Spresso"
-include(":composeApp")
+include(":composeApp", ":androidApp")
 project(":composeApp").projectDir = file("composeApp")
+project(":androidApp").projectDir = file("androidApp")

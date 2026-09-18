@@ -4,6 +4,7 @@ actual object SpressoConfig {
     actual val backendBaseUrl: String = "https://get-spresso.web.app"
     actual val cloudFunctionsBaseUrl: String = "https://us-central1-get-spresso.cloudfunctions.net"
     actual val googlePayMerchantId: String = "BCR2DN6DTK6ZNGLF"
-    actual val stripePublishableKey: String = com.spresso.BuildConfig.STRIPE_PUBLISHABLE_KEY
+    actual val stripePublishableKey: String
+        get() = AndroidRuntimeConfig.stripePublishableKey
     actual val convexSiteUrl: String = "https://woozy-anteater-572.convex.site"
 }

@@ -4,14 +4,14 @@ platform :android do
   desc "Automated Canary Deployment to Google Play Internal Testing"
   lane :deploy_internal do
     gradle(
-      task: "clean bundleRelease",
+      task: ":androidApp:bundleRelease",
       project_dir: File.expand_path("..", __dir__)
     )
 
     upload_to_play_store(
       track: 'internal',
       release_status: 'completed',
-      aab: 'composeApp/build/outputs/bundle/release/composeApp-release.aab'
+      aab: 'androidApp/build/outputs/bundle/release/androidApp-release.aab'
     )
   end
 end

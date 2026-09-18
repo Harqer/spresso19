@@ -56,13 +56,13 @@ jobs:
         run: npm audit --audit-level=moderate 2>&1 | tee npm-audit-report.txt
 
       - name: KtLint report
-        run: ./ktlint composeApp/src 2>&1 | tee ktlint-report.txt
+        run: ./ktlint composeApp/src androidApp/src 2>&1 | tee ktlint-report.txt
 
       - name: Detekt report
         run: ./gradlew :composeApp:detekt --no-daemon 2>&1 | tee detekt-report.txt
 
       - name: Android lint report
-        run: ./gradlew :composeApp:lintDebug --no-daemon 2>&1 | tee android-lint-report.txt
+        run: ./gradlew :androidApp:lintDebug --no-daemon 2>&1 | tee android-lint-report.txt
 
       - name: Upload static-analysis reports
         if: always()

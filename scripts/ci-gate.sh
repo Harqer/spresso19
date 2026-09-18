@@ -93,7 +93,7 @@ echo "== [gate] functions build and tests =="
 echo "== [gate] Android: lint + compile + unit tests =="
 (
   cd "$ROOT"
-  ./gradlew :composeApp:lintDebug :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest --no-daemon
+  ./gradlew :androidApp:lintDebug :androidApp:assembleDebug :composeApp:allTests :composeApp:detekt --no-daemon
 )
 
 echo "== [gate] terraform: validate + non-destructive plan =="

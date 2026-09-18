@@ -43,8 +43,9 @@ Data Connect/PostgreSQL, Cloud SQL and Redis artifacts in this repository are le
 
 | Path | Purpose |
 | --- | --- |
-| `composeApp/` | Kotlin Multiplatform application and Android integration |
+| `composeApp/` | Kotlin Multiplatform shared library and platform integrations |
 | `composeApp/src/androidMain/` | Android, Meta DAT, Google Pay, App Functions and platform services |
+| `androidApp/` | Android application entry point, manifest, release configuration and resources |
 | `composeApp/src/commonMain/` | Shared Material 3 UI, models and feature logic |
 | `src/` | React/Vite companion client |
 | `functions/` | Firebase callable functions, Genkit flows, payments and fulfillment |
@@ -71,9 +72,9 @@ npm run build
 For Android checks, use the checked-in Gradle wrapper and JDK 17:
 
 ```bash
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew :composeApp:compileDebugKotlinAndroid
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew :composeApp:lintDebug
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew :composeApp:testDebugUnitTest
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew :androidApp:assembleDebug
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew :androidApp:lintDebug
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew :composeApp:allTests
 ```
 
 Do not produce an APK as a routine validation step. Release bundles must be built through the release workflow with signing and production configuration supplied by the deployment environment.

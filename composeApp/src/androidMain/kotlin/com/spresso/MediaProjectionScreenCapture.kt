@@ -14,7 +14,7 @@ import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 
 /** Captures one user-approved frame and immediately releases MediaProjection resources. */
-internal class MediaProjectionScreenCapture(
+class MediaProjectionScreenCapture(
     private val context: Context,
 ) {
     private val manager = context.getSystemService(MediaProjectionManager::class.java)

@@ -6,7 +6,7 @@ import android.content.Context
  * Stores only the user's current accessibility disclosure decision.
  * Screen captures are never written to this store.
  */
-internal class AccessibilityConsentStore(
+class AccessibilityConsentStore(
     context: Context,
 ) {
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)

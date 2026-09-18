@@ -3,6 +3,7 @@ package com.spresso
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import network.AndroidActivityBridge
 
 class SpressoLensShortcutReceiver : BroadcastReceiver() {
     override fun onReceive(
@@ -14,8 +15,8 @@ class SpressoLensShortcutReceiver : BroadcastReceiver() {
         }
 
         context.startActivity(
-            Intent(context, MainActivity::class.java).apply {
-                action = MainActivity.ACTION_USER_SCREEN_CAPTURE
+            AndroidActivityBridge.mainActivityIntent(context).apply {
+                action = AndroidActivityBridge.ACTION_USER_SCREEN_CAPTURE
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             },
         )

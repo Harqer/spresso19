@@ -14,21 +14,21 @@ pass() { printf 'PASS  %s\n' "$1"; }
 fail() { printf 'FAIL  %s\n' "$1" >&2; failures=$((failures + 1)); }
 warn() { printf 'WARN  %s\n' "$1"; }
 
-if rg -q "namespace = \"$new_id\"" composeApp/build.gradle.kts &&
-   rg -q "applicationId = \"$new_id\"" composeApp/build.gradle.kts; then
+if rg -q "namespace = \"com\.spresso\.app\"" androidApp/build.gradle.kts &&
+   rg -q "applicationId = \"$new_id\"" androidApp/build.gradle.kts; then
   pass "Gradle namespace and applicationId use $new_id"
 else
   fail "Gradle namespace/applicationId are not both $new_id"
 fi
 
-if rg -q '"package_name": "com\.spresso"' composeApp/google-services.json &&
-   ! rg -q "$old_id" composeApp/google-services.json; then
+if rg -q '"package_name": "com\.spresso"' androidApp/google-services.json &&
+   ! rg -q "$old_id" androidApp/google-services.json; then
   pass "Google services configuration uses only $new_id"
 else
   fail "Google services configuration still references $old_id or lacks $new_id"
 fi
 
-if ! rg -q "$old_id" composeApp/src composeApp/build.gradle.kts composeApp/google-services.json; then
+if ! rg -q "$old_id" composeApp/src androidApp/src androidApp/build.gradle.kts androidApp/google-services.json; then
   pass "Android source, manifest resources, and build configuration contain no $old_id"
 else
   fail "Android source/configuration still contains $old_id"
