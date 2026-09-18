@@ -28,24 +28,57 @@ class ChatViewModel(
     var isVoiceListening by mutableStateOf(false)
     var liveTranscript by mutableStateOf("")
     private var threadId: String? = null
+    private var requestGeneration = 0L
+    private var activeRequestCount = 0
+
+    private fun beginRequest() {
+        activeRequestCount += 1
+        isGenerating = true
+    }
+
+    private fun endRequest(generation: Long) {
+        if (generation != requestGeneration) return
+        activeRequestCount = (activeRequestCount - 1).coerceAtLeast(0)
+        isGenerating = activeRequestCount > 0
+    }
 
     fun sendMessage(prompt: String) {
         if (prompt.isBlank()) return
         val userMsgId = "u-" + messages.size
         messages.add(ChatMessage(id = userMsgId, text = prompt, isUser = true))
-        val aiMsgId = "ai-" + messages.size
+        sendMessageInternal(prompt, "ai-${messages.size}")
+    }
 
+    private fun sendMessageInternal(
+        prompt: String,
+        aiMsgId: String,
+    ) {
+        val generation = requestGeneration
+        beginRequest()
         scope.launch {
             try {
                 errorMessage = null
-                isGenerating = true
                 val activeThreadId = threadId ?: apiClient.createChatThread("Spresso discovery").also { threadId = it }
+                if (generation != requestGeneration) return@launch
+
+                // Capture the existing assistant set before submitting this prompt.
+                // Without this baseline, a fast poll can display the previous answer
+                // as the answer to the new request.
+                val existingAssistantIds =
+                    apiClient
+                        .listChatMessages(activeThreadId)
+                        .filter { it.role == "assistant" }
+                        .mapTo(mutableSetOf()) { it.id }
                 apiClient.sendChatMessage(activeThreadId, prompt)
 
                 var lastAssistantText = ""
                 for (attempt in 0 until 120) {
+                    if (generation != requestGeneration) return@launch
                     val history = apiClient.listChatMessages(activeThreadId)
-                    val assistant = history.lastOrNull { it.role == "assistant" }
+                    val assistant =
+                        history.lastOrNull {
+                            it.role == "assistant" && it.id !in existingAssistantIds
+                        }
                     if (assistant != null && (assistant.text != lastAssistantText || assistant.products.isNotEmpty())) {
                         lastAssistantText = assistant.text
                         updateOrAddAiMessage(
@@ -58,15 +91,18 @@ class ChatViewModel(
                     if (assistant?.status != "streaming" && !assistant?.text.isNullOrBlank()) break
                     if (attempt < 119) delay(500)
                 }
+                if (generation != requestGeneration) return@launch
                 if (lastAssistantText.isBlank()) {
                     throw IllegalStateException("The assistant did not return a response.")
                 }
                 updateOrAddAiMessage(aiMsgId, lastAssistantText, isStreaming = false)
             } catch (error: Exception) {
-                errorMessage = error.message ?: "The assistant is temporarily unavailable."
-                updateOrAddAiMessage(aiMsgId, "I couldn't complete that request. Please try again.", isStreaming = false)
+                if (generation == requestGeneration) {
+                    errorMessage = error.message ?: "The assistant is temporarily unavailable."
+                    updateOrAddAiMessage(aiMsgId, "I couldn't complete that request. Please try again.", isStreaming = false)
+                }
             } finally {
-                isGenerating = false
+                endRequest(generation)
             }
         }
     }
@@ -80,12 +116,14 @@ class ChatViewModel(
         messages.add(ChatMessage(id = userMsgId, text = userPrompt, isUser = true))
 
         val aiMsgId = "ai-lens-" + messages.size
-        isGenerating = true
         errorMessage = null
 
+        val generation = requestGeneration
+        beginRequest()
         scope.launch {
             try {
                 val lensResponse = apiClient.performLensSearch(imageBase64)
+                if (generation != requestGeneration) return@launch
                 if (lensResponse.success && lensResponse.listings.isNotEmpty()) {
                     val products =
                         lensResponse.listings.map { listing ->
@@ -110,14 +148,17 @@ class ChatViewModel(
                         text = annotText,
                         products = products,
                     )
-                    isGenerating = false
+                    endRequest(generation)
                 } else {
-                    sendMessage(userPrompt)
+                    endRequest(generation)
+                    sendMessageInternal(userPrompt, aiMsgId)
                 }
             } catch (e: Exception) {
-                isGenerating = false
-                errorMessage = e.message
-                sendMessage(userPrompt)
+                if (requestGeneration == generation) {
+                    endRequest(generation)
+                    errorMessage = e.message
+                    sendMessageInternal(userPrompt, aiMsgId)
+                }
             }
         }
     }
@@ -269,6 +310,8 @@ class ChatViewModel(
 
     fun clearSession() {
         stopVoiceStream()
+        requestGeneration += 1
+        activeRequestCount = 0
         messages.clear()
         threadId = null
         errorMessage = null
