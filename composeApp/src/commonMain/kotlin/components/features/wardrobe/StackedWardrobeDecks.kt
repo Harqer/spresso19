@@ -13,8 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import network.ConvexApi
 import network.ProductItem
-import network.SpressoBackend
 
 data class ComposeWardrobeDeck(
     val id: String,
@@ -35,13 +35,14 @@ fun StackedWardrobeDecks(
     var decks by remember { mutableStateOf<List<ComposeWardrobeDeck>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val convexApi = remember { ConvexApi() }
 
     LaunchedEffect(products) {
         isLoading = true
         errorMessage = null
         try {
             val wardrobeDecks =
-                SpressoBackend.getWardrobeOutfits().map { outfit ->
+                convexApi.fetchWardrobeOutfits().map { outfit ->
                     ComposeWardrobeDeck(
                         id = outfit.id,
                         title = outfit.title,

@@ -20,12 +20,25 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import network.models.OrderItem
 import network.models.OrderRecord
+
+private fun JsonObject.toWardrobeItemData(): WardrobeItemData? {
+    val id = (this["_id"] ?: this["id"])?.jsonPrimitive?.contentOrNull ?: return null
+    val image = (this["image"] ?: this["imageUrl"])?.jsonPrimitive?.contentOrNull ?: return null
+    return WardrobeItemData(
+        id = id,
+        category = this["category"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+        brand = this["brand"]?.jsonPrimitive?.contentOrNull,
+        imageUrl = image,
+        color = this["color"]?.jsonPrimitive?.contentOrNull,
+    )
+}
 
 /**
  * Convex transport for the KMP clients.
@@ -160,6 +173,84 @@ class ConvexApi(
             }
         val response = json.parseToJsonElement(post("/api/saved", body)).jsonObject
         return response["success"]?.jsonPrimitive?.boolean == true
+    }
+
+    // ---- Wardrobe: user-owned photos/items and generated looks ------------
+
+    suspend fun fetchWardrobeItems(): List<WardrobeItemData> {
+        val response = json.parseToJsonElement(get("/api/wardrobe?limit=100")).jsonObject
+        return response["items"]?.jsonArray?.mapNotNull { element ->
+            element.jsonObject.toWardrobeItemData()
+        } ?: emptyList()
+    }
+
+    suspend fun addWardrobeItem(
+        clientId: String,
+        kind: String,
+        name: String,
+        category: String,
+        weatherSuitability: String,
+        image: String,
+        brand: String? = null,
+        price: Double? = null,
+        productId: String? = null,
+        addedAt: Long =
+            kotlinx.datetime.Clock.System
+                .now()
+                .toEpochMilliseconds(),
+        color: String? = null,
+        mediaKey: String? = null,
+        mediaAssetId: String? = null,
+    ): Boolean {
+        val body =
+            buildJsonObject {
+                put("clientId", clientId)
+                put("kind", kind)
+                put("name", name)
+                put("category", category)
+                put("weatherSuitability", weatherSuitability)
+                put("image", image)
+                put("addedAt", addedAt)
+                brand?.let { put("brand", it) }
+                price?.let { put("price", it) }
+                productId?.let { put("productId", it) }
+                color?.let { put("color", it) }
+                mediaKey?.let { put("mediaKey", it) }
+                mediaAssetId?.let { put("mediaAssetId", it) }
+            }
+        val response = json.parseToJsonElement(post("/api/wardrobe/item", body)).jsonObject
+        return response["success"]?.jsonPrimitive?.boolean == true
+    }
+
+    suspend fun removeWardrobeItem(clientId: String): Boolean {
+        val response =
+            json
+                .parseToJsonElement(
+                    post("/api/wardrobe/item/remove", buildJsonObject { put("clientId", clientId) }),
+                ).jsonObject
+        return response["success"]?.jsonPrimitive?.boolean == true
+    }
+
+    suspend fun fetchWardrobeOutfits(): List<WardrobeOutfitData> {
+        val response = json.parseToJsonElement(get("/api/wardrobe/outfits?limit=100")).jsonObject
+        return response["outfits"]?.jsonArray?.mapNotNull { element ->
+            val objectValue = element.jsonObject
+            val id = objectValue["_id"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+            WardrobeOutfitData(
+                id = id,
+                title = objectValue["title"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                description = objectValue["stylingAdvice"]?.jsonPrimitive?.contentOrNull,
+                imageUrl =
+                    objectValue["items"]
+                        ?.jsonArray
+                        ?.firstOrNull()
+                        ?.jsonObject
+                        ?.get("image")
+                        ?.jsonPrimitive
+                        ?.contentOrNull,
+                items = objectValue["items"]?.jsonArray?.mapNotNull { it.jsonObject.toWardrobeItemData() }.orEmpty(),
+            )
+        } ?: emptyList()
     }
 
     // ---- Orders: purchase tracking / history ------------------------------

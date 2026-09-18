@@ -30,11 +30,12 @@ fun WardrobePage(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val convexApi = remember { network.ConvexApi() }
 
     val refreshWardrobe: () -> Unit = {
         scope.launch {
             try {
-                val items = network.SpressoBackend.getWardrobeItems()
+                val items = convexApi.fetchWardrobeItems()
                 photos =
                     items.map { item ->
                         components.features.wardrobe.WardrobePhotoItem(

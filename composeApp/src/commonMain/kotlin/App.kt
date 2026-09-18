@@ -451,7 +451,7 @@ fun App(
                                 onLike = {
                                     scope.launch {
                                         try {
-                                            apiClient.recordInteraction(currentProduct.id, "like")
+                                            convexApi.setSavedProduct(currentProduct, saved = true)
                                             errorMessage = "Saved to your favorites."
                                         } catch (e: Exception) {
                                             errorMessage = "Failed to save to favorites."

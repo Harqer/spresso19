@@ -50,10 +50,11 @@ fun WardrobeViewPage(
 ) {
     var photos by remember { mutableStateOf<List<WardrobePhoto>>(emptyList()) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val convexApi = remember { network.ConvexApi() }
 
     LaunchedEffect(Unit) {
         try {
-            val items = network.SpressoBackend.getWardrobeItems()
+            val items = convexApi.fetchWardrobeItems()
             photos =
                 items.map { item ->
                     WardrobePhoto(

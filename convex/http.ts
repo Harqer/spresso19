@@ -318,6 +318,72 @@ export const setSavedHttp = httpAction(async (ctx, request) => {
   });
 });
 
+// ---- Wardrobe: user-owned photos/items and generated looks ----------------
+
+export const listWardrobeHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const limit = boundedInt(queryInt(request, "limit"), 100, 100);
+    const rows = await ctx.runQuery(api.reactiveState.listWardrobeItems, { limit });
+    return { items: rows };
+  });
+});
+
+export const addWardrobeItemHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const requiredStrings = ["clientId", "kind", "name", "category", "weatherSuitability", "image", "addedAt"];
+    for (const field of requiredStrings) {
+      if (typeof body[field] !== "string" && !(field === "addedAt" && typeof body[field] === "number")) {
+        throw new BridgeError(`${field} is required.`, 400);
+      }
+    }
+    if (body.kind !== "user_upload" && body.kind !== "bookmarked_product") {
+      throw new BridgeError("Unsupported wardrobe item kind.", 400);
+    }
+    const allowedWeather = ["SUMMER_HEAT", "MILD_SPRING_AUTUMN", "WINTER_COLD", "ALL_WEATHER", "HOT_SUMMER", "COLD_WINTER"];
+    if (!allowedWeather.includes(String(body.weatherSuitability))) {
+      throw new BridgeError("Unsupported wardrobe weather classification.", 400);
+    }
+    await ctx.runMutation(api.reactiveState.addWardrobeItem, {
+      clientId: String(body.clientId),
+      kind: body.kind as "user_upload" | "bookmarked_product",
+      name: String(body.name),
+      category: String(body.category),
+      weatherSuitability: body.weatherSuitability as "SUMMER_HEAT" | "MILD_SPRING_AUTUMN" | "WINTER_COLD" | "ALL_WEATHER" | "HOT_SUMMER" | "COLD_WINTER",
+      image: String(body.image),
+      ...(typeof body.brand === "string" ? { brand: body.brand } : {}),
+      ...(typeof body.price === "number" ? { price: body.price } : {}),
+      ...(typeof body.productId === "string" ? { productId: body.productId } : {}),
+      addedAt: typeof body.addedAt === "number" ? body.addedAt : Date.now(),
+      ...(typeof body.color === "string" ? { color: body.color } : {}),
+      ...(typeof body.mediaKey === "string" ? { mediaKey: body.mediaKey } : {}),
+      ...(typeof body.mediaAssetId === "string" ? { mediaAssetId: body.mediaAssetId as any } : {}),
+    });
+    return { success: true };
+  });
+});
+
+export const removeWardrobeItemHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { clientId?: unknown };
+    if (typeof body.clientId !== "string" || !body.clientId.trim()) throw new BridgeError("clientId is required.", 400);
+    await ctx.runMutation(api.reactiveState.removeWardrobeItem, { clientId: body.clientId });
+    return { success: true };
+  });
+});
+
+export const listWardrobeOutfitsHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const limit = boundedInt(queryInt(request, "limit"), 100, 100);
+    const rows = await ctx.runQuery(api.reactiveState.listWardrobeOutfits, { limit });
+    return { outfits: rows };
+  });
+});
+
 http.route({ path: "/api/discovery/search", method: "POST", handler: discoverySearchHttp });
 http.route({ path: "/api/discovery/recommendations", method: "POST", handler: discoveryRecommendationsHttp });
 http.route({ path: "/api/orders", method: "GET", handler: listOrdersHttp });
@@ -329,6 +395,10 @@ http.route({ path: "/api/cart/quantity", method: "POST", handler: setCartQuantit
 http.route({ path: "/api/cart/remove", method: "POST", handler: removeCartItemHttp });
 http.route({ path: "/api/saved", method: "GET", handler: listSavedHttp });
 http.route({ path: "/api/saved", method: "POST", handler: setSavedHttp });
+http.route({ path: "/api/wardrobe", method: "GET", handler: listWardrobeHttp });
+http.route({ path: "/api/wardrobe/item", method: "POST", handler: addWardrobeItemHttp });
+http.route({ path: "/api/wardrobe/item/remove", method: "POST", handler: removeWardrobeItemHttp });
+http.route({ path: "/api/wardrobe/outfits", method: "GET", handler: listWardrobeOutfitsHttp });
 
 // ---- Grocery: user-scoped shopping list -----------------------------------
 
