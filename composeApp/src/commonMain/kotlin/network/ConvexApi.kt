@@ -253,6 +253,52 @@ class ConvexApi(
         } ?: emptyList()
     }
 
+    // ---- Creator reference data --------------------------------------------
+
+    suspend fun fetchCreatorTemplates(): List<CreativeTemplateData> {
+        val response = json.parseToJsonElement(get("/api/creator/templates")).jsonObject
+        return response["templates"]?.jsonArray?.mapNotNull { element ->
+            val value = element.jsonObject
+            val id = value["id"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+            CreativeTemplateData(
+                id = id,
+                name = value["name"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                creator = value["creator"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                category = value["category"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                description = value["description"]?.jsonPrimitive?.contentOrNull,
+                iconName = value["icon"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                promptExample = value["promptExample"]?.jsonPrimitive?.contentOrNull,
+            )
+        } ?: emptyList()
+    }
+
+    suspend fun fetchCreatorAgents(): List<CreatorAgentData> {
+        val response = json.parseToJsonElement(get("/api/creator/agents")).jsonObject
+        return response["agents"]?.jsonArray?.mapNotNull { element ->
+            val value = element.jsonObject
+            val id = value["id"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+            CreatorAgentData(
+                id = id,
+                title = value["title"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                badge = null,
+                subtitle = value["subtitle"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                iconName = value["icon"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                capabilities = value["capabilities"]?.jsonArray?.joinToString(", ") { it.jsonPrimitive.content } ?: "",
+                quickPrompts =
+                    value["quickPrompts"]
+                        ?.jsonArray
+                        ?.mapIndexed { index, prompt ->
+                            val promptObject = prompt.jsonObject
+                            QuickPromptData(
+                                id = "${id}_$index",
+                                label = promptObject["label"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                                prompt = promptObject["prompt"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                            )
+                        }.orEmpty(),
+            )
+        } ?: emptyList()
+    }
+
     // ---- Orders: purchase tracking / history ------------------------------
 
     suspend fun fetchOrders(): List<OrderRecord> {

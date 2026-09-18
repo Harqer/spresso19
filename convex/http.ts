@@ -399,6 +399,22 @@ http.route({ path: "/api/wardrobe", method: "GET", handler: listWardrobeHttp });
 http.route({ path: "/api/wardrobe/item", method: "POST", handler: addWardrobeItemHttp });
 http.route({ path: "/api/wardrobe/item/remove", method: "POST", handler: removeWardrobeItemHttp });
 http.route({ path: "/api/wardrobe/outfits", method: "GET", handler: listWardrobeOutfitsHttp });
+export const listCreatorTemplatesHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    return ctx.runQuery(api.creator.listCreatorTemplates, {});
+  });
+});
+
+export const listCreatorAgentsHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    return ctx.runQuery(api.creator.listCreatorAgents, {});
+  });
+});
+
+http.route({ path: "/api/creator/templates", method: "GET", handler: listCreatorTemplatesHttp });
+http.route({ path: "/api/creator/agents", method: "GET", handler: listCreatorAgentsHttp });
 
 // ---- Grocery: user-scoped shopping list -----------------------------------
 

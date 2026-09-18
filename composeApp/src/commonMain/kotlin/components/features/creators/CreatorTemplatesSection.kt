@@ -25,10 +25,11 @@ fun CreatorTemplatesSection(
     var templates by remember { mutableStateOf<List<network.CreativeTemplateData>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    val convexApi = remember { network.ConvexApi() }
 
     LaunchedEffect(Unit) {
         try {
-            val result = network.SpressoBackend.getCreativeTemplates()
+            val result = convexApi.fetchCreatorTemplates()
             templates = result
         } catch (e: Exception) {
             errorMessage = "Creative templates are unavailable right now. Please try again."

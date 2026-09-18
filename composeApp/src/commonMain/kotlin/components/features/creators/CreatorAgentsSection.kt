@@ -25,10 +25,11 @@ fun CreatorAgentsSection(
     var agents by remember { mutableStateOf<List<network.CreatorAgentData>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    val convexApi = remember { network.ConvexApi() }
 
     LaunchedEffect(Unit) {
         try {
-            val result = network.SpressoBackend.getCreatorAgents()
+            val result = convexApi.fetchCreatorAgents()
             agents = result
         } catch (e: Exception) {
             errorMessage = "Your creative assistants are unavailable right now. Please try again."
