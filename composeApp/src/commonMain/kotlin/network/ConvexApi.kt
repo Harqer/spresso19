@@ -27,6 +27,33 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import network.models.OrderItem
 import network.models.OrderRecord
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+
+@kotlinx.serialization.Serializable
+data class UploadedMediaReference(
+    val assetId: String,
+    val mediaKey: String,
+    val mimeType: String,
+    val byteLength: Int,
+    val sha256: String,
+)
+
+fun inferImageMimeType(bytes: ByteArray): String {
+    val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47)
+    val webp = byteArrayOf(0x52, 0x49, 0x46, 0x46)
+    val webpMarker = byteArrayOf(0x57, 0x45, 0x42, 0x50)
+    return when {
+        bytes.startsWithAt(0, png) -> "image/png"
+        bytes.startsWithAt(0, webp) && bytes.startsWithAt(8, webpMarker) -> "image/webp"
+        else -> "image/jpeg"
+    }
+}
+
+private fun ByteArray.startsWithAt(
+    offset: Int,
+    prefix: ByteArray,
+): Boolean = offset >= 0 && offset + prefix.size <= size && prefix.indices.all { index -> this[offset + index] == prefix[index] }
 
 private fun JsonObject.toWardrobeItemData(): WardrobeItemData? {
     val id = (this["_id"] ?: this["id"])?.jsonPrimitive?.contentOrNull ?: return null
@@ -75,6 +102,47 @@ class ConvexApi(
                 setBody(body.toString())
             }
         return response.requireBody()
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    suspend fun uploadMedia(
+        bytes: ByteArray,
+        mimeType: String,
+    ): UploadedMediaReference {
+        val body =
+            buildJsonObject {
+                put("bytesBase64", Base64.encode(bytes))
+                put("mimeType", mimeType)
+            }
+        val response = json.parseToJsonElement(post("/api/media/upload", body)).jsonObject
+        return UploadedMediaReference(
+            assetId = response["assetId"]?.jsonPrimitive?.content ?: error("Media upload returned no asset id."),
+            mediaKey = response["mediaKey"]?.jsonPrimitive?.content ?: error("Media upload returned no media key."),
+            mimeType = response["mimeType"]?.jsonPrimitive?.content ?: mimeType,
+            byteLength = response["byteLength"]?.jsonPrimitive?.content?.toIntOrNull() ?: bytes.size,
+            sha256 = response["sha256"]?.jsonPrimitive?.content ?: error("Media upload returned no digest."),
+        )
+    }
+
+    suspend fun getMediaReadUrl(assetId: String): String {
+        val response =
+            json
+                .parseToJsonElement(
+                    post("/api/media/read-url", buildJsonObject { put("assetId", assetId) }),
+                ).jsonObject
+        return response["url"]?.jsonPrimitive?.content ?: error("Media read URL was not returned.")
+    }
+
+    suspend fun searchVision(mediaKey: String): LensSearchResponse {
+        val body = buildJsonObject { put("imageMediaKey", mediaKey) }
+        val response = json.parseToJsonElement(post("/api/vision/search", body)).jsonObject
+        val listings =
+            response["listings"]
+                ?.jsonArray
+                ?.mapNotNull { element ->
+                    runCatching { json.decodeFromString<DiscoveredListing>(element.toString()) }.getOrNull()
+                }.orEmpty()
+        return LensSearchResponse(success = true, listings = listings)
     }
 
     private suspend fun HttpResponse.requireBody(): String {

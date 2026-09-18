@@ -566,6 +566,9 @@ fun App(
                                 activeProductId = productId
                                 navigator.navigate(NavKey.CatalogKey)
                             },
+                            onAskAI = { prompt ->
+                                navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
+                            },
                         )
                     }
                     entry<NavKey.SmartVisionDetectionKey> { currentDestinationKey ->

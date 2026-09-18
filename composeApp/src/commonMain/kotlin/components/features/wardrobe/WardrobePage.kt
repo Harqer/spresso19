@@ -62,17 +62,23 @@ fun WardrobePage(
                             return@launch
                         }
                         val uuid = "wardrobe_${userUid}_${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}"
-                        val path = "users/me/wardrobe/$uuid.jpg"
-
                         snackbarHostState.showSnackbar("Adding photo…")
-                        val uploadedUrl = network.SpressoBackend.uploadImage(bytes, path)
+                        val uploaded = convexApi.uploadMedia(bytes, network.inferImageMimeType(bytes))
+                        val uploadedUrl = convexApi.getMediaReadUrl(uploaded.assetId)
 
-                        network.SpressoBackend.addWardrobeItem(
-                            outfitId = null,
+                        convexApi.addWardrobeItem(
+                            clientId = uuid,
+                            kind = "user_upload",
+                            name = "Wardrobe photo",
                             category = "Uncategorized",
-                            brand = null,
-                            imageUrl = uploadedUrl,
-                            color = null,
+                            weatherSuitability = "ALL_WEATHER",
+                            image = uploadedUrl,
+                            addedAt =
+                                kotlinx.datetime.Clock.System
+                                    .now()
+                                    .toEpochMilliseconds(),
+                            mediaKey = uploaded.mediaKey,
+                            mediaAssetId = uploaded.assetId,
                         )
 
                         refreshWardrobe()

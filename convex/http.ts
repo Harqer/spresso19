@@ -21,6 +21,17 @@ function webhookSecret(): string {
   return value;
 }
 
+function decodeBase64(value: string): Uint8Array {
+  const normalized = value.trim();
+  if (!normalized || normalized.length > 36_000_000 || !/^[A-Za-z0-9+/]*={0,2}$/.test(normalized)) {
+    throw new BridgeError("A valid base64 media payload is required.", 400);
+  }
+  const binary = atob(normalized);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes;
+}
+
 /**
  * Signed Stripe webhook boundary. Raw body text is required — signature
  * verification runs over the exact request body with the SubtleCrypto provider
@@ -94,6 +105,42 @@ export const stripeWebhook = httpAction(async (ctx, request) => {
 const http = httpRouter();
 
 http.route({ path: "/stripe_webhook", method: "POST", handler: stripeWebhook });
+
+export const uploadMediaHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { bytesBase64?: unknown; mimeType?: unknown; jobId?: unknown };
+    if (typeof body.bytesBase64 !== "string" || typeof body.mimeType !== "string") {
+      throw new BridgeError("bytesBase64 and mimeType are required.", 400);
+    }
+    const result = await ctx.runAction(api.media.actions.storeUploadedBytes, {
+      bytes: decodeBase64(body.bytesBase64).buffer as ArrayBuffer,
+      mimeType: body.mimeType,
+      ...(typeof body.jobId === "string" ? { jobId: body.jobId } : {}),
+    });
+    return result;
+  });
+});
+
+export const mediaReadUrlHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { assetId?: unknown };
+    if (typeof body.assetId !== "string" || !body.assetId.trim()) throw new BridgeError("assetId is required.", 400);
+    return ctx.runAction(api.media.actions.createPrivateReadUrl, { assetId: body.assetId as any });
+  });
+});
+
+export const visionSearchHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { imageMediaKey?: unknown };
+    if (typeof body.imageMediaKey !== "string" || !body.imageMediaKey.trim()) {
+      throw new BridgeError("imageMediaKey is required.", 400);
+    }
+    return ctx.runAction(api.vision.searchByImage, { imageMediaKey: body.imageMediaKey });
+  });
+});
 
 /**
  * Typed HTTP bridge for the KMP clients (Android / WebAssembly), which reach
@@ -384,6 +431,9 @@ export const listWardrobeOutfitsHttp = httpAction(async (ctx, request) => {
   });
 });
 
+http.route({ path: "/api/media/upload", method: "POST", handler: uploadMediaHttp });
+http.route({ path: "/api/media/read-url", method: "POST", handler: mediaReadUrlHttp });
+http.route({ path: "/api/vision/search", method: "POST", handler: visionSearchHttp });
 http.route({ path: "/api/discovery/search", method: "POST", handler: discoverySearchHttp });
 http.route({ path: "/api/discovery/recommendations", method: "POST", handler: discoveryRecommendationsHttp });
 http.route({ path: "/api/orders", method: "GET", handler: listOrdersHttp });

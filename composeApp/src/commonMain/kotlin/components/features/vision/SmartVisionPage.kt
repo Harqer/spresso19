@@ -19,14 +19,12 @@ import network.DetectedItem
 import network.ProductItem
 import network.models.HITLPayload
 import ui.rememberImagePicker
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
-@OptIn(ExperimentalEncodingApi::class)
 @Composable
 fun SmartVisionPage(
     apiClient: ApiClient,
     onSelectProduct: (String) -> Unit,
+    onAskAI: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var detectedItems by remember { mutableStateOf<List<DetectedItem>>(emptyList()) }
@@ -36,6 +34,7 @@ fun SmartVisionPage(
     var activeImage by remember { mutableStateOf<ByteArray?>(null) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val convexApi = remember { network.ConvexApi() }
 
     LaunchedEffect(Unit) {
         try {
@@ -54,10 +53,9 @@ fun SmartVisionPage(
                     isScanning = true
 
                     scope.launch {
-                        @OptIn(ExperimentalEncodingApi::class)
-                        val base64Image = Base64.Default.encode(bytes)
                         try {
-                            val response = apiClient.performLensSearch(base64Image)
+                            val uploaded = convexApi.uploadMedia(bytes, network.inferImageMimeType(bytes))
+                            val response = convexApi.searchVision(uploaded.mediaKey)
                             if (response.success) {
                                 // Lens results are canonical merchant listings. Keep the
                                 // legacy overlay shape only as a presentation adapter; the
@@ -140,15 +138,7 @@ fun SmartVisionPage(
                         .padding(start = 16.dp, end = 16.dp),
             ) {
                 AIShopperInputBar(
-                    onSend = {
-                        scope.launch {
-                            try {
-                                network.SpressoBackend.logVisionEvent(detectedObjects = it, context = "chat", imageUrl = null)
-                            } catch (e: Exception) {
-                                snackbarHostState.showSnackbar("Your question could not be sent. Please try again.")
-                            }
-                        }
-                    },
+                    onSend = onAskAI,
                     placeholder = "Ask Spresso about these items...",
                 )
             }

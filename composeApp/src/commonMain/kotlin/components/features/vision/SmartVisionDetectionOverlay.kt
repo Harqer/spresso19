@@ -122,11 +122,6 @@ fun SmartVisionDetectionOverlay(
                                 onClick = {
                                     scope.launch {
                                         try {
-                                            network.SpressoBackend.logVisionEvent(
-                                                detectedObjects = item.detectedName,
-                                                context = "buy_click",
-                                                imageUrl = product.imageUrl,
-                                            )
                                             val productId = product.id
                                             val merchantUrl = product.merchantUrl?.takeIf { it.startsWith("https://") }
                                             if (merchantUrl == null) {
