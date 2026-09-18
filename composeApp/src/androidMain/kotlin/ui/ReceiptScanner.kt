@@ -1,38 +1,31 @@
 package ui
 
-import android.graphics.BitmapFactory
 import androidx.compose.runtime.Composable
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import network.ConvexApi
+import network.inferImageMimeType
 
 @Composable
 actual fun rememberReceiptScanner(
     onResult: (merchant: String, amount: String) -> Unit,
     onError: (String) -> Unit,
-): (ByteArray) -> Unit =
-    { bytes ->
-        try {
-            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            if (bitmap != null) {
-                val image = InputImage.fromBitmap(bitmap, 0)
-                val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-                recognizer
-                    .process(image)
-                    .addOnSuccessListener { text ->
-                        val lines = text.text.split("\n")
-                        val merchant = lines.firstOrNull { it.isNotBlank() } ?: "Parsed Merchant"
-                        val amountLine = lines.reversed().find { it.contains(Regex("\\d+\\.\\d{2}")) }
-                        val amountMatch = amountLine?.let { Regex("\\d+\\.\\d{2}").find(it)?.value }
-                        val amount = amountMatch ?: "0.00"
-                        onResult(merchant, amount)
-                    }.addOnFailureListener {
-                        onError("Failed to recognize text")
-                    }
-            } else {
-                onError("Invalid image")
+): (ByteArray) -> Unit {
+    val scope = rememberCoroutineScope()
+    val convexApi = ConvexApi()
+
+    return { bytes ->
+        scope.launch {
+            try {
+                val uploaded = convexApi.uploadMedia(bytes, inferImageMimeType(bytes))
+                val receipt = convexApi.parseTravelReceipt(uploaded.mediaKey)
+                onResult(
+                    receipt.merchantName.orEmpty().ifBlank { "Unknown merchant" },
+                    receipt.total?.toString() ?: "",
+                )
+            } catch (_: Exception) {
+                onError("Unable to scan this receipt. Please try again.")
             }
-        } catch (e: Exception) {
-            onError("Processing error")
         }
     }
+}

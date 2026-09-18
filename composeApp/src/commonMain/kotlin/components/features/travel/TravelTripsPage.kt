@@ -50,12 +50,10 @@ fun TravelTripsPage(
     LaunchedEffect(activeTripId) {
         if (activeTripId.isBlank()) return@LaunchedEffect
         try {
-            val activeEvents = apiClient.fetchTravelEvents(activeTripId)
-            val activeExpenses = apiClient.fetchTravelExpenses(activeTripId)
-            val activeVoiceNotes = apiClient.fetchVoiceNotes(activeTripId)
-            events = events.filterNot { it.tripId == activeTripId } + activeEvents
-            expenses = expenses.filterNot { it.tripId == activeTripId } + activeExpenses
-            voiceNotes = voiceNotes.filterNot { it.tripId == activeTripId } + activeVoiceNotes
+            val detail = apiClient.fetchTravelDetail(activeTripId)
+            events = events.filterNot { it.tripId == activeTripId } + detail.events
+            expenses = expenses.filterNot { it.tripId == activeTripId } + detail.expenses
+            voiceNotes = voiceNotes.filterNot { it.tripId == activeTripId } + detail.voiceNotes
             loadError = null
         } catch (e: Exception) {
             loadError = "Some trip details are unavailable. Please try again."

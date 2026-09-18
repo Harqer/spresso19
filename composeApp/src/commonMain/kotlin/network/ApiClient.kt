@@ -1,7 +1,10 @@
 package network
 
 import components.features.catalog.DiscoveredListing
+import components.models.ItineraryEvent
+import components.models.TravelExpense
 import components.models.TripRecord
+import components.models.VoiceNote
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -40,6 +43,12 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 import network.createPaymentMethod as createPaymentMethodTopLevel
 import network.deletePaymentMethod as deletePaymentMethodTopLevel
 import network.updateUserSubscription as updateUserSubscriptionTopLevel
+
+data class TravelDetailData(
+    val events: List<ItineraryEvent>,
+    val expenses: List<TravelExpense>,
+    val voiceNotes: List<VoiceNote>,
+)
 
 @Serializable
 data class VideoInteractionEvent(
@@ -399,50 +408,56 @@ open class ApiClient {
             )
         }
 
-    suspend fun fetchTravelEvents(tripId: String): List<components.models.ItineraryEvent> =
-        convexApi
-            .fetchTripDetail(tripId)
-            ?.events
-            ?.map { event ->
-                components.models.ItineraryEvent(
-                    id = event.id,
-                    tripId = tripId,
-                    type = event.type,
-                    title = event.title,
-                    description = event.description,
-                    eventTime = event.eventTime,
-                    location = event.location,
-                    price = event.price,
-                    qrData = event.qrData,
-                    confirmationCode = event.confirmationCode,
-                    gate = event.gate,
-                    seat = event.seat,
-                )
-            }.orEmpty()
+    suspend fun fetchTravelDetail(tripId: String): TravelDetailData {
+        val detail = convexApi.fetchTripDetail(tripId)
+        return TravelDetailData(
+            events =
+                detail
+                    ?.events
+                    ?.map { event ->
+                        ItineraryEvent(
+                            id = event.id,
+                            tripId = tripId,
+                            type = event.type,
+                            title = event.title,
+                            description = event.description,
+                            eventTime = event.eventTime,
+                            location = event.location,
+                            price = event.price,
+                            qrData = event.qrData,
+                            confirmationCode = event.confirmationCode,
+                            gate = event.gate,
+                            seat = event.seat,
+                        )
+                    }.orEmpty(),
+            expenses =
+                detail
+                    ?.expenses
+                    ?.map { expense ->
+                        TravelExpense(
+                            expense.id,
+                            tripId,
+                            expense.amount,
+                            expense.currency,
+                            expense.category,
+                            expense.merchant,
+                            expense.date,
+                        )
+                    }.orEmpty(),
+            voiceNotes =
+                detail
+                    ?.voiceNotes
+                    ?.map { note ->
+                        VoiceNote(note.id, tripId, note.transcript, note.createdAt.toString())
+                    }.orEmpty(),
+        )
+    }
 
-    suspend fun fetchTravelExpenses(tripId: String): List<components.models.TravelExpense> =
-        convexApi
-            .fetchTripDetail(tripId)
-            ?.expenses
-            ?.map { expense ->
-                components.models.TravelExpense(
-                    expense.id,
-                    tripId,
-                    expense.amount,
-                    expense.currency,
-                    expense.category,
-                    expense.merchant,
-                    expense.date,
-                )
-            }.orEmpty()
+    suspend fun fetchTravelEvents(tripId: String): List<ItineraryEvent> = fetchTravelDetail(tripId).events
 
-    suspend fun fetchVoiceNotes(tripId: String): List<components.models.VoiceNote> =
-        convexApi
-            .fetchTripDetail(tripId)
-            ?.voiceNotes
-            ?.map { note ->
-                components.models.VoiceNote(note.id, tripId, note.transcript, note.createdAt.toString())
-            }.orEmpty()
+    suspend fun fetchTravelExpenses(tripId: String): List<TravelExpense> = fetchTravelDetail(tripId).expenses
+
+    suspend fun fetchVoiceNotes(tripId: String): List<VoiceNote> = fetchTravelDetail(tripId).voiceNotes
 
     @Suppress("UNUSED_PARAMETER")
     suspend fun fetchGroceryList(listId: String): List<network.models.GroceryItem> =

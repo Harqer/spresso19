@@ -582,6 +582,17 @@ export const addTravelExpenseHttp = httpAction(async (ctx, request) => {
   });
 });
 
+export const parseTravelReceiptHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { receiptMediaKey?: unknown };
+    if (typeof body.receiptMediaKey !== "string" || !body.receiptMediaKey.trim()) {
+      throw new BridgeError("receiptMediaKey is required.", 400);
+    }
+    return ctx.runAction(api.travel.parseReceiptImage, { receiptMediaKey: body.receiptMediaKey });
+  });
+});
+
 http.route({ path: "/api/grocery", method: "GET", handler: listGroceryHttp });
 http.route({ path: "/api/grocery/item", method: "POST", handler: addGroceryItemHttp });
 http.route({ path: "/api/grocery/checked", method: "POST", handler: setGroceryCheckedHttp });
@@ -589,5 +600,6 @@ http.route({ path: "/api/grocery/remove", method: "POST", handler: removeGrocery
 http.route({ path: "/api/travel/trips", method: "GET", handler: listTripsHttp });
 http.route({ path: "/api/travel/detail", method: "GET", handler: listTripDetailHttp });
 http.route({ path: "/api/travel/expense", method: "POST", handler: addTravelExpenseHttp });
+http.route({ path: "/api/travel/receipt", method: "POST", handler: parseTravelReceiptHttp });
 
 export default http;

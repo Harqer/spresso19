@@ -3,34 +3,27 @@ package ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
-import network.ApiClient
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
+import network.ConvexApi
+import network.inferImageMimeType
 
-@OptIn(ExperimentalEncodingApi::class)
 @Composable
 actual fun rememberReceiptScanner(
     onResult: (merchant: String, amount: String) -> Unit,
     onError: (String) -> Unit,
 ): (ByteArray) -> Unit {
     val scope = rememberCoroutineScope()
+    val convexApi = ConvexApi()
 
     return { bytes ->
         scope.launch {
             try {
-                val client = ApiClient()
-                val base64Data = Base64.encode(bytes)
-                val response = client.performLensSearch(base64Data)
-                val firstItem = response.detectedResult?.detectedItems?.firstOrNull()
-                val merchant =
-                    firstItem?.brandGuess ?: firstItem?.detectedName ?: response.apifyResults.firstOrNull()?.title ?: "Parsed Merchant"
-                val amount =
-                    firstItem?.priceEstimate?.toString() ?: response.apifyResults
-                        .firstOrNull()
-                        ?.price
-                        ?.toString() ?: "0.00"
-                onResult(merchant, amount)
-            } catch (e: Exception) {
+                val uploaded = convexApi.uploadMedia(bytes, inferImageMimeType(bytes))
+                val receipt = convexApi.parseTravelReceipt(uploaded.mediaKey)
+                onResult(
+                    receipt.merchantName.orEmpty().ifBlank { "Unknown merchant" },
+                    receipt.total?.toString() ?: "",
+                )
+            } catch (_: Exception) {
                 onError("Unable to scan this receipt. Please try again.")
             }
         }

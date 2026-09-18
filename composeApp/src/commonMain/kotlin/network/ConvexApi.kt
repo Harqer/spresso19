@@ -39,6 +39,14 @@ data class UploadedMediaReference(
     val sha256: String,
 )
 
+@kotlinx.serialization.Serializable
+data class ParsedTravelReceipt(
+    val merchantName: String? = null,
+    val purchaseDate: String? = null,
+    val currency: String? = null,
+    val total: Double? = null,
+)
+
 fun inferImageMimeType(bytes: ByteArray): String {
     val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47)
     val webp = byteArrayOf(0x52, 0x49, 0x46, 0x46)
@@ -122,6 +130,15 @@ class ConvexApi(
             byteLength = response["byteLength"]?.jsonPrimitive?.content?.toIntOrNull() ?: bytes.size,
             sha256 = response["sha256"]?.jsonPrimitive?.content ?: error("Media upload returned no digest."),
         )
+    }
+
+    suspend fun parseTravelReceipt(mediaKey: String): ParsedTravelReceipt {
+        val response =
+            json
+                .parseToJsonElement(
+                    post("/api/travel/receipt", buildJsonObject { put("receiptMediaKey", mediaKey) }),
+                ).jsonObject
+        return json.decodeFromString(response.toString())
     }
 
     suspend fun getMediaReadUrl(assetId: String): String {
