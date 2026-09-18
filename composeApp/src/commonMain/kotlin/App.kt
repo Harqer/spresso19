@@ -203,7 +203,7 @@ fun App(
                                     convexApi.generateVirtualTryOn(
                                         bytes = bytes,
                                         garmentImageUrl = garment,
-                                        idempotencyKey = "tryon:$productId:${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}",
+                                        idempotencyKey = "tryon:$productId:${kotlin.time.Clock.System.now().toEpochMilliseconds()}",
                                     )
                                 isVideoPlaying = false
                                 navigator.navigate(NavKey.WardrobeKey(displayMediaUrl = displayMediaUrl, isVideoPlaying = false))

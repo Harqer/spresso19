@@ -19,10 +19,10 @@ import components.features.travel.widgets.LoggedExpensesList
 import components.models.TravelExpense
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import ui.rememberImagePicker
 import ui.rememberReceiptScanner
 import utils.PlatformUtils
+import kotlin.time.Clock
 
 @OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
 @Composable

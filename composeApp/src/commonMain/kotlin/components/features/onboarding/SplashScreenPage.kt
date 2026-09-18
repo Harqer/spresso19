@@ -35,7 +35,7 @@ fun SplashScreenPage(
 
     LaunchedEffect(Unit) {
         val startTime =
-            kotlinx.datetime.Clock.System
+            kotlin.time.Clock.System
                 .now()
                 .toEpochMilliseconds()
         try {
@@ -44,7 +44,7 @@ fun SplashScreenPage(
             errorMessage = "Spresso could not finish loading. You can continue and try again."
         }
         val elapsed =
-            kotlinx.datetime.Clock.System
+            kotlin.time.Clock.System
                 .now()
                 .toEpochMilliseconds() - startTime
         if (elapsed < 500) {

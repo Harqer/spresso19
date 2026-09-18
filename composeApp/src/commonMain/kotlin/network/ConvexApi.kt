@@ -237,7 +237,7 @@ class ConvexApi(
                 providerListingId = product.providerListingId,
                 observedPrice = product.price?.let { ObservedPrice(it, "USD", product.merchantUrl) },
                 discoveredAt =
-                    kotlinx.datetime.Clock.System
+                    kotlin.time.Clock.System
                         .now()
                         .toString(),
             )
@@ -279,7 +279,7 @@ class ConvexApi(
         price: Double? = null,
         productId: String? = null,
         addedAt: Long =
-            kotlinx.datetime.Clock.System
+            kotlin.time.Clock.System
                 .now()
                 .toEpochMilliseconds(),
         color: String? = null,

@@ -17,7 +17,6 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import components.models.*
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 
 @Composable
 @Suppress("UNUSED_PARAMETER")
@@ -61,7 +60,7 @@ fun WardrobePage(
                             snackbarHostState.showSnackbar("Sign in to add a wardrobe photo.")
                             return@launch
                         }
-                        val uuid = "wardrobe_${userUid}_${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}"
+                        val uuid = "wardrobe_${userUid}_${kotlin.time.Clock.System.now().toEpochMilliseconds()}"
                         snackbarHostState.showSnackbar("Adding photo…")
                         val uploaded = convexApi.uploadMedia(bytes, network.inferImageMimeType(bytes))
                         val uploadedUrl = convexApi.getMediaReadUrl(uploaded.assetId)
@@ -74,7 +73,7 @@ fun WardrobePage(
                             weatherSuitability = "ALL_WEATHER",
                             image = uploadedUrl,
                             addedAt =
-                                kotlinx.datetime.Clock.System
+                                kotlin.time.Clock.System
                                     .now()
                                     .toEpochMilliseconds(),
                             mediaKey = uploaded.mediaKey,

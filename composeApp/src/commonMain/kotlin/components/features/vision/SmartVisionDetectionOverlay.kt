@@ -131,7 +131,7 @@ fun SmartVisionDetectionOverlay(
                                             onHitlCheckout(
                                                 HITLPayload(
                                                     authorizationId =
-                                                        "authorization-$productId-${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}",
+                                                        "authorization-$productId-${kotlin.time.Clock.System.now().toEpochMilliseconds()}",
                                                     product =
                                                         HITLProduct(
                                                             id = productId,

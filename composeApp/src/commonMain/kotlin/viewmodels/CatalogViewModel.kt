@@ -32,7 +32,7 @@ class CatalogViewModel(
     fun initiateCheckout(product: ProductItem) {
         scope.launch {
             try {
-                val attemptId = "${product.id}-${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}"
+                val attemptId = "${product.id}-${kotlin.time.Clock.System.now().toEpochMilliseconds()}"
                 _hitlCheckoutPayload.value =
                     product.toHITLPayload(
                         authorizationId = "authorization-$attemptId",

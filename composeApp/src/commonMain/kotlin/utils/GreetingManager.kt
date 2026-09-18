@@ -1,8 +1,8 @@
 package utils
 
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 
 object GreetingManager {
     fun getGreeting(userName: String?): String {

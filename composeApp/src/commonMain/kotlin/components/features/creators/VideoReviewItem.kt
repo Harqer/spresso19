@@ -19,7 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import components.models.*
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 data class ReviewVideoModel(
     val id: String,
