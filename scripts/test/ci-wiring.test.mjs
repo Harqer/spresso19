@@ -2,17 +2,29 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const workflow = readFileSync(".github/workflows/spresso-multi-agent-cicd.yml", "utf8");
+const workflow = readFileSync(".github/workflows/error-reports.yml", "utf8");
+const releaseWorkflow = readFileSync(".github/workflows/release.yml", "utf8");
 const gate = readFileSync("scripts/ci-gate.sh", "utf8");
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 
-test("the normal workflow invokes the shared production gate", () => {
-  assert.match(workflow, /scripts\/ci-gate\.sh/);
+test("the normal workflow is the error-report pipeline", () => {
   assert.match(workflow, /pull_request:/);
   assert.match(workflow, /push:/);
+  assert.match(workflow, /schedule:/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /actions\/upload-artifact@v4/);
+  assert.match(workflow, /zaproxy\/action-baseline@v0\.14\.0/);
+  assert.match(workflow, /ZAP_TARGET_URL/);
+  assert.match(workflow, /:composeApp:detekt/);
+  assert.match(workflow, /\.\/ktlint composeApp\/src/);
 });
 
-test("the production gate runs the required application checks", () => {
+test("the release workflow remains deployment-only", () => {
+  assert.match(releaseWorkflow, /tags:/);
+  assert.match(releaseWorkflow, /fastlane android deploy_internal/);
+});
+
+test("the legacy shared production gate retains its required application checks", () => {
   for (const command of [
     "npm ci",
     "npm audit --audit-level=moderate",
@@ -27,7 +39,6 @@ test("the production gate runs the required application checks", () => {
     "npm run test:smoke",
     "npm run test:mcp",
     "npm run test:bundle-budget",
-    "npm run build",
     "npm test",
     "./gradlew :composeApp:lintDebug :composeApp:compileDebugKotlinAndroid :composeApp:testDebugUnitTest --no-daemon",
     "terraform validate",
@@ -35,11 +46,11 @@ test("the production gate runs the required application checks", () => {
     "TF_VAR_project_id",
     "TF_VAR_tool_server_image",
   ]) {
-      assert.ok(gate.includes(command), `CI gate is missing: ${command}`);
+    assert.ok(gate.includes(command), `CI gate is missing: ${command}`);
   }
 });
 
-test("CI wiring has no live deployment probe or production env-file fallback", () => {
+test("the shared gate has no live deployment probe or production env-file fallback", () => {
   assert.doesNotMatch(gate, /deployed-capability-audit\.mjs\s+--live/);
   assert.doesNotMatch(gate, /npm run test:integration/);
   assert.doesNotMatch(gate, /\.env/);

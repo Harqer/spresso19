@@ -1,0 +1,102 @@
+name: Spresso Error Reports and Security
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      zap_target_url:
+        description: "HTTPS URL to scan with OWASP ZAP; defaults to the repository ZAP_TARGET_URL variable"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  reports:
+    name: TypeScript, Convex, KtLint, Detekt, and Android reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install locked Node dependencies
+        run: npm ci
+
+      - name: TypeScript and Convex type reports
+        run: |
+          set -o pipefail
+          npm run lint 2>&1 | tee typescript-report.txt
+          npx tsc -p convex/tsconfig.json --noEmit 2>&1 | tee convex-type-report.txt
+
+      - name: Dependency vulnerability report
+        run: npm audit --audit-level=moderate 2>&1 | tee npm-audit-report.txt
+
+      - name: KtLint report
+        run: ./ktlint composeApp/src 2>&1 | tee ktlint-report.txt
+
+      - name: Detekt report
+        run: ./gradlew :composeApp:detekt --no-daemon 2>&1 | tee detekt-report.txt
+
+      - name: Android lint report
+        run: ./gradlew :composeApp:lintDebug --no-daemon 2>&1 | tee android-lint-report.txt
+
+      - name: Upload static-analysis reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-reports
+          path: |
+            *-report.txt
+            composeApp/build/reports/detekt/**
+            composeApp/build/reports/lint-results-debug.xml
+          if-no-files-found: warn
+
+  zap:
+    name: OWASP ZAP baseline report
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ZAP_TARGET_URL: ${{ inputs.zap_target_url || vars.ZAP_TARGET_URL }}
+    steps:
+      - name: Require an explicitly configured scan target
+        run: |
+          if [ -z "$ZAP_TARGET_URL" ]; then
+            echo "ZAP_TARGET_URL repository variable or workflow_dispatch input is required."
+            exit 1
+          fi
+          case "$ZAP_TARGET_URL" in
+            https://*) ;;
+            *) echo "ZAP target must use HTTPS"; exit 1 ;;
+          esac
+
+      - name: OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ env.ZAP_TARGET_URL }}
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: zap-report
