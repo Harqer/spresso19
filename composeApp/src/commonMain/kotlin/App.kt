@@ -840,7 +840,11 @@ fun App(
                         )
                     }
                     entry<NavKey.SupportKey> { currentDestinationKey ->
-                        SupportPage()
+                        SupportPage(
+                            onOpenChat = {
+                                navigator.navigate(NavKey.ChatKey(initialPrompt = "I need help with my Spresso account."))
+                            },
+                        )
                     }
 
                     // 11. Wearables & Spatial Flow

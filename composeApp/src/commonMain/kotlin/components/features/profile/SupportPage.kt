@@ -21,11 +21,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SupportPage(modifier: Modifier = Modifier) {
+fun SupportPage(
+    onOpenChat: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val uriHandler = LocalUriHandler.current
+
     Column(
         modifier = modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -54,19 +60,19 @@ fun SupportPage(modifier: Modifier = Modifier) {
             icon = Icons.Outlined.Email,
             title = "Email Support",
             subtitle = "support@spresso.app",
-            onClick = { },
+            onClick = { uriHandler.openUri("mailto:support@spresso.app") },
         )
         ProfileListItem(
             icon = Icons.Outlined.Forum,
             title = "Live Chat",
             subtitle = "Chat with our support team",
-            onClick = { },
+            onClick = onOpenChat,
         )
         ProfileListItem(
             icon = Icons.Outlined.Info,
             title = "Help Center",
             subtitle = "Browse FAQs and guides",
-            onClick = { },
+            onClick = { uriHandler.openUri("https://get-spresso.web.app/help") },
         )
     }
 }
