@@ -87,7 +87,7 @@ async function quickAction(credentials, body) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), KITESURF_TIMEOUT_MS);
     try {
-        const response = await fetch(`${BROWSER_RUN_BASE}/${credentials.accountId}/browser-run/json?browser=kitesurf`, {
+        const response = await fetch(`${BROWSER_RUN_BASE}/${credentials.accountId}/browser-rendering/json?browser=kitesurf`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${credentials.apiToken}`,

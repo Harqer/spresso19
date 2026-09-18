@@ -41,7 +41,7 @@ export const parallelDeepResearchTool = ai.defineTool(
         let runResult;
         for (let i = 0; i < 12; i++) {
           try {
-            runResult = await client.taskRun.result(taskRun.run_id, { timeout: 25 });
+            runResult = await client.taskRun.result(taskRun.run_id, {}, { timeout: 25_000 });
             break;
           } catch (error: any) {
             if (i === 11) throw new Error(`Research task timed out after multiple attempts. Error: ${error.message}`);

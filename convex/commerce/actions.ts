@@ -56,7 +56,7 @@ async function merchantQuote(attempt: CheckoutAttemptSnapshot) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
   try {
-    const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/browser-run/json?browser=kitesurf`, {
+    const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/browser-rendering/json?browser=kitesurf`, {
       method: "POST",
       signal: controller.signal,
       headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },

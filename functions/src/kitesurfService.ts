@@ -105,7 +105,7 @@ async function quickAction(credentials: CloudflareCredentials, body: Record<stri
   const timeoutId = setTimeout(() => controller.abort(), KITESURF_TIMEOUT_MS);
   try {
     const response = await fetch(
-      `${BROWSER_RUN_BASE}/${credentials.accountId}/browser-run/json?browser=kitesurf`,
+      `${BROWSER_RUN_BASE}/${credentials.accountId}/browser-rendering/json?browser=kitesurf`,
       {
         method: "POST",
         headers: {

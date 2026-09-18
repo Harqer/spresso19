@@ -18,6 +18,21 @@ function httpsUrl(value: unknown): string | undefined {
   }
 }
 
+function allowlistedMerchantUrl(value: string): string {
+  const merchantUrl = httpsUrl(value);
+  if (!merchantUrl) throw new Error("Merchant URL must use HTTPS.");
+  const domains = (env.KITESURF_ALLOWED_DOMAINS ?? "")
+    .split(",")
+    .map((domain) => domain.trim().toLowerCase())
+    .filter(Boolean);
+  if (domains.length === 0) throw new Error("Merchant verification is not configured in the Convex deployment.");
+  const hostname = new URL(merchantUrl).hostname.toLowerCase();
+  if (!domains.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`))) {
+    throw new Error("Merchant URL is not allowlisted for verification.");
+  }
+  return merchantUrl;
+}
+
 function price(value: unknown, currency: unknown, evidenceUrl: string) {
   const amount = typeof value === "number" ? value : Number(String(value ?? "").replace(/[^0-9.]/g, ""));
   if (!Number.isFinite(amount) || amount <= 0) return undefined;
@@ -65,7 +80,7 @@ async function fetchParallel(query: string, key: string, signal: AbortSignal): P
 }
 
 async function fetchKitesurfVerification(merchantUrl: string, productName: string, accountId: string, token: string, signal: AbortSignal) {
-  const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/browser-run/json?browser=kitesurf`, {
+  const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/browser-rendering/json?browser=kitesurf`, {
     method: "POST",
     signal,
     headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
@@ -234,15 +249,17 @@ export const verifyMerchantListing = action({
   returns: v.object({ found: v.boolean(), merchantUrl: v.string(), observedPrice: v.optional(v.object({ amount: v.number(), currency: v.string(), evidenceUrl: v.string() })) }),
   handler: async (ctx, args) => {
     await requireFirebaseIdentity(ctx);
-    const merchantUrl = httpsUrl(args.merchantUrl);
+    const merchantUrl = allowlistedMerchantUrl(args.merchantUrl);
     const productName = args.productName.trim();
-    if (!merchantUrl || productName.length < 2 || productName.length > 240) throw new Error("A valid merchant listing is required.");
+    if (productName.length < 2 || productName.length > 240) throw new Error("A valid merchant listing is required.");
     if (!env.CLOUDFLARE_ACCOUNT_ID || !env.CLOUDFLARE_API_TOKEN) throw new Error("Merchant verification is not configured in the Convex deployment.");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15_000);
     try {
       const result = await fetchKitesurfVerification(merchantUrl, productName, env.CLOUDFLARE_ACCOUNT_ID, env.CLOUDFLARE_API_TOKEN, controller.signal);
-      const evidenceUrl = httpsUrl(result.productUrl) ?? merchantUrl;
+      const evidenceUrl = typeof result.productUrl === "string"
+        ? allowlistedMerchantUrl(result.productUrl)
+        : merchantUrl;
       const observedPrice = price(result.price, result.currency, evidenceUrl);
       return { found: result.found === true, merchantUrl: evidenceUrl, ...(observedPrice ? { observedPrice } : {}) };
     } finally { clearTimeout(timeout); }
