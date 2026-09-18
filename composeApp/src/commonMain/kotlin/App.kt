@@ -247,7 +247,7 @@ fun App(
             themeMode = themeMode,
             onThemeModeChange = { themeMode = it },
             onAskAI = { prompt ->
-                chatViewModel.sendMessage(prompt = prompt, location = null, agentType = "SHOPPING_CONCIERGE")
+                chatViewModel.sendMessage(prompt = prompt)
                 navigator.navigate(NavKey.ChatKey())
             },
             entryProvider =
@@ -335,7 +335,7 @@ fun App(
                             isVisible = true,
                             onDismissRequest = { navigator.goBack() },
                             onSendMessage = { prompt ->
-                                chatViewModel.sendMessage(prompt = prompt, location = null, agentType = "SHOPPING_CONCIERGE")
+                                chatViewModel.sendMessage(prompt = prompt)
                                 navigator.navigate(NavKey.ChatKey())
                             },
                             onToggleVoice = {
@@ -384,7 +384,7 @@ fun App(
                             subtitle = "Curated luxury styles tailored to your taste.",
                             prompt = "Show me trending fashion items",
                             onClick = { prompt ->
-                                chatViewModel.sendMessage(prompt = prompt, location = null, agentType = "SHOPPING_CONCIERGE")
+                                chatViewModel.sendMessage(prompt = prompt)
                                 navigator.navigate(NavKey.ChatKey())
                             },
                         )

@@ -545,6 +545,105 @@ export const removeGroceryItemHttp = httpAction(async (ctx, request) => {
   });
 });
 
+// ---- Agent conversations: shared cross-client thread boundary -------------
+
+export const createChatThreadHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { title?: unknown };
+    return {
+      threadId: await ctx.runMutation(api.aiChat.createThread, {
+        ...(typeof body.title === "string" && body.title.trim() ? { title: body.title } : {}),
+      }),
+    };
+  });
+});
+
+export const listChatMessagesHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const url = new URL(request.url);
+    const threadId = url.searchParams.get("threadId");
+    if (!threadId?.trim()) throw new BridgeError("threadId is required.", 400);
+    const result = await ctx.runQuery(api.aiChat.listMessages, {
+      threadId,
+      paginationOpts: { cursor: null, numItems: boundedInt(queryInt(request, "limit"), 50, 100) },
+      streamArgs: { kind: "list" },
+    });
+    const streamMessages =
+      result.streams && result.streams.kind === "list"
+        ? result.streams.messages
+        : [];
+    if (streamMessages.length === 0) return result;
+    const deltas = await ctx.runQuery(api.aiChat.listStreamDeltas, {
+      threadId,
+      cursors: streamMessages.map((stream) => ({ streamId: stream.streamId, cursor: 0 })),
+    });
+    return { ...result, streamMetadata: streamMessages, streams: { kind: "deltas", deltas } };
+  });
+});
+
+export const sendChatMessageHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { threadId?: unknown; prompt?: unknown };
+    if (typeof body.threadId !== "string" || !body.threadId.trim()) throw new BridgeError("threadId is required.", 400);
+    if (typeof body.prompt !== "string" || !body.prompt.trim()) throw new BridgeError("prompt is required.", 400);
+    await ctx.runMutation(api.aiChat.sendMessage, { threadId: body.threadId, prompt: body.prompt });
+    return { accepted: true };
+  });
+});
+
+http.route({ path: "/api/chat/thread", method: "POST", handler: createChatThreadHttp });
+http.route({ path: "/api/chat/messages", method: "GET", handler: listChatMessagesHttp });
+http.route({ path: "/api/chat/message", method: "POST", handler: sendChatMessageHttp });
+
+export const generateWardrobeOutfitHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as {
+      idempotencyKey?: unknown;
+      items?: unknown;
+      weatherCondition?: unknown;
+      temperatureText?: unknown;
+    };
+    if (typeof body.idempotencyKey !== "string" || body.idempotencyKey.trim().length < 8) {
+      throw new BridgeError("A valid idempotencyKey is required.", 400);
+    }
+    if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 50) {
+      throw new BridgeError("At least one wardrobe item is required.", 400);
+    }
+    if (typeof body.weatherCondition !== "string" || typeof body.temperatureText !== "string") {
+      throw new BridgeError("Weather context is required.", 400);
+    }
+    const allowedWeather = ["SUMMER_HEAT", "MILD_SPRING_AUTUMN", "WINTER_COLD", "ALL_WEATHER", "HOT_SUMMER", "COLD_WINTER"];
+    const weatherCondition = body.weatherCondition.trim().toUpperCase().replace(/ /g, "_");
+    if (!allowedWeather.includes(weatherCondition)) throw new BridgeError("Unsupported weather condition.", 400);
+    const items = body.items.map((item) => {
+      if (!item || typeof item !== "object") throw new BridgeError("Invalid wardrobe item.", 400);
+      const value = item as Record<string, unknown>;
+      if (["id", "name", "category", "weatherSuitability", "image"].some((key) => typeof value[key] !== "string")) {
+        throw new BridgeError("Invalid wardrobe item.", 400);
+      }
+      return {
+        id: value.id as string,
+        name: value.name as string,
+        category: value.category as string,
+        weatherSuitability: value.weatherSuitability as "SUMMER_HEAT" | "MILD_SPRING_AUTUMN" | "WINTER_COLD" | "ALL_WEATHER" | "HOT_SUMMER" | "COLD_WINTER",
+        image: value.image as string,
+      };
+    });
+    return ctx.runAction(api.aiGeneration.generateOutfit, {
+      idempotencyKey: body.idempotencyKey,
+      items,
+      weatherCondition: weatherCondition as "SUMMER_HEAT" | "MILD_SPRING_AUTUMN" | "WINTER_COLD" | "ALL_WEATHER" | "HOT_SUMMER" | "COLD_WINTER",
+      temperatureText: body.temperatureText,
+    });
+  });
+});
+
+http.route({ path: "/api/wardrobe/outfit", method: "POST", handler: generateWardrobeOutfitHttp });
+
 // ---- Travel: user-scoped trips --------------------------------------------
 
 export const listTripsHttp = httpAction(async (ctx, request) => {

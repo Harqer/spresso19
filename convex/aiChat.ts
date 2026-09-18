@@ -83,6 +83,21 @@ export const listMessages = query({
   },
 });
 
+const streamCursor = v.object({ streamId: v.string(), cursor: v.number() });
+
+export const listStreamDeltas = query({
+  args: { threadId: v.string(), cursors: v.array(streamCursor) },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    await authorizeThread(ctx, args.threadId, identity.tokenIdentifier);
+    return ctx.runQuery(components.agent.streams.listDeltas, {
+      threadId: args.threadId,
+      cursors: args.cursors,
+    });
+  },
+});
+
 export const sendMessage = mutation({
   args: { threadId: v.string(), prompt: v.string() },
   returns: v.null(),

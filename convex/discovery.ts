@@ -1,7 +1,7 @@
 "use node";
 
 import Parallel from "parallel-web";
-import { action, env } from "./_generated/server";
+import { action, env, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requireFirebaseIdentity } from "./lib/identity";
@@ -172,6 +172,21 @@ export const search = action({
  * as `search`. Nothing is read from or written to a product database; results
  * are live external listings scoped to this user's intent.
  */
+export const searchForAgent = internalAction({
+  args: { tokenIdentifier: v.string(), query: v.string(), location: v.optional(v.string()) },
+  returns: v.object({ listings: v.array(listing) }),
+  handler: async (ctx, args) => {
+    const query = args.query.trim().replace(/\s+/g, " ");
+    if (query.length < 2 || query.length > 240) throw new Error("A valid discovery query is required.");
+    const scopedQuery = args.location?.trim() ? `${query} near ${args.location.trim()}` : query;
+    await ctx.runMutation(internal.rateLimits.consume, { key: args.tokenIdentifier, name: "discoverySearch" });
+    const { raw, source } = await fetchWithSource(scopedQuery);
+    const listings = normalizeListings(raw, source, new Date().toISOString());
+    if (listings.length === 0) throw new Error("Discovery providers returned no verified listings.");
+    return { listings };
+  },
+});
+
 export const recommendations = action({
   args: {},
   returns: v.object({ listings: v.array(listing), derivedFrom: v.array(v.string()) }),

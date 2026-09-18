@@ -60,12 +60,7 @@ fun PersonalAIShopperChatPage(
         if (!initialImage.isNullOrBlank()) {
             chatViewModel.sendCameraSnapshot(initialImage, prompt = initialPrompt)
         } else if (!initialPrompt.isNullOrBlank() && (messages.isEmpty() || messages.last().text != initialPrompt)) {
-            chatViewModel.sendMessage(
-                prompt = initialPrompt,
-                location = userLocation,
-                latLng = userLatLng,
-                agentType = "SHOPPING_CONCIERGE",
-            )
+            chatViewModel.sendMessage(prompt = initialPrompt)
         }
     }
 
@@ -108,12 +103,7 @@ fun PersonalAIShopperChatPage(
         PersonalAIShopperChatPanel(
             messages = messages,
             onSendMessage = {
-                chatViewModel.sendMessage(
-                    prompt = it,
-                    location = userLocation,
-                    latLng = userLatLng,
-                    agentType = "SHOPPING_CONCIERGE",
-                )
+                chatViewModel.sendMessage(prompt = it)
             },
             userName = userName,
             onAddToCart = onAddToCart,

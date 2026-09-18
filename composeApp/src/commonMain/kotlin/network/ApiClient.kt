@@ -10,18 +10,8 @@ import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.plugin
 import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.utils.io.readUTF8Line
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -36,7 +26,6 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
-import network.models.ChatStreamChunk
 import network.models.UserProfileData
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -232,80 +221,26 @@ open class ApiClient {
         return result["mediaUrl"]?.jsonPrimitive?.content ?: error("Missing mediaUrl in response")
     }
 
-    open fun streamChat(
+    suspend fun createChatThread(title: String? = null): String = convexApi.createChatThread(title)
+
+    suspend fun sendChatMessage(
+        threadId: String,
         prompt: String,
-        imageBase64: String? = null,
-        location: String? = null,
-        latLng: Pair<Double, Double>? = null,
-        agentType: String? = null,
-    ): Flow<ChatStreamChunk> =
-        flow {
-            val authToken = getCurrentUserIdToken()
-            val url = "$cloudFunctionsBaseUrl/${FirebaseRoutes.CHAT_STREAM}"
+    ) = convexApi.sendChatMessage(threadId, prompt)
 
-            try {
-                val response =
-                    client.post(url) {
-                        contentType(ContentType.Application.Json)
-                        if (authToken != null) {
-                            header(HttpHeaders.Authorization, "Bearer $authToken")
-                        }
-                        val localeHelper = com.spresso.translation.LocaleHelper()
-                        val locale = localeHelper.getCurrentLocale()
-                        setBody(
-                            mapOf(
-                                "prompt" to prompt,
-                                "imageBase64" to imageBase64,
-                                "location" to location,
-                                "latLng" to latLng?.let { mapOf("latitude" to it.first, "longitude" to it.second) },
-                                "agentType" to agentType,
-                                "locale" to locale,
-                            ),
-                        )
-                    }
+    suspend fun listChatMessages(threadId: String): List<ConvexChatMessage> = convexApi.listChatMessages(threadId)
 
-                if (response.status.value !in 200..299) {
-                    error("Chat request failed with HTTP ${response.status.value}")
-                }
-                val channel = response.bodyAsChannel()
-                var completed = false
-                while (!channel.isClosedForRead) {
-                    val line = channel.readUTF8Line() ?: break
-                    if (!line.startsWith("data: ")) continue
-                    val data = line.removePrefix("data: ")
-                    if (data == "[DONE]") {
-                        completed = true
-                        emit(ChatStreamChunk(type = "done"))
-                        break
-                    }
-                    runCatching {
-                        json
-                            .parseToJsonElement(data)
-                            .jsonObject["text"]
-                            ?.jsonPrimitive
-                            ?.content
-                    }.getOrNull()
-                        ?.let { emit(ChatStreamChunk(type = "text", text = it)) }
-                }
-                if (!completed) {
-                    emit(ChatStreamChunk(type = "done"))
-                }
-            } catch (e: Exception) {
-                emit(ChatStreamChunk(type = "text", text = "I couldn't complete that request. Please try again."))
-                emit(ChatStreamChunk(type = "done"))
-            }
-        }
-
-    open suspend fun performLensSearch(base64Image: String): LensSearchResponse =
-        try {
-            val payload = buildJsonObject { put("imageBase64", base64Image) }
-            val responseStr = callFirebaseFunction(FirebaseRoutes.LENS_SEARCH, payload.toString())
-            val response = json.parseToJsonElement(responseStr).jsonObject
-            val result = response["result"]?.jsonObject ?: response
-            json.decodeFromJsonElement<LensSearchResponse>(result)
-        } catch (e: Exception) {
-            throw IllegalStateException("Failed to perform Spresso Lens Search: \${e.message}", e)
-        }
+    @OptIn(ExperimentalEncodingApi::class)
+    open suspend fun performLensSearch(base64Image: String): LensSearchResponse {
+        val normalized = base64Image.substringAfter(",", base64Image)
+        val bytes =
+            runCatching { Base64.decode(normalized) }
+                .getOrElse { throw IllegalArgumentException("A valid captured image is required.", it) }
+        if (bytes.isEmpty()) throw IllegalArgumentException("A captured image is required.")
+        val uploaded = convexApi.uploadMedia(bytes, inferImageMimeType(bytes))
+        val result = convexApi.searchVision(uploaded.mediaKey)
+        return LensSearchResponse(success = true, listings = result.listings)
+    }
 
     suspend fun performAccessibilityLensSearch(base64Image: String): LensSearchResponse = performLensSearch(base64Image)
 
@@ -610,36 +545,22 @@ open class ApiClient {
         items: List<WardrobeItemData>,
         weatherCondition: String,
         temperatureText: String,
-        userLocation: String? = null,
     ): GeneratedOutfit? {
         if (items.isEmpty()) return null
-        val payload =
-            buildJsonObject {
-                put(
-                    "items",
-                    buildJsonArray {
-                        items.forEach { item ->
-                            add(
-                                buildJsonObject {
-                                    put("id", item.id)
-                                    put("name", item.brand?.takeIf { it.isNotBlank() } ?: item.category)
-                                    put("category", item.category)
-                                    item.color?.let { put("color", it) }
-                                },
-                            )
-                        }
-                    },
-                )
-                put("weatherCondition", weatherCondition)
-                put("temperatureText", temperatureText)
-                userLocation?.let { put("userLocation", it) }
+        val normalizedWeather =
+            when (weatherCondition.trim().uppercase()) {
+                "WINTER" -> "WINTER_COLD"
+                "SUMMER" -> "SUMMER_HEAT"
+                "OCCASION" -> "ALL_WEATHER"
+                else -> weatherCondition.trim().uppercase().replace(" ", "_")
             }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.GENERATE_OUTFIT, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        return runCatching {
-            json.decodeFromJsonElement<GeneratedOutfit>(result)
-        }.getOrNull()
+        val idempotencyKey = "wardrobe-outfit-${items.joinToString("-") { it.id }}-$normalizedWeather-$temperatureText"
+        return convexApi.generateWardrobeOutfit(
+            idempotencyKey = idempotencyKey,
+            items = items,
+            weatherCondition = normalizedWeather,
+            temperatureText = temperatureText,
+        )
     }
 
     suspend fun getUserPreferences(): Map<String, Any?> {

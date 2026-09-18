@@ -9,6 +9,35 @@ export const ChatRequestSchema = z.object({
   locale: z.string().trim().min(2).max(MAX_LOCALE_LENGTH).optional(),
 }).strict();
 
+const TextBlockSchema = z.object({
+  type: z.literal("text"),
+  text: z.string().trim().min(1).max(8000),
+}).strict();
+
+const ProductCardBlockSchema = z.object({
+  type: z.literal("product_card"),
+  productId: z.string().min(1).max(160),
+  title: z.string().min(1).max(240),
+  merchantUrl: z.string().url().refine((value) => value.startsWith("https://"), "merchantUrl must use HTTPS"),
+  source: z.enum(["parallel", "serpapi", "apify", "kitesurf"]),
+  imageUrl: z.string().url().refine((value) => value.startsWith("https://"), "imageUrl must use HTTPS").optional(),
+  price: z.object({ amount: z.number().nonnegative(), currency: z.string().regex(/^[A-Z]{3}$/) }).strict().optional(),
+}).strict();
+
+const CitationListBlockSchema = z.object({
+  type: z.literal("citation_list"),
+  citations: z.array(z.object({
+    title: z.string().min(1).max(240),
+    url: z.string().url().refine((value) => value.startsWith("https://"), "citation URL must use HTTPS"),
+  }).strict()).max(20),
+}).strict();
+
+export const StructuredResponseBlockSchema = z.discriminatedUnion("type", [
+  TextBlockSchema,
+  ProductCardBlockSchema,
+  CitationListBlockSchema,
+]);
+
 const ToolResultSchema = z.object({
   productId: z.string().min(1).max(160),
   title: z.string().min(1).max(240),
@@ -19,6 +48,7 @@ const ToolResultSchema = z.object({
 /** Model output is descriptive only; financial and external actions are excluded. */
 export const AssistantResponseSchema = z.object({
   text: z.string().trim().min(1).max(8000),
+  blocks: z.array(StructuredResponseBlockSchema).max(50).optional(),
   products: z.array(ToolResultSchema).max(20).optional(),
 }).strict();
 

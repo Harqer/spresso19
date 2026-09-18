@@ -5,9 +5,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import network.ApiClient
 import network.ChatMessage
@@ -29,106 +27,46 @@ class ChatViewModel(
     var isVoiceSpeaking by mutableStateOf(false)
     var isVoiceListening by mutableStateOf(false)
     var liveTranscript by mutableStateOf("")
+    private var threadId: String? = null
 
-    fun sendMessage(
-        prompt: String,
-        imageBase64: String? = null,
-        location: String? = null,
-        latLng: Pair<Double, Double>? = null,
-        agentType: String? = "SHOPPING_CONCIERGE",
-    ) {
+    fun sendMessage(prompt: String) {
+        if (prompt.isBlank()) return
         val userMsgId = "u-" + messages.size
         messages.add(ChatMessage(id = userMsgId, text = prompt, isUser = true))
-
         val aiMsgId = "ai-" + messages.size
-        var aiText = ""
-        var aiThought = ""
-        val currentSources = mutableListOf<GroundingSource>()
-        val currentProducts = mutableListOf<ProductItem>()
 
         scope.launch {
             try {
                 errorMessage = null
-                apiClient
-                    .streamChat(
-                        prompt = prompt,
-                        imageBase64 = imageBase64,
-                        location = location,
-                        latLng = latLng,
-                        agentType = agentType,
-                    ).onStart { isGenerating = true }
-                    .onCompletion { isGenerating = false }
-                    .catch {
-                        isGenerating = false
-                        updateOrAddAiMessage(
-                            id = aiMsgId,
-                            text = if (aiText.isNotBlank()) aiText else "I couldn't complete that request. Please try again.",
-                            thought = null,
-                            sources = currentSources,
-                            products = currentProducts,
-                        )
-                    }.collect { chunk ->
-                        when (chunk.type) {
-                            "text", "text_delta" -> {
-                                aiText += chunk.text ?: ""
-                                updateOrAddAiMessage(aiMsgId, aiText, aiThought, sources = currentSources, products = currentProducts)
-                            }
-                            "thought", "thought_delta" -> {
-                                aiThought += chunk.text ?: ""
-                                updateOrAddAiMessage(aiMsgId, aiText, aiThought, sources = currentSources, products = currentProducts)
-                            }
-                            "grounding_sources" -> {
-                                chunk.sources?.let { currentSources.addAll(it) }
-                                updateOrAddAiMessage(aiMsgId, aiText, aiThought, sources = currentSources, products = currentProducts)
-                            }
-                            "recommended_products", "products" -> {
-                                val prods = chunk.recommendedProducts ?: chunk.products
-                                prods?.let { currentProducts.addAll(it) }
-                                updateOrAddAiMessage(aiMsgId, aiText, aiThought, sources = currentSources, products = currentProducts)
-                            }
-                            "tool_call" -> {
-                                chunk.result?.let { result ->
-                                    if (result.success) {
-                                        val mediaUrl = result.spinVideoUrl ?: result.tryOnMeta?.renderedImageUrl
-                                        val mediaType =
-                                            if (result.spinVideoUrl !=
-                                                null
-                                            ) {
-                                                "video"
-                                            } else if (result.tryOnMeta != null) {
-                                                "image"
-                                            } else {
-                                                null
-                                            }
+                isGenerating = true
+                val activeThreadId = threadId ?: apiClient.createChatThread("Spresso discovery").also { threadId = it }
+                apiClient.sendChatMessage(activeThreadId, prompt)
 
-                                        if (mediaUrl != null) {
-                                            updateOrAddAiMessage(
-                                                aiMsgId,
-                                                aiText,
-                                                aiThought,
-                                                mediaUrl,
-                                                mediaType,
-                                                sources = currentSources,
-                                                products = currentProducts,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            "done" -> {
-                                isGenerating = false
-                            }
-                        }
+                var lastAssistantText = ""
+                for (attempt in 0 until 120) {
+                    val history = apiClient.listChatMessages(activeThreadId)
+                    val assistant = history.lastOrNull { it.role == "assistant" }
+                    if (assistant != null && (assistant.text != lastAssistantText || assistant.products.isNotEmpty())) {
+                        lastAssistantText = assistant.text
+                        updateOrAddAiMessage(
+                            aiMsgId,
+                            assistant.text,
+                            products = assistant.products,
+                            isStreaming = assistant.status == "streaming",
+                        )
                     }
-            } catch (_: Exception) {
+                    if (assistant?.status != "streaming" && !assistant?.text.isNullOrBlank()) break
+                    if (attempt < 119) delay(500)
+                }
+                if (lastAssistantText.isBlank()) {
+                    throw IllegalStateException("The assistant did not return a response.")
+                }
+                updateOrAddAiMessage(aiMsgId, lastAssistantText, isStreaming = false)
+            } catch (error: Exception) {
+                errorMessage = error.message ?: "The assistant is temporarily unavailable."
+                updateOrAddAiMessage(aiMsgId, "I couldn't complete that request. Please try again.", isStreaming = false)
+            } finally {
                 isGenerating = false
-                updateOrAddAiMessage(
-                    id = aiMsgId,
-                    text = if (aiText.isNotBlank()) aiText else "I couldn't complete that request. Please try again.",
-                    thought = null,
-                    sources = currentSources,
-                    products = currentProducts,
-                )
             }
         }
     }
@@ -174,12 +112,12 @@ class ChatViewModel(
                     )
                     isGenerating = false
                 } else {
-                    sendMessage(userPrompt, imageBase64 = imageBase64)
+                    sendMessage(userPrompt)
                 }
             } catch (e: Exception) {
                 isGenerating = false
                 errorMessage = e.message
-                sendMessage(userPrompt, imageBase64 = imageBase64)
+                sendMessage(userPrompt)
             }
         }
     }
@@ -306,6 +244,7 @@ class ChatViewModel(
         mediaType: String? = null,
         sources: List<GroundingSource> = emptyList(),
         products: List<ProductItem> = emptyList(),
+        isStreaming: Boolean = isGenerating,
     ) {
         val index = messages.indexOfFirst { it.id == id }
         val previous = messages.getOrNull(index)
@@ -319,7 +258,7 @@ class ChatViewModel(
                 mediaType = mediaType ?: previous?.mediaType,
                 sources = sources,
                 products = products,
-                isStreaming = isGenerating,
+                isStreaming = isStreaming,
             )
         if (index != -1) {
             messages[index] = newMessage
@@ -331,6 +270,7 @@ class ChatViewModel(
     fun clearSession() {
         stopVoiceStream()
         messages.clear()
+        threadId = null
         errorMessage = null
         isGenerating = false
     }

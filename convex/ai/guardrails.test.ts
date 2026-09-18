@@ -44,6 +44,30 @@ describe("AI guardrails", () => {
     });
   });
 
+  test("accepts commerce blocks but rejects unsafe citation URLs", () => {
+    const response = AssistantResponseSchema.parse({
+      text: "I found one verified listing.",
+      blocks: [
+        {
+          type: "product_card",
+          productId: "p-1",
+          title: "Linen jacket",
+          merchantUrl: "https://merchant.example/item",
+          source: "parallel",
+        },
+        {
+          type: "citation_list",
+          citations: [{ title: "Merchant listing", url: "https://merchant.example/item" }],
+        },
+      ],
+    });
+    expect(response.blocks).toHaveLength(2);
+    expect(() => AssistantResponseSchema.parse({
+      text: "unsafe",
+      blocks: [{ type: "citation_list", citations: [{ title: "bad", url: "javascript:alert(1)" }] }],
+    })).toThrow();
+  });
+
   test("rejects assistant output that is not schema-valid", () => {
     expect(() => AssistantResponseSchema.parse({ text: "ok", action: "purchase" })).toThrow();
     expect(() => AssistantResponseSchema.parse({ text: "" })).toThrow();

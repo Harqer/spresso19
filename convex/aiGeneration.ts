@@ -10,6 +10,7 @@ import { v } from "convex/values";
 import { AssistantResponseSchema, CreatorCampaignSchema, OutfitProposalSchema, sanitizeUntrustedText } from "./ai/guardrails";
 import { configuredLlmModel } from "./ai/model";
 import { requireFirebaseIdentity } from "./lib/identity";
+import { commerceTools } from "./ai/tools";
 import type { Id } from "./_generated/dataModel";
 
 type GeneratedOutfit = {
@@ -49,6 +50,7 @@ const shopperAgent = new Agent(components.agent, {
   instructions: shopperInstructions,
   callSettings: { maxRetries: 1, maxOutputTokens: 1200 },
   contextOptions: { recentMessages: 12 },
+  tools: commerceTools,
   storageOptions: { saveMessages: "promptAndOutput" },
   usageHandler: async (ctx, args) => {
     if (!args.userId) return;

@@ -113,7 +113,6 @@ fun WardrobeViewPage(
                         },
                     weatherCondition = activeSeason ?: "All seasons",
                     temperatureText = temperatureText ?: "",
-                    userLocation = currentLatLng?.let { "${it.first},${it.second}" },
                 )
             curatedFits =
                 if (outfit != null) {

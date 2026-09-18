@@ -21,6 +21,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -47,6 +48,14 @@ data class ParsedTravelReceipt(
     val total: Double? = null,
 )
 
+data class ConvexChatMessage(
+    val id: String,
+    val role: String,
+    val text: String,
+    val status: String,
+    val products: List<ProductItem> = emptyList(),
+)
+
 fun inferImageMimeType(bytes: ByteArray): String {
     val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47)
     val webp = byteArrayOf(0x52, 0x49, 0x46, 0x46)
@@ -57,6 +66,21 @@ fun inferImageMimeType(bytes: ByteArray): String {
         else -> "image/jpeg"
     }
 }
+
+private fun WardrobeItemData.weatherSuitability(): String =
+    when (category.trim().uppercase()) {
+        "SUMMER_HEAT", "HOT_SUMMER" -> "HOT_SUMMER"
+        "WINTER_COLD", "COLD_WINTER" -> "COLD_WINTER"
+        "MILD_SPRING_AUTUMN" -> "MILD_SPRING_AUTUMN"
+        else -> "ALL_WEATHER"
+    }
+
+private fun String.encodeURLParameter(): String =
+    replace("%", "%25")
+        .replace(" ", "%20")
+        .replace("?", "%3F")
+        .replace("&", "%26")
+        .replace("#", "%23")
 
 private fun ByteArray.startsWithAt(
     offset: Int,
@@ -113,6 +137,130 @@ class ConvexApi(
     }
 
     @OptIn(ExperimentalEncodingApi::class)
+    suspend fun createChatThread(title: String? = null): String {
+        val response =
+            json
+                .parseToJsonElement(
+                    post(
+                        "/api/chat/thread",
+                        buildJsonObject {
+                            if (!title.isNullOrBlank()) put("title", title)
+                        },
+                    ),
+                ).jsonObject
+        return response["threadId"]?.jsonPrimitive?.content ?: error("Chat thread was not created.")
+    }
+
+    suspend fun sendChatMessage(
+        threadId: String,
+        prompt: String,
+    ) {
+        post(
+            "/api/chat/message",
+            buildJsonObject {
+                put("threadId", threadId)
+                put("prompt", prompt)
+            },
+        )
+    }
+
+    suspend fun listChatMessages(threadId: String): List<ConvexChatMessage> {
+        val response =
+            json
+                .parseToJsonElement(get("/api/chat/messages?threadId=${threadId.encodeURLParameter()}&limit=100"))
+                .jsonObject
+        val pageMessages =
+            response["page"]
+                ?.jsonArray
+                ?.mapNotNull { element ->
+                    val value = element.jsonObject
+                    val id = value["id"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                    val role = value["role"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                    val products =
+                        value["parts"]
+                            ?.jsonArray
+                            ?.flatMap { part ->
+                                val output = part.jsonObject["output"]?.jsonObject ?: return@flatMap emptyList()
+                                output["listings"]
+                                    ?.jsonArray
+                                    ?.mapNotNull { listing ->
+                                        runCatching {
+                                            json.decodeFromString<DiscoveredListing>(listing.toString()).toProductItem()
+                                        }.getOrNull()
+                                    }.orEmpty()
+                            }.orEmpty()
+                    ConvexChatMessage(
+                        id = id,
+                        role = role,
+                        text = value["text"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                        status = value["status"]?.jsonPrimitive?.contentOrNull ?: "success",
+                        products = products,
+                    )
+                }.orEmpty()
+        val streamMessages =
+            response["streams"]
+                ?.jsonObject
+                ?.get("deltas")
+                ?.jsonArray
+                ?.mapNotNull { delta ->
+                    val value = delta.jsonObject
+                    val streamId = value["streamId"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                    val textValue =
+                        value["parts"]
+                            ?.jsonArray
+                            ?.joinToString("") { part ->
+                                val partValue = part.jsonObject
+                                partValue["delta"]?.jsonPrimitive?.contentOrNull
+                                    ?: partValue["text"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                            }.orEmpty()
+                    ConvexChatMessage(id = streamId, role = "assistant", text = textValue, status = "streaming")
+                }.orEmpty()
+        return pageMessages + streamMessages
+    }
+
+    suspend fun generateWardrobeOutfit(
+        idempotencyKey: String,
+        items: List<WardrobeItemData>,
+        weatherCondition: String,
+        temperatureText: String,
+    ): GeneratedOutfit? {
+        val body =
+            buildJsonObject {
+                put("idempotencyKey", idempotencyKey)
+                put("weatherCondition", weatherCondition)
+                put("temperatureText", temperatureText)
+                put(
+                    "items",
+                    kotlinx.serialization.json.buildJsonArray {
+                        items.forEach { item ->
+                            add(
+                                buildJsonObject {
+                                    put("id", item.id)
+                                    put("name", item.brand?.takeIf { it.isNotBlank() } ?: item.category)
+                                    put("category", item.category)
+                                    put("weatherSuitability", item.weatherSuitability())
+                                    put("image", item.imageUrl)
+                                },
+                            )
+                        }
+                    },
+                )
+            }
+        val response = json.parseToJsonElement(post("/api/wardrobe/outfit", body)).jsonObject
+        val outfit = response["outfit"]?.jsonObject ?: return null
+        return GeneratedOutfit(
+            title = outfit["title"]?.jsonPrimitive?.contentOrNull,
+            stylingAdvice = outfit["stylingAdvice"]?.jsonPrimitive?.contentOrNull,
+            selectedItemIds =
+                outfit["items"]
+                    ?.jsonArray
+                    ?.mapNotNull { item ->
+                        item.jsonObject["id"]?.jsonPrimitive?.contentOrNull
+                    }.orEmpty(),
+            weatherMatchScore = outfit["weatherMatchScore"]?.jsonPrimitive?.doubleOrNull,
+        )
+    }
+
     suspend fun uploadMedia(
         bytes: ByteArray,
         mimeType: String,
