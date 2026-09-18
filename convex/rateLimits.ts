@@ -8,6 +8,7 @@ const limiter = new RateLimiter(components.rateLimiter, {
   merchantVerification: { kind: "token bucket", rate: 12, period: MINUTE, capacity: 3 },
   visualSearch: { kind: "token bucket", rate: 6, period: MINUTE, capacity: 2 },
   receiptParsing: { kind: "token bucket", rate: 6, period: MINUTE, capacity: 2 },
+  researchSearch: { kind: "token bucket", rate: 6, period: MINUTE, capacity: 2 },
 });
 
 /**
@@ -23,6 +24,7 @@ export const consume = internalMutation({
       v.literal("merchantVerification"),
       v.literal("visualSearch"),
       v.literal("receiptParsing"),
+      v.literal("researchSearch"),
     ),
   },
   returns: v.null(),

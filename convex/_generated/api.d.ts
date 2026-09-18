@@ -11,6 +11,8 @@
 import type * as ai_guardrails from "../ai/guardrails.js";
 import type * as ai_liveToken from "../ai/liveToken.js";
 import type * as ai_model from "../ai/model.js";
+import type * as ai_research from "../ai/research.js";
+import type * as ai_tools from "../ai/tools.js";
 import type * as ai_visionProvider from "../ai/visionProvider.js";
 import type * as aiChat from "../aiChat.js";
 import type * as aiGeneration from "../aiGeneration.js";
@@ -22,6 +24,7 @@ import type * as discoveryState from "../discoveryState.js";
 import type * as grocery from "../grocery.js";
 import type * as http from "../http.js";
 import type * as lib_identity from "../lib/identity.js";
+import type * as lib_listing from "../lib/listing.js";
 import type * as media from "../media.js";
 import type * as media_actions from "../media/actions.js";
 import type * as media_boundary from "../media/boundary.js";
@@ -47,6 +50,8 @@ declare const fullApi: ApiFromModules<{
   "ai/guardrails": typeof ai_guardrails;
   "ai/liveToken": typeof ai_liveToken;
   "ai/model": typeof ai_model;
+  "ai/research": typeof ai_research;
+  "ai/tools": typeof ai_tools;
   "ai/visionProvider": typeof ai_visionProvider;
   aiChat: typeof aiChat;
   aiGeneration: typeof aiGeneration;
@@ -58,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   grocery: typeof grocery;
   http: typeof http;
   "lib/identity": typeof lib_identity;
+  "lib/listing": typeof lib_listing;
   media: typeof media;
   "media/actions": typeof media_actions;
   "media/boundary": typeof media_boundary;

@@ -268,7 +268,7 @@ export const listOrdersHttp = httpAction(async (ctx, request) => {
     const limit = boundedInt(queryInt(request, "limit"), 20, 50);
     const rows = await ctx.runQuery(api.commerce.checkout.listOrders, { limit });
     return {
-      orders: rows.map((row) => ({
+      orders: rows.map((row: (typeof rows)[number]) => ({
         id: row._id,
         listingId: row.listingId,
         listing: row.listing,
@@ -577,7 +577,7 @@ export const listChatMessagesHttp = httpAction(async (ctx, request) => {
     if (streamMessages.length === 0) return result;
     const deltas = await ctx.runQuery(api.aiChat.listStreamDeltas, {
       threadId,
-      cursors: streamMessages.map((stream) => ({ streamId: stream.streamId, cursor: 0 })),
+      cursors: streamMessages.map((stream: { streamId: string }) => ({ streamId: stream.streamId, cursor: 0 })),
     });
     return { ...result, streamMetadata: streamMessages, streams: { kind: "deltas", deltas } };
   });

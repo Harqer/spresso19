@@ -113,7 +113,7 @@ test("voice notes validate ownership of the referenced audio asset", async () =>
 
   const created = await t.withIdentity(owner).mutation(api.travel.createVoiceNote, { tripId, transcript: "note" });
   const detail = await t.withIdentity(owner).query(api.travel.listTripDetail, { tripId });
-  expect(detail.voiceNotes.some((row) => row.id === created)).toBe(true);
+  expect(detail.voiceNotes.some((row: { id: string }) => row.id === created)).toBe(true);
 });
 
 test("receipt parsing fails explicitly without a verified owned asset", async () => {

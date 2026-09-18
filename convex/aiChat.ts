@@ -35,7 +35,7 @@ export const createThread = mutation({
       .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
     const ensuredUserId = user ? null : await ctx.runMutation(internal.users.ensureUser, {});
-    const currentUser = user ?? (ensuredUserId ? await ctx.db.get(ensuredUserId) : null);
+    const currentUser = user ?? (ensuredUserId ? await ctx.db.get("users", ensuredUserId) : null);
     if (!currentUser || !isTrialActive(trialWindow(currentUser.createdAt, currentUser.trialStartedAt, currentUser.trialEndsAt))) {
       throw new Error("Your Spresso trial has ended. Choose a plan to continue.");
     }
