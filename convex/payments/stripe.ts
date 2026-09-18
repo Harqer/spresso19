@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { action, env } from "../_generated/server";
 import { api, internal } from "../_generated/api";
 import { v } from "convex/values";
+import type { Id } from "../_generated/dataModel";
 import { requireFirebaseIdentity } from "../lib/identity";
 
 /**
@@ -19,7 +20,7 @@ import { requireFirebaseIdentity } from "../lib/identity";
 function stripeClient(): Stripe {
   const secretKey = env.STRIPE_SECRET_KEY;
   if (!secretKey) throw new Error("Stripe is not configured in the Convex deployment.");
-  return new Stripe(secretKey, { apiVersion: "2025-01-27.acacia" as any });
+  return new Stripe(secretKey, { apiVersion: "2025-01-27.acacia" as Stripe.LatestApiVersion });
 }
 
 async function ensureStripeCustomer(
@@ -33,7 +34,9 @@ async function ensureStripeCustomer(
   }
   const customer = await stripe.customers.create({ ...(args.email ? { email: args.email } : {}) });
   return customer.id;
-}function isCardPm(value: Stripe.PaymentMethod): value is Stripe.PaymentMethod & { card: NonNullable<Stripe.PaymentMethod["card"]> } {
+}
+
+function isCardPm(value: Stripe.PaymentMethod): value is Stripe.PaymentMethod & { card: NonNullable<Stripe.PaymentMethod["card"]> } {
   return value.card !== null && value.card !== undefined;
 }
 
@@ -46,7 +49,7 @@ export const attachPaymentMethod = action({
     expMonth: v.number(),
     expYear: v.number(),
   }),
-  handler: async (ctx, args): Promise<{ recordId: any; brand: string; last4: string; expMonth: number; expYear: number }> => {
+  handler: async (ctx, args): Promise<{ recordId: Id<"paymentMethods">; brand: string; last4: string; expMonth: number; expYear: number }> => {
     const identity = await requireFirebaseIdentity(ctx);
     const pmId = args.stripePaymentMethodId.trim();
     if (!/^pm_[A-Za-z0-9]{8,}$/.test(pmId)) throw new Error("A valid Stripe PaymentMethod ID is required.");

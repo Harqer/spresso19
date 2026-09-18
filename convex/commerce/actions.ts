@@ -84,14 +84,14 @@ export const prepareCheckout = action({
   returns: v.object({ attemptId: v.id("checkoutAttempts"), amountCents: v.number(), currency: v.string(), merchantUrl: v.string(), observedAt: v.string() }),
   handler: async (ctx, args): Promise<PrepareCheckoutResult> => {
     const identity = await requireFirebaseIdentity(ctx);
-    const attempt: CheckoutAttemptSnapshot | null = await ctx.runQuery(internal.commerce.checkout.getCheckoutAttemptInternal as any, { attemptId: args.attemptId });
+    const attempt: CheckoutAttemptSnapshot | null = await ctx.runQuery(internal.commerce.checkout.getCheckoutAttemptInternal, { attemptId: args.attemptId });
     if (!attempt || attempt.tokenIdentifier !== identity.tokenIdentifier) throw new Error("Checkout attempt not found.");
     if (attempt.status !== "NEW" && attempt.status !== "QUOTING") {
       if (attempt.amountCents && attempt.currency && attempt.merchantUrl && attempt.quoteObservedAt) return { attemptId: args.attemptId, amountCents: attempt.amountCents, currency: attempt.currency, merchantUrl: attempt.merchantUrl, observedAt: attempt.quoteObservedAt };
       throw new Error(`Checkout cannot be quoted from state ${attempt.status}.`);
     }
     const quote = await merchantQuote(attempt);
-    return ctx.runMutation(internal.commerce.checkout.markQuoted as any, { attemptId: args.attemptId, ...quote });
+    return ctx.runMutation(internal.commerce.checkout.markQuoted, { attemptId: args.attemptId, ...quote });
   },
 });
 
@@ -100,14 +100,14 @@ export const createPaymentIntent = action({
   returns: v.object({ clientSecret: v.string(), paymentIntentId: v.string(), amountCents: v.number(), currency: v.string(), publishableKey: v.string() }),
   handler: async (ctx, args): Promise<PaymentIntentResult> => {
     const identity = await requireFirebaseIdentity(ctx);
-    const attempt: CheckoutAttemptSnapshot | null = await ctx.runQuery(internal.commerce.checkout.getCheckoutAttemptInternal as any, { attemptId: args.attemptId });
+    const attempt: CheckoutAttemptSnapshot | null = await ctx.runQuery(internal.commerce.checkout.getCheckoutAttemptInternal, { attemptId: args.attemptId });
     if (!attempt || attempt.tokenIdentifier !== identity.tokenIdentifier || !attempt.amountCents || !attempt.currency) throw new Error("Checkout quote not found.");
     if (attempt.amountCents !== args.confirmedAmountCents || attempt.currency !== args.confirmedCurrency.trim().toUpperCase()) throw new Error("Checkout confirmation does not match the verified quote.");
     if (attempt.paymentIntentId) throw new Error("This checkout is already in progress.");
     if (!env.STRIPE_SECRET_KEY) throw new Error("Stripe checkout is not configured in the Convex deployment.");
-    const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2025-01-27.acacia" as any });
+    const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2025-01-27.acacia" as Stripe.LatestApiVersion });
     const intent = await stripe.paymentIntents.create({ amount: attempt.amountCents, currency: attempt.currency.toLowerCase(), automatic_payment_methods: { enabled: true }, metadata: { checkoutAttemptId: String(args.attemptId), tokenIdentifier: identity.tokenIdentifier, listingId: attempt.listingId, quantity: String(attempt.quantity) } }, { idempotencyKey: `convex_${identity.tokenIdentifier}_${attempt.idempotencyKey}` });
-    await ctx.runMutation(internal.commerce.checkout.attachPaymentIntent as any, { attemptId: args.attemptId, paymentIntentId: intent.id, amountCents: attempt.amountCents, currency: attempt.currency });
+    await ctx.runMutation(internal.commerce.checkout.attachPaymentIntent, { attemptId: args.attemptId, paymentIntentId: intent.id, amountCents: attempt.amountCents, currency: attempt.currency });
     if (!intent.client_secret) throw new Error("Stripe did not return a payment client secret.");
     if (!env.STRIPE_PUBLISHABLE_KEY) throw new Error("Stripe public configuration is missing in the Convex deployment.");
     return { clientSecret: intent.client_secret, paymentIntentId: intent.id, amountCents: attempt.amountCents, currency: attempt.currency, publishableKey: env.STRIPE_PUBLISHABLE_KEY };
