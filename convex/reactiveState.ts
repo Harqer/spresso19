@@ -1,6 +1,7 @@
 import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { requireFirebaseIdentity } from "./lib/identity";
+import { listingValidator } from "./lib/listing";
 
 const MAX_LIST_LIMIT = 100;
 
@@ -37,33 +38,7 @@ const weatherSuitability = v.union(
   v.literal("COLD_WINTER"),
 );
 
-const listing = v.object({
-  id: v.string(),
-  name: v.string(),
-  brand: v.optional(v.string()),
-  category: v.optional(v.string()),
-  imageUrl: v.optional(v.string()),
-  merchantUrl: v.string(),
-  source: v.union(
-    v.literal("parallel"),
-    v.literal("serpapi"),
-    v.literal("apify"),
-    v.literal("kitesurf"),
-  ),
-  providerListingId: v.optional(v.string()),
-  observedPrice: v.optional(v.object({
-    amount: v.number(),
-    currency: v.string(),
-    evidenceUrl: v.string(),
-  })),
-  videoUrl: v.optional(v.string()),
-  rating: v.optional(v.number()),
-  reviewCount: v.optional(v.number()),
-  reviewSummary: v.optional(v.string()),
-  discoveredAt: v.string(),
-  expiresAt: v.optional(v.string()),
-  confidence: v.optional(v.number()),
-});
+const listing = listingValidator;
 
 export const getPreferences = query({
   args: {},
@@ -175,7 +150,7 @@ export const listSavedProducts = query({
     _creationTime: v.number(),
     tokenIdentifier: v.string(),
     productId: v.string(),
-    listing: v.optional(v.any()),
+    listing: v.optional(listing),
     updatedAt: v.number(),
   })),
   handler: async (ctx, args) => {
@@ -192,7 +167,7 @@ export const setSavedProduct = mutation({
   args: {
     productId: v.string(),
     saved: v.boolean(),
-    listing: v.optional(v.any()),
+    listing: v.optional(listing),
   },
   returns: v.null(),
   handler: async (ctx, args) => {

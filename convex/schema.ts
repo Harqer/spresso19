@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { listingValidator } from "./lib/listing";
 
 /**
  * Convex migration schema. User-scoped data is keyed by Convex's verified
@@ -39,7 +40,7 @@ export default defineSchema({
     tokenIdentifier: v.string(),
     productId: v.string(),
     // Snapshot of the external listing at bookmark time; never an inventory row.
-    listing: v.optional(v.any()),
+    listing: v.optional(listingValidator),
     updatedAt: v.number(),
   })
     .index("by_token_identifier", ["tokenIdentifier"])

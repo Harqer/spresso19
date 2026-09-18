@@ -6,19 +6,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { requireFirebaseIdentity } from "./lib/identity";
 import { deriveRecommendationQueries } from "./recommendationQueries";
-
-const listing = v.object({
-  id: v.string(),
-  name: v.string(),
-  brand: v.optional(v.string()),
-  category: v.optional(v.string()),
-  imageUrl: v.optional(v.string()),
-  merchantUrl: v.string(),
-  source: v.union(v.literal("parallel"), v.literal("serpapi"), v.literal("kitesurf")),
-  providerListingId: v.optional(v.string()),
-  observedPrice: v.optional(v.object({ amount: v.number(), currency: v.string(), evidenceUrl: v.string() })),
-  discoveredAt: v.string(),
-});
+import { listingValidator as listing } from "./lib/listing";
 
 function httpsUrl(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
