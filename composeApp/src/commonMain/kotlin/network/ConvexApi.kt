@@ -145,6 +145,22 @@ class ConvexApi(
         return LensSearchResponse(success = true, listings = listings)
     }
 
+    suspend fun generateVirtualTryOn(
+        bytes: ByteArray,
+        garmentImageUrl: String,
+        idempotencyKey: String,
+    ): String {
+        val uploaded = uploadMedia(bytes, inferImageMimeType(bytes))
+        val body =
+            buildJsonObject {
+                put("mediaAssetId", uploaded.assetId)
+                put("garmentImageUrl", garmentImageUrl)
+                put("idempotencyKey", idempotencyKey)
+            }
+        val response = json.parseToJsonElement(post("/api/media/try-on", body)).jsonObject
+        return response["mediaUrl"]?.jsonPrimitive?.content ?: error("Try-on did not return a media URL.")
+    }
+
     private suspend fun HttpResponse.requireBody(): String {
         val body = bodyAsText()
         if (status.value !in 200..299) {

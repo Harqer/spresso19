@@ -142,6 +142,41 @@ export const visionSearchHttp = httpAction(async (ctx, request) => {
   });
 });
 
+export const tryOnHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    const identity = await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as {
+      mediaAssetId?: unknown;
+      garmentImageUrl?: unknown;
+      idempotencyKey?: unknown;
+    };
+    if (typeof body.mediaAssetId !== "string" || !body.mediaAssetId.trim()) throw new BridgeError("mediaAssetId is required.", 400);
+    if (typeof body.garmentImageUrl !== "string" || !body.garmentImageUrl.startsWith("https://")) {
+      throw new BridgeError("A verified HTTPS garment image is required.", 400);
+    }
+    const idempotencyKey =
+      typeof body.idempotencyKey === "string" && body.idempotencyKey.trim()
+        ? body.idempotencyKey.trim()
+        : `try-on:${body.mediaAssetId}:${body.garmentImageUrl}`;
+    const personImage = await ctx.runAction(api.media.actions.createPrivateReadUrl, { assetId: body.mediaAssetId as any });
+    const jobId = await ctx.runMutation(internal.mediaJobs.createInternal, {
+      tokenIdentifier: identity.tokenIdentifier,
+      idempotencyKey,
+      kind: "virtual_try_on",
+      mediaType: "image",
+      imageUrls: [personImage.url, body.garmentImageUrl],
+    });
+    const result = await ctx.runAction(api.media.actions.runTryOnJob, {
+      jobId,
+      personImageUrl: personImage.url,
+      garmentImageUrl: body.garmentImageUrl,
+    });
+    if (!result.assetId) throw new Error("Try-on completed without a verified media asset.");
+    const output = await ctx.runAction(api.media.actions.createPrivateReadUrl, { assetId: result.assetId });
+    return { jobId, status: result.status, mediaUrl: output.url };
+  });
+});
+
 /**
  * Typed HTTP bridge for the KMP clients (Android / WebAssembly), which reach
  * Convex over HTTPS with their existing Firebase ID token instead of the JS
@@ -434,6 +469,7 @@ export const listWardrobeOutfitsHttp = httpAction(async (ctx, request) => {
 http.route({ path: "/api/media/upload", method: "POST", handler: uploadMediaHttp });
 http.route({ path: "/api/media/read-url", method: "POST", handler: mediaReadUrlHttp });
 http.route({ path: "/api/vision/search", method: "POST", handler: visionSearchHttp });
+http.route({ path: "/api/media/try-on", method: "POST", handler: tryOnHttp });
 http.route({ path: "/api/discovery/search", method: "POST", handler: discoverySearchHttp });
 http.route({ path: "/api/discovery/recommendations", method: "POST", handler: discoveryRecommendationsHttp });
 http.route({ path: "/api/orders", method: "GET", handler: listOrdersHttp });

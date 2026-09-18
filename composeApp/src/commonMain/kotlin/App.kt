@@ -194,10 +194,17 @@ fun App(
                 onImagePicked = { bytes ->
                     if (bytes != null) {
                         scope.launch {
-                            @OptIn(ExperimentalEncodingApi::class)
-                            val base64Image = Base64.encode(bytes)
                             try {
-                                displayMediaUrl = apiClient.requestVirtualTryOn(base64Image)
+                                val productId = activeProductId ?: error("Select a product before starting try-on.")
+                                val garment =
+                                    convexApi.fetchProductById(productId)?.imageUrl?.takeIf { it.startsWith("https://") }
+                                        ?: error("A verified garment image is required for try-on.")
+                                displayMediaUrl =
+                                    convexApi.generateVirtualTryOn(
+                                        bytes = bytes,
+                                        garmentImageUrl = garment,
+                                        idempotencyKey = "tryon:$productId:${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}",
+                                    )
                                 isVideoPlaying = false
                                 navigator.navigate(NavKey.WardrobeKey(displayMediaUrl = displayMediaUrl, isVideoPlaying = false))
                             } catch (e: Exception) {
