@@ -4,7 +4,7 @@
 
 **Goal:** Move the application client and reviewed ChatGPT Apps SDK tools onto the verified Convex production deployment while completing the production action and database contracts for discovery, AI chat, virtual try-on, media, and human-approved merchant checkout.
 
-**Architecture:** Convex production is the application state and trusted server-function boundary at `https://woozy-anteater-572.convex.cloud`. The native/web client uses the production URL only in its release configuration; local development remains on `decisive-dolphin-161`. The ChatGPT Apps SDK server remains a separate public HTTPS MCP service and calls only an authenticated, narrowly scoped discovery-provider adapter. SerpApi, Parallel, Apify, and Kitesurf are active external providers; Firebase Functions are only the migration transport. Bunny stores media bytes; Convex stores ownership, job state, hashes, and stable media keys; merchants remain the source of price, availability, and fulfillment.
+**Architecture:** Convex production is the application state and trusted server-function boundary at `https://woozy-anteater-572.convex.cloud`. The native/web client uses the production URL only in its release configuration; local development remains on `decisive-dolphin-161`. The ChatGPT Apps SDK server remains a separate public HTTPS MCP service and calls only an authenticated, narrowly scoped discovery-provider adapter. SerpApi, Parallel, Apify, and Kitesurf are approved provider adapters; only providers with real production configuration are active. Firebase Functions are only the migration transport. Bunny stores media bytes; Convex stores ownership, job state, hashes, and stable media keys; merchants remain the source of price, availability, and fulfillment.
 
 **Tech Stack:** Convex 1.45, `@convex-dev/agent`, Convex rate limiter, Firebase OIDC identity validation, OpenAI Apps SDK/MCP, Bunny Storage/CDN, Stripe Elements and signed webhooks, Kotlin Multiplatform client, Vitest/convex-test.
 
@@ -25,9 +25,9 @@
 ## Current production evidence
 
 - Production deployment exists as `mikros:spresso:production` (`woozy-anteater-572`). The endpoint returns HTTP 200.
-- Production schema and Convex components are deployed; `npx convex function-spec --prod` lists the application functions.
+- Production schema and Convex components are deployed; `npx convex function-spec --prod` lists the application functions. The current repository HEAD was deployed to `mikros:spresso:production` after explicit production confirmation.
 - Local `npx tsc -p convex/tsconfig.json --noEmit --pretty false` passes. The Convex CLI did not discover the repository `convex/tsconfig.json` during its deploy check, so the next deploy must retain the explicit local typecheck gate until that CLI discrepancy is resolved.
-- The root client is wired to `VITE_CONVEX_URL`; the MCP server still fails closed until a verified discovery-provider adapter endpoint and secret are configured.
+- The root client is wired to `VITE_CONVEX_URL`; KMP uses the matching `woozy-anteater-572.convex.site` bridge. The MCP server and discovery features still fail closed until a verified discovery-provider adapter endpoint and secret are configured in production.
 
 ### Transition slice completed (2026-09-09)
 
