@@ -1,3 +1,10 @@
+@file:OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
+
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import kotlinx.browser.document
@@ -5,6 +12,10 @@ import kotlinx.browser.window
 
 @JsName("signInWithGoogle")
 external fun signInWithGoogle()
+
+external fun getFirebaseUserUid(): String?
+
+external fun observeFirebaseAuth(callback: (String?, Boolean) -> Unit): () -> Unit
 
 @JsName("signInWithEmail")
 external fun signInWithEmail(
@@ -72,7 +83,24 @@ private fun handlePhoneSignIn() {
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     ComposeViewport(document.body!!) {
+        var currentUserUid by remember { mutableStateOf(getFirebaseUserUid()) }
+        var isAuthLoading by remember { mutableStateOf(true) }
+        var isEmailVerificationRequired by remember { mutableStateOf(false) }
+
+        DisposableEffect(Unit) {
+            val unsubscribe =
+                observeFirebaseAuth { uid, requiresVerification ->
+                    currentUserUid = uid
+                    isEmailVerificationRequired = requiresVerification
+                    isAuthLoading = false
+                }
+            onDispose { unsubscribe() }
+        }
+
         App(
+            currentUserUid = currentUserUid,
+            isAuthLoading = isAuthLoading,
+            isEmailVerificationRequired = isEmailVerificationRequired,
             onShare = ::ignoreShare,
             onGoogleSignInRequested = ::handleGoogleSignIn,
             onPhoneSignInRequested = ::handlePhoneSignIn,

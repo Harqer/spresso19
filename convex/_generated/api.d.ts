@@ -35,6 +35,7 @@ import type * as payments_stripe from "../payments/stripe.js";
 import type * as rateLimits from "../rateLimits.js";
 import type * as reactiveState from "../reactiveState.js";
 import type * as recommendationQueries from "../recommendationQueries.js";
+import type * as telemetry from "../telemetry.js";
 import type * as travel from "../travel.js";
 import type * as trial from "../trial.js";
 import type * as users from "../users.js";
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   rateLimits: typeof rateLimits;
   reactiveState: typeof reactiveState;
   recommendationQueries: typeof recommendationQueries;
+  telemetry: typeof telemetry;
   travel: typeof travel;
   trial: typeof trial;
   users: typeof users;

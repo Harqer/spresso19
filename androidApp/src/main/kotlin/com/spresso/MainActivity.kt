@@ -35,9 +35,6 @@ import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.spresso.app.BuildConfig
-import com.spresso.dataconnect.SpressoConnectorConnector
-import com.spresso.dataconnect.execute
-import com.spresso.dataconnect.instance
 import com.spresso.engage.EngageBroadcastReceiver
 import components.core.LogoSize
 import components.core.SpressoLogo
@@ -47,10 +44,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import navigation.NavKey
 import network.AndroidActivityBridge
-import org.json.JSONObject
 import theme.SpressoAndroidTheme
 import theme.ThemeMode
-import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 @kotlin.OptIn(androidx.credentials.ExperimentalDigitalCredentialApi::class)
@@ -253,15 +248,13 @@ class MainActivity : FragmentActivity() {
                                             require(
                                                 !productId.isNullOrBlank() && !actionId.isNullOrBlank() && !idempotencyKey.isNullOrBlank(),
                                             )
+                                            val requestedProductId = productId
                                             withContext(Dispatchers.IO) {
-                                                network.callFirebaseFunction(
-                                                    "addToCart",
-                                                    JSONObject()
-                                                        .put("productId", productId)
-                                                        .put("quantity", 1)
-                                                        .put("idempotencyKey", idempotencyKey)
-                                                        .toString(),
-                                                )
+                                                val convexApi = network.ConvexApi()
+                                                val product =
+                                                    convexApi.fetchProductById(requestedProductId)
+                                                        ?: error("External listing not found")
+                                                if (!convexApi.addCartItem(product, 1)) error("Cart update failed")
                                             }
                                             externalNavKey = NavKey.ProductDetailKey(productId)
                                             sendBroadcast(
@@ -299,13 +292,7 @@ class MainActivity : FragmentActivity() {
                                             require(query.isNotBlank() && !actionId.isNullOrBlank())
                                             val products =
                                                 withContext(Dispatchers.IO) {
-                                                    SpressoConnectorConnector.instance.listProducts
-                                                        .execute()
-                                                        .data.products
-                                                        .filter {
-                                                            "${it.name} ${it.brand} ${it.category} ${it.description.orEmpty()}"
-                                                                .contains(query, ignoreCase = true)
-                                                        }
+                                                    network.ConvexApi().searchProducts(query)
                                                 }.take(5)
                                             val message =
                                                 if (products.isEmpty()) {
@@ -383,14 +370,18 @@ class MainActivity : FragmentActivity() {
             var themeMode by remember { mutableStateOf(ThemeMode.SYSTEM) }
 
             DisposableEffect(Unit) {
-                val listener =
-                    FirebaseAuth.AuthStateListener { auth ->
-                        user = auth.currentUser
-                        isAuthLoading = false
-                    }
-                FirebaseAuth.getInstance().addAuthStateListener(listener)
+                val auth = FirebaseAuth.getInstance()
+                val updateUser: (FirebaseAuth) -> Unit = { firebaseAuth ->
+                    user = firebaseAuth.currentUser
+                    isAuthLoading = false
+                }
+                val authStateListener = FirebaseAuth.AuthStateListener(updateUser)
+                val idTokenListener = FirebaseAuth.IdTokenListener(updateUser)
+                auth.addAuthStateListener(authStateListener)
+                auth.addIdTokenListener(idTokenListener)
                 onDispose {
-                    FirebaseAuth.getInstance().removeAuthStateListener(listener)
+                    auth.removeAuthStateListener(authStateListener)
+                    auth.removeIdTokenListener(idTokenListener)
                 }
             }
 
@@ -483,6 +474,11 @@ class MainActivity : FragmentActivity() {
                     App(
                         currentUserUid = user?.uid,
                         currentUserName = cleanUserName,
+                        isEmailVerificationRequired =
+                            user?.let { firebaseUser ->
+                                firebaseUser.providerData.any { provider -> provider.providerId == "password" } &&
+                                    !firebaseUser.isEmailVerified
+                            } == true,
                         externalNavKey = externalNavKey,
                         isAuthLoading = isAuthLoading,
                         currentLatLng = currentLatLngState.value,
@@ -571,108 +567,18 @@ class MainActivity : FragmentActivity() {
                             phoneAuthLauncher.launch(signInIntent)
                         },
                         onVerifyEmailRequested = {
-                            val credentialManager = CredentialManager.create(this@MainActivity)
-                            val nonce =
-                                java.util.UUID
-                                    .randomUUID()
-                                    .toString()
-                            val openId4vpRequest =
-                                """
-                                {
-                                  "requests": [
-                                    {
-                                      "protocol": "openid4vp-v1-unsigned",
-                                      "data": {
-                                        "response_type": "vp_token",
-                                        "response_mode": "dc_api",
-                                        "nonce": "$nonce",
-                                        "dcql_query": {
-                                          "credentials": [
-                                            {
-                                              "id": "user_info_query",
-                                              "format": "dc+sd-jwt",
-                                               "meta": { 
-                                                  "vct_values": ["UserInfoCredential"] 
-                                               },
-                                              "claims": [ 
-                                                {"path": ["email"]}, 
-                                                {"path": ["name"]},  
-                                                {"path": ["given_name"]},
-                                                {"path": ["family_name"]},
-                                                {"path": ["picture"]},
-                                                {"path": ["hd"]},
-                                                {"path": ["email_verified"]}
-                                              ]
-                                            }
-                                          ]
-                                        }
-                                      }
-                                    }
-                                  ]
-                                }
-                                """.trimIndent()
-                            val getDigitalCredentialOption = androidx.credentials.GetDigitalCredentialOption(requestJson = openId4vpRequest)
-                            val request =
-                                GetCredentialRequest
-                                    .Builder()
-                                    .addCredentialOption(getDigitalCredentialOption)
-                                    .build()
-                            lifecycleScope.launch(Dispatchers.Main) {
-                                try {
-                                    val result =
-                                        credentialManager.getCredential(
-                                            context = this@MainActivity,
-                                            request = request,
-                                        )
-                                    val credential = result.credential
-                                    if (credential is androidx.credentials.DigitalCredential) {
-                                        val responseJsonString = credential.credentialJson
-                                        val jsonObj = org.json.JSONObject(responseJsonString)
-                                        val vpToken = jsonObj.optJSONObject("vp_token")
-                                        val credentialId = vpToken?.keys()?.let { if (it.hasNext()) it.next() else null }
-                                        if (credentialId != null) {
-                                            lifecycleScope.launch(Dispatchers.IO) {
-                                                val client = network.ApiClient()
-                                                val customToken = client.verifyEmailCredential(responseJsonString, nonce)
-                                                withContext(Dispatchers.Main) {
-                                                    if (customToken != null) {
-                                                        FirebaseAuth
-                                                            .getInstance()
-                                                            .signInWithCustomToken(customToken)
-                                                            .addOnSuccessListener {
-                                                                Toast
-                                                                    .makeText(
-                                                                        this@MainActivity,
-                                                                        "Digital Credential Verified!",
-                                                                        Toast.LENGTH_SHORT,
-                                                                    ).show()
-                                                            }.addOnFailureListener {
-                                                                Toast
-                                                                    .makeText(
-                                                                        this@MainActivity,
-                                                                        "Firebase Custom Auth failed",
-                                                                        Toast.LENGTH_SHORT,
-                                                                    ).show()
-                                                            }
-                                                    } else {
-                                                        Toast
-                                                            .makeText(
-                                                                this@MainActivity,
-                                                                "Backend verification failed",
-                                                                Toast.LENGTH_SHORT,
-                                                            ).show()
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                } catch (e: androidx.credentials.exceptions.NoCredentialException) {
-                                    Toast.makeText(this@MainActivity, "No digital credential was selected.", Toast.LENGTH_SHORT).show()
-                                } catch (e: androidx.credentials.exceptions.GetCredentialException) {
-                                    Toast.makeText(this@MainActivity, "Digital credential error: ${e.message}", Toast.LENGTH_LONG).show()
-                                } catch (e: Exception) {
-                                    Toast.makeText(this@MainActivity, "Digital credential error: ${e.message}", Toast.LENGTH_LONG).show()
-                                }
+                            lifecycleScope.launch {
+                                val sent = network.sendEmailVerification()
+                                Toast
+                                    .makeText(
+                                        this@MainActivity,
+                                        if (sent) {
+                                            "Verification email sent. Check your inbox, then return to Spresso."
+                                        } else {
+                                            "Unable to send a verification email. Please try again."
+                                        },
+                                        Toast.LENGTH_LONG,
+                                    ).show()
                             }
                         },
                     )
@@ -725,6 +631,8 @@ class MainActivity : FragmentActivity() {
     override fun onResume() {
         super.onResume()
         AndroidActivityBridge.currentActivity = this
+
+        FirebaseAuth.getInstance().currentUser?.reload()
 
         if (::accessibilityConsentStore.isInitialized) {
             refreshAccessibilityState()

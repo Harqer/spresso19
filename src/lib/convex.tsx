@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onIdTokenChanged, type User } from "firebase/auth";
 import { auth } from "./firebase";
 
 import { resolveConvexUrl } from "./convexConfig";
@@ -27,21 +27,58 @@ export function createConvexDiscoveryRepository(): DiscoveryRepository | null {
   return new DiscoveryRepository({ discover });
 }
 
+export type AuthLifecycleState =
+  | "initializing"
+  | "unauthenticated"
+  | "verification_required"
+  | "authenticated"
+  | "token_refresh_failed";
+
+export function requiresEmailVerification(user: User | null): boolean {
+  if (!user) return false;
+  const usesPassword = user.providerData.some((provider) => provider.providerId === "password");
+  return usesPassword && !user.emailVerified;
+}
+
+export function useFirebaseAuthLifecycle(): AuthLifecycleState {
+  const [state, setState] = useState<AuthLifecycleState>("initializing");
+
+  useEffect(() => {
+    return onIdTokenChanged(auth, (user) => {
+      if (!user) {
+        setState("unauthenticated");
+      } else if (requiresEmailVerification(user)) {
+        setState("verification_required");
+      } else {
+        setState("authenticated");
+      }
+    });
+  }, []);
+
+  return state;
+}
+
 function useFirebaseConvexAuth() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (user) => {
-      setIsAuthenticated(user !== null);
+    return onIdTokenChanged(auth, (user) => {
+      const ready = user !== null && !requiresEmailVerification(user);
+      setIsAuthenticated(ready);
       setIsLoading(false);
     });
   }, []);
 
   const fetchAccessToken = useCallback(async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
     const user = auth.currentUser;
-    if (!user) return null;
-    return user.getIdToken(forceRefreshToken);
+    if (!user || requiresEmailVerification(user)) return null;
+    try {
+      return await user.getIdToken(forceRefreshToken);
+    } catch {
+      setIsAuthenticated(false);
+      throw new Error("Authentication token refresh failed.");
+    }
   }, []);
 
   return { isLoading, isAuthenticated, fetchAccessToken };

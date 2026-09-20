@@ -94,6 +94,9 @@ export const setPreferences = mutation({
     searchInquiries: v.optional(v.array(v.string())),
     vibes: v.optional(v.array(v.string())),
     pushNotifications: v.optional(v.boolean()),
+    fitPreference: v.optional(v.union(v.literal("tailored"), v.literal("regular"), v.literal("relaxed"), v.literal("oversized"))),
+    height: v.optional(v.string()),
+    weight: v.optional(v.string()),
     avatarProfile: v.optional(v.object({
       usePersonalAvatar: v.boolean(),
       mediaKey: v.optional(v.string()),
@@ -125,6 +128,16 @@ export const setPreferences = mutation({
       ...(args.searchInquiries === undefined ? {} : { searchInquiries: args.searchInquiries.slice(-50) }),
       ...(args.vibes === undefined ? {} : { vibes: args.vibes }),
       ...(args.pushNotifications === undefined ? {} : { pushNotifications: args.pushNotifications }),
+      ...((args.fitPreference === undefined && args.height === undefined && args.weight === undefined)
+        ? {}
+        : {
+            avatarProfile: {
+              ...(existing?.avatarProfile ?? { usePersonalAvatar: false }),
+              ...(args.fitPreference === undefined ? {} : { fitPreference: args.fitPreference }),
+              ...(args.height === undefined ? {} : { height: args.height }),
+              ...(args.weight === undefined ? {} : { weight: args.weight }),
+            },
+          }),
       ...(args.avatarProfile === undefined ? {} : { avatarProfile: args.avatarProfile }),
       updatedAt: now,
     };

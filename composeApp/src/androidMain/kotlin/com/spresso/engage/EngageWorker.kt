@@ -12,9 +12,6 @@ import com.google.android.engage.service.PublishStatusRequest
 import com.google.android.engage.service.ServiceAvailabilityRequest
 import com.google.android.engage.shopping.service.AppEngageShoppingClient
 import com.google.android.gms.tasks.Task
-import com.spresso.dataconnect.SpressoConnectorConnector
-import com.spresso.dataconnect.execute
-import com.spresso.dataconnect.instance
 import kotlinx.coroutines.tasks.await
 import network.ConvexApi
 import network.Telemetry
@@ -26,7 +23,6 @@ class EngageWorker(
 ) : CoroutineWorker(context, workerParams) {
     private val client = AppEngageShoppingClient(context)
     private val clusterRequestFactory = ClusterRequestFactory()
-    private val connector = SpressoConnectorConnector.instance
     private val logTag = "EngageWorker"
 
     override suspend fun doWork(): Result {
@@ -143,21 +139,17 @@ class EngageWorker(
     }
 
     /**
-     * Fetches real cart item count from Data Connect.
+     * Fetches the user-scoped external-listing cart snapshot from Convex.
      */
     private suspend fun publishShoppingCart(): Result {
         val uid = getCurrentUserUid()
         val cartItemCount =
             if (uid != null) {
                 try {
-                    // GetUserCart returns cart metadata; we use CartItem count indirectly
-                    val cartResult = connector.getUserCart.execute()
-                    cartResult.data.carts
-                        .firstOrNull()
-                        ?.let { 1 } ?: 0
+                    ConvexApi().fetchCartItemCount()
                 } catch (e: Exception) {
                     Telemetry.recordError("EngageWorker: fetchCart failed", e)
-                    0
+                    return Result.retry()
                 }
             } else {
                 0
@@ -173,22 +165,17 @@ class EngageWorker(
     }
 
     /**
-     * Fetches real grocery list from Data Connect.
+     * Fetches the user-scoped grocery list from Convex.
      */
     private suspend fun publishShoppingList(): Result {
         val uid = getCurrentUserUid() ?: return Result.success()
         val (listTitle, itemCount) =
             try {
-                val result = connector.getGroceryList.execute(userId = uid)
-                val firstList = result.data.groceryLists.firstOrNull()
-                if (firstList != null) {
-                    Pair(firstList.title, firstList.items.size)
-                } else {
-                    Pair("My Grocery List", 0)
-                }
+                val items = ConvexApi().fetchGroceryItems()
+                Pair("My Grocery List", items.size)
             } catch (e: Exception) {
                 Telemetry.recordError("EngageWorker: fetchGroceryList failed", e)
-                Pair("My Grocery List", 0)
+                return Result.retry()
             }
 
         if (itemCount == 0) return Result.success()
@@ -204,16 +191,15 @@ class EngageWorker(
     }
 
     /**
-     * Fetches past orders from Data Connect for the reorder cluster.
+     * Fetches purchase history from Convex for the reorder cluster.
      */
     private suspend fun publishShoppingReorder(): Result {
         val reorderCount =
             try {
-                val result = connector.getUserOrders.execute()
-                result.data.orders.size
+                ConvexApi().fetchOrders().size
             } catch (e: Exception) {
                 Telemetry.recordError("EngageWorker: fetchReorders failed", e)
-                0
+                return Result.retry()
             }
 
         if (reorderCount == 0) return Result.success()
@@ -226,22 +212,18 @@ class EngageWorker(
     }
 
     /**
-     * Fetches the most recent order from Data Connect for order tracking cluster.
+     * Fetches the most recent purchase record from Convex for order tracking.
      */
     private suspend fun publishShoppingOrderTracking(): Result {
-        val (orderId, status) =
+        val latestOrder =
             try {
-                val result = connector.getUserOrders.execute()
-                val latestOrder = result.data.orders.firstOrNull()
-                if (latestOrder != null) {
-                    Pair(latestOrder.id.toString(), latestOrder.status)
-                } else {
-                    return Result.success()
-                }
+                ConvexApi().fetchOrders().firstOrNull() ?: return Result.success()
             } catch (e: Exception) {
                 Telemetry.recordError("EngageWorker: fetchOrderTracking failed", e)
                 return Result.retry()
             }
+        val orderId = latestOrder.id
+        val status = latestOrder.status
 
         val publishTask: Task<Void> =
             client.publishShoppingOrderTrackingCluster(

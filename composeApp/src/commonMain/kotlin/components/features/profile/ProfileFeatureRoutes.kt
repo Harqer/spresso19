@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import network.ApiClient
-import network.models.SubscriptionTier
 import network.models.UserProfileData
 import theme.ThemeMode
 
@@ -91,7 +90,7 @@ fun PaymentWalletRoute(
             savedCards = profile.savedCards,
             web3WalletAddress = profile.web3WalletAddress,
             onAddPaymentCard = {
-                showMessage("Adding a card is unavailable until secure card entry is connected.")
+                showMessage("Use Stripe or Google Pay to add a card securely; raw card details never enter Spresso.")
             },
             onRemovePaymentCard = { paymentMethodId ->
                 scope.launch {
@@ -109,20 +108,7 @@ fun PaymentWalletRoute(
                 }
             },
             onGoogleWalletAction = {
-                scope.launch {
-                    try {
-                        val jwt = apiClient.generateGoogleWalletPassJwt("loyalty")
-                        showMessage(
-                            if (jwt.isNotBlank()) {
-                                "Your wallet pass was created, but adding it from this screen is unavailable."
-                            } else {
-                                "Unable to create your wallet pass right now."
-                            },
-                        )
-                    } catch (e: Exception) {
-                        showMessage("Unable to create your wallet pass right now.")
-                    }
-                }
+                showMessage("Google Wallet passes become available after an eligible tracked order is selected.")
             },
             onConnectCoinbaseWallet = {
                 showMessage("Coinbase Wallet connection must be completed from the account profile.")
@@ -143,18 +129,8 @@ fun SubscriptionMembershipRoute(
             currentTier = profile.tier,
             renewalDate = profile.renewalDate,
             onManageSubscription = {
-                val targetTier = if (profile.tier == SubscriptionTier.FREE) SubscriptionTier.SPRESSO_VIP else SubscriptionTier.FREE
                 scope.launch {
-                    try {
-                        if (apiClient.updateUserSubscription(profile.uid, targetTier.name)) {
-                            updateProfile(profile.copy(tier = targetTier))
-                            showMessage("Subscription updated.")
-                        } else {
-                            showMessage("Unable to update your subscription. Please try again.")
-                        }
-                    } catch (e: Exception) {
-                        showMessage("Unable to update your subscription. Please try again.")
-                    }
+                    showMessage("Subscription changes are handled through secure billing checkout.")
                 }
             },
         )

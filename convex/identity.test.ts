@@ -3,6 +3,8 @@ import { convexTest } from "convex-test";
 import { expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
+import agent from "@convex-dev/agent/test";
+import rateLimiter from "@convex-dev/rate-limiter/test";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -16,16 +18,22 @@ const validIdentity = {
 
 test("requireFirebaseIdentity: missing identity is rejected", async () => {
   const t = convexTest(schema, modules);
+  agent.register(t);
+  rateLimiter.register(t);
   await expect(t.query(api.users.me, {})).rejects.toThrow(/[Uu]nauthenticated/);
 });
 
 test("requireFirebaseIdentity: anonymous (no identity) cannot read profile", async () => {
   const t = convexTest(schema, modules);
+  agent.register(t);
+  rateLimiter.register(t);
   await expect(t.query(api.users.me, {})).rejects.toThrow();
 });
 
 test("requireFirebaseIdentity: wrong issuer is rejected", async () => {
   const t = convexTest(schema, modules);
+  agent.register(t);
+  rateLimiter.register(t);
   const foreign = t.withIdentity({
     issuer: "https://evil.example.com",
     subject: "firebase-uid-123",
@@ -36,6 +44,8 @@ test("requireFirebaseIdentity: wrong issuer is rejected", async () => {
 
 test("requireFirebaseIdentity: valid Firebase identity reads own profile (null when absent)", async () => {
   const t = convexTest(schema, modules);
+  agent.register(t);
+  rateLimiter.register(t);
   const authed = t.withIdentity(validIdentity);
   const result = await authed.query(api.users.me, {});
   expect(result).toBeNull();
@@ -43,6 +53,8 @@ test("requireFirebaseIdentity: valid Firebase identity reads own profile (null w
 
 test("ensureUser: creates, deduplicates by tokenIdentifier, and is readable by owner", async () => {
   const t = convexTest(schema, modules);
+  agent.register(t);
+  rateLimiter.register(t);
   const authed = t.withIdentity(validIdentity);
 
   const first = await authed.mutation(internal.users.ensureUser, { displayName: "Shopper" });
@@ -55,6 +67,8 @@ test("ensureUser: creates, deduplicates by tokenIdentifier, and is readable by o
 
 test("ensureUser: cross-user isolation — one identity cannot read another's profile", async () => {
   const t = convexTest(schema, modules);
+  agent.register(t);
+  rateLimiter.register(t);
   const authA = t.withIdentity(validIdentity);
   const authB = t.withIdentity({
     ...validIdentity,

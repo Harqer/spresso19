@@ -24,12 +24,12 @@ import utils.PlatformUtils
 
 @Composable
 fun QrModal(
-    activeQrModalEvent: ItineraryEvent,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    location: String = activeQrModalEvent.location,
-    title: String = activeQrModalEvent.title,
-    qrData: String = activeQrModalEvent.qrData.orEmpty(),
+    activeQrModalEvent: ItineraryEvent? = null,
+    location: String = activeQrModalEvent?.location ?: "Unknown Location",
+    title: String = activeQrModalEvent?.title ?: "Digital Pass",
+    qrData: String = activeQrModalEvent?.qrData.orEmpty(),
 ) {
     if (qrData.isBlank()) {
         // Production: If pass data is unavailable, handle it gracefully
@@ -61,13 +61,13 @@ fun QrModal(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
-                    text = activeQrModalEvent.title,
+                    text = title,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = activeQrModalEvent.location,
+                    text = location,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -92,7 +92,7 @@ fun QrModal(
                             if (qrBitmap != null) {
                                 Image(
                                     bitmap = qrBitmap,
-                                    contentDescription = "QR Code for ${activeQrModalEvent.title}",
+                                    contentDescription = "QR Code for $title",
                                     modifier = Modifier.size(160.dp),
                                 )
                             } else {

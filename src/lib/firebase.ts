@@ -1,6 +1,30 @@
 import Logger from "./Logger";
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import {
+  browserLocalPersistence,
+  createUserWithEmailAndPassword,
+  deleteUser,
+  EmailAuthProvider,
+  getAuth,
+  getRedirectResult,
+  GoogleAuthProvider,
+  linkWithCredential,
+  reauthenticateWithCredential,
+  RecaptchaVerifier,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  setPersistence,
+  signInAnonymously,
+  signInWithEmailAndPassword,
+  signInWithPhoneNumber,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut,
+  updateEmail,
+  updatePassword,
+  updateProfile,
+  type User,
+} from 'firebase/auth';
 import { getToken as getAppCheckToken, initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from 'firebase/app-check';
 import type { Analytics } from 'firebase/analytics';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -58,7 +82,7 @@ getRedirectResult(auth).then((_result) => {
 export async function logToCrashlytics(
   level: "info" | "warn" | "error" | "fatal",
   message: string,
-  extraData?: Record<string, any>
+  extraData?: Record<string, unknown>
 ) {
   const rendered = extraData ? `${message} ${JSON.stringify(extraData)}`.slice(0, 2000) : message.slice(0, 2000);
   if (level === "error" || level === "fatal") console.error(`[${level}]`, rendered);
@@ -68,10 +92,10 @@ export async function logToCrashlytics(
 export const loginAnonymously = async () => {
   try {
     const result = await signInAnonymously(auth);
-    logToCrashlytics("info", `Anonymous user signed in: ${result.user.uid}`);
+    logToCrashlytics("info", "Anonymous user signed in.");
     return result.user;
-  } catch (error: any) {
-    logToCrashlytics("warn", `Anonymous sign in attempt note: ${error.message}`);
+  } catch (error: unknown) {
+    logToCrashlytics("warn", `Anonymous sign in attempt note: ${error instanceof Error ? error.message : "unknown error"}`);
     return null;
   }
 };
@@ -79,23 +103,24 @@ export const loginAnonymously = async () => {
 export const loginWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    logToCrashlytics("info", `User signed in: ${result.user.email}`);
+    logToCrashlytics("info", "User signed in with Google.");
     return result.user;
-  } catch (error: any) {
-    logToCrashlytics("warn", `Google popup sign-in notice: ${error?.message || error}`);
+  } catch (error: unknown) {
+    const authError = error as { code?: string; message?: string };
+    logToCrashlytics("warn", `Google popup sign-in notice: ${authError.message || "unknown error"}`);
 
     // If popup was blocked by browser iframe context, attempt redirect or fallback
     if (
-      error?.code === "auth/popup-blocked" ||
-      error?.code === "auth/popup-closed-by-user" ||
-      error?.code === "auth/cancelled-popup-request" ||
-      (error?.message && error.message.includes("popup"))
+      authError.code === "auth/popup-blocked" ||
+      authError.code === "auth/popup-closed-by-user" ||
+      authError.code === "auth/cancelled-popup-request" ||
+      Boolean(authError.message?.includes("popup"))
     ) {
       try {
         await signInWithRedirect(auth, googleProvider);
         return null;
-      } catch (redirectErr: any) {
-        logToCrashlytics("warn", `Google redirect sign-in note: ${redirectErr.message}`);
+      } catch (redirectErr: unknown) {
+        logToCrashlytics("warn", `Google redirect sign-in note: ${redirectErr instanceof Error ? redirectErr.message : "unknown error"}`);
       }
     }
 
@@ -109,10 +134,10 @@ export const loginWithGoogle = async () => {
 export const loginWithEmail = async (email: string, pass: string) => {
   try {
     const result = await signInWithEmailAndPassword(auth, email, pass);
-    logToCrashlytics("info", `User signed in with email: ${result.user.email}`);
+    logToCrashlytics("info", "User signed in with email.");
     return result.user;
-  } catch (error: any) {
-    logToCrashlytics("error", `Email Auth failed: ${error.message}`);
+  } catch (error: unknown) {
+    logToCrashlytics("error", `Email Auth failed: ${error instanceof Error ? error.message : "unknown error"}`);
     throw error;
   }
 };
@@ -123,10 +148,11 @@ export const registerWithEmail = async (email: string, pass: string, name?: stri
     if (name && result.user) {
       await updateProfile(result.user, { displayName: name });
     }
-    logToCrashlytics("info", `User registered with email: ${result.user.email}`);
+    await sendEmailVerification(result.user);
+    logToCrashlytics("info", "User registered with email; verification sent.");
     return result.user;
-  } catch (error: any) {
-    logToCrashlytics("error", `Registration failed: ${error.message}`);
+  } catch (error: unknown) {
+    logToCrashlytics("error", `Registration failed: ${error instanceof Error ? error.message : "unknown error"}`);
     throw error;
   }
 };
@@ -145,8 +171,8 @@ export const sendPhoneVerificationCode = async (phoneNumber: string, containerId
     const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
     logToCrashlytics("info", `SMS code sent to: ${phoneNumber}`);
     return confirmationResult;
-  } catch (error: any) {
-    logToCrashlytics("error", `Phone verification code send failed: ${error.message}`);
+  } catch (error: unknown) {
+    logToCrashlytics("error", `Phone verification code send failed: ${error instanceof Error ? error.message : "unknown error"}`);
     throw error;
   }
 };
@@ -156,18 +182,70 @@ export const confirmPhoneCode = async (confirmationResult: any, code: string) =>
     const result = await confirmationResult.confirm(code);
     logToCrashlytics("info", `Phone user authenticated: ${result.user.phoneNumber}`);
     return result.user;
-  } catch (error: any) {
-    logToCrashlytics("error", `Phone code confirmation failed: ${error.message}`);
+  } catch (error: unknown) {
+    logToCrashlytics("error", `Phone code confirmation failed: ${error instanceof Error ? error.message : "unknown error"}`);
     throw error;
   }
 };
 
+export const resendEmailVerification = async (): Promise<void> => {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Sign in before requesting verification.");
+  if (user.emailVerified) return;
+  await sendEmailVerification(user);
+};
+
+export const requestPasswordReset = async (email: string): Promise<void> => {
+  const normalizedEmail = email.trim();
+  if (!normalizedEmail) throw new Error("Email is required.");
+  await sendPasswordResetEmail(auth, normalizedEmail);
+};
+
+export const reauthenticateWithPassword = async (password: string): Promise<User> => {
+  const user = auth.currentUser;
+  if (!user?.email) throw new Error("A password-authenticated user is required.");
+  const credential = EmailAuthProvider.credential(user.email, password);
+  return (await reauthenticateWithCredential(user, credential)).user;
+};
+
+export const changePassword = async (password: string): Promise<void> => {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Sign in before changing your password.");
+  if (password.length < 8) throw new Error("Password must contain at least 8 characters.");
+  await updatePassword(user, password);
+};
+
+export const changeEmail = async (email: string): Promise<void> => {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Sign in before changing your email.");
+  const normalizedEmail = email.trim();
+  if (!normalizedEmail) throw new Error("Email is required.");
+  await updateEmail(user, normalizedEmail);
+  await sendEmailVerification(user);
+};
+
+export const linkPasswordCredential = async (email: string, password: string): Promise<User> => {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Sign in before linking credentials.");
+  return (await linkWithCredential(user, EmailAuthProvider.credential(email.trim(), password))).user;
+};
+
+export const deleteFirebaseIdentity = async (): Promise<void> => {
+  const user = auth.currentUser;
+  if (!user) return;
+  await deleteUser(user);
+};
+
 export const logoutUser = async () => {
   try {
+    const verifier = typeof window !== "undefined" ? (window as Window & { recaptchaVerifier?: RecaptchaVerifier }).recaptchaVerifier : undefined;
+    verifier?.clear();
+    if (typeof window !== "undefined") delete (window as Window & { recaptchaVerifier?: RecaptchaVerifier }).recaptchaVerifier;
     await signOut(auth);
     logToCrashlytics("info", "User signed out");
-  } catch (error: any) {
-    logToCrashlytics("error", `Sign out failed: ${error.message}`);
+  } catch (error: unknown) {
+    logToCrashlytics("error", `Sign out failed: ${error instanceof Error ? error.message : "unknown error"}`);
+    throw error;
   }
 };
 

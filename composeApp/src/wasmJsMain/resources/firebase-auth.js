@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 try {
     const configResponse = await fetch("/firebase-applet-config.json");
@@ -29,7 +29,7 @@ const getProvider = () => window._googleProvider;
 window.signInWithGoogle = async function() {
     try {
         const result = await signInWithPopup(getAuthInstance(), getProvider());
-        console.log("Signed in with Google", result.user);
+        return result;
     } catch (error) {
         console.error("Google Sign-In Error", error);
         throw error;
@@ -39,6 +39,15 @@ window.signInWithGoogle = async function() {
 window.getFirebaseUserUid = function() {
     const user = getAuthInstance().currentUser;
     return user ? user.uid : null;
+};
+
+window.observeFirebaseAuth = function(callback) {
+    return onAuthStateChanged(getAuthInstance(), function(user) {
+        const requiresVerification = user
+            ? user.providerData.some(provider => provider.providerId === "password") && !user.emailVerified
+            : false;
+        callback(user ? user.uid : null, requiresVerification);
+    });
 };
 
 window.getFirebaseUserIdToken = async function() {
@@ -58,7 +67,20 @@ window.signInWithEmailAndPasswordFirebase = async function(email, password) {
 };
 
 window.createUserWithEmailAndPasswordFirebase = async function(email, password) {
-    return await createUserWithEmailAndPassword(getAuthInstance(), email, password);
+    const result = await createUserWithEmailAndPassword(getAuthInstance(), email, password);
+    await result.user.sendEmailVerification();
+    return result;
+};
+
+window.sendEmailVerificationFirebase = async function() {
+    const user = getAuthInstance().currentUser;
+    if (!user) throw new Error("Sign in before requesting verification.");
+    await user.sendEmailVerification();
+};
+
+window.deleteCurrentUserIdentityFirebase = async function() {
+    const user = getAuthInstance().currentUser;
+    if (user) await user.delete();
 };
 
 window.signInWithPhone = async function(phoneNumber) {

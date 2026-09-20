@@ -46,6 +46,12 @@ import com.spresso.shared.R
 import components.features.wearables.ToolCallLedger
 import components.features.wearables.WearableToolCall
 import components.features.wearables.WearableToolCallParser
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.android.Android
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -53,6 +59,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -94,6 +103,8 @@ class SpressoWearablesService : Service() {
     private var reconnectAttempts = 0
 
     private val toolLedger = ToolCallLedger()
+    private val convexHttpClient = HttpClient(Android)
+    private val convexJson = Json { ignoreUnknownKeys = true }
     private val pendingActions = mutableMapOf<String, PendingAction>()
     private val responseCache = LinkedHashMap<String, CachedToolResponse>()
     private val frameOutStream = ByteArrayOutputStream(65_536)
@@ -207,12 +218,18 @@ class SpressoWearablesService : Service() {
 
         serviceScope.launch(Dispatchers.IO) {
             try {
-                val responseJson = network.callFirebaseFunction(network.FirebaseRoutes.GENERATE_LIVE_API_TOKEN, "{}")
+                val authToken = network.getCurrentUserIdToken() ?: error("Sign in to use the glasses assistant.")
+                val responseJson =
+                    convexHttpClient
+                        .post("${network.SpressoConfig.convexSiteUrl}/api/live/token") {
+                            header(HttpHeaders.Authorization, "Bearer $authToken")
+                        }.bodyAsText()
                 if (generation != socketGeneration || isStopping) return@launch
 
-                val response = JSONObject(responseJson)
-                val result = if (response.has("result")) response.getJSONObject("result") else response
-                val token = result.getString("token")
+                val response = convexJson.parseToJsonElement(responseJson).jsonObject
+                val token =
+                    response["token"]?.jsonPrimitive?.content
+                        ?: error(response["error"]?.jsonPrimitive?.content ?: "Failed to retrieve live token")
                 val request =
                     Request
                         .Builder()
@@ -1065,6 +1082,7 @@ class SpressoWearablesService : Service() {
             run { audioManager?.isBluetoothScoOn = false }
         }
         serviceScope.cancel()
+        convexHttpClient.close()
         super.onDestroy()
     }
 

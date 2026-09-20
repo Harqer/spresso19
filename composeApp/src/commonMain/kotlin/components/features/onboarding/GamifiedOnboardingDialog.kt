@@ -18,8 +18,6 @@ import androidx.compose.ui.window.Dialog
 import components.features.auth.PasskeyRegistrationResult
 import components.models.*
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonPrimitive
 
 @Composable
 fun GamifiedOnboardingDialog(
@@ -71,31 +69,8 @@ fun GamifiedOnboardingDialog(
                         scope.launch {
                             try {
                                 val apiClient = network.ApiClient()
-                                val behaviorResult = apiClient.analyzeUserBehavior(interests)
-
-                                // Fetch current profile to update it, or create a new one.
-                                val uid = network.getCurrentUserUid()
-                                if (uid != null) {
-                                    val inferredPainPoints =
-                                        behaviorResult["inferredPainPoints"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
-                                    val summary = behaviorResult["behavioralProfileSummary"]?.jsonPrimitive?.content ?: ""
-
-                                    val currentUser = apiClient.fetchUserProfile(uid)
-                                    val updatedProfile =
-                                        currentUser.copy(
-                                            explicitInterests = interests,
-                                            inferredPainPoints = inferredPainPoints,
-                                            behavioralProfileSummary = summary,
-                                        )
-                                    apiClient.updateUserProfile(updatedProfile)
-
-                                    // Seed the PyTorch ranking engine's Thompson Sampling Bandit with their choices
-                                    apiClient.initializeOnboarding(uid, interests)
-
-                                    network.Telemetry.recordInfo("Analyzed and persisted behavior for UID $uid")
-                                } else {
-                                    network.Telemetry.recordInfo("User is not signed in. Skipping profile update.")
-                                }
+                                apiClient.initializeOnboarding(interests)
+                                network.Telemetry.recordInfo("Onboarding preferences persisted.")
                                 apiClient.close()
                             } catch (e: Exception) {
                                 network.Telemetry.recordError("Behavior analysis failed", e)

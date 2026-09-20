@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.xr.glimmer.GlimmerTheme
 import kotlinx.coroutines.launch
-import network.callFirebaseFunction
+import network.ApiClient
 import org.json.JSONObject
 
 class SpressoGlimmerActivity : ComponentActivity() {
@@ -49,12 +49,13 @@ class SpressoGlimmerActivity : ComponentActivity() {
                             scope.launch {
                                 try {
                                     // Request the current cooking guidance from the backend.
-                                    val resultStr =
-                                        callFirebaseFunction(
-                                            "generateRecipeBargainChef",
-                                            "{\"prompt\":\"Give concise cooking instructions for the current ingredients.\",\"ingredients\":[]}",
+                                    val resultJson =
+                                        JSONObject(
+                                            ApiClient()
+                                                .generateRecipeBargainChef(
+                                                    "Give concise cooking instructions for the current ingredients.",
+                                                ).toString(),
                                         )
-                                    val resultJson = JSONObject(resultStr)
                                     val newInstructions = mutableListOf<String>()
                                     if (resultJson.has("recommendations")) {
                                         val recs = resultJson.getJSONArray("recommendations")

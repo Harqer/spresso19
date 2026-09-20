@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +22,7 @@ fun WardrobeGallerySection(
     photos: List<WardrobePhotoItem>,
     weatherSummary: String,
     onAddPhotoClick: () -> Unit,
+    onOpenLens: () -> Unit,
     onTryOnPhoto: (WardrobePhotoItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -50,12 +52,21 @@ fun WardrobeGallerySection(
             )
         }
 
-        Text(
-            text = "Your Wardrobe Photo Gallery",
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Your Wardrobe Photo Gallery",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Button(onClick = onOpenLens) {
+                Text("Scan with Lens")
+            }
+        }
 
         if (photos.isEmpty()) {
             WardrobeAddPhotoCard(onAddClick = onAddPhotoClick)

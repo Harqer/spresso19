@@ -36,9 +36,11 @@ import androidx.compose.ui.unit.dp
 import components.features.profile.widgets.ProfileHeader
 import components.features.profile.widgets.ProfileListItem
 import components.features.profile.widgets.ThemeSelectorCard
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import network.ApiClient
 import network.models.UserProfileData
+import network.sendEmailVerification
 import theme.ThemeMode
 
 @Composable
@@ -76,17 +78,38 @@ fun ProfilePage(
     var fitPreference by remember { mutableStateOf("regular") }
     var userHeight by remember { mutableStateOf("") }
     var userWeight by remember { mutableStateOf("") }
+    var preferencesLoaded by remember { mutableStateOf(false) }
 
     androidx.compose.runtime.LaunchedEffect(userUid) {
+        preferencesLoaded = false
         if (userUid != null && apiClient != null) {
             try {
                 userProfile = apiClient.fetchUserProfile(userUid)
                 val prefs = apiClient.getUserPreferences()
                 val fitPref = prefs["fitPreference"]
+                val heightPref = prefs["height"]
+                val weightPref = prefs["weight"]
                 if (fitPref is String) fitPreference = fitPref
+                if (heightPref is String) userHeight = heightPref
+                if (weightPref is String) userWeight = weightPref
+                preferencesLoaded = true
             } catch (e: Exception) {
                 snackbarHostState.showSnackbar("Failed to load profile. Please try again.")
             }
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(userUid, fitPreference, userHeight, userWeight, preferencesLoaded) {
+        if (!preferencesLoaded || userUid == null || apiClient == null) return@LaunchedEffect
+        delay(500)
+        runCatching {
+            apiClient.updateUserPreferences(
+                fitPreference = fitPreference,
+                height = userHeight,
+                weight = userWeight,
+            )
+        }.onFailure {
+            snackbarHostState.showSnackbar("Failed to save style preferences.")
         }
     }
 
@@ -128,27 +151,7 @@ fun ProfilePage(
                     renewalDate = userProfile!!.renewalDate,
                     onManageSubscription = {
                         scope.launch {
-                            try {
-                                val newTier =
-                                    if (userProfile!!.tier ==
-                                        network.models.SubscriptionTier.FREE
-                                    ) {
-                                        network.models.SubscriptionTier.SPRESSO_VIP
-                                    } else {
-                                        network.models.SubscriptionTier.FREE
-                                    }
-                                val newTierName = newTier.name
-                                val success = userUid?.let { uid -> apiClient?.updateUserSubscription(uid, newTierName) } ?: false
-                                if (success) {
-                                    val updated = userProfile!!.copy(tier = newTier)
-                                    userProfile = updated
-                                    snackbarHostState.showSnackbar("Subscription updated successfully.")
-                                } else {
-                                    snackbarHostState.showSnackbar("Failed to update subscription.")
-                                }
-                            } catch (e: Exception) {
-                                snackbarHostState.showSnackbar("Failed to update subscription.")
-                            }
+                            snackbarHostState.showSnackbar("Subscription changes are handled through secure billing checkout.")
                         }
                     },
                 )
@@ -158,7 +161,9 @@ fun ProfilePage(
                     web3WalletAddress = userProfile!!.web3WalletAddress,
                     onAddPaymentCard = {
                         scope.launch {
-                            snackbarHostState.showSnackbar("Adding a card is unavailable until secure card entry is connected.")
+                            snackbarHostState.showSnackbar(
+                                "Use Stripe or Google Pay to add a card securely; raw card details never enter Spresso.",
+                            )
                         }
                     },
                     onRemovePaymentCard = { paymentMethodId ->
@@ -178,16 +183,9 @@ fun ProfilePage(
                     },
                     onGoogleWalletAction = {
                         scope.launch {
-                            try {
-                                val jwt = apiClient?.generateGoogleWalletPassJwt("loyalty") ?: ""
-                                if (jwt.isNotEmpty()) {
-                                    snackbarHostState.showSnackbar("Google Wallet Pass generated successfully.")
-                                } else {
-                                    snackbarHostState.showSnackbar("Unable to generate Google Wallet Pass at this time.")
-                                }
-                            } catch (e: Exception) {
-                                snackbarHostState.showSnackbar("Failed to connect Google Wallet.")
-                            }
+                            snackbarHostState.showSnackbar(
+                                "Google Wallet passes become available after an eligible tracked order is selected.",
+                            )
                         }
                     },
                     onConnectCoinbaseWallet = {
@@ -259,7 +257,12 @@ fun ProfilePage(
                     subtitle = "Secure account with digital credentials",
                     onClick =
                         onVerifyEmail ?: {
-                            scope.launch { snackbarHostState.showSnackbar("Email verification is unavailable right now.") }
+                            scope.launch {
+                                val sent = sendEmailVerification()
+                                snackbarHostState.showSnackbar(
+                                    if (sent) "Verification email sent." else "Unable to send verification email.",
+                                )
+                            }
                             Unit
                         },
                 )
@@ -305,13 +308,6 @@ fun ProfilePage(
                     weight = userWeight,
                     onFitPreferenceChange = { newFit ->
                         fitPreference = newFit
-                        scope.launch {
-                            try {
-                                apiClient?.updateUserPreferences(fitPreference = newFit)
-                            } catch (e: Exception) {
-                                snackbarHostState.showSnackbar("Failed to save fit preference.")
-                            }
-                        }
                     },
                     onHeightChange = { userHeight = it },
                     onWeightChange = { userWeight = it },
@@ -344,18 +340,16 @@ fun ProfilePage(
             AccountManagementSection(
                 onSignOut = { onSignOut?.invoke() },
                 onDeactivateAccount = {
-                    userUid?.let { uid ->
+                    if (userUid == null || apiClient == null) {
+                        scope.launch { snackbarHostState.showSnackbar("Sign in to deactivate your account.") }
+                    } else {
                         scope.launch {
                             try {
-                                apiClient?.deactivateAccount(uid)
+                                apiClient.deactivateAccount()
                                 onSignOut?.invoke()
                             } catch (e: Exception) {
-                                snackbarHostState.showSnackbar("Failed to deactivate account.")
+                                snackbarHostState.showSnackbar("Failed to deactivate account. Please reauthenticate and try again.")
                             }
-                        }
-                    } ?: run {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("User ID is missing.")
                         }
                     }
                 },

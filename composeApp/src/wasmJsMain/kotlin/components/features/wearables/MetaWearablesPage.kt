@@ -13,7 +13,6 @@ actual fun MetaWearablesPage(
     batteryPercent: Int,
     glassesModelName: String,
     isCameraStreaming: Boolean,
-    onPairClick: () -> Unit,
     onStartHandsFreeCheckout: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier,

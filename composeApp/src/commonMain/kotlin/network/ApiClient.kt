@@ -12,26 +12,21 @@ import io.ktor.client.plugins.plugin
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.delay
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.add
-import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import network.models.PaymentCardInfo
 import network.models.UserProfileData
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-import network.createPaymentMethod as createPaymentMethodTopLevel
-import network.deletePaymentMethod as deletePaymentMethodTopLevel
-import network.updateUserSubscription as updateUserSubscriptionTopLevel
 
 data class TravelDetailData(
     val events: List<ItineraryEvent>,
@@ -144,41 +139,22 @@ open class ApiClient {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    suspend fun analyzeUserBehavior(
-        explicitInterests: List<String>,
-        chatHistory: List<String>? = null,
-    ): JsonObject {
-        val payload =
-            buildJsonObject {
-                put("explicitInterests", buildJsonArray { explicitInterests.forEach { add(it) } })
-                if (chatHistory != null) {
-                    put("chatHistory", buildJsonArray { chatHistory.forEach { add(it) } })
-                }
-            }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.ANALYZE_USER_BEHAVIOR, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        return response["result"]?.jsonObject ?: response
-    }
-
-    private val cloudFunctionsBaseUrl = SpressoConfig.cloudFunctionsBaseUrl
-
-    /** Firebase Hosting is the canonical HTTP boundary for non-callable REST resources. */
-    private val backendBaseUrl = SpressoConfig.backendBaseUrl
+    /** Convex owns the application backend; Firebase remains identity-only. */
     private val convexApi by lazy { ConvexApi() }
 
+    /**
+     * Digital-credential verification is intentionally not exposed as a
+     * backend sign-in bridge. Firebase Auth owns credentials and Convex only
+     * accepts Firebase ID tokens, so a client cannot mint or exchange a custom
+     * token through this app backend.
+     */
     suspend fun verifyEmailCredential(
         credential: String,
         nonce: String,
     ): String? {
-        val payload =
-            buildJsonObject {
-                put("credential", credential)
-                put("nonce", nonce)
-            }
-        val responseJson = callFirebaseFunction(FirebaseRoutes.VERIFY_EMAIL_CREDENTIAL, payload.toString())
-        val response = json.parseToJsonElement(responseJson).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        return result["custom_token"]?.jsonPrimitive?.content
+        require(credential.isNotBlank()) { "A digital credential is required." }
+        require(nonce.isNotBlank()) { "A credential nonce is required." }
+        error("Digital credential sign-in is not supported by the active Firebase identity flow.")
     }
 
     suspend fun recordInteraction(
@@ -186,39 +162,22 @@ open class ApiClient {
         action: String,
     ): Boolean {
         logCrashlyticsBreadcrumb(action, "productId=$productId")
-        val payload =
-            buildJsonObject {
-                put("productId", productId)
-                put("action", action)
-            }
-        callFirebaseFunction(FirebaseRoutes.INGEST_INTERACTION, payload.toString())
-        return true
+        return convexApi.recordInteraction(productId, action)
     }
 
-    open suspend fun streamTelemetry(event: VideoInteractionEvent): Boolean {
-        val payload =
-            buildJsonObject {
-                put("productId", event.itemId)
-                put("action", "video_interaction")
-            }
-        callFirebaseFunction(FirebaseRoutes.INGEST_INTERACTION, payload.toString())
-        return true
-    }
+    open suspend fun streamTelemetry(event: VideoInteractionEvent): Boolean = convexApi.recordInteraction(event.itemId, "video_interaction")
 
     suspend fun requestVirtualTryOn(base64Image: String): String {
-        val payload = buildJsonObject { put("image", base64Image) }
-        val responseJson = callFirebaseFunction(FirebaseRoutes.GENERATE_VIRTUAL_TRY_ON, payload.toString())
-        val response = json.parseToJsonElement(responseJson).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        return result["mediaUrl"]?.jsonPrimitive?.content ?: error("Missing mediaUrl in response")
+        require(base64Image.isNotBlank()) { "A captured image is required." }
+        error("Select a garment listing before starting virtual try-on.")
     }
 
     suspend fun requestSpin360(productId: String): String {
-        val payload = buildJsonObject { put("productId", productId) }
-        val responseJson = callFirebaseFunction(FirebaseRoutes.GENERATE_SPIN_360, payload.toString())
-        val response = json.parseToJsonElement(responseJson).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        return result["mediaUrl"]?.jsonPrimitive?.content ?: error("Missing mediaUrl in response")
+        val product =
+            convexApi.fetchProductById(productId)
+                ?: error("External listing not found.")
+        return product.imageUrl.takeIf { it.startsWith("https://") }
+            ?: error("This listing has no verified media preview.")
     }
 
     suspend fun createChatThread(title: String? = null): String = convexApi.createChatThread(title)
@@ -248,84 +207,98 @@ open class ApiClient {
         orderId: String,
         reason: String,
     ): JsonObject {
-        val payload =
-            buildJsonObject {
-                put("orderId", orderId)
-                put("reason", reason)
-            }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.INITIATE_ORDER_RETURN, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        return response["result"]?.jsonObject ?: response
+        val success = convexApi.requestOrderReturn(orderId, reason)
+        return buildJsonObject { put("success", success) }
     }
 
     suspend fun setOrderReminder(
         orderId: String,
         reminderTime: String,
     ): JsonObject {
-        val payload =
-            buildJsonObject {
-                put("orderId", orderId)
-                put("reminderTime", reminderTime)
-            }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.SET_ORDER_REMINDER, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        return response["result"]?.jsonObject ?: response
+        val success = convexApi.setOrderReminder(orderId, reminderTime)
+        return buildJsonObject { put("success", success) }
     }
 
     suspend fun generateCreatorCampaign(
         prompt: String,
         templateId: String,
-    ): JsonObject {
-        val payload =
-            buildJsonObject {
-                put("prompt", prompt)
-                put("templateId", templateId)
-            }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.GENERATE_CREATOR_CAMPAIGN, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        return response["result"]?.jsonObject ?: response
-    }
+    ): JsonObject =
+        convexApi.generateCreatorCampaign(
+            productName = templateId,
+            campaignGoal = prompt,
+        )
 
     suspend fun generateRecipeBargainChef(
         prompt: String,
         ingredients: List<String> = emptyList(),
     ): JsonObject {
-        val payload =
-            buildJsonObject {
-                put("prompt", prompt)
-                put("ingredients", buildJsonArray { ingredients.forEach { add(it) } })
+        val threadId = convexApi.createChatThread("Bargain Chef")
+        val fullPrompt =
+            buildString {
+                append(prompt.trim())
+                if (ingredients.isNotEmpty()) append(" Ingredients: ${ingredients.joinToString()}.")
             }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.GENERATE_RECIPE_BARGAIN_CHEF, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        return response["result"]?.jsonObject ?: response
+        convexApi.sendChatMessage(threadId, fullPrompt)
+        repeat(20) {
+            delay(500)
+            val response =
+                convexApi
+                    .listChatMessages(threadId)
+                    .lastOrNull { it.role == "assistant" && it.text.isNotBlank() }
+            if (response != null) return buildJsonObject { put("text", response.text) }
+        }
+        error("Recipe guidance is still processing. Please try again shortly.")
     }
 
     suspend fun fetchUserProfile(uid: String): UserProfileData {
-        val payload = buildJsonObject { put("uid", uid) }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.GET_USER_PROFILE, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        return json.decodeFromJsonElement(result)
+        var result = convexApi.fetchCurrentUser()
+        if (result == null) {
+            convexApi.bootstrapCurrentUser(null, null)
+            result = convexApi.fetchCurrentUser()
+        }
+        result = result ?: error("Authenticated profile was not found.")
+        val savedCards =
+            runCatching { convexApi.fetchPaymentMethods() }.getOrDefault(emptyList()).mapNotNull { card ->
+                val id = card["_id"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                PaymentCardInfo(
+                    id = id,
+                    brand = card["brand"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                    last4 = card["last4"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                    expiryMonth = card["expMonth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
+                    expiryYear = card["expYear"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
+                    isDefault = card["isDefault"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
+                )
+            }
+        return UserProfileData(
+            uid = result["firebaseUid"]?.jsonPrimitive?.contentOrNull ?: uid,
+            name = result["displayName"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+            email = result["email"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+            avatarUrl = result["photoUrl"]?.jsonPrimitive?.contentOrNull,
+            savedCards = savedCards,
+            web3WalletAddress = result["coinbaseWalletAddress"]?.jsonPrimitive?.contentOrNull,
+        )
     }
 
     suspend fun updateUserProfile(profile: UserProfileData): Boolean {
-        upsertUserProfile(
-            email = profile.email,
-            displayName = profile.name,
-            avatarUrl = profile.avatarUrl,
-        )
-        upsertUserPreference(
-            theme = profile.themePreference,
+        convexApi.updateCurrentUserProfile(profile.name, profile.avatarUrl)
+        convexApi.setPreferences(
             pushNotifications = profile.notificationsEnabled,
-            emailAlerts = profile.emailAlertsEnabled,
+            vibes = profile.explicitInterests,
         )
         return true
     }
 
-    suspend fun deactivateAccount(uid: String): Boolean {
-        val payload = buildJsonObject { put("uid", uid) }
-        callFirebaseFunction(FirebaseRoutes.DEACTIVATE_ACCOUNT, payload.toString())
-        return true
+    suspend fun deactivateAccount(): Boolean {
+        val operationId = convexApi.requestAccountDeletion()
+        return try {
+            convexApi.waitForAccountDeletion(operationId)
+            deleteCurrentUserIdentity()
+        } catch (error: Exception) {
+            throw IllegalStateException(
+                "Your account data is still being removed. Keep this session signed in and try again shortly.",
+                error,
+            )
+        }
     }
 
     suspend fun fetchTravelTrips(): List<TripRecord> =
@@ -408,26 +381,13 @@ open class ApiClient {
             )
         }
 
-    suspend fun initializeOnboarding(
-        uid: String,
-        interests: List<String>,
-    ) {
-        val payload =
-            buildJsonObject {
-                put("uid", uid)
-                put("interests", buildJsonArray { interests.forEach { add(it) } })
-            }
-        callFirebaseFunction(FirebaseRoutes.INITIALIZE_ONBOARDING, payload.toString())
+    suspend fun initializeOnboarding(interests: List<String>) {
+        convexApi.setPreferences(searchInquiries = interests, onboardingCompleted = true)
     }
 
     suspend fun connectCoinbaseWallet(address: String): Boolean {
-        val payload =
-            buildJsonObject {
-                put("address", address)
-                put("network", "base")
-            }
-        val response = json.parseToJsonElement(callFirebaseFunction(FirebaseRoutes.CONNECT_COINBASE_WALLET, payload.toString())).jsonObject
-        return (response["result"]?.jsonObject ?: response)["success"]?.jsonPrimitive?.boolean == true
+        require(Regex("^0x[a-fA-F0-9]{40}$").matches(address)) { "A valid Base wallet address is required." }
+        return convexApi.connectCoinbaseWallet(address)
     }
 
     fun close() {
@@ -449,51 +409,23 @@ open class ApiClient {
 
     suspend fun deleteGroceryItem(id: String): Boolean = convexApi.removeGroceryItem(id)
 
-    suspend fun removePaymentMethod(id: String): Boolean {
-        deletePaymentMethodTopLevel(id)
-        return true
-    }
+    suspend fun removePaymentMethod(id: String): Boolean = convexApi.detachPaymentMethod(id)
 
-    @OptIn(ExperimentalEncodingApi::class)
+    @Suppress("UNUSED_PARAMETER")
     suspend fun generateResponseFromAudio(
         prompt: String,
         audioData: ByteArray,
         mimeType: String = "audio/mp3",
     ): String {
-        val payload =
-            buildJsonObject {
-                put("prompt", prompt)
-                put("audioBase64", Base64.encode(audioData))
-                put("mimeType", mimeType)
-            }
-        val response =
-            json
-                .parseToJsonElement(
-                    callFirebaseFunction(FirebaseRoutes.GENERATE_RESPONSE_FROM_AUDIO, payload.toString()),
-                ).jsonObject
-        return (response["result"]?.jsonObject ?: response)["text"]?.jsonPrimitive?.content
-            ?: error("Invalid response format")
+        require(prompt.isNotBlank()) { "An audio prompt is required." }
+        require(audioData.isNotEmpty()) { "Audio data is required." }
+        require(mimeType.startsWith("audio/")) { "A valid audio MIME type is required." }
+        error("Standard audio analysis is not available through the active Convex Agent flow; use live voice mode instead.")
     }
 
     suspend fun createPaymentMethod(stripePaymentMethodId: String): Boolean {
-        createPaymentMethodTopLevel(stripePaymentMethodId)
+        convexApi.attachPaymentMethod(stripePaymentMethodId)
         return true
-    }
-
-    suspend fun updateUserSubscription(
-        id: String,
-        tier: String,
-    ): Boolean {
-        updateUserSubscriptionTopLevel(id, tier)
-        return true
-    }
-
-    suspend fun generateGoogleWalletPassJwt(passType: String = "loyalty"): String {
-        val payload = buildJsonObject { put("passType", passType) }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.GENERATE_GOOGLE_WALLET_PASS_JWT, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        return result["jwt"]?.jsonPrimitive?.content ?: ""
     }
 
     suspend fun getWeatherContext(latLng: Pair<Double, Double>): String =
@@ -532,13 +464,13 @@ open class ApiClient {
     }
 
     suspend fun fetchDetection(detectionId: String): DetectedItem {
-        val response = client.get("$backendBaseUrl/vision/detections/$detectionId").bodyAsText()
-        return json.decodeFromString(response)
+        require(detectionId.isNotBlank()) { "A detection identifier is required." }
+        error("Detection details are returned with the active visual-search result; no legacy detection endpoint is configured.")
     }
 
     suspend fun fetchRecipe(recipeName: String): network.models.GroceryItem {
-        val response = client.get("$backendBaseUrl/recipes/$recipeName").bodyAsText()
-        return json.decodeFromString(response)
+        require(recipeName.isNotBlank()) { "A recipe name is required." }
+        error("Recipe ingredients are returned by the Convex Agent conversation; no legacy recipe endpoint is configured.")
     }
 
     suspend fun generateOutfit(
@@ -564,13 +496,14 @@ open class ApiClient {
     }
 
     suspend fun getUserPreferences(): Map<String, Any?> {
-        val payload = buildJsonObject { }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.GET_USER_PREFERENCES, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        val result = response["result"]?.jsonObject ?: response
+        val result = convexApi.fetchPreferences() ?: return emptyMap()
+        val avatarProfile = result["avatarProfile"]?.jsonObject
         return mapOf(
-            "likedIds" to result["likedIds"]?.jsonArray?.map { it.jsonPrimitive.content },
-            "bookmarkedIds" to result["bookmarkedIds"]?.jsonArray?.map { it.jsonPrimitive.content },
+            "likedIds" to result["vibes"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull },
+            "bookmarkedIds" to result["searchInquiries"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull },
+            "fitPreference" to avatarProfile?.get("fitPreference")?.jsonPrimitive?.contentOrNull,
+            "height" to avatarProfile?.get("height")?.jsonPrimitive?.contentOrNull,
+            "weight" to avatarProfile?.get("weight")?.jsonPrimitive?.contentOrNull,
         )
     }
 
@@ -580,24 +513,13 @@ open class ApiClient {
         weight: String? = null,
         vibes: List<String>? = null,
     ): Boolean {
-        val payload =
-            buildJsonObject {
-                fitPreference?.let { put("fitPreference", it) }
-                height?.let { put("height", it) }
-                weight?.let { put("weight", it) }
-                vibes?.let { list ->
-                    put(
-                        "vibes",
-                        buildJsonArray {
-                            list.forEach { add(it) }
-                        },
-                    )
-                }
-            }
-        val responseStr = callFirebaseFunction(FirebaseRoutes.UPDATE_USER_PREFERENCES, payload.toString())
-        val response = json.parseToJsonElement(responseStr).jsonObject
-        val result = response["result"]?.jsonObject ?: response
-        return result["success"]?.jsonPrimitive?.boolean == true
+        convexApi.setPreferences(
+            fitPreference = fitPreference,
+            height = height,
+            weight = weight,
+            vibes = vibes,
+        )
+        return true
     }
 
     companion object {

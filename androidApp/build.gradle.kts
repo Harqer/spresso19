@@ -132,7 +132,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation(dependencies.platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
-    implementation(libs.firebase.dataconnect)
     implementation(libs.firebase.ui.auth)
     implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.compose.foundation)

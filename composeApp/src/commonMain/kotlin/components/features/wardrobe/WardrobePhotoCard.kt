@@ -16,6 +16,7 @@ data class WardrobePhotoItem(
     val category: String,
     val photoUrl: String,
     val isFavorite: Boolean = false,
+    val tryOnProductId: String? = null,
 )
 
 @Composable
@@ -30,14 +31,16 @@ fun WardrobePhotoCard(
         modifier = modifier,
         subtitle = photo.category,
         actionRow = {
-            SpressoButton(
-                text = "Try On",
-                onClick = { onTryOn(photo) },
-                variant = SpressoButtonVariant.SECONDARY,
-                icon = Icons.Default.Visibility,
-                trackingId = "wardrobe_photo_item",
-                trackingAction = "click_try_on_${photo.id}",
-            )
+            if (photo.tryOnProductId != null) {
+                SpressoButton(
+                    text = "Try On",
+                    onClick = { onTryOn(photo) },
+                    variant = SpressoButtonVariant.SECONDARY,
+                    icon = Icons.Default.Visibility,
+                    trackingId = "wardrobe_photo_item",
+                    trackingAction = "click_try_on_${photo.id}",
+                )
+            }
         },
         trackingId = "wardrobe_photo_item",
         trackingAction = "click_photo_${photo.id}",

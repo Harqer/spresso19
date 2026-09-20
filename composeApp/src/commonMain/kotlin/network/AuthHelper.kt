@@ -23,3 +23,9 @@ expect suspend fun createUserWithEmailAndPassword(
 
 /** Signs in with Google */
 expect suspend fun signInWithGoogle(): Boolean
+
+/** Sends verification email for the authenticated user. */
+expect suspend fun sendEmailVerification(): Boolean
+
+/** Deletes the Firebase identity after the Convex deletion operation is queued. */
+expect suspend fun deleteCurrentUserIdentity(): Boolean

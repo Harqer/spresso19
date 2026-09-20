@@ -82,11 +82,7 @@ kotlin {
             implementation(libs.firebase.auth)
             implementation(libs.firebase.crashlytics)
             implementation(libs.firebase.analytics)
-            implementation(libs.firebase.dataconnect)
-            implementation(libs.firebase.functions)
             implementation(libs.firebase.messaging)
-            implementation(libs.firebase.storage)
-            implementation(libs.firebase.vertexai)
             implementation(libs.firebase.appcheck.playintegrity)
             implementation(libs.firebase.ui.auth)
             implementation(libs.compose.pay.button)
@@ -178,12 +174,24 @@ dependencies {
 
 tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
     jvmTarget = "17"
-    // Firebase Data Connect generated sources are not hand-maintained code.
+    // Generated accessors and Firebase Data Connect bindings are not hand-maintained code.
+    exclude("**/build/generated/**")
+    exclude("**/generated/**")
+    exclude("**/build/generated/ksp/**")
+    exclude("**/ksp/**")
+    exclude("**/commonMainResourceAccessors/**")
     exclude("**/com/spresso/dataconnect/**")
+    setSource(source.filter { !it.absolutePath.contains("/build/generated/") })
 }
 tasks.withType<dev.detekt.gradle.DetektCreateBaselineTask>().configureEach {
     jvmTarget = "17"
+    exclude("**/build/generated/**")
+    exclude("**/generated/**")
+    exclude("**/build/generated/ksp/**")
+    exclude("**/ksp/**")
+    exclude("**/commonMainResourceAccessors/**")
     exclude("**/com/spresso/dataconnect/**")
+    setSource(source.filter { !it.absolutePath.contains("/build/generated/") })
 }
 
 // Robolectric 4.11's bytecode reader cannot instrument Java 25 classes. Keep

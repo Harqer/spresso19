@@ -5,7 +5,7 @@ import { internal, api } from "./_generated/api";
 
 const STRIPE_WEBHOOK_TOLERANCE_SECONDS = 300;
 
-function responseJson(status: number, body: Record<string, unknown>): Response {
+function responseJson(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 
@@ -217,7 +217,7 @@ function errorStatus(cause: unknown): number {
 async function runBridge(handler: () => Promise<unknown>): Promise<Response> {
   try {
     const value = await handler();
-    return responseJson(200, (value ?? {}) as Record<string, unknown>);
+    return responseJson(200, value ?? null);
   } catch (cause) {
     const status = errorStatus(cause);
     const message = cause instanceof Error ? cause.message : String(cause);
@@ -238,6 +238,132 @@ function queryInt(request: Request, name: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+// ---- Authentication/account lifecycle -------------------------------------
+
+export const userMeHttp = httpAction(async (ctx) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    return ctx.runQuery(api.users.me, {});
+  });
+});
+
+export const updateUserProfileHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { displayName?: unknown; photoUrl?: unknown };
+    if (typeof body.displayName !== "string") throw new BridgeError("displayName is required.", 400);
+    await ctx.runMutation(api.users.updateProfile, {
+      displayName: body.displayName,
+      ...(typeof body.photoUrl === "string" ? { photoUrl: body.photoUrl } : {}),
+    });
+    return { success: true };
+  });
+});
+
+export const bootstrapUserHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { email?: unknown; displayName?: unknown };
+    return {
+      userId: await ctx.runMutation(api.users.bootstrap, {
+        ...(typeof body.email === "string" ? { email: body.email } : {}),
+        ...(typeof body.displayName === "string" ? { displayName: body.displayName } : {}),
+      }),
+    };
+  });
+});
+
+export const getPreferencesHttp = httpAction(async (ctx) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    return ctx.runQuery(api.reactiveState.getPreferences, {});
+  });
+});
+
+export const setPreferencesHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    return {
+      preferenceId: await ctx.runMutation(api.reactiveState.setPreferences, {
+        ...(typeof body.onboardingCompleted === "boolean" ? { onboardingCompleted: body.onboardingCompleted } : {}),
+        ...(typeof body.pushNotifications === "boolean" ? { pushNotifications: body.pushNotifications } : {}),
+        ...(body.fitPreference === "tailored" || body.fitPreference === "regular" || body.fitPreference === "relaxed" || body.fitPreference === "oversized"
+          ? { fitPreference: body.fitPreference }
+          : {}),
+        ...(typeof body.height === "string" ? { height: body.height } : {}),
+        ...(typeof body.weight === "string" ? { weight: body.weight } : {}),
+        ...(Array.isArray(body.searchInquiries) ? { searchInquiries: body.searchInquiries.filter((value): value is string => typeof value === "string") } : {}),
+        ...(Array.isArray(body.vibes) ? { vibes: body.vibes.filter((value): value is string => typeof value === "string") } : {}),
+      }),
+    };
+  });
+});
+
+export const requestAccountDeletionHttp = httpAction(async (ctx) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    return { operationId: await ctx.runMutation(api.users.requestAccountDeletion, {}) };
+  });
+});
+
+export const accountDeletionStatusHttp = httpAction(async (ctx) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    return ctx.runQuery(api.users.getAccountDeletion, {});
+  });
+});
+
+export const connectCoinbaseWalletHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { address?: unknown; network?: unknown };
+    if (typeof body.address !== "string" || !/^0x[a-fA-F0-9]{40}$/.test(body.address)) {
+      throw new BridgeError("A valid Base wallet address is required.", 400);
+    }
+    await ctx.runMutation(api.users.connectCoinbaseWallet, { address: body.address, network: "base" });
+    return { success: true };
+  });
+});
+
+export const listPaymentMethodsHttp = httpAction(async (ctx) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    return { paymentMethods: await ctx.runQuery(api.payments.records.listPaymentMethods, {}) };
+  });
+});
+
+export const attachPaymentMethodHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { stripePaymentMethodId?: unknown };
+    if (typeof body.stripePaymentMethodId !== "string") throw new BridgeError("stripePaymentMethodId is required.", 400);
+    return ctx.runAction(api.payments.stripe.attachPaymentMethod, { stripePaymentMethodId: body.stripePaymentMethodId });
+  });
+});
+
+export const detachPaymentMethodHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { recordId?: unknown };
+    if (typeof body.recordId !== "string") throw new BridgeError("recordId is required.", 400);
+    await ctx.runAction(api.payments.stripe.detachPaymentMethod, { recordId: body.recordId as any });
+    return { success: true };
+  });
+});
+
+http.route({ path: "/api/account/me", method: "GET", handler: userMeHttp });
+http.route({ path: "/api/account/preferences", method: "GET", handler: getPreferencesHttp });
+http.route({ path: "/api/account/preferences", method: "POST", handler: setPreferencesHttp });
+http.route({ path: "/api/account/bootstrap", method: "POST", handler: bootstrapUserHttp });
+http.route({ path: "/api/account/profile", method: "POST", handler: updateUserProfileHttp });
+http.route({ path: "/api/account/delete", method: "POST", handler: requestAccountDeletionHttp });
+http.route({ path: "/api/account/delete", method: "GET", handler: accountDeletionStatusHttp });
+http.route({ path: "/api/account/wallet/coinbase", method: "POST", handler: connectCoinbaseWalletHttp });
+http.route({ path: "/api/payment-methods", method: "GET", handler: listPaymentMethodsHttp });
+http.route({ path: "/api/payment-methods/attach", method: "POST", handler: attachPaymentMethodHttp });
+http.route({ path: "/api/payment-methods/detach", method: "POST", handler: detachPaymentMethodHttp });
+
 // ---- Discovery: external-provider search + preference-derived feed --------
 
 export const discoverySearchHttp = httpAction(async (ctx, request) => {
@@ -257,6 +383,28 @@ export const discoveryRecommendationsHttp = httpAction(async (ctx, request) => {
   return runBridge(async () => {
     await bearerIdentity(ctx);
     return ctx.runAction(api.discovery.recommendations, {});
+  });
+});
+
+export const recordInteractionHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { productId?: unknown; action?: unknown };
+    if (typeof body.productId !== "string" || typeof body.action !== "string") {
+      throw new BridgeError("productId and action are required.", 400);
+    }
+    await ctx.runMutation(api.telemetry.recordInteraction, {
+      productId: body.productId,
+      action: body.action,
+    });
+    return { success: true };
+  });
+});
+
+export const liveTokenHttp = httpAction(async (ctx) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    return ctx.runAction(api.ai.liveToken.generateLiveApiToken, {});
   });
 });
 
@@ -302,6 +450,16 @@ export const setOrderReminderHttp = httpAction(async (ctx, request) => {
       orderId: body.orderId as any,
       reminderTime: body.reminderTime,
     });
+    return { success: true };
+  });
+});
+
+export const acknowledgeDeliveryHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { orderId?: unknown };
+    if (typeof body.orderId !== "string" || !body.orderId.trim()) throw new BridgeError("orderId is required.", 400);
+    await ctx.runMutation(api.commerce.checkout.acknowledgeDelivery, { orderId: body.orderId as any });
     return { success: true };
   });
 });
@@ -472,8 +630,11 @@ http.route({ path: "/api/vision/search", method: "POST", handler: visionSearchHt
 http.route({ path: "/api/media/try-on", method: "POST", handler: tryOnHttp });
 http.route({ path: "/api/discovery/search", method: "POST", handler: discoverySearchHttp });
 http.route({ path: "/api/discovery/recommendations", method: "POST", handler: discoveryRecommendationsHttp });
+http.route({ path: "/api/interactions", method: "POST", handler: recordInteractionHttp });
+http.route({ path: "/api/live/token", method: "POST", handler: liveTokenHttp });
 http.route({ path: "/api/orders", method: "GET", handler: listOrdersHttp });
 http.route({ path: "/api/orders/reminder", method: "POST", handler: setOrderReminderHttp });
+http.route({ path: "/api/orders/acknowledge", method: "POST", handler: acknowledgeDeliveryHttp });
 http.route({ path: "/api/orders/return", method: "POST", handler: requestReturnHttp });
 http.route({ path: "/api/cart", method: "GET", handler: listCartHttp });
 http.route({ path: "/api/cart/item", method: "POST", handler: addCartItemHttp });
@@ -499,8 +660,24 @@ export const listCreatorAgentsHttp = httpAction(async (ctx, request) => {
   });
 });
 
+export const generateCreatorCampaignHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { productName?: unknown; campaignGoal?: unknown; targetAudience?: unknown };
+    if (typeof body.productName !== "string" || typeof body.campaignGoal !== "string") {
+      throw new BridgeError("productName and campaignGoal are required.", 400);
+    }
+    return ctx.runAction(api.aiGeneration.generateCreatorCampaign, {
+      productName: body.productName,
+      campaignGoal: body.campaignGoal,
+      ...(typeof body.targetAudience === "string" ? { targetAudience: body.targetAudience } : {}),
+    });
+  });
+});
+
 http.route({ path: "/api/creator/templates", method: "GET", handler: listCreatorTemplatesHttp });
 http.route({ path: "/api/creator/agents", method: "GET", handler: listCreatorAgentsHttp });
+http.route({ path: "/api/creator/campaign", method: "POST", handler: generateCreatorCampaignHttp });
 
 // ---- Grocery: user-scoped shopping list -----------------------------------
 

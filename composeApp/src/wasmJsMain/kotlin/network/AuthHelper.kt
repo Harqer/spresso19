@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
+
 package network
 
 import kotlinx.coroutines.await
@@ -19,8 +21,12 @@ external fun createUserWithEmailAndPasswordFirebase(
     password: String,
 ): Promise<JsAny>
 
+external fun sendEmailVerificationFirebase(): Promise<JsAny>
+
+external fun deleteCurrentUserIdentityFirebase(): Promise<JsAny>
+
 @JsName("signInWithGoogle")
-external fun triggerGoogleSignIn()
+external fun triggerGoogleSignIn(): Promise<JsAny?>
 
 actual fun getCurrentUserUid(): String? = getFirebaseUserUid()
 
@@ -52,9 +58,25 @@ actual suspend fun createUserWithEmailAndPassword(
         false
     }
 
+actual suspend fun deleteCurrentUserIdentity(): Boolean =
+    try {
+        deleteCurrentUserIdentityFirebase().await<JsAny>()
+        true
+    } catch (e: Throwable) {
+        false
+    }
+
+actual suspend fun sendEmailVerification(): Boolean =
+    try {
+        sendEmailVerificationFirebase().await<JsAny>()
+        true
+    } catch (e: Throwable) {
+        false
+    }
+
 actual suspend fun signInWithGoogle(): Boolean =
     try {
-        triggerGoogleSignIn()
+        triggerGoogleSignIn().await<JsAny?>()
         true
     } catch (e: Throwable) {
         false

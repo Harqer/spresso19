@@ -56,11 +56,44 @@ actual suspend fun createUserWithEmailAndPassword(
         FirebaseAuth
             .getInstance()
             .createUserWithEmailAndPassword(email, password)
-            .addOnSuccessListener {
-                if (continuation.isActive) continuation.resume(true)
+            .addOnSuccessListener { result ->
+                val createdUser = result.user
+                if (createdUser == null) {
+                    if (continuation.isActive) continuation.resume(false)
+                } else {
+                    createdUser.sendEmailVerification().addOnCompleteListener {
+                        if (continuation.isActive) continuation.resume(it.isSuccessful)
+                    }
+                }
             }.addOnFailureListener {
                 if (continuation.isActive) continuation.resume(false)
             }
+    }
+
+actual suspend fun deleteCurrentUserIdentity(): Boolean =
+    suspendCancellableCoroutine { continuation ->
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            continuation.resume(true)
+            return@suspendCancellableCoroutine
+        }
+        user
+            .delete()
+            .addOnSuccessListener { if (continuation.isActive) continuation.resume(true) }
+            .addOnFailureListener { if (continuation.isActive) continuation.resume(false) }
+    }
+
+actual suspend fun sendEmailVerification(): Boolean =
+    suspendCancellableCoroutine { continuation ->
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            continuation.resume(false)
+            return@suspendCancellableCoroutine
+        }
+        user
+            .sendEmailVerification()
+            .addOnSuccessListener { if (continuation.isActive) continuation.resume(true) }
+            .addOnFailureListener { if (continuation.isActive) continuation.resume(false) }
     }
 
 actual suspend fun signInWithGoogle(): Boolean =

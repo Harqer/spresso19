@@ -58,10 +58,12 @@ fun PaymentWalletSection(
                     Icon(imageVector = Icons.Outlined.Payment, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text("Payment Methods & Wallet", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 }
-                TextButton(onClick = { onAddPaymentCard?.invoke() }) {
-                    Icon(Icons.Outlined.AddCard, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add Card", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                if (onAddPaymentCard != null) {
+                    TextButton(onClick = onAddPaymentCard) {
+                        Icon(Icons.Outlined.AddCard, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add Card", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 
@@ -154,7 +156,9 @@ fun PaymentWalletSection(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                GoogleWalletButton(onClick = { onGoogleWalletAction?.invoke() })
+                onGoogleWalletAction?.let { action ->
+                    GoogleWalletButton(onClick = action)
+                }
             }
         }
     }

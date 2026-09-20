@@ -166,12 +166,36 @@ export default defineSchema({
     displayName: v.optional(v.string()),
     photoUrl: v.optional(v.string()),
     stripeCustomerId: v.optional(v.string()),
+    coinbaseWalletAddress: v.optional(v.string()),
+    walletNetwork: v.optional(v.string()),
+    walletConnectedAt: v.optional(v.string()),
     createdAt: v.number(),
     trialStartedAt: v.optional(v.number()),
     trialEndsAt: v.optional(v.number()),
   })
     .index("by_firebase_uid", ["firebaseUid"])
     .index("by_token_identifier", ["tokenIdentifier"]),
+
+  accountDeletionOperations: defineTable({
+    tokenIdentifier: v.string(),
+    status: v.union(v.literal("QUEUED"), v.literal("RUNNING"), v.literal("COMPLETED"), v.literal("FAILED")),
+    phase: v.number(),
+    attempts: v.number(),
+    lastError: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_token_identifier", ["tokenIdentifier"])
+    .index("by_token_identifier_and_status", ["tokenIdentifier", "status"]),
+
+  interactionEvents: defineTable({
+    tokenIdentifier: v.string(),
+    productId: v.string(),
+    action: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_token_identifier", ["tokenIdentifier"])
+    .index("by_token_identifier_and_created_at", ["tokenIdentifier", "createdAt"]),
 
   aiUsage: defineTable({
     tokenIdentifier: v.string(),

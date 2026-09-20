@@ -99,22 +99,17 @@ fun GroceryListPage(
                         onClick = {
                             scope.launch {
                                 if (newItemName.isNotBlank()) {
-                                    val activeListId = listId
-                                    if (activeListId == null) {
-                                        snackbarHostState.showSnackbar("Your grocery list is unavailable right now.")
-                                        return@launch
-                                    }
                                     try {
                                         val success =
                                             apiClient.addGroceryItem(
-                                                listId = activeListId,
+                                                listId = listId.orEmpty(),
                                                 productName = newItemName,
                                                 productId = null,
                                                 addedVia = "MANUAL_INPUT",
                                             )
                                         if (success) {
                                             newItemName = ""
-                                            items = apiClient.fetchGroceryList(activeListId)
+                                            items = apiClient.fetchGroceryList(listId.orEmpty())
                                         } else {
                                             snackbarHostState.showSnackbar("Unable to add this item right now. Please try again.")
                                         }

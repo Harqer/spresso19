@@ -185,22 +185,17 @@ open class LiveApiClient {
                 connectionState = if (attempt == 0) ConnectionState.CONNECTING else ConnectionState.RECONNECTING
                 onStateChanged(connectionState)
 
-                val functionsUrl =
-                    try {
-                        SpressoConfig.cloudFunctionsBaseUrl
-                    } catch (_: Exception) {
-                        "https://us-central1-get-spresso.cloudfunctions.net"
-                    }
                 val tokenResponse =
                     client
-                        .post("$functionsUrl/generateLiveApiToken") {
+                        .post("${SpressoConfig.convexSiteUrl}/api/live/token") {
                             if (!authToken.isNullOrEmpty()) {
                                 header(HttpHeaders.Authorization, "Bearer $authToken")
                             }
                         }.bodyAsText()
-                val tokenJson = json.parseToJsonElement(tokenResponse)
+                val tokenJson = json.parseToJsonElement(tokenResponse).jsonObject
                 val ephemeralToken =
-                    tokenJson.jsonObject["token"]?.jsonPrimitive?.content ?: error("Failed to retrieve ephemeral token")
+                    tokenJson["token"]?.jsonPrimitive?.content
+                        ?: error(tokenJson["error"]?.jsonPrimitive?.content ?: "Failed to retrieve ephemeral token")
                 // Gemini Interactions Live API Endpoint
                 val wsUrl =
                     "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=$ephemeralToken"

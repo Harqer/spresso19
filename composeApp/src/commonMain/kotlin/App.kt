@@ -31,7 +31,6 @@ import components.features.creators.CreatorAgentsPage
 import components.features.creators.CreatorAgentsSection
 import components.features.creators.CreatorTemplatesSection
 import components.features.grocery.GroceryListPage
-import components.features.grocery.IngredientChecklistCard
 import components.features.onboarding.GamifiedOnboardingDialog
 import components.features.onboarding.SplashScreenPage
 import components.features.orders.OrderReturnDialog
@@ -44,8 +43,8 @@ import components.features.profile.ProfilePage
 import components.features.profile.SubscriptionMembershipRoute
 import components.features.profile.SupportPage
 import components.features.spatial.LiquidGlassCard
+import components.features.travel.QrModal
 import components.features.travel.TravelTripsPage
-import components.features.vision.SmartVisionDetectionOverlay
 import components.features.vision.SmartVisionPage
 import components.features.wardrobe.GallerySyncDisabledView
 import components.features.wardrobe.StackedWardrobeDecks
@@ -65,10 +64,9 @@ import navigation.Navigator
 import navigation.SpressoAction
 import navigation.rememberNavigationState
 import network.ApiClient
-import network.DetectedItem
 import network.LiveApiClient
 import network.ProductItem
-import network.models.GroceryItem
+import network.signOut
 import theme.AppTheme
 import theme.ThemeMode
 import ui.rememberImagePicker
@@ -104,6 +102,7 @@ fun App(
     onVerifyEmailRequested: () -> Unit = {},
     externalNavKey: NavKey? = null,
     isAuthLoading: Boolean = false,
+    isEmailVerificationRequired: Boolean = false,
     currentLatLng: Pair<Double, Double>? = null,
     onRequestLocationPermission: () -> Unit = {},
 ) {
@@ -135,11 +134,16 @@ fun App(
         var lastHandledLink by remember { mutableStateOf<NavKey?>(null) }
         var lastHandledLinkUid by remember { mutableStateOf<String?>(null) }
 
-        LaunchedEffect(currentUserUid, externalNavKey) {
+        LaunchedEffect(currentUserUid, isEmailVerificationRequired, externalNavKey) {
             if (currentUserUid == null) {
                 if (!hasShownAuthGate) {
                     hasShownAuthGate = true
                     navigator.resetTo(NavKey.AuthKey)
+                }
+            } else if (isEmailVerificationRequired) {
+                if (!hasShownAuthGate) {
+                    hasShownAuthGate = true
+                    navigator.resetTo(NavKey.EmailVerificationKey)
                 }
             } else {
                 hasShownAuthGate = false
@@ -182,8 +186,12 @@ fun App(
         val pickImage =
             rememberImagePicker(
                 onFrameCaptured = { frameBytes ->
-                    // Routine live vision is handled on-device through ML Kit.
-                    // Full image upload remains explicit through the image picker.
+                    if (isVoiceRecording) {
+                        scope.launch {
+                            @OptIn(ExperimentalEncodingApi::class)
+                            liveApiClient.sendVideoFrame(Base64.encode(frameBytes))
+                        }
+                    }
                 },
                 onVisionContextCaptured = { context ->
                     if (isVoiceRecording && context.isNotBlank() && context != lastVisionContext) {
@@ -283,7 +291,10 @@ fun App(
                             apiClient = apiClient,
                             themeMode = themeMode,
                             onThemeModeChange = { themeMode = it },
-                            onSignOut = { navigator.resetTo(NavKey.AuthKey) },
+                            onSignOut = {
+                                signOut()
+                                navigator.resetTo(NavKey.AuthKey)
+                            },
                             onVerifyEmail = onVerifyEmailRequested,
                             onNavigateToWearables = { navigator.navigate(NavKey.MetaWearablesKey) },
                         )
@@ -314,12 +325,18 @@ fun App(
                             onAddToCart = { product ->
                                 scope.launch {
                                     try {
+                                        val added = convexApi.addCartItem(product, quantity = 1)
+                                        if (!added) {
+                                            errorMessage = "Unable to save this listing to your cart. Please try again."
+                                            return@launch
+                                        }
                                         apiClient.recordInteraction(product.id, "add_to_cart")
-                                    } catch (_: Exception) {
+                                        catalogViewModel.initiateCheckout(product)
+                                        navigator.navigate(NavKey.HITLCheckoutKey)
+                                    } catch (error: Exception) {
+                                        errorMessage = error.message ?: "Unable to add this listing to your cart. Please try again."
                                     }
                                 }
-                                catalogViewModel.initiateCheckout(product)
-                                navigator.navigate(NavKey.HITLCheckoutKey)
                             },
                             onSelectTryOn = { product ->
                                 activeProductId = product.id
@@ -578,43 +595,17 @@ fun App(
                             },
                         )
                     }
-                    entry<NavKey.SmartVisionDetectionKey> { currentDestinationKey ->
-                        var detectedItem by remember { mutableStateOf<DetectedItem?>(null) }
-                        var loadError by remember { mutableStateOf<String?>(null) }
-
-                        LaunchedEffect(Unit) {
-                            try {
-                                detectedItem = apiClient.fetchDetection("latest")
-                            } catch (e: Exception) {
-                                loadError = "Failed to load detection details"
-                            }
-                        }
-
-                        val currentDetection = detectedItem
-                        if (currentDetection != null) {
-                            SmartVisionDetectionOverlay(
-                                item = currentDetection,
-                                matchedProduct = null,
-                                width = 300.dp,
-                                height = 400.dp,
-                                apiClient = apiClient,
-                                onSelectProduct = { id ->
-                                    activeProductId = id
-                                    navigator.navigate(NavKey.CatalogKey)
-                                },
-                                onHitlCheckout = {
-                                    navigator.navigate(NavKey.HITLCheckoutKey)
-                                },
-                            )
-                        } else if (loadError != null) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text(loadError!!, color = MaterialTheme.colorScheme.error)
-                            }
-                        } else {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
-                            }
-                        }
+                    entry<NavKey.SmartVisionDetectionKey> {
+                        SmartVisionPage(
+                            apiClient = apiClient,
+                            onSelectProduct = { productId ->
+                                activeProductId = productId
+                                navigator.navigate(NavKey.ProductDetailKey(productId))
+                            },
+                            onAskAI = { prompt ->
+                                navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
+                            },
+                        )
                     }
 
                     // 6. Grocery & Ingredients Flow
@@ -627,62 +618,12 @@ fun App(
                         )
                     }
                     entry<NavKey.IngredientChecklistKey> { currentDestinationKey ->
-                        var sampleGrocery by remember { mutableStateOf<GroceryItem?>(null) }
-                        var loadError by remember { mutableStateOf<String?>(null) }
-
-                        LaunchedEffect(currentDestinationKey.recipeName) {
-                            try {
-                                sampleGrocery = apiClient.fetchRecipe(currentDestinationKey.recipeName)
-                            } catch (e: Exception) {
-                                loadError = "Failed to load recipe ingredients"
-                            }
-                        }
-
-                        val currentGrocery = sampleGrocery
-                        if (currentGrocery != null) {
-                            IngredientChecklistCard(
-                                item = currentGrocery,
-                                onToggle = { itemId ->
-                                    scope.launch {
-                                        try {
-                                            if (apiClient.toggleGroceryItem(itemId, !currentGrocery.checked)) {
-                                                sampleGrocery = currentGrocery.copy(checked = !currentGrocery.checked)
-                                            } else {
-                                                loadError = "Unable to update this ingredient. Please try again."
-                                            }
-                                        } catch (e: Exception) {
-                                            loadError = "Unable to update this ingredient. Please try again."
-                                        }
-                                    }
-                                },
-                                onDelete = { itemId ->
-                                    scope.launch {
-                                        try {
-                                            if (apiClient.deleteGroceryItem(itemId)) {
-                                                navigator.goBack()
-                                            } else {
-                                                loadError = "Unable to remove this ingredient. Please try again."
-                                            }
-                                        } catch (e: Exception) {
-                                            loadError = "Unable to remove this ingredient. Please try again."
-                                        }
-                                    }
-                                },
-                                onAskAI = {
-                                    navigator.navigate(
-                                        NavKey.ChatKey(initialPrompt = "Suggest recipes for ${currentGrocery.name}"),
-                                    )
-                                },
-                            )
-                        } else if (loadError != null) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text(loadError!!, color = MaterialTheme.colorScheme.error)
-                            }
-                        } else {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
-                            }
-                        }
+                        GroceryListPage(
+                            apiClient = apiClient,
+                            onAskAI = { prompt ->
+                                navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
+                            },
+                        )
                     }
 
                     // 7. Orders & Checkout Flow
@@ -790,6 +731,14 @@ fun App(
                             },
                         )
                     }
+                    entry<NavKey.TravelQrModalKey> { currentDestinationKey ->
+                        QrModal(
+                            title = currentDestinationKey.eventTitle,
+                            location = currentDestinationKey.eventLocation,
+                            qrData = currentDestinationKey.qrData,
+                            onClose = { navigator.goBack() },
+                        )
+                    }
 
                     // 10. Profile & Account Settings Flow
                     entry<NavKey.ProfileKey> { currentDestinationKey ->
@@ -800,6 +749,7 @@ fun App(
                             themeMode = themeMode,
                             onThemeModeChange = { themeMode = it },
                             onSignOut = {
+                                signOut()
                                 navigator.replace(NavKey.AuthKey)
                             },
                             onVerifyEmail = onVerifyEmailRequested,
@@ -820,7 +770,10 @@ fun App(
                             apiClient = apiClient,
                             themeMode = themeMode,
                             onThemeModeChange = { themeMode = it },
-                            onSignOut = { navigator.resetTo(NavKey.AuthKey) },
+                            onSignOut = {
+                                signOut()
+                                navigator.resetTo(NavKey.AuthKey)
+                            },
                             onVerifyEmail = onVerifyEmailRequested,
                             onNavigateToFavorites = {
                                 navigator.navigate(ActionDestination.resolve(SpressoAction.OpenSavedListings))
@@ -864,8 +817,9 @@ fun App(
                             batteryPercent = 0,
                             glassesModelName = "Meta smart glasses",
                             isCameraStreaming = false,
-                            onPairClick = {},
-                            onStartHandsFreeCheckout = {},
+                            onStartHandsFreeCheckout = {
+                                navigator.navigate(NavKey.HITLCheckoutKey)
+                            },
                             onDismiss = { navigator.goBack() },
                             modifier = Modifier,
                         )

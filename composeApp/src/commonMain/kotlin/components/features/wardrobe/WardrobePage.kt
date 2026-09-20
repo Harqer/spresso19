@@ -35,15 +35,31 @@ fun WardrobePage(
         scope.launch {
             try {
                 val items = convexApi.fetchWardrobeItems()
-                photos =
+                val savedListings = convexApi.fetchSavedListings()
+                val wardrobePhotos =
                     items.map { item ->
-                        components.features.wardrobe.WardrobePhotoItem(
+                        WardrobePhotoItem(
                             id = item.id,
                             title = item.brand ?: item.category,
                             category = item.category,
                             photoUrl = item.imageUrl,
+                            tryOnProductId = item.productId,
                         )
                     }
+                val bookmarkedListings =
+                    savedListings.mapNotNull { saved ->
+                        val listing = saved.listing ?: return@mapNotNull null
+                        val imageUrl = listing.imageUrl ?: return@mapNotNull null
+                        WardrobePhotoItem(
+                            id = "saved:${saved.productId}",
+                            title = listing.name,
+                            category = listing.category ?: "Saved listing",
+                            photoUrl = imageUrl,
+                            isFavorite = true,
+                            tryOnProductId = saved.productId,
+                        )
+                    }
+                photos = wardrobePhotos + bookmarkedListings
             } catch (e: Exception) {
                 snackbarHostState.showSnackbar("Unable to load your wardrobe. Please try again.")
             }
@@ -141,8 +157,9 @@ fun WardrobePage(
                     onAddPhotoClick = {
                         imagePicker()
                     },
+                    onOpenLens = onOpenLens,
                     onTryOnPhoto = { photo ->
-                        onNavigateToTryOn(photo.id)
+                        photo.tryOnProductId?.let(onNavigateToTryOn)
                     },
                 )
             }

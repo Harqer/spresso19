@@ -121,6 +121,13 @@ sealed interface NavKey : AndroidXNavKey {
     @Serializable
     data object TravelKey : NavKey
 
+    @Serializable
+    data class TravelQrModalKey(
+        val eventTitle: String,
+        val eventLocation: String,
+        val qrData: String,
+    ) : NavKey
+
     // 10. Profile & Account Settings Flow
     @Serializable
     data object ProfileKey : NavKey

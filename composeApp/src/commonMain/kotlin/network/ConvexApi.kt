@@ -15,6 +15,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.delay
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -96,6 +97,10 @@ private fun JsonObject.toWardrobeItemData(): WardrobeItemData? {
         brand = this["brand"]?.jsonPrimitive?.contentOrNull,
         imageUrl = image,
         color = this["color"]?.jsonPrimitive?.contentOrNull,
+        kind = this["kind"]?.jsonPrimitive?.contentOrNull ?: "user_upload",
+        productId = this["productId"]?.jsonPrimitive?.contentOrNull,
+        mediaAssetId = this["mediaAssetId"]?.jsonPrimitive?.contentOrNull,
+        mediaKey = this["mediaKey"]?.jsonPrimitive?.contentOrNull,
     )
 }
 
@@ -134,6 +139,175 @@ class ConvexApi(
                 setBody(body.toString())
             }
         return response.requireBody()
+    }
+
+    suspend fun fetchCurrentUser(): JsonObject? {
+        val body = get("/api/account/me")
+        if (body == "null") return null
+        return json.parseToJsonElement(body).jsonObject
+    }
+
+    suspend fun fetchPaymentMethods(): List<JsonObject> {
+        val response = json.parseToJsonElement(get("/api/payment-methods")).jsonObject
+        return response["paymentMethods"]?.jsonArray?.map { it.jsonObject }.orEmpty()
+    }
+
+    suspend fun attachPaymentMethod(stripePaymentMethodId: String): JsonObject {
+        require(stripePaymentMethodId.matches(Regex("^pm_[A-Za-z0-9]{8,}$"))) { "A valid Stripe PaymentMethod ID is required." }
+        return json
+            .parseToJsonElement(
+                post("/api/payment-methods/attach", buildJsonObject { put("stripePaymentMethodId", stripePaymentMethodId) }),
+            ).jsonObject
+    }
+
+    suspend fun detachPaymentMethod(recordId: String): Boolean {
+        val response =
+            json
+                .parseToJsonElement(
+                    post("/api/payment-methods/detach", buildJsonObject { put("recordId", recordId) }),
+                ).jsonObject
+        return response["success"]?.jsonPrimitive?.boolean == true
+    }
+
+    suspend fun connectCoinbaseWallet(address: String): Boolean {
+        val response =
+            json
+                .parseToJsonElement(
+                    post(
+                        "/api/account/wallet/coinbase",
+                        buildJsonObject {
+                            put("address", address)
+                            put("network", "base")
+                        },
+                    ),
+                ).jsonObject
+        return response["success"]?.jsonPrimitive?.boolean == true
+    }
+
+    suspend fun generateCreatorCampaign(
+        productName: String,
+        campaignGoal: String,
+        targetAudience: String? = null,
+    ): JsonObject {
+        val response =
+            json
+                .parseToJsonElement(
+                    post(
+                        "/api/creator/campaign",
+                        buildJsonObject {
+                            put("productName", productName)
+                            put("campaignGoal", campaignGoal)
+                            if (!targetAudience.isNullOrBlank()) put("targetAudience", targetAudience)
+                        },
+                    ),
+                ).jsonObject
+        return response["campaign"]?.jsonObject ?: response
+    }
+
+    suspend fun updateCurrentUserProfile(
+        displayName: String,
+        photoUrl: String?,
+    ): Boolean {
+        post(
+            "/api/account/profile",
+            buildJsonObject {
+                put("displayName", displayName)
+                if (!photoUrl.isNullOrBlank()) put("photoUrl", photoUrl)
+            },
+        )
+        return true
+    }
+
+    suspend fun bootstrapCurrentUser(
+        email: String?,
+        displayName: String?,
+    ): String {
+        val response =
+            json
+                .parseToJsonElement(
+                    post(
+                        "/api/account/bootstrap",
+                        buildJsonObject {
+                            if (!email.isNullOrBlank()) put("email", email)
+                            if (!displayName.isNullOrBlank()) put("displayName", displayName)
+                        },
+                    ),
+                ).jsonObject
+        return response["userId"]?.jsonPrimitive?.content ?: error("Account bootstrap returned no user id.")
+    }
+
+    suspend fun requestAccountDeletion(): String {
+        val response = json.parseToJsonElement(post("/api/account/delete", buildJsonObject { })).jsonObject
+        return response["operationId"]?.jsonPrimitive?.content ?: error("Account deletion was not queued.")
+    }
+
+    suspend fun waitForAccountDeletion(
+        operationId: String,
+        maxAttempts: Int = 40,
+        intervalMillis: Long = 500,
+    ): String {
+        require(operationId.isNotBlank()) { "Account deletion operation is required." }
+        require(maxAttempts in 1..120) { "Account deletion polling limit is invalid." }
+        require(intervalMillis in 100..5_000) { "Account deletion polling interval is invalid." }
+        repeat(maxAttempts) { attempt ->
+            val response = json.parseToJsonElement(get("/api/account/delete")).jsonObject
+            val currentId = response["_id"]?.jsonPrimitive?.contentOrNull
+            val status = response["status"]?.jsonPrimitive?.contentOrNull
+            if (currentId == operationId && status == "COMPLETED") return status
+            if (currentId == operationId && status == "FAILED") {
+                val detail = response["lastError"]?.jsonPrimitive?.contentOrNull.orEmpty()
+                error(detail.ifBlank { "Account deletion failed." })
+            }
+            if (attempt < maxAttempts - 1) delay(intervalMillis)
+        }
+        error("Account deletion is still processing. Identity was not removed; try again later.")
+    }
+
+    suspend fun fetchPreferences(): JsonObject? {
+        val body = get("/api/account/preferences")
+        if (body == "null") return null
+        return json.parseToJsonElement(body).jsonObject
+    }
+
+    suspend fun setPreferences(
+        onboardingCompleted: Boolean? = null,
+        pushNotifications: Boolean? = null,
+        fitPreference: String? = null,
+        height: String? = null,
+        weight: String? = null,
+        searchInquiries: List<String>? = null,
+        vibes: List<String>? = null,
+    ) {
+        post(
+            "/api/account/preferences",
+            buildJsonObject {
+                onboardingCompleted?.let { put("onboardingCompleted", it) }
+                pushNotifications?.let { put("pushNotifications", it) }
+                fitPreference?.let { put("fitPreference", it) }
+                height?.let { put("height", it) }
+                weight?.let { put("weight", it) }
+                searchInquiries?.let {
+                    put(
+                        "searchInquiries",
+                        kotlinx.serialization.json.buildJsonArray {
+                            it.forEach { value ->
+                                add(kotlinx.serialization.json.JsonPrimitive(value))
+                            }
+                        },
+                    )
+                }
+                vibes?.let {
+                    put(
+                        "vibes",
+                        kotlinx.serialization.json.buildJsonArray {
+                            it.forEach { value ->
+                                add(kotlinx.serialization.json.JsonPrimitive(value))
+                            }
+                        },
+                    )
+                }
+            },
+        )
     }
 
     @OptIn(ExperimentalEncodingApi::class)
@@ -371,10 +545,33 @@ class ConvexApi(
         } ?: emptyList()
     }
 
+    suspend fun recordInteraction(
+        productId: String,
+        action: String,
+    ): Boolean {
+        require(productId.isNotBlank()) { "Interaction subject is required." }
+        require(action.isNotBlank()) { "Interaction action is required." }
+        val response =
+            json
+                .parseToJsonElement(
+                    post(
+                        "/api/interactions",
+                        buildJsonObject {
+                            put("productId", productId)
+                            put("action", action)
+                        },
+                    ),
+                ).jsonObject
+        return response["success"]?.jsonPrimitive?.boolean == true
+    }
+
     /** Resolve a known external listing by asking providers; never queries local inventory. */
     suspend fun fetchProductById(productId: String): ProductItem? {
+        require(productId.isNotBlank()) { "External listing id is required." }
         val products = searchProducts(productId)
-        return products.firstOrNull { it.id == productId || it.providerListingId == productId } ?: products.firstOrNull()
+        // Never substitute an unrelated search result for a requested listing.
+        // A wrong garment can lead to an incorrect try-on or purchase flow.
+        return products.firstOrNull { it.id == productId || it.providerListingId == productId }
     }
 
     // ---- Saved listings: durable user bookmarks ---------------------------
@@ -384,6 +581,55 @@ class ConvexApi(
         return response["items"]?.jsonArray?.mapNotNull { element ->
             runCatching { json.decodeFromString<SavedListingRecord>(element.toString()) }.getOrNull()
         } ?: emptyList()
+    }
+
+    suspend fun addCartItem(
+        product: ProductItem,
+        quantity: Int,
+    ): Boolean {
+        require(quantity in 1..25) { "Cart quantity must be between 1 and 25." }
+        val merchantUrl = product.merchantUrl ?: throw IllegalArgumentException("A merchant URL is required to add a listing to the cart.")
+        val source = product.source ?: "parallel"
+        require(source in setOf("parallel", "serpapi", "apify", "kitesurf")) { "Unsupported listing source." }
+        val listing =
+            DiscoveredListing(
+                id = product.id,
+                name = product.name,
+                brand = product.brand.ifBlank { null },
+                category = product.category.ifBlank { null },
+                imageUrl = product.imageUrl.ifBlank { null },
+                merchantUrl = merchantUrl,
+                source = source,
+                providerListingId = product.providerListingId,
+                observedPrice = product.price?.let { ObservedPrice(it, "USD", merchantUrl) },
+                discoveredAt =
+                    kotlin.time.Clock.System
+                        .now()
+                        .toString(),
+            )
+        val response =
+            json
+                .parseToJsonElement(
+                    post(
+                        "/api/cart/item",
+                        buildJsonObject {
+                            put("productId", product.id)
+                            put("listing", json.parseToJsonElement(json.encodeToString(listing)))
+                            put("quantity", quantity)
+                        },
+                    ),
+                ).jsonObject
+        return response["success"]?.jsonPrimitive?.boolean == true
+    }
+
+    suspend fun fetchCartItemCount(): Int {
+        val response = json.parseToJsonElement(get("/api/cart?limit=100")).jsonObject
+        return response["items"]?.jsonArray?.sumOf {
+            it.jsonObject["quantity"]
+                ?.jsonPrimitive
+                ?.content
+                ?.toIntOrNull() ?: 0
+        } ?: 0
     }
 
     suspend fun setSavedProduct(
@@ -599,6 +845,16 @@ class ConvexApi(
         } ?: emptyList()
     }
 
+    suspend fun acknowledgeDelivery(orderId: String): Boolean {
+        require(orderId.isNotBlank()) { "Order ID is required." }
+        val response =
+            json
+                .parseToJsonElement(
+                    post("/api/orders/acknowledge", buildJsonObject { put("orderId", orderId) }),
+                ).jsonObject
+        return response["success"]?.jsonPrimitive?.boolean == true
+    }
+
     suspend fun setOrderReminder(
         orderId: String,
         reminderTime: String,
@@ -679,7 +935,7 @@ class ConvexApi(
     }
 
     suspend fun fetchTripDetail(tripId: String): ConvexTripDetail? {
-        val response = json.parseToJsonElement(get("/api/travel/detail?tripId=$tripId")).jsonObject
+        val response = json.parseToJsonElement(get("/api/travel/detail?tripId=${tripId.encodeURLParameter()}")).jsonObject
         return runCatching { json.decodeFromString<ConvexTripDetail>(response.toString()) }.getOrNull()
     }
 

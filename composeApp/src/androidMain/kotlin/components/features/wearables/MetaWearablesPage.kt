@@ -82,7 +82,6 @@ actual fun MetaWearablesPage(
     batteryPercent: Int,
     glassesModelName: String,
     isCameraStreaming: Boolean,
-    onPairClick: () -> Unit,
     onStartHandsFreeCheckout: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier,
@@ -187,7 +186,6 @@ actual fun MetaWearablesPage(
                     pendingExperience = null
                 } else {
                     registrationStartedForRequest = true
-                    onPairClick()
                     Wearables.startRegistration(currentActivity)
                 }
             }

@@ -1,8 +1,10 @@
 import { convexTest } from "convex-test";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { api } from "./_generated/api";
 import { internal } from "./_generated/api";
 import schema from "./schema";
+import agent from "@convex-dev/agent/test";
+import rateLimiter from "@convex-dev/rate-limiter/test";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -26,6 +28,8 @@ async function bootstrapAs(t: ReturnType<typeof convexTest>, identity: typeof ow
 
 test("profile update is authenticated, owner-scoped, and visible only to its owner", async () => {
   const t = convexTest(schema, modules);
+  agent.register(t);
+  rateLimiter.register(t);
   await bootstrapAs(t, owner);
   await bootstrapAs(t, other);
 
@@ -43,6 +47,8 @@ test("profile update is authenticated, owner-scoped, and visible only to its own
 
 test("entitlement is derived from the trial window and never client-writable", async () => {
   const t = convexTest(schema, modules);
+  agent.register(t);
+  rateLimiter.register(t);
   await bootstrapAs(t, owner);
 
   const entitlement = await t.withIdentity(owner).query(api.users.getEntitlement, {});
@@ -64,6 +70,8 @@ test("entitlement is derived from the trial window and never client-writable", a
 
 test("preferences persist onboarding vibes and avatar media key", async () => {
   const t = convexTest(schema, modules);
+  agent.register(t);
+  rateLimiter.register(t);
   await bootstrapAs(t, owner);
 
   await t.withIdentity(owner).mutation(api.reactiveState.setPreferences, {
@@ -89,6 +97,8 @@ test("preferences persist onboarding vibes and avatar media key", async () => {
 
 test("deactivation purges every owner-scoped table, retains orders, and isolates other users", async () => {
   const t = convexTest(schema, modules);
+  agent.register(t);
+  rateLimiter.register(t);
   const ownerId = await bootstrapAs(t, owner);
   const otherId = await bootstrapAs(t, other);
 
@@ -166,6 +176,12 @@ test("deactivation purges every owner-scoped table, retains orders, and isolates
   await t.withIdentity(other).mutation(api.reactiveState.setSavedProduct, { productId: "p-other", saved: true });
 
   await t.withIdentity(owner).mutation(api.users.deactivateAccount, {});
+  vi.useFakeTimers();
+  try {
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  } finally {
+    vi.useRealTimers();
+  }
 
   // Owner data purged; order retained as a financial record.
   await t.run(async (ctx) => {

@@ -6,12 +6,9 @@ import androidx.appfunctions.AppFunctionInvalidArgumentException
 import androidx.appfunctions.AppFunctionSerializable
 import androidx.appfunctions.AppFunctionService
 import androidx.appfunctions.AppFunctionServiceEntryPoint
-import com.spresso.dataconnect.SpressoConnectorConnector
-import com.spresso.dataconnect.execute
-import com.spresso.dataconnect.instance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import network.callFirebaseFunction
+import network.ConvexApi
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -149,7 +146,20 @@ data class SearchProductsResult(
 )
 abstract class BaseSpressoAppFunctionService : AppFunctionService() {
     private suspend fun requireOrder(orderId: String): JSONObject {
-        val response = JSONObject(callFirebaseFunction("getUserOrders", "{}"))
+        val response =
+            JSONObject().put(
+                "orders",
+                JSONArray(
+                    ConvexApi().fetchOrders().map { order ->
+                        JSONObject().apply {
+                            put("id", order.id)
+                            put("status", order.status)
+                            put("trackingStatus", order.trackingStatus)
+                            put("estimatedDelivery", order.estimatedDelivery)
+                        }
+                    },
+                ),
+            )
         val orders = response.optJSONArray("orders") ?: JSONArray()
         for (index in 0 until orders.length()) {
             val order = orders.optJSONObject(index) ?: continue
@@ -184,29 +194,13 @@ abstract class BaseSpressoAppFunctionService : AppFunctionService() {
                 throw AppFunctionInvalidArgumentException("Size must be Small, Medium, or Large")
             }
 
-            val query = "${params.size} ${params.coffeeType}".lowercase()
-            val products =
-                SpressoConnectorConnector.instance.listProducts
-                    .execute()
-                    .data.products
+            val query = "${params.size} ${params.coffeeType}".trim()
+            val api = ConvexApi()
             val product =
-                products.firstOrNull {
-                    val searchable = "${it.name} ${it.brand} ${it.category} ${it.description.orEmpty()}".lowercase()
-                    params.coffeeType.lowercase() in searchable || query in searchable
-                } ?: throw AppFunctionInvalidArgumentException("No matching coffee is currently available in the catalog")
-            val result =
-                JSONObject(
-                    callFirebaseFunction(
-                        "addToCart",
-                        JSONObject()
-                            .put("productId", product.id)
-                            .put("quantity", 1)
-                            .put("idempotencyKey", UUID.randomUUID().toString())
-                            .toString(),
-                    ),
-                )
-            if (!result.optBoolean("success")) {
-                error("The item could not be added to the cart")
+                api.searchProducts(query).firstOrNull()
+                    ?: throw AppFunctionInvalidArgumentException("No current external listing matched the coffee request")
+            if (!api.addCartItem(product, 1)) {
+                throw AppFunctionInvalidArgumentException("The listing could not be added to your cart")
             }
 
             CoffeeOrderResult(
@@ -232,18 +226,21 @@ abstract class BaseSpressoAppFunctionService : AppFunctionService() {
                 throw AppFunctionInvalidArgumentException("A secure wardrobe image URL is required")
             }
 
-            val mutation =
-                SpressoConnectorConnector.instance.addWardrobeItem.execute(
+            val itemId = UUID.randomUUID().toString()
+            val saved =
+                ConvexApi().addWardrobeItem(
+                    clientId = itemId,
+                    kind = "user_upload",
+                    name = params.itemName,
                     category = params.category,
-                    imageUrl = params.imageUrl,
-                ) {
-                    brand = params.itemName
-                    color = params.color
-                }
+                    weatherSuitability = "ALL_WEATHER",
+                    image = params.imageUrl,
+                    brand = params.itemName,
+                    color = params.color,
+                )
+            if (!saved) throw AppFunctionInvalidArgumentException("The wardrobe item could not be saved")
             SaveWardrobeItemResult(
-                itemId =
-                    mutation.data.wardrobeItem_insert.id
-                        .toString(),
+                itemId = itemId,
                 confirmationMessage = "Saved ${params.itemName} to your ${params.category.lowercase()} items.",
             )
         }
@@ -303,18 +300,9 @@ abstract class BaseSpressoAppFunctionService : AppFunctionService() {
             }
 
             requireOrder(params.orderId)
-            val result =
-                JSONObject(
-                    callFirebaseFunction(
-                        "acknowledgeDelivery",
-                        JSONObject()
-                            .put("orderId", params.orderId)
-                            .put("feedback", params.feedback)
-                            .put("idempotencyKey", UUID.randomUUID().toString())
-                            .toString(),
-                    ),
-                )
-            error("Delivery acknowledgement failed")
+            if (!ConvexApi().acknowledgeDelivery(params.orderId)) {
+                throw AppFunctionInvalidArgumentException("Delivery acknowledgement failed")
+            }
             AcknowledgeDeliveryResult(confirmationMessage = "Thanks — delivery for ${params.orderId} is confirmed.")
         }
 
@@ -334,21 +322,16 @@ abstract class BaseSpressoAppFunctionService : AppFunctionService() {
                 throw AppFunctionInvalidArgumentException("Quantity must be greater than zero")
             }
 
-            val result =
-                JSONObject(
-                    callFirebaseFunction(
-                        "addToCart",
-                        JSONObject()
-                            .put("productId", params.itemId)
-                            .put("quantity", params.quantity)
-                            .put("idempotencyKey", UUID.randomUUID().toString())
-                            .toString(),
-                    ),
-                )
-            error("The cart could not be updated")
+            val api = ConvexApi()
+            val product =
+                api.fetchProductById(params.itemId)
+                    ?: throw AppFunctionInvalidArgumentException("The external listing could not be found")
+            if (!api.addCartItem(product, params.quantity)) {
+                throw AppFunctionInvalidArgumentException("The cart could not be updated")
+            }
             AddToCartResult(
-                confirmationMessage = "Added ${params.quantity} to your cart.",
-                totalItems = result.getInt("totalItems"),
+                confirmationMessage = "Added ${params.quantity} of ${product.name} to your cart.",
+                totalItems = api.fetchCartItemCount(),
             )
         }
 
@@ -365,21 +348,14 @@ abstract class BaseSpressoAppFunctionService : AppFunctionService() {
                 throw AppFunctionInvalidArgumentException("Search query must not be empty")
             }
 
-            val query = params.query.trim().lowercase()
-            val products =
-                SpressoConnectorConnector.instance.listProducts
-                    .execute()
-                    .data.products
-                    .filter {
-                        "${it.name} ${it.brand} ${it.category} ${it.description.orEmpty()}".lowercase().contains(query)
-                    }.take(5)
+            val products = ConvexApi().searchProducts(params.query.trim()).take(5)
             SearchProductsResult(
                 resultsDescription =
                     if (products.isEmpty()) {
                         "I couldn’t find a current catalog match for ${params.query}."
                     } else {
                         products.joinToString(separator = "; ") {
-                            "id=${it.id}; ${it.name} by ${it.brand}, \$${"%.2f".format(it.price)}"
+                            "id=${it.id}; ${it.name} by ${it.brand}, \$${"%.2f".format(it.price ?: 0.0)}"
                         }
                     },
             )

@@ -116,6 +116,19 @@ export const setOrderReminder = mutation({
   },
 });
 
+export const acknowledgeDelivery = mutation({
+  args: { orderId: v.id("orders") }, returns: v.null(),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const existing = await ctx.db.get(args.orderId);
+    if (!existing || existing.tokenIdentifier !== identity.tokenIdentifier) throw new Error("Order not found.");
+    if (existing.status !== "DELIVERED") {
+      await ctx.db.patch(args.orderId, { status: "DELIVERED", trackingStatus: "DELIVERED" });
+    }
+    return null;
+  },
+});
+
 export const requestReturn = mutation({
   args: { orderId: v.id("orders"), reason: v.string(), idempotencyKey: v.string() }, returns: v.null(),
   handler: async (ctx, args) => {
