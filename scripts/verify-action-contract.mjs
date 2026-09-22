@@ -16,36 +16,15 @@ const REQUIRED_ACTIONS = new Set([
   "orders-refresh",
   "passkey-registration",
 ]);
-const EXPORT_TRANSPORTS = new Set(["firebase-callable", "firebase-http"]);
 
-async function resolveModule(modulePath) {
-  for (const candidate of [`${modulePath}.ts`, path.join(modulePath, "index.ts")]) {
-    try {
-      await fs.access(candidate);
-      return candidate;
-    } catch {
-      // Try the next TypeScript module shape.
-    }
-  }
-  return null;
+async function loadBridgeRoutes(repoRoot) {
+  const source = await fs.readFile(path.join(repoRoot, "convex/http.ts"), "utf8");
+  return new Set(
+    [...source.matchAll(/http\.route\(\{\s*path:\s*["']([^"']+)["']/g)].map((match) => match[1]),
+  );
 }
 
-async function collectExportedFunctions(entryFile, visited = new Set()) {
-  if (visited.has(entryFile)) return new Set();
-  visited.add(entryFile);
-  const source = await fs.readFile(entryFile, "utf8");
-  const exported = new Set([...source.matchAll(/export\s+(?:const|function|class)\s+([A-Za-z_$][\w$]*)/g)].map(match => match[1]));
-  const exportAll = /export\s+(?:\*|\{[^}]*\})\s+from\s+["'](.+?)["']/g;
-  for (const match of source.matchAll(exportAll)) {
-    if (!match[1].startsWith(".")) continue;
-    const target = await resolveModule(path.resolve(path.dirname(entryFile), match[1]));
-    if (!target) continue;
-    for (const name of await collectExportedFunctions(target, visited)) exported.add(name);
-  }
-  return exported;
-}
-
-export function validateActionContract(contract, { exportedFunctions }) {
+export function validateActionContract(contract, { bridgeRoutes }) {
   const errors = [];
   if (!contract || contract.version !== 1 || !Array.isArray(contract.actions)) {
     return ["Action contract must contain version 1 and an actions array."];
@@ -75,13 +54,21 @@ export function validateActionContract(contract, { exportedFunctions }) {
       errors.push(`${action.id} must declare a transport kind.`);
       continue;
     }
-    if (EXPORT_TRANSPORTS.has(transport.kind)) {
-      if (typeof transport.export !== "string" || !transport.export.trim()) {
-        errors.push(`${action.id} must name a Firebase export.`);
-      } else if (!exportedFunctions.has(transport.export)) {
-        errors.push(`${action.id} transport export ${transport.export} is not exported by functions/src/index.ts.`);
+    if (transport.kind === "convex-bridge") {
+      if (typeof transport.route !== "string" || !transport.route.startsWith("/api/")) {
+        errors.push(`${action.id} must name a Convex bridge /api/ route.`);
+      } else if (bridgeRoutes && !bridgeRoutes.has(transport.route)) {
+        errors.push(`${action.id} transport route ${transport.route} is not registered in convex/http.ts.`);
       }
-    } else if (!["dataconnect", "platform", "external-url"].includes(transport.kind)) {
+    } else if (transport.kind === "external-url") {
+      if (typeof transport.destination !== "string" || !transport.destination.trim()) {
+        errors.push(`${action.id} must name an external destination.`);
+      }
+    } else if (transport.kind === "platform") {
+      if (typeof transport.operation !== "string" || !transport.operation.trim()) {
+        errors.push(`${action.id} must name a platform operation.`);
+      }
+    } else {
       errors.push(`${action.id} has unsupported transport kind ${transport.kind}.`);
     }
   }
@@ -94,14 +81,13 @@ export function validateActionContract(contract, { exportedFunctions }) {
 
 export async function verifyActionContract(repoRoot) {
   const contractPath = path.join(repoRoot, "contracts/ui-actions.json");
-  const rootExport = path.join(repoRoot, "functions/src/index.ts");
-  const [contractSource, exportedFunctions] = await Promise.all([
+  const [contractSource, bridgeRoutes] = await Promise.all([
     fs.readFile(contractPath, "utf8"),
-    collectExportedFunctions(rootExport),
+    loadBridgeRoutes(repoRoot),
   ]);
-  const errors = validateActionContract(JSON.parse(contractSource), { exportedFunctions });
+  const errors = validateActionContract(JSON.parse(contractSource), { bridgeRoutes });
   if (errors.length) throw new Error(errors.join("\n"));
-  return { actionCount: REQUIRED_ACTIONS.size, exportCount: exportedFunctions.size };
+  return { actionCount: REQUIRED_ACTIONS.size, routeCount: bridgeRoutes.size };
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -109,7 +95,7 @@ if (isMain) {
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   try {
     const result = await verifyActionContract(repoRoot);
-    console.log(`Verified ${result.actionCount} UI actions against ${result.exportCount} Functions exports.`);
+    console.log(`Verified ${result.actionCount} UI actions against ${result.routeCount} Convex bridge routes.`);
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
     process.exitCode = 1;

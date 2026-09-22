@@ -6,9 +6,7 @@ import { randomUUID } from "node:crypto";
 
 const pubsub = new PubSub();
 import { GoogleGenAI } from "@google/genai";
-import { behavioralAnalysisFlow } from "./flows/behavioralAnalysisFlow";
 import { ai } from "./genkit";
-import "./tools/addToCart";
 import "./tools/searchProducts";
 import "./tools/parallelWebSearch";
 import "./tools/parallelDeepResearch";
@@ -22,10 +20,8 @@ import { getAuth } from "firebase-admin/auth";
 import { getAppCheck } from "firebase-admin/app-check";
 import { z } from "zod";
 import { generateMediaWithFallback } from "./mediaGeneration";
-import { consumeBudget, withCache } from "./costControls";
+import { consumeBudget } from "./costControls";
 import { selectShopperModel } from "./modelRouting";
-import { fetchApifyLensResults } from "./lensSearch";
-import { db } from "../shared/db";
 import {
     createVirtualTryOnJobMetadata,
     parseVirtualTryOnRequest,
@@ -43,9 +39,17 @@ const serpApiKey = defineSecret("SERPAPI_API_KEY");
 const parallelApiKey = defineSecret("PARALLEL_API_KEY");
 const cloudflareAccountId = defineSecret("CLOUDFLARE_ACCOUNT_ID");
 const cloudflareApiToken = defineSecret("CLOUDFLARE_API_TOKEN");
-const apifyApiToken = defineSecret("APIFY_API_TOKEN");
 const mediaSecrets = [geminiApiKey, higgsfieldKeyId, higgsfieldKeySecret];
+// Tools registered inside the shopper prompt call these providers while the
+// stream is open, so chatStream must declare the full provider secret set.
 const shopperSecrets = [...mediaSecrets, serpApiKey, parallelApiKey, cloudflareAccountId, cloudflareApiToken];
+
+// Firestore is only needed by handlers that persist job/telemetry state;
+// importing it lazily keeps pure-generation paths free of eager Admin setup.
+import { getFirestore } from "firebase-admin/firestore";
+function dbCollection(path: string) {
+    return getFirestore().doc(path);
+}
 
 export const generateVirtualTryOn = onCall({ enforceAppCheck: true, secrets: mediaSecrets, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
@@ -64,7 +68,7 @@ export const generateVirtualTryOn = onCall({ enforceAppCheck: true, secrets: med
     if (providerError) throw new HttpsError("failed-precondition", providerError);
 
     const jobId = data.idempotencyKey || randomUUID();
-    const jobRef = db.collection("virtualTryOnJobs").doc(`${request.auth.uid}_${jobId}`);
+    const jobRef = dbCollection(`virtualTryOnJobs/${request.auth.uid}_${jobId}`);
     const startedAt = new Date().toISOString();
     try {
         await jobRef.create(createVirtualTryOnJobMetadata({
@@ -120,18 +124,6 @@ export const generateVirtualTryOn = onCall({ enforceAppCheck: true, secrets: med
     }
 });
 
-export const analyzeUserBehavior = onCall({ enforceAppCheck: true, secrets: [geminiApiKey], maxInstances: 20, minInstances: 0 }, async (request) => {
-    if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
-    try {
-        const result = await behavioralAnalysisFlow(request.data);
-        // We could also update the user's profile in Firestore here.
-        // For now, we return the data to the client.
-        return result;
-    } catch (e) {
-        throw new HttpsError("internal", "Failed to run behavioral analysis flow");
-    }
-});
-
 export const generateLiveApiToken = onCall({ secrets: [geminiApiKey], enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "You must be signed in to connect to Gemini Live.");
@@ -177,122 +169,41 @@ export const generateLiveApiToken = onCall({ secrets: [geminiApiKey], enforceApp
     }
 });
 
-export const creatorAgentTemplates = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
+export const generateRecipeBargainChef = onCall({ enforceAppCheck: true, secrets: [geminiApiKey], memory: "256MiB", timeoutSeconds: 60, maxInstances: 10, minInstances: 0 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
-    try {
-        const { db } = await import("../shared/db");
-        const snapshot = await db.collection("creator_templates").get();
-        const templates = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-        return { templates };
-    } catch (e) {
-        throw new HttpsError("internal", "Failed to fetch creator agent templates");
-    }
-});
-
-export const generateCreatorCampaign = onCall({ enforceAppCheck: true, secrets: [geminiApiKey], memory: "256MiB", timeoutSeconds: 60, maxInstances: 10, minInstances: 0 }, async (request) => {
-    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
-    const { productName, campaignGoal, targetAudience } = request.data || {};
-    if (!productName || !campaignGoal) throw new HttpsError("invalid-argument", "Missing required campaign parameters.");
+    const prompt = typeof request.data?.prompt === "string" && request.data.prompt.trim()
+        ? request.data.prompt.trim().slice(0, 2000)
+        : "";
+    if (!prompt) throw new HttpsError("invalid-argument", "A recipe request is required.");
 
     try {
-        await consumeBudget(request.auth.uid, "research");
+        await consumeBudget(request.auth.uid, "chat");
     } catch {
-        throw new HttpsError("resource-exhausted", "Daily campaign generation limit reached. Try again tomorrow.");
+        throw new HttpsError("resource-exhausted", "Daily chef limit reached. Try again tomorrow.");
     }
 
-    const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
-
-    const safetySettings = [
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
-    ];
-
+    const client = new GoogleGenAI({ apiKey: geminiApiKey.value() });
     try {
-        const response = await ai.interactions.create({
-            safety_settings: safetySettings as any,
+        const response = await client.models.generateContent({
             model: "gemini-3.1-flash-lite-preview",
-            input: `You are an expert marketing AI. Generate a creator campaign for the product "${productName}". The goal is "${campaignGoal}" and the target audience is "${targetAudience || 'General'}". Return ONLY a JSON object with this exact structure: {"campaignTitle": "...", "socialMediaCopy": "...", "suggestedTags": ["...", "..."]}`,
-            response_mime_type: "application/json"
-        });
-
-        const responseText = response.output_text;
-        if (!responseText) throw new Error("Empty response from Gemini");
-        const parsed = JSON.parse(responseText);
-        return { success: true, campaign: parsed };
-    } catch (e: any) {
-        throw new HttpsError("internal", `Failed to generate campaign: ${e.message}`);
-    }
-});
-
-export const vitposeOrchestrateFit = onCall({ enforceAppCheck: true, secrets: [geminiApiKey], memory: "256MiB", timeoutSeconds: 60, maxInstances: 10, minInstances: 0 }, async (request) => {
-    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
-    const { imageBase64 } = request.data || {};
-    if (!imageBase64) throw new HttpsError("invalid-argument", "Missing imageBase64");
-
-    try {
-        await consumeBudget(request.auth.uid, "media");
-    } catch {
-        throw new HttpsError("resource-exhausted", "Daily fit analysis limit reached. Try again tomorrow.");
-    }
-
-    const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
-
-    const safetySettings = [
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
-    ];
-
-    try {
-        const response = await ai.interactions.create({
-            safety_settings: safetySettings as any,
-            model: "gemini-3.1-flash-lite-preview",
-            input: [
-                { type: "image", mime_type: "image/jpeg", data: imageBase64 },
-                { type: "text", text: "Analyze this image for virtual try-on fit orchestration. Identify the key body regions and garment fit profile. Return ONLY a JSON object with this exact structure: {\"fitScore\": 0.0-100.0, \"garmentType\": \"...\", \"postureDetected\": \"...\", \"confidence\": 0.0-100.0}" }
-            ],
-            response_mime_type: "application/json"
-        });
-
-        const responseText = response.output_text;
-        if (!responseText) throw new Error("Empty response from Gemini");
-        const parsed = z.object({
-            fitScore: z.number().min(0).max(100),
-            garmentType: z.string().min(1),
-            postureDetected: z.string().min(1),
-            confidence: z.number().min(0).max(100),
-        }).parse(JSON.parse(responseText));
-        return { success: true, fitAnalysis: parsed };
-    } catch (e) {
-        if (e instanceof HttpsError) throw e;
-        throw new HttpsError("internal", "Failed to orchestrate fit");
-    }
-});
-
-export const getQuickPrompts = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
-    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
-    try {
-        const { value: prompts } = await withCache("referenceData", { quickPrompts: 1 }, async () => {
-            const { db } = await import("../shared/db");
-            const snapshot = await db.collection("quick_prompts").get();
-            return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-        });
-        return { prompts };
-    } catch (e) {
-        throw new HttpsError("internal", "Failed to fetch quick prompts");
+            contents: [{ text: prompt }],
+        } as any);
+        const text = response.text?.trim();
+        if (!text) throw new Error("Empty response from Gemini");
+        return { result: { text } };
+    } catch (e: unknown) {
+        console.error("Bargain chef generation failed:", e);
+        throw new HttpsError("internal", "Chef generation is temporarily unavailable.");
     }
 });
 
 export const logSearchHistory = onCall({ enforceAppCheck: true, maxInstances: 20, minInstances: 0 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
-    
+
     // Offload telemetry to Pub/Sub to decouple from the interactive critical path
     const topic = pubsub.topic("telemetry-search-history");
     await topic.publishMessage({ json: request.data || {} });
-    
+
     return { success: true, queued: true };
 });
 
@@ -358,7 +269,7 @@ export const chatStream = onRequest({
         res.status(429).send("Please try again later.");
         return;
     }
-    
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -390,7 +301,7 @@ export const chatStream = onRequest({
 
 export const generateOutfit = onCall({ enforceAppCheck: true, secrets: [geminiApiKey], memory: "256MiB", timeoutSeconds: 60, maxInstances: 10, minInstances: 0, concurrency: 1 }, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
-    
+
     const { items, weatherCondition, temperatureText, userLocation } = request.data || {};
     if (!items || items.length === 0) {
         throw new HttpsError("invalid-argument", "No wardrobe items provided");
@@ -401,7 +312,7 @@ export const generateOutfit = onCall({ enforceAppCheck: true, secrets: [geminiAp
         throw new HttpsError("resource-exhausted", "Daily outfit styling limit reached. Try again tomorrow.");
     }
 
-    const ai = new GoogleGenAI({ apiKey: geminiApiKey.value() });
+    const aiClient = new GoogleGenAI({ apiKey: geminiApiKey.value() });
     try {
         const prompt = `
 You are a warm, high-end personal fashion stylist AI for the Spresso shopping assistant.
@@ -425,8 +336,8 @@ Return a JSON object with the following schema:
   "styleTips": ["string (conversational, useful styling tip)", "string (another tip)"]
 }
 `;
-        
-        const response = await ai.interactions.create({
+
+        const response = await aiClient.interactions.create({
             model: "gemini-3.1-flash-lite-preview",
             input: prompt,
             response_mime_type: "application/json",
@@ -445,31 +356,6 @@ Return a JSON object with the following schema:
     } catch (e: any) {
         console.error("AI Outfit error:", e);
         throw new HttpsError("internal", `Failed to generate outfit: ${e.message}`);
-    }
-});
-
-export const lensSearch = onCall({ enforceAppCheck: true, secrets: [apifyApiToken], memory: "256MiB", timeoutSeconds: 60, maxInstances: 10, minInstances: 0 }, async (request) => {
-    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
-    const imageBase64 = typeof request.data?.imageBase64 === "string" ? request.data.imageBase64 : "";
-    if (!imageBase64) {
-        throw new HttpsError("invalid-argument", "No imageBase64 provided");
-    }
-    const configuredApifyApiToken = apifyApiToken.value();
-    if (!configuredApifyApiToken) {
-        throw new HttpsError("failed-precondition", "Visual search is unavailable because APIFY_API_TOKEN is not configured.");
-    }
-    try {
-        await consumeBudget(request.auth.uid, "search");
-    } catch {
-        throw new HttpsError("resource-exhausted", "Daily visual search limit reached. Try again tomorrow.");
-    }
-    try {
-        const { value: listings } = await withCache("productSearch", { imageBase64 }, () =>
-            fetchApifyLensResults(imageBase64, configuredApifyApiToken));
-        return { success: true, listings };
-    } catch (e: unknown) {
-        console.error("Apify Lens error:", e);
-        throw new HttpsError("internal", "Visual search is temporarily unavailable.");
     }
 });
 

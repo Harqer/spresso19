@@ -35,7 +35,7 @@ test("the legacy shared production gate retains its required application checks"
     "npm run test:ci-wiring",
     "node --test scripts/test/firebase-config.test.mjs",
     "npm run test:contracts",
-    "npx tsx --test functions/test/webapi.test.ts",
+    "node scripts/verify-action-contract.mjs",
     "npm run test:smoke",
     "npm run test:mcp",
     "npm run test:bundle-budget",

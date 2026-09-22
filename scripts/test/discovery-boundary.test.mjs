@@ -7,9 +7,7 @@ test("discovery paths do not query an owned product inventory", () => {
     "composeApp/src/commonMain/kotlin/App.kt",
     "composeApp/src/commonMain/kotlin/components/features/catalog/ProductCatalogPage.kt",
     "composeApp/src/commonMain/kotlin/components/features/chat/PersonalAIShopperChatPage.kt",
-    "functions/src/webapi.ts",
     "functions/src/ai/index.ts",
-    "functions/src/missingRoutes.ts",
     "convex/discovery.ts",
   ];
   for (const file of files) {

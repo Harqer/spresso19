@@ -1,17 +1,312 @@
 {
-  "baseUrl": "https://get-spresso.web.app",
+  "baseUrl": "https://woozy-anteater-572.convex.site",
+  "description": "Convex HTTP bridge (api.*) exposed at the production Convex site. Generated from convex/http.ts route inventory; regenerate with scripts/generate-endpoint-manifest.mjs when routes change.",
   "routes": [
-    { "path": "/health", "methods": ["GET"] },
-    { "path": "/user/sync", "methods": ["POST"] },
-    { "path": "/user/preferences", "methods": ["GET", "POST"] },
-    { "path": "/user/wallet/coinbase", "methods": ["POST"] }
+    {
+      "path": "/api/account/bootstrap",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/account/delete",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/account/me",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/account/preferences",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/account/profile",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/account/wallet/coinbase",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/cart",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/cart/item",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/cart/quantity",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/cart/remove",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/chat/message",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/chat/messages",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/chat/thread",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/creator/agents",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/creator/campaign",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/creator/templates",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/discovery/recommendations",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/discovery/search",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/grocery",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/grocery/checked",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/grocery/item",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/grocery/remove",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/health",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/interactions",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/live/token",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/media/read-url",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/media/try-on",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/media/upload",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/orders",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/orders/acknowledge",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/orders/reminder",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/orders/return",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/payment-methods",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/payment-methods/attach",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/payment-methods/detach",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/saved",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/travel/detail",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/travel/expense",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/travel/receipt",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/travel/trips",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/vision/search",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/wardrobe",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/wardrobe/item",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/wardrobe/item/remove",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/wardrobe/outfit",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/wardrobe/outfits",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/stripe_webhook",
+      "methods": [
+        "POST"
+      ]
+    }
   ],
   "endpoints": [
     {
-      "name": "web-api-health",
-      "method": "GET",
+      "name": "bridge health",
       "path": "/api/health",
-      "expectedStatuses": [200, 503],
+      "method": "GET",
+      "expectedStatuses": [
+        200,
+        503
+      ],
+      "requiresJson": true
+    },
+    {
+      "name": "account identity guard",
+      "path": "/api/account/me",
+      "method": "GET",
+      "expectedStatuses": [
+        200,
+        401
+      ],
       "requiresJson": true
     }
   ]

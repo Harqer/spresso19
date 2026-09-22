@@ -19,12 +19,6 @@
         ]
       },
       {
-        "source": "/api/products",
-        "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=300, s-maxage=3600" }
-        ]
-      },
-      {
         "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|js|mjs|wasm|css)",
         "headers": [
           { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
@@ -32,10 +26,6 @@
       }
     ],
     "rewrites": [
-      {
-        "source": "/api/**",
-        "function": "webApi"
-      },
       {
         "source": "**",
         "destination": "/index.html"

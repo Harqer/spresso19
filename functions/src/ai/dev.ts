@@ -1,7 +1,6 @@
 // Genkit Developer UI entrypoint. Import every flow so the CLI can discover
-// the same shopper, commerce, media, cooking, and product flows used by Firebase.
+// the same shopper, media, cooking, and product flows used by Firebase.
 import "./genkit";
-import "./tools/addToCart";
 import "./tools/searchProducts";
 import "./tools/chefAgent";
 import "./tools/virtualTryOnAgent";

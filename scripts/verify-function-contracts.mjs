@@ -14,10 +14,18 @@ async function walk(directory) {
 }
 await walk(root);
 const source = (await Promise.all(files.map((file) => fs.readFile(file, "utf8")))).join("\n");
-const exports = new Set([...source.matchAll(/export\s+const\s+([A-Za-z0-9_]+)/g)].map((match) => match[1]));
+// Only function-wrapper exports are client-callable surface. Plain exported
+// consts (schemas, tool factories, flow builders, clients) are internal and
+// intentionally not part of the contract manifest.
+const CALLABLE_WRAPPERS = /export\s+const\s+([A-Za-z0-9_]+)\s*=\s*(?:onCall|onRequest|onMessagePublished|onDocumentCreated|onDocumentDeleted|onSchedule|onInit)\b/g;
+const exports = new Set([...source.matchAll(CALLABLE_WRAPPERS)].map((match) => match[1]));
 const missing = manifest.clientCallableNames.filter((name) => !exports.has(name));
+const extra = [...exports].filter((name) => manifest.clientCallableNames.includes(name) === false);
 if (missing.length) {
   console.error(`Missing Firebase callable exports: ${missing.join(", ")}`);
+  process.exitCode = 1;
+} else if (extra.length) {
+  console.error(`Undocumented Firebase callable exports: ${extra.join(", ")}`);
   process.exitCode = 1;
 } else {
   console.log(`Verified ${manifest.clientCallableNames.length} Firebase callable exports.`);

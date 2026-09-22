@@ -4,16 +4,15 @@ import { validateActionContract } from "../verify-action-contract.mjs";
 
 const validAction = {
   id: "lens-search",
-  callback: "performLensSearch",
-  client: { file: "composeApp/src/commonMain/kotlin/network/ApiClient.kt", symbol: "performLensSearch" },
+  callback: "ConvexApi.searchVision",
   platforms: ["android", "wasm"],
   screen: "vision",
-  backendContract: "lensSearch",
+  backendContract: "/api/vision/search (Convex vision.searchByImage)",
   successState: "show verified merchant listings",
   emptyState: "show no matches",
   failureState: "show customer-safe unavailable message",
   owner: "discovery",
-  transport: { kind: "firebase-callable", export: "lensSearch" },
+  transport: { kind: "convex-bridge", route: "/api/vision/search" },
 };
 
 const requiredActionIds = [
@@ -35,29 +34,29 @@ const validContract = {
   actions: requiredActionIds.map(id => ({ ...validAction, id })),
 };
 
-test("accepts an action whose callback and Firebase callable are real", () => {
+test("accepts an action whose callback and Convex bridge route are real", () => {
   const errors = validateActionContract(
     validContract,
-    { exportedFunctions: new Set(["lensSearch"]), sourceFiles: new Map([[validAction.client.file, "suspend fun performLensSearch() = Unit"]]) },
+    { bridgeRoutes: new Set(["/api/vision/search"]) },
   );
 
   assert.deepEqual(errors, []);
 });
 
-test("rejects empty callbacks and missing Firebase callable exports", () => {
+test("rejects empty callbacks and unregistered bridge routes", () => {
   const errors = validateActionContract(
     {
       ...validContract,
       actions: [
-        { ...validAction, callback: "", transport: { kind: "firebase-callable", export: "missingCallable" } },
+        { ...validAction, callback: "", transport: { kind: "convex-bridge", route: "/api/not-registered" } },
         ...validContract.actions.slice(1),
       ],
     },
-    { exportedFunctions: new Set(["lensSearch"]), sourceFiles: new Map([[validAction.client.file, "suspend fun performLensSearch() = Unit"]]) },
+    { bridgeRoutes: new Set(["/api/vision/search"]) },
   );
 
   assert.match(errors.join("\n"), /callback must be a non-empty string/);
-  assert.match(errors.join("\n"), /missingCallable is not exported/);
+  assert.match(errors.join("\n"), /\/api\/not-registered is not registered in convex\/http\.ts/);
 });
 
 test("rejects actions missing production ownership and state contracts", () => {
@@ -67,7 +66,7 @@ test("rejects actions missing production ownership and state contracts", () => {
   delete incomplete.owner;
   const errors = validateActionContract(
     { version: 1, actions: requiredActionIds.map(id => ({ ...incomplete, id })) },
-    { exportedFunctions: new Set(["lensSearch"]), sourceFiles: new Map() },
+    { bridgeRoutes: new Set(["/api/vision/search"]) },
   );
 
   assert.match(errors.join("\n"), /platforms/);

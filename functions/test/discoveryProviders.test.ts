@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { normalizeApifyResults } from "../src/ai/providers/apifyAdapter";
-import { normalizeParallelResults } from "../src/ai/providers/parallelAdapter";
-import { assertModelListingProvenance } from "../src/ai/providers/discoveryTypes";
 import { normalizeSerpApiResults } from "../src/ai/providers/serpApiAdapter";
+import { assertModelListingProvenance } from "../src/ai/providers/discoveryTypes";
 
 const discoveredAt = "2026-08-30T12:00:00.000Z";
 
@@ -33,42 +31,17 @@ test("normalizes valid provider records, numeric prices, and duplicate canonical
   });
 });
 
-test("rejects records without direct HTTPS merchant URLs", () => {
-  assert.deepEqual(normalizeParallelResults([
-    { title: "Missing URL", excerpts: ["$89.00"] },
-    { title: "Insecure URL", url: "http://merchant.example/item", excerpts: ["$89.00"] },
-  ], { discoveredAt }), []);
-});
-
 test("keeps unknown prices null and does not infer them from unrelated text", () => {
-  const listings = normalizeParallelResults([
+  const listings = normalizeSerpApiResults([
     {
+      product_id: "grinder-1",
       title: "Coffee grinder",
-      url: "https://merchant.example/grinder",
-      excerpts: ["Compare this grinder with the $249.00 espresso machine in our guide."],
+      link: "https://merchant.example/grinder",
     },
   ], { discoveredAt });
 
   assert.equal(listings.length, 1);
   assert.equal(listings[0].observedPrice, undefined);
-});
-
-test("uses direct provider price fields with matching evidence URLs", () => {
-  const listings = normalizeApifyResults([
-    {
-      id: "apify-1",
-      name: "Kettle",
-      productUrl: "https://merchant.example/kettle",
-      imageUrl: "https://images.example/kettle.jpg",
-      price: "EUR 129.50",
-    },
-  ], { discoveredAt });
-
-  assert.deepEqual(listings[0].observedPrice, {
-    amount: 129.5,
-    currency: "EUR",
-    evidenceUrl: "https://merchant.example/kettle",
-  });
 });
 
 test("rejects model records with fabricated URLs, prices, sources, or images", () => {

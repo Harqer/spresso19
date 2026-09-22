@@ -3,16 +3,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const verifiedProductionOrigin = "https://get-spresso.web.app";
+const verifiedProductionOrigin = "https://woozy-anteater-572.convex.site";
 
-function routePathsFromSource(webApiSource) {
-  const routeBlock = webApiSource.match(/export const WEB_API_ROUTES\s*=\s*\[(?<routes>[\s\S]*?)\]\s*as const/);
-  if (!routeBlock?.groups?.routes) return [];
-  return [...routeBlock.groups.routes.matchAll(/path:\s*["']([^"']+)["']/g)].map((match) => match[1]);
-}
-
-function normalizeEndpointPath(endpointPath) {
-  return endpointPath.replace(/^\/api(?=\/|$)/, "") || "/";
+function routePathsFromSource(httpSource) {
+  // A path may be declared once per HTTP method; the contract documents unique
+  // paths, so dedupe here.
+  return [...new Set([...httpSource.matchAll(/http\.route\(\{\s*path:\s*["']([^"']+)["']/g)].map((match) => match[1]))];
 }
 
 function validateProductionBaseUrl(baseUrl) {
@@ -32,21 +28,12 @@ function validateProductionBaseUrl(baseUrl) {
   return errors;
 }
 
-export function validateSourceConfiguration({ endpointContract, firebaseConfig, rootExports, webApiSource }) {
+export function validateSourceConfiguration({ endpointContract, firebaseConfig, httpSource }) {
   const errors = validateProductionBaseUrl(endpointContract.baseUrl);
-  const rewrite = firebaseConfig.hosting?.rewrites?.find((entry) => entry.source === "/api/**");
-  if (rewrite?.function !== "webApi") errors.push("/api/** is not routed to webApi.");
-  if (!/export\s*\{\s*webApi\s*\}\s*from\s*["']\.\/webapi["']/.test(rootExports)) {
-    errors.push("functions/src/index.ts does not export webApi.");
-  }
-  if (!/export\s+const\s+webApi\s*=\s*onRequest\b/.test(webApiSource)) {
-    errors.push("webApi is not an exported HTTP Function.");
-  }
-  if (!/export\s+const\s+WEB_API_ROUTES\s*=/.test(webApiSource)) {
-    errors.push("webApi route inventory is missing.");
-  }
-  if (/res\.status\(200\)\.json\(\{\s*status:\s*["']ok["']\s*\}\)/.test(webApiSource)) {
-    errors.push("web-api-health returns a static success payload instead of checking infrastructure.");
+  const rewrite = firebaseConfig.hosting?.rewrites?.find((entry) => entry.source === "**");
+  if (!rewrite?.destination) errors.push("Hosting must keep the SPA catch-all rewrite.");
+  if (firebaseConfig.hosting?.rewrites?.some((entry) => entry.source === "/api/**")) {
+    errors.push("Hosting must not route /api/** to a Functions webApi plane.");
   }
 
   const contractRoutes = endpointContract.routes;
@@ -55,16 +42,15 @@ export function validateSourceConfiguration({ endpointContract, firebaseConfig, 
   } else {
     const routePaths = contractRoutes.map((route) => route.path);
     if (new Set(routePaths).size !== routePaths.length) errors.push("production endpoint contract contains duplicate routes.");
-    const sourcePaths = routePathsFromSource(webApiSource);
+    const sourcePaths = routePathsFromSource(httpSource);
     if (sourcePaths.length !== routePaths.length || sourcePaths.some((routePath) => !routePaths.includes(routePath))) {
-      errors.push("production endpoint contract does not match the webApi route inventory.");
+      errors.push("production endpoint contract does not match the convex/http.ts route inventory.");
     }
-    for (const endpoint of endpointContract.endpoints ?? []) {
-      const routePath = normalizeEndpointPath(endpoint.path);
-      const route = contractRoutes.find((candidate) => candidate.path === routePath);
-      if (!route) errors.push(`${endpoint.name} is not represented in the documented route inventory.`);
-      else if (!route.methods.includes(endpoint.method)) errors.push(`${endpoint.name} uses an undocumented HTTP method.`);
-    }
+  }
+  for (const endpoint of endpointContract.endpoints ?? []) {
+    const route = contractRoutes.find((candidate) => candidate.path === endpoint.path);
+    if (!route) errors.push(`${endpoint.name} is not represented in the documented route inventory.`);
+    else if (!route.methods.includes(endpoint.method)) errors.push(`${endpoint.name} uses an undocumented HTTP method.`);
   }
 
   return errors;
@@ -73,9 +59,8 @@ export function validateSourceConfiguration({ endpointContract, firebaseConfig, 
 async function loadSourceConfiguration() {
   const endpointContract = JSON.parse(await fs.readFile(path.join(repoRoot, "contracts/production-endpoints.json"), "utf8"));
   const firebaseConfig = JSON.parse(await fs.readFile(path.join(repoRoot, "firebase.json"), "utf8"));
-  const rootExports = await fs.readFile(path.join(repoRoot, "functions/src/index.ts"), "utf8");
-  const webApiSource = await fs.readFile(path.join(repoRoot, "functions/src/webapi.ts"), "utf8");
-  return { endpointContract, firebaseConfig, rootExports, webApiSource };
+  const httpSource = await fs.readFile(path.join(repoRoot, "convex/http.ts"), "utf8");
+  return { endpointContract, firebaseConfig, httpSource };
 }
 
 const live = process.argv.includes("--live");

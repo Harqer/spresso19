@@ -71,7 +71,7 @@ echo "== [gate] API route, Firebase wiring, and callable contracts =="
   npm run test:ci-wiring
   node --test scripts/test/firebase-config.test.mjs
   npm run test:contracts
-  npx tsx --test functions/test/webapi.test.ts
+  node scripts/verify-action-contract.mjs
 )
 
 echo "== [gate] smoke, MCP, and bundle checks =="

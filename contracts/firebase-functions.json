@@ -1,13 +1,12 @@
 {
   "clientCallableNames": [
-    "creatorAgentsMetadata",
-    "seasonalStyling",
-    "generateRecipeBargainChef",
-    "updateUserProfile",
     "generateVirtualTryOn",
-    "createStripeIntent",
-    "confirmPurchase",
-    "getUserOrders",
-    "getTravelTrips"
+    "generateLiveApiToken",
+    "generateRecipeBargainChef",
+    "logSearchHistory",
+    "processSearchHistoryTelemetry",
+    "chatStream",
+    "generateOutfit",
+    "generateResponseFromAudio"
   ]
 }

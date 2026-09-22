@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
-import { relative, resolve } from "node:path";
-import { API } from "typescript/unstable/sync";
-import * as ts from "typescript/unstable/ast";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
+
+// Production-hardcoding boundary for the TypeScript surfaces that ship:
+// convex/ (owned backend) and functions/src (Genkit/media gateway).
+// The React-era web client this test originally guarded has been removed;
+// Kotlin/Compose surfaces are covered by the Android lint + Detekt gates.
 
 const root = resolve(import.meta.dirname, "../..");
 const violations = [];
+
 const forbiddenCustomerClaims = [
   /SPRESSO10/i,
   /VIP UNLOCKED/i,
@@ -19,40 +24,57 @@ const forbiddenCustomerClaims = [
   /Processing Settlement Order/i,
 ];
 
-function checkNode(node, sourceFile, file) {
-  if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text === "@google/genai") {
-    violations.push(`${file}:${sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1} browser Gemini SDK import`);
+// The Convex backend must route models through the Convex Agent Gateway
+// (convex/ai/model.ts), never import a vendor SDK directly. @google/genai is
+// a Functions media-gateway exception only.
+const forbiddenImports = [
+  { pattern: /from\s+["']@google\/genai["']/, only: "functions/src", label: "direct Gemini SDK import outside the Functions media gateway" },
+  { pattern: /from\s+["']google-genai["']/, only: "functions/src", label: "direct Gemini SDK import outside the Functions media gateway" },
+];
+
+const scanDirs = ["convex", "functions/src"];
+const excludeDirs = new Set(["node_modules", "_generated", "lib", "test"]);
+const tsFiles = [];
+
+function collectTsFiles(dir) {
+  for (const entry of readdirSync(dir)) {
+    const absolute = join(dir, entry);
+    const stat = statSync(absolute);
+    if (stat.isDirectory()) {
+      if (!excludeDirs.has(entry)) collectTsFiles(absolute);
+    } else if (/\.tsx?$/.test(entry)) {
+      tsFiles.push(absolute);
+    }
   }
-  if (ts.isStringLiteralLikeNode(node) || ts.isJsxText(node)) {
-    const value = node.text;
-    if (/VITE_GEMINI_API_KEY/.test(value)) {
-      violations.push(`${file}:${sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1} browser Gemini key`);
+}
+
+for (const dir of scanDirs) collectTsFiles(resolve(root, dir));
+
+for (const absolutePath of tsFiles) {
+  const file = relative(root, absolutePath);
+  const source = readFileSync(absolutePath, "utf8");
+  const lines = source.split("\n");
+  lines.forEach((line, index) => {
+    const location = `${file}:${index + 1}`;
+    if (/VITE_[A-Z0-9_]+/.test(line)) {
+      violations.push(`${location} browser env reference`);
     }
     for (const claim of forbiddenCustomerClaims) {
-      if (claim.test(value)) {
-        violations.push(`${file}:${sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1} synthetic customer claim: ${claim.source}`);
+      if (claim.test(line)) {
+        violations.push(`${location} synthetic customer claim: ${claim.source}`);
       }
     }
-  }
-  node.forEachChild((child) => checkNode(child, sourceFile, file));
+    for (const rule of forbiddenImports) {
+      if (rule.pattern.test(line) && !file.replaceAll("\\", "/").startsWith(rule.only)) {
+        violations.push(`${location} ${rule.label}`);
+      }
+    }
+  });
 }
 
-const api = new API();
-const configPath = resolve(root, "tsconfig.json");
-const snapshot = api.updateSnapshot({ openProjects: [configPath] });
-try {
-  const project = snapshot.getProject(configPath);
-  assert.ok(project, "TypeScript project must load");
-  for (const absolutePath of project.program.getSourceFileNames()) {
-    const file = relative(root, absolutePath);
-    if (!file.startsWith("src/") || !/\.(?:ts|tsx)$/.test(file) || /\.test\.(?:ts|tsx)$/.test(file)) continue;
-    const sourceFile = project.program.getSourceFile(absolutePath);
-    if (sourceFile) checkNode(sourceFile, sourceFile, file);
-  }
-} finally {
-  snapshot.dispose();
-  api.close();
-}
-
-assert.deepEqual(violations, [], `production hardcoding boundary violations:\n${violations.join("\n")}`);
+assert.deepEqual(
+  violations,
+  [],
+  `production hardcoding boundary violations:\n${violations.join("\n")}`,
+);
 console.log("production hardcoding boundary passed");

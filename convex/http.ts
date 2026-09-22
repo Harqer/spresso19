@@ -894,4 +894,32 @@ http.route({ path: "/api/travel/detail", method: "GET", handler: listTripDetailH
 http.route({ path: "/api/travel/expense", method: "POST", handler: addTravelExpenseHttp });
 http.route({ path: "/api/travel/receipt", method: "POST", handler: parseTravelReceiptHttp });
 
+// ---- Infrastructure health -------------------------------------------------
+// Unauthenticated liveness/readiness endpoint used by deployment smoke tests.
+// 503 is an expected, healthy status for a real readiness check: it means the
+// deployment is reachable but a required dependency is misconfigured.
+export const healthHttp = httpAction(async () => {
+  const dependencies: Record<string, string> = {};
+  let ready = true;
+  const convexUrl = process.env.CONVEX_CLOUD_URL ?? process.env.CONVEX_DEPLOYMENT_URL;
+  if (convexUrl) {
+    dependencies.convexDeployment = "configured";
+  } else {
+    dependencies.convexDeployment = "missing";
+    ready = false;
+  }
+  if (!process.env.STRIPE_SECRET_KEY) {
+    dependencies.stripe = "missing";
+    ready = false;
+  } else {
+    dependencies.stripe = "configured";
+  }
+  const body = ready
+    ? { status: "ready", dependencies }
+    : { status: "degraded", dependencies };
+  return responseJson(ready ? 200 : 503, body);
+});
+
+http.route({ path: "/api/health", method: "GET", handler: healthHttp });
+
 export default http;

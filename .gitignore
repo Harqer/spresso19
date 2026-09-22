@@ -36,6 +36,9 @@ service-account*.json
 *.perfetto-trace
 trace_processor
 
+# Compiled Functions output (tsc build artifacts)
+functions/lib/
+
 .projects/cache
 .projects/vault
 .projects/state.test.json
