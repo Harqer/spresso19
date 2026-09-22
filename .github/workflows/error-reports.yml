@@ -80,18 +80,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      ZAP_TARGET_URL: ${{ inputs.zap_target_url || vars.ZAP_TARGET_URL }}
+      # Defaults to the CLI-verified Firebase Hosting origin (AGENTS.md /
+      # contracts/production-endpoints.json). A repository variable or
+      # workflow_dispatch input overrides it; the HTTPS guard below still applies.
+      ZAP_TARGET_URL: ${{ inputs.zap_target_url || vars.ZAP_TARGET_URL || 'https://get-spresso.web.app' }}
     steps:
-      - name: Require an explicitly configured scan target
+      - name: Validate the scan target
         run: |
           if [ -z "$ZAP_TARGET_URL" ]; then
-            echo "ZAP_TARGET_URL repository variable or workflow_dispatch input is required."
+            echo "ZAP_TARGET_URL resolved to an empty value."
             exit 1
           fi
           case "$ZAP_TARGET_URL" in
             https://*) ;;
             *) echo "ZAP target must use HTTPS"; exit 1 ;;
           esac
+          echo "Scanning $ZAP_TARGET_URL"
 
       - name: OWASP ZAP baseline scan
         uses: zaproxy/action-baseline@v0.14.0
