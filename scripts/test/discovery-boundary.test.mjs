@@ -4,16 +4,18 @@ import fs from "node:fs";
 
 test("discovery paths do not query an owned product inventory", () => {
   const files = [
-    "src/App.tsx",
-    "src/components/features/catalog/ProductCatalogPage.tsx",
-    "src/components/features/chat/PersonalAIShopperChatPage.tsx",
+    "composeApp/src/commonMain/kotlin/App.kt",
+    "composeApp/src/commonMain/kotlin/components/features/catalog/ProductCatalogPage.kt",
+    "composeApp/src/commonMain/kotlin/components/features/chat/PersonalAIShopperChatPage.kt",
     "functions/src/webapi.ts",
     "functions/src/ai/index.ts",
-    "functions/src/missingRoutes.ts"
+    "functions/src/missingRoutes.ts",
+    "convex/discovery.ts",
   ];
   for (const file of files) {
     const source = fs.readFileSync(file, "utf8");
     assert.doesNotMatch(source, /collection\(["']products["']\)/, file);
     assert.doesNotMatch(source, /listProducts\(/, file);
+    assert.doesNotMatch(source, /defineTable\(["']products/, file);
   }
 });

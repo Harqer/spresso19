@@ -4,6 +4,29 @@ import { v } from "convex/values";
  * A user-scoped snapshot of an external merchant listing.
  * This is not owned inventory and must not be treated as a canonical product row.
  */
+export type ListingSnapshot = {
+  id: string;
+  name: string;
+  brand?: string;
+  category?: string;
+  imageUrl?: string;
+  merchantUrl: string;
+  source: "parallel" | "serpapi" | "apify" | "kitesurf";
+  providerListingId?: string;
+  observedPrice?: {
+    amount: number;
+    currency: string;
+    evidenceUrl: string;
+  };
+  videoUrl?: string;
+  rating?: number;
+  reviewCount?: number;
+  reviewSummary?: string;
+  discoveredAt: string;
+  expiresAt?: string;
+  confidence?: number;
+};
+
 export const listingValidator = v.object({
   id: v.string(),
   name: v.string(),

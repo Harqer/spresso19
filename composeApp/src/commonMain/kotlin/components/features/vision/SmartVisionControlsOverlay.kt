@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CenterFocusWeak
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Upload
@@ -22,7 +23,8 @@ import components.shared.elements.SpressoButtonVariant
 
 @Composable
 fun SmartVisionControlsOverlay(
-    onPickLensImage: () -> Unit,
+    onTriggerGlobalLens: () -> Unit,
+    onPickImage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -50,10 +52,19 @@ fun SmartVisionControlsOverlay(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SpressoButton(
+                text = "Lens",
+                icon = Icons.Default.CenterFocusWeak,
+                variant = SpressoButtonVariant.SECONDARY,
+                onClick = onTriggerGlobalLens,
+                trackingId = "vision_screen_lens",
+                trackingAction = "click",
+            )
+
+            SpressoButton(
                 text = "Live Camera",
                 icon = Icons.Default.PhotoCamera,
                 variant = SpressoButtonVariant.SECONDARY,
-                onClick = onPickLensImage,
+                onClick = onPickImage,
                 trackingId = "vision_live_camera",
                 trackingAction = "click",
             )
@@ -62,7 +73,7 @@ fun SmartVisionControlsOverlay(
                 text = "Upload",
                 icon = Icons.Default.Upload,
                 variant = SpressoButtonVariant.SECONDARY,
-                onClick = onPickLensImage,
+                onClick = onPickImage,
                 trackingId = "vision_upload",
                 trackingAction = "click",
             )
@@ -71,7 +82,7 @@ fun SmartVisionControlsOverlay(
                 text = "Refresh",
                 icon = Icons.Default.Refresh,
                 variant = SpressoButtonVariant.SECONDARY,
-                onClick = onPickLensImage,
+                onClick = onPickImage,
                 trackingId = "vision_refresh",
                 trackingAction = "click",
             )

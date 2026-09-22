@@ -25,6 +25,7 @@ fun SmartVisionPage(
     apiClient: ApiClient,
     onSelectProduct: (String) -> Unit,
     onAskAI: (String) -> Unit = {},
+    onTriggerGlobalLens: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var detectedItems by remember { mutableStateOf<List<DetectedItem>>(emptyList()) }
@@ -126,7 +127,8 @@ fun SmartVisionPage(
 
             // Floating Controls Overlay
             SmartVisionControlsOverlay(
-                onPickLensImage = { pickLensImage() },
+                onTriggerGlobalLens = onTriggerGlobalLens,
+                onPickImage = { pickLensImage() },
                 modifier = Modifier.align(Alignment.TopCenter),
             )
 

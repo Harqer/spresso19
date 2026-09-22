@@ -9,7 +9,7 @@
     "clean": "./gradlew clean && rm -rf dist server.cjs",
     "lint": "tsc --noEmit",
     "test:integration": "node scripts/smoke/production-smoke.mjs",
-    "test:smoke": "node scripts/test/production-smoke.test.mjs && node scripts/test/no-synthetic-success.test.mjs",
+    "test:smoke": "node scripts/test/production-smoke.test.mjs && node scripts/test/no-synthetic-success.test.mjs && node --test scripts/test/convex-bridge-boundary.test.mjs scripts/test/discovery-boundary.test.mjs scripts/test/lens-boundary.test.mjs",
     "test:contracts": "node scripts/test/verify-function-contracts.test.mjs",
     "test:mcp": "node --test mcp-server/server.test.mjs",
     "test:ci-wiring": "node --test scripts/test/ci-wiring.test.mjs",

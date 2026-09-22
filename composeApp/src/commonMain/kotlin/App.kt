@@ -355,6 +355,8 @@ fun App(
                                 chatViewModel.sendMessage(prompt = prompt)
                                 navigator.navigate(NavKey.ChatKey())
                             },
+                            onOpenLiveCamera = { pickImage() },
+                            onOpenObjectDetection = onTriggerGlobalLens,
                             onToggleVoice = {
                                 if (isVoiceRecording) {
                                     audioRecorder.stopRecording()
@@ -389,6 +391,8 @@ fun App(
                             liveTranscript = chatViewModel.liveTranscript,
                             userName = currentUserName,
                             errorMessage = errorMessage,
+                            onTriggerGlobalLens = onTriggerGlobalLens,
+                            onLaunchCamera = { pickImage() },
                             apiClient = apiClient,
                         )
                     }
@@ -537,6 +541,7 @@ fun App(
                             httpClient = apiClient.client,
                             currentLatLng = currentLatLng,
                             onPickImageRequested = { pickImage() },
+                            onOpenLens = onTriggerGlobalLens,
                             onShareRequested = onShare,
                         )
                     }
@@ -546,7 +551,7 @@ fun App(
                                 activeProductId = id
                                 pickImage()
                             },
-                            onOpenLens = { navigator.navigate(NavKey.SmartVisionKey()) },
+                            onOpenLens = onTriggerGlobalLens,
                         )
                     }
                     entry<NavKey.StackedWardrobeDecksKey> { currentDestinationKey ->
@@ -593,6 +598,7 @@ fun App(
                             onAskAI = { prompt ->
                                 navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
                             },
+                            onTriggerGlobalLens = onTriggerGlobalLens,
                         )
                     }
                     entry<NavKey.SmartVisionDetectionKey> {
@@ -605,6 +611,7 @@ fun App(
                             onAskAI = { prompt ->
                                 navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
                             },
+                            onTriggerGlobalLens = onTriggerGlobalLens,
                         )
                     }
 

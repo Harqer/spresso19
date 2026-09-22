@@ -42,6 +42,7 @@ fun WardrobeViewPage(
     httpClient: HttpClient? = null,
     currentLatLng: Pair<Double, Double>? = null,
     onPickImageRequested: () -> Unit = {},
+    onOpenLens: () -> Unit = {},
     onShareRequested: ((String) -> Unit)? = null,
     products: List<ProductItem> = emptyList(),
     onSelectTryOn: (WardrobePhoto) -> Unit = {},
@@ -177,7 +178,7 @@ fun WardrobeViewPage(
             item(span = { GridItemSpan(maxLineSpan) }) {
                 WardrobeHeaderBanner(
                     handleAddPhoto = handleAddPhoto,
-                    onOpenLens = onPickImageRequested,
+                    onOpenLens = onOpenLens,
                 )
             }
 

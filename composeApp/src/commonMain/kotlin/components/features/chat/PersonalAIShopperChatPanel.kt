@@ -116,7 +116,7 @@ fun PersonalAIShopperChatPanel(
                     AIShopperInputBar(
                         onSend = onSendMessage,
                         onOpenLiveCamera = onLaunchCamera,
-                        onOpenObjectDetection = onTriggerGlobalLens ?: onLaunchCamera,
+                        onOpenObjectDetection = onTriggerGlobalLens,
                         onRequestLocationPermission = onRequestLocationPermission,
                         isVoiceActive = isVoiceRecording,
                         isSpeaking = isSpeaking,

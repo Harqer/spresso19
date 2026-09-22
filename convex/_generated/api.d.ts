@@ -23,6 +23,7 @@ import type * as discovery from "../discovery.js";
 import type * as discoveryState from "../discoveryState.js";
 import type * as grocery from "../grocery.js";
 import type * as http from "../http.js";
+import type * as lib_bridge from "../lib/bridge.js";
 import type * as lib_identity from "../lib/identity.js";
 import type * as lib_listing from "../lib/listing.js";
 import type * as media from "../media.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   discoveryState: typeof discoveryState;
   grocery: typeof grocery;
   http: typeof http;
+  "lib/bridge": typeof lib_bridge;
   "lib/identity": typeof lib_identity;
   "lib/listing": typeof lib_listing;
   media: typeof media;

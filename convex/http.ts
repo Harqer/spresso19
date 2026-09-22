@@ -2,6 +2,13 @@ import Stripe from "stripe";
 import { httpAction, env } from "./_generated/server";
 import { httpRouter } from "convex/server";
 import { internal, api } from "./_generated/api";
+import {
+  BridgeError,
+  optionalListingSnapshot,
+  requireConvexId,
+  requireExpenseCategory,
+  requireListingSnapshot,
+} from "./lib/bridge";
 
 const STRIPE_WEBHOOK_TOLERANCE_SECONDS = 300;
 
@@ -45,7 +52,7 @@ export const stripeWebhook = httpAction(async (ctx, request) => {
   if (!signature) return responseJson(400, { error: "Missing stripe-signature header." });
 
   const payload = await request.text();
-  const stripe = new Stripe(stripeSecret(), { apiVersion: "2025-01-27.acacia" as any });
+  const stripe = new Stripe(stripeSecret(), { apiVersion: "2025-01-27.acacia" as Stripe.LatestApiVersion });
   const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
   let event: Stripe.Event;
@@ -127,7 +134,9 @@ export const mediaReadUrlHttp = httpAction(async (ctx, request) => {
     await bearerIdentity(ctx);
     const body = (await request.json().catch(() => ({}))) as { assetId?: unknown };
     if (typeof body.assetId !== "string" || !body.assetId.trim()) throw new BridgeError("assetId is required.", 400);
-    return ctx.runAction(api.media.actions.createPrivateReadUrl, { assetId: body.assetId as any });
+    return ctx.runAction(api.media.actions.createPrivateReadUrl, {
+      assetId: requireConvexId<"mediaAssets">(body.assetId, "assetId"),
+    });
   });
 });
 
@@ -158,7 +167,9 @@ export const tryOnHttp = httpAction(async (ctx, request) => {
       typeof body.idempotencyKey === "string" && body.idempotencyKey.trim()
         ? body.idempotencyKey.trim()
         : `try-on:${body.mediaAssetId}:${body.garmentImageUrl}`;
-    const personImage = await ctx.runAction(api.media.actions.createPrivateReadUrl, { assetId: body.mediaAssetId as any });
+    const personImage = await ctx.runAction(api.media.actions.createPrivateReadUrl, {
+      assetId: requireConvexId<"mediaAssets">(body.mediaAssetId, "mediaAssetId"),
+    });
     const jobId = await ctx.runMutation(internal.mediaJobs.createInternal, {
       tokenIdentifier: identity.tokenIdentifier,
       idempotencyKey,
@@ -193,15 +204,6 @@ function bearerIdentity(ctx: { auth: { getUserIdentity(): Promise<{ tokenIdentif
     if (!identity) throw new BridgeError("Unauthenticated: sign in required.", 401);
     return identity;
   })();
-}
-
-class BridgeError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-  ) {
-    super(message);
-  }
 }
 
 function errorStatus(cause: unknown): number {
@@ -347,7 +349,9 @@ export const detachPaymentMethodHttp = httpAction(async (ctx, request) => {
     await bearerIdentity(ctx);
     const body = (await request.json().catch(() => ({}))) as { recordId?: unknown };
     if (typeof body.recordId !== "string") throw new BridgeError("recordId is required.", 400);
-    await ctx.runAction(api.payments.stripe.detachPaymentMethod, { recordId: body.recordId as any });
+    await ctx.runAction(api.payments.stripe.detachPaymentMethod, {
+      recordId: requireConvexId<"paymentMethods">(body.recordId, "recordId"),
+    });
     return { success: true };
   });
 });
@@ -447,7 +451,7 @@ export const setOrderReminderHttp = httpAction(async (ctx, request) => {
     if (typeof body.orderId !== "string" || !body.orderId.trim()) throw new BridgeError("orderId is required.", 400);
     if (typeof body.reminderTime !== "string" || !body.reminderTime.trim()) throw new BridgeError("reminderTime is required.", 400);
     await ctx.runMutation(api.commerce.checkout.setOrderReminder, {
-      orderId: body.orderId as any,
+      orderId: requireConvexId<"orders">(body.orderId, "orderId"),
       reminderTime: body.reminderTime,
     });
     return { success: true };
@@ -459,7 +463,9 @@ export const acknowledgeDeliveryHttp = httpAction(async (ctx, request) => {
     await bearerIdentity(ctx);
     const body = (await request.json().catch(() => ({}))) as { orderId?: unknown };
     if (typeof body.orderId !== "string" || !body.orderId.trim()) throw new BridgeError("orderId is required.", 400);
-    await ctx.runMutation(api.commerce.checkout.acknowledgeDelivery, { orderId: body.orderId as any });
+    await ctx.runMutation(api.commerce.checkout.acknowledgeDelivery, {
+      orderId: requireConvexId<"orders">(body.orderId, "orderId"),
+    });
     return { success: true };
   });
 });
@@ -475,7 +481,7 @@ export const requestReturnHttp = httpAction(async (ctx, request) => {
         ? body.idempotencyKey.trim()
         : `return:${body.orderId}:${reason.slice(0, 80)}`;
     await ctx.runMutation(api.commerce.checkout.requestReturn, {
-      orderId: body.orderId as any,
+      orderId: requireConvexId<"orders">(body.orderId, "orderId"),
       reason,
       idempotencyKey,
     });
@@ -504,7 +510,7 @@ export const addCartItemHttp = httpAction(async (ctx, request) => {
     // The domain mutation's validator fully validates the listing snapshot.
     await ctx.runMutation(api.reactiveState.addCartItem, {
       productId: body.productId,
-      listing: body.listing as any,
+      listing: requireListingSnapshot(body.listing),
       quantity,
     });
     return { success: true };
@@ -549,10 +555,11 @@ export const setSavedHttp = httpAction(async (ctx, request) => {
     const body = (await request.json().catch(() => ({}))) as { productId?: unknown; saved?: unknown; listing?: unknown };
     if (typeof body.productId !== "string" || !body.productId.trim()) throw new BridgeError("productId is required.", 400);
     if (typeof body.saved !== "boolean") throw new BridgeError("saved must be a boolean.", 400);
+    const listing = optionalListingSnapshot(body.listing);
     await ctx.runMutation(api.reactiveState.setSavedProduct, {
       productId: body.productId,
       saved: body.saved,
-      ...(body.listing && typeof body.listing === "object" ? { listing: body.listing as any } : {}),
+      ...(listing ? { listing } : {}),
     });
     return { success: true };
   });
@@ -599,7 +606,9 @@ export const addWardrobeItemHttp = httpAction(async (ctx, request) => {
       addedAt: typeof body.addedAt === "number" ? body.addedAt : Date.now(),
       ...(typeof body.color === "string" ? { color: body.color } : {}),
       ...(typeof body.mediaKey === "string" ? { mediaKey: body.mediaKey } : {}),
-      ...(typeof body.mediaAssetId === "string" ? { mediaAssetId: body.mediaAssetId as any } : {}),
+      ...(typeof body.mediaAssetId === "string"
+        ? { mediaAssetId: requireConvexId<"mediaAssets">(body.mediaAssetId, "mediaAssetId") }
+        : {}),
     });
     return { success: true };
   });
@@ -707,7 +716,10 @@ export const setGroceryCheckedHttp = httpAction(async (ctx, request) => {
     const body = (await request.json().catch(() => ({}))) as { itemId?: unknown; checked?: unknown };
     if (typeof body.itemId !== "string" || !body.itemId.trim()) throw new BridgeError("itemId is required.", 400);
     if (typeof body.checked !== "boolean") throw new BridgeError("checked must be a boolean.", 400);
-    await ctx.runMutation(api.grocery.setChecked, { itemId: body.itemId as any, checked: body.checked });
+    await ctx.runMutation(api.grocery.setChecked, {
+      itemId: requireConvexId<"groceryItems">(body.itemId, "itemId"),
+      checked: body.checked,
+    });
     return { success: true };
   });
 });
@@ -717,7 +729,9 @@ export const removeGroceryItemHttp = httpAction(async (ctx, request) => {
     await bearerIdentity(ctx);
     const body = (await request.json().catch(() => ({}))) as { itemId?: unknown };
     if (typeof body.itemId !== "string" || !body.itemId.trim()) throw new BridgeError("itemId is required.", 400);
-    await ctx.runMutation(api.grocery.removeItem, { itemId: body.itemId as any });
+    await ctx.runMutation(api.grocery.removeItem, {
+      itemId: requireConvexId<"groceryItems">(body.itemId, "itemId"),
+    });
     return { success: true };
   });
 });
@@ -835,7 +849,9 @@ export const listTripDetailHttp = httpAction(async (ctx, request) => {
     await bearerIdentity(ctx);
     const tripId = new URL(request.url).searchParams.get("tripId");
     if (!tripId || !tripId.trim()) throw new BridgeError("tripId is required.", 400);
-    return ctx.runQuery(api.travel.listTripDetail, { tripId: tripId as any });
+    return ctx.runQuery(api.travel.listTripDetail, {
+      tripId: requireConvexId<"travelTrips">(tripId, "tripId"),
+    });
   });
 });
 
@@ -848,10 +864,10 @@ export const addTravelExpenseHttp = httpAction(async (ctx, request) => {
       throw new BridgeError("A complete expense is required.", 400);
     }
     await ctx.runMutation(api.travel.addExpense, {
-      tripId: body.tripId as any,
+      tripId: requireConvexId<"travelTrips">(body.tripId, "tripId"),
       amount: body.amount,
       currency: body.currency,
-      category: body.category as any,
+      category: requireExpenseCategory(body.category),
       merchant: body.merchant,
     });
     return { success: true };
