@@ -1,0 +1,88 @@
+# Progress
+
+## Active Feature
+Reconciliation audit (2026-09-22): entire repository audited against this harness and `docs/spresso_architecture_context.md`. Every registered feature traced end-to-end through real callers, backend wiring, auth, state ownership, provider integrations, error paths, and tests. Results encoded in `feature_list.json`.
+
+## Pre-Implementation Gate
+All applicable items must be checked before production implementation begins.
+
+- [x] Read active ticket/spec, feature entry, recent git history, and current progress.
+- [x] Trace the existing end-to-end execution path and identify the canonical implementation.
+- [x] Identify state ownership, auth boundaries, provider boundaries, and platform boundaries.
+- [x] Inventory relevant installed skills/plugins/components.
+- [x] Read every applicable `SKILL.md` completely.
+- [x] Verify version-sensitive APIs against installed package/types and current official docs.
+- [x] Inventory legacy/duplicate/dead paths that intersect the feature.
+- [x] Record SDK/plugin applicability below; no applicable section is silently omitted.
+- [x] Define the production verification required to prove the feature works.
+- [x] Confirm the planned path is a real production implementation, not a scaffold/mock/placeholder.
+
+## SDK / Plugin Applicability
+Use when an SDK/plugin/component is involved.
+
+| Capability / section | Status | Evidence / reason |
+|---|---|---|
+| Convex (agent, rate-limiter components; 47-route HTTP bridge) | verified | convex/convex.config.ts mounts both components; codegen + tsc + 74/74 vitest green at commit 0433cc5 |
+| Firebase Auth identity in Convex | verified | convex/auth.config.ts pinned to securetoken.google.com/get-spresso; requireFirebaseIdentity on every bridge route; identity.test.ts pins exact strings |
+| Stripe (payments, signed webhooks) | verified (code) / unverified (live) | convex/commerce/* + signed constructEventAsync webhook reconciliation; STRIPE_WEBHOOK_SECRET absent from prod vault so live reconciliation fails closed |
+| Bunny private media | verified (code) / unverified (live) | convex/media/bunnyStore.ts fails closed without BUNNY_*; BUNNY_* absent from prod vault |
+| FAL (try-on generation) | verified (code) / unverified (live) | convex/media/actions.ts typed env access; FAL_API_KEY absent from prod vault |
+| Discovery providers (Parallel, SerpApi, Kitesurf via Cloudflare) | verified (code) / unverified (live) | convex/discovery.ts fallback chain + provenance; PARALLEL/SERPAPI/CLOUDFLARE/KITESURF secrets absent from prod vault |
+| Gemini Live (ephemeral token, WS transport) | verified (code) / unverified (device) | convex/ai/liveToken.ts + LiveApiClient.kt; GEMINI_API_KEY present in prod vault |
+| Meta Wearables DAT | partial | SpressoWearablesService.kt live path with tool ledger; intent loop broken (no receiver answers SEARCH_PRODUCTS/ADD_TO_CART); DAT pillar evidence not yet recorded |
+| Jetpack XR / Compose Glimmer | N/A | No XR display-glasses feature registered in feature_list.json; boundary doc honored |
+
+## Production-Ready Gate
+All applicable items must be checked before the feature can be marked passing or work can move to another feature.
+
+- [ ] Production path is fully implemented end to end. *(wearable intent loop, client checkout surface, realtime barge-in remain)*
+- [ ] No placeholder, stub, scaffold-only, fake-data, no-op, or mock implementation remains in the production path. *(strict mock scanner green; no dev bypasses found)*
+- [ ] Mocks/simulators are confined to tests or official SDK test tooling. *(verified)*
+- [ ] Canonical state ownership is preserved; no duplicate backend/auth/tool/state path was introduced. *(Convex canonical; legacy ApiClient.kt + gemini-streaming-mcp/ recorded as duplicates awaiting removal)*
+- [ ] Authentication and server-side authorization are verified. *(bridge-wide bearer identity + per-user ownership checks)*
+- [ ] External/provider inputs and outputs are validated. *(typed bridge parsers, zod guardrails, provider normalization)*
+- [ ] Lifecycle, cancellation, cleanup, retry, timeout, and failure behavior are implemented where applicable. *(media job state machine; LiveApiClient reconnect; gaps in wearable/realtime paths)*
+- [ ] Concurrency, ordering, idempotency, and reconciliation are implemented where applicable. *(checkout idempotency, webhookInbox dedupe, tool ledger)*
+- [ ] Loading, empty, stale, unsupported, unavailable, failed, rate-limited, and success states are preserved where meaningful. *(rate limiter component wired; UI-state audit pending per screen)*
+- [ ] Applicable SDK/plugin capability rows above are verified or explicitly N/A with reason. *(see table)*
+- [ ] Targeted tests/checks pass. *(74/74 convex vitest, contracts, smoke, boundary suites)*
+- [ ] Negative/error/authz paths pass. *(identity/ownership tests green; grocery/order suites missing)*
+- [ ] Applicable broader CI/static/security/dependency checks pass. *(npm audit 0 vulns; lint green)*
+- [ ] Convex codegen/typecheck/deployment compilation passes when Convex is affected. *(green at 0433cc5)*
+- [ ] Applicable KMP/Android/Web targets compile. *(commonMain metadata, androidMain, wasmJs all green)*
+- [ ] Optimized/release build passes where applicable. *(wasmJs production distribution green, bundle 19.9/32MiB)*
+- [ ] Real integration/hardware verification is complete when mocks cannot prove production behavior. *(NOT DONE — this is the gate nothing currently passes)*
+- [ ] Any discovered legacy/duplicate/dead implementation has been migrated or removed safely. *(ApiClient.kt and gemini-streaming-mcp/ pending)*
+- [ ] `feature_list.json` is updated only after the above evidence exists. *(updated 2026-09-22 with audited statuses)*
+- [ ] Coherent working state is committed. *(this commit)*
+
+## Completed
+- Reconciliation audit of all 8 registered features against repository reality (2026-09-22).
+- 4 features moved from `unverified` to `IMPLEMENTED_BUT_UNVERIFIED` with evidence: product-discovery, virtual-try-on, screen-product-discovery, grocery-list, order-history.
+- 3 features classified `PARTIAL` with named breaks: wearable-product-detection (intent loop), agentic-checkout (client surface), realtime-ai (barge-in/reconciliation).
+
+## Verified
+- None. No feature satisfies the Production-Ready Gate's real integration/hardware verification, and live provider paths are blocked on production vault secrets. Nothing is marked VERIFIED without that evidence.
+
+## Open / Blocked
+- **Blocked on prod vault (Infisical prod -> Convex prod)**: PARALLEL_API_KEY, SERPAPI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, KITESURF_ALLOWED_DOMAINS, STRIPE_WEBHOOK_SECRET, FAL_API_KEY, BUNNY_* — live discovery, merchant verification, webhook reconciliation, try-on, and media delivery fail closed until provisioned.
+- **Open (code)**: wearable intent receivers (SEARCH_PRODUCTS/ADD_TO_CART dead-end at the app boundary); client checkout surface + biometric/MFA intent binding (BiometricHelper has zero callers); realtime barge-in/interruption + in-flight tool reconciliation; missing convex/grocery.test.ts and order tests.
+- **Duplicates awaiting removal (root-caused, do not delete in a feature pass)**: `composeApp/.../network/ApiClient.kt` legacy transport (zero consumers, dead origin) — consolidate into ConvexApi.kt; `gemini-streaming-mcp/` (dist-only scaffold, empty package description, referenced only by a release.yml cache line) — remove or define a real contract.
+
+## Decisions
+- VERIFIED is never granted without Production-Ready Gate evidence; IMPLEMENTED_BUT_UNVERIFIED is the ceiling for code-complete features without live runs.
+- Harness registry is a subset of the repo: travel, creator studio, trial/entitlements, wardrobe, users/profile, vision pipeline, and the Stripe plane are implemented and tested but not registered features; they are recorded here rather than invented into feature_list.json.
+- Convex production deployment is `woozy-anteater-572` (HTTP bridge `https://woozy-anteater-572.convex.site`); dev deployment `decisive-dolphin-161` is never evidence of production wiring.
+
+## Next
+1. Implement wearable intent receivers so DAT tool calls complete end-to-end (unblocks wearable-product-detection).
+2. Wire the client checkout surface: quote -> biometric confirmation -> prepareCheckout -> Stripe confirm -> order states (unblocks agentic-checkout).
+3. Remove `gemini-streaming-mcp/` and consolidate `ApiClient.kt` into `ConvexApi.kt` (dedicated cleanup pass).
+4. Add convex/grocery.test.ts and order-history tests (cross-user denial, duplicate webhook, partial states).
+5. Provision prod vault secrets, then run live provider smoke for discovery/try-on/webhook to earn VERIFIED statuses.
+
+## Active Issue / PR
+-
+
+## Last Updated
+2026-09-22 (reconciliation audit at commit 0433cc5)

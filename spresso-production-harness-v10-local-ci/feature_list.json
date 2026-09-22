@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "rule": "Work on one feature at a time. Complete the applicable Pre-Implementation Gate before coding. After implementing the real production path, scripts/ci.sh must pass. Then complete every applicable Production-Ready Gate item with evidence before marking passing or moving on. Scaffolds, placeholders, stubs, fake data, no-op adapters, and mocks do not satisfy production behavior.",
+  "lastReconciled": "2026-09-22",
+  "reconciliationNote": "Statuses below come from the 2026-09-22 repository reconciliation audit (commit 0433cc5 tree): every feature was traced end-to-end through real callers, backend wiring, auth, state ownership, provider integrations, error paths, and tests. VERIFIED is deliberately not assigned anywhere: no feature has real integration/hardware evidence satisfying the Production-Ready Gate, and the production Convex vault lacks PARALLEL_API_KEY, SERPAPI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, KITESURF_ALLOWED_DOMAINS, STRIPE_WEBHOOK_SECRET, FAL_API_KEY, and BUNNY_* (verified 2026-09-18), so live provider paths fail closed.",
+  "features": [
+    {
+      "id": "product-discovery",
+      "priority": 1,
+      "status": "IMPLEMENTED_BUT_UNVERIFIED",
+      "spec": "docs/features.md#product-discovery",
+      "evidence": "convex/discovery.ts implements Parallel->SerpApi fallback with provenance timestamps and Kitesurf merchant verification (verifyMerchantListing, fail-closed without CLOUDFLARE_* config); 47-route Convex HTTP bridge at https://woozy-anteater-572.convex.site; client ConvexApi.searchProducts/fetchRecommendedProducts/fetchProductById wired to /api/discovery/*; scripts/test/discovery-boundary.test.mjs pins no-owned-inventory; convex/discoveryState.test.ts + recommendationQueries.test.ts green.",
+      "remaining": "Live provider verification once prod vault secrets are provisioned; remove legacy duplicate transport ApiClient.kt (zero consumers, points at dead get-spresso.web.app origin) in a dedicated cleanup pass."
+    },
+    {
+      "id": "virtual-try-on",
+      "priority": 2,
+      "status": "IMPLEMENTED_BUT_UNVERIFIED",
+      "spec": "docs/features.md#virtual-try-on",
+      "evidence": "convex/media/actions.ts runs FAL generation with typed env access; convex/mediaJobs.ts enforces a typed job state machine (allowedTransitions, compare-and-set transitions, verification_pending semantics); convex/media/bunnyStore.ts fails closed on missing BUNNY_* config (no Firebase/Convex media fallback); convex/media/jobs.test.ts and mediaStore.test.ts green; client ConvexApi.generateVirtualTryOn wired to /api/media/try-on.",
+      "remaining": "Provision prod FAL_API_KEY + BUNNY_* and record a live end-to-end generation + private delivery run; confirm moderation/provenance fields against the current Higgsfield skill before marking VERIFIED."
+    },
+    {
+      "id": "screen-product-discovery",
+      "priority": 3,
+      "status": "IMPLEMENTED_BUT_UNVERIFIED",
+      "spec": "docs/features.md#screen-product-discovery",
+      "evidence": "Android MediaProjectionScreenCapture is the capture path; all four entry points (chat panel, Smart Vision overlay, wardrobe banner, gallery sync) route to the shared onTriggerGlobalLens flow (commit 1bfc8f6); ConvexApi.searchVision -> /api/vision/search -> convex/vision.ts with provider grounding; scripts/test/lens-boundary.test.mjs pins that a gallery pick can never stand in for Lens.",
+      "remaining": "Record a live capture -> detection -> discovery run; verify no/multiple-match and stale-result UI states against real output."
+    },
+    {
+      "id": "wearable-product-detection",
+      "priority": 4,
+      "status": "PARTIAL",
+      "spec": "docs/features.md#wearable-product-detection",
+      "evidence": "SpressoWearablesService.kt runs the DAT path: camera frames -> Gemini Live tool calls, toolLedger idempotency, response cache, typed DatResult handling. BREAK: searchProducts/addToCart/startHandsFreeCheckout broadcast com.spresso.intent.action.* intents and await ACTION_WEARABLE_ACTION_RESULT, but no manifest receiver or app component answers those intents (verified by grep across composeApp/src and both manifests) - wearable tool calls dead-end at the app boundary.",
+      "remaining": "Implement the app-side intent handlers that execute the action through ConvexApi and broadcast the result with EXTRA_ACTION_ID/EXTRA_SUCCESS; record DAT pillar evidence (MockDeviceKit or live DAT Inspector) per docs/meta-wearables-dat.md before any status promotion."
+    },
+    {
+      "id": "agentic-checkout",
+      "priority": 5,
+      "status": "PARTIAL",
+      "spec": "docs/features.md#agentic-checkout",
+      "evidence": "Backend is production-grade: convex/commerce/actions.ts prepareCheckout prices from a fresh merchant observation with Stripe PI idempotency keys; convex/commerce/checkout.ts owns checkoutAttempts with per-user idempotency, webhookInbox dedupe (by_provider_and_event_id), acquire/complete webhook lifecycle, and Stripe order reconciliation in convex/http.ts (signed constructEventAsync). GAP: the client has zero checkout surface - ConvexApi.kt contains no checkout calls and HITLCheckoutSummaryCard is display-only; BiometricHelper.android.kt has zero callers, so biometric+MFA confirmation bound to the exact purchase intent is not implemented end-to-end.",
+      "remaining": "Wire the client checkout flow: quote display -> biometric confirmation (SystemBiometricPrompt exists) -> prepareCheckout -> Stripe Elements confirm -> order reconciliation states; bind server-side authorization to the confirmed intent per ARCHITECTURE.md invariant."
+    },
+    {
+      "id": "realtime-ai",
+      "priority": 6,
+      "status": "PARTIAL",
+      "spec": "docs/features.md#realtime-ai",
+      "evidence": "One canonical transport: LiveApiClient.kt (Ktor WS) connects to Gemini Live with an ephemeral token from Convex /api/live/token (convex/ai/liveToken.ts, Firebase identity enforced, key never leaves server); wired in App.kt and ChatViewModel; durable session/thread state lives in the Convex agent component (aiChat.ts), not in the transport.",
+      "remaining": "Implement interruption/barge-in handling and in-flight tool-call reconciliation on disconnect; verify reconnect/duplicate-response behavior on device before promotion."
+    },
+    {
+      "id": "grocery-list",
+      "priority": 7,
+      "status": "IMPLEMENTED_BUT_UNVERIFIED",
+      "spec": "docs/features.md#grocery-list",
+      "evidence": "convex/grocery.ts exposes deterministic user-owned mutations (addItem/setChecked/removeItem) with ownership-scoped getMyList; bridge routes /api/grocery* in convex/http.ts; client GroceryListPage + GroceryListWidget wired via ConvexApi.fetchGroceryItems.",
+      "remaining": "Add convex/grocery.test.ts (duplicate/concurrent-edit/authz cases); verify offline/reconnect behavior on device."
+    },
+    {
+      "id": "order-history",
+      "priority": 8,
+      "status": "IMPLEMENTED_BUT_UNVERIFIED",
+      "spec": "docs/features.md#order-history",
+      "evidence": "convex/commerce/checkout.ts listOrders is paged (limit 1-50), ownership-filtered by tokenIdentifier via by_token_identifier index; acknowledge/reminder/return mutations are idempotent; Stripe webhook reconciliation writes authoritative processor state; client OrdersTrackerPage wired via ConvexApi.fetchOrders.",
+      "remaining": "Add dedicated order tests (cross-user denial, duplicate webhook, partial/unknown fulfillment states); reconcile partial/unknown states in the OrdersTrackerPage UI."
+    }
+  ]
+}
