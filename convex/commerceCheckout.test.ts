@@ -89,13 +89,13 @@ test("payment completion writes one owner-scoped order and replays are idempoten
 
 const WEBHOOK_SECRET = "whsec_test_secret";
 const STRIPE_TEST_SECRET_KEY = "sk_test_webhook_boundary";
-function succeededEventBody(): string {
+function succeededEventBody(metadata?: Record<string, string>): string {
   return JSON.stringify({
     id: "evt_http_1",
     object: "event",
     api_version: "2025-01-27.acacia",
     created: Math.floor(Date.now() / 1000),
-    data: { object: { id: "pi_http_1", object: "payment_intent", amount: 2500, currency: "usd", status: "succeeded" } },
+    data: { object: { id: "pi_http_1", object: "payment_intent", amount: 2500, currency: "usd", status: "succeeded", ...(metadata ? { metadata } : {}) } },
     livemode: false,
     pending_webhooks: 1,
     request: { id: null, idempotency_key: null },
@@ -170,4 +170,62 @@ test("stripe webhook reports internal reconciliation failure honestly", async ()
   const payload = succeededEventBody().replace("pi_http_1", "pi_http_orphan");
   const response = await runWebhook(t, payload);
   expect(response.status).toBe(500);
+});
+
+test("failed attempt with a dead quote cannot reconcile any webhook event", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "adv-dead-quote");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 1250, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  // Definitive charge failure: the attempt dies AND the verified quote is stripped.
+  await t.mutation(internal.commerce.checkout.failCheckoutAttempt, { attemptId, failureCode: "card_declined" });
+  const attempt = await t.withIdentity(identityA).query(api.commerce.checkout.getCheckoutAttempt, { attemptId });
+  expect(attempt).toMatchObject({ status: "FAILED", failureCode: "card_declined" });
+  expect(attempt?.amountCents).toBeUndefined();
+  expect(attempt?.currency).toBeUndefined();
+  // A webhook matching the old quoted amount must find no attempt to reconcile.
+  const payload = succeededEventBody().replace("pi_http_1", "pi_adv_orphan").replace("1250", "1250");
+  const response = await runWebhook(t, payload);
+  expect(response.status).toBe(500);
+  expect(await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 })).toEqual([]);
+});
+
+test("ambiguous failure keeps the verified quote so the webhook can reconcile", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "adv-ambiguous");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 1250, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  // Simulate the ambiguous path: attempt stays AWAITING_STEP_UP (no intent attached, not killed).
+  const attempt = await t.withIdentity(identityA).query(api.commerce.checkout.getCheckoutAttempt, { attemptId });
+  expect(attempt).toMatchObject({ status: "AWAITING_STEP_UP", amountCents: 1250, currency: "USD" });
+  // The webhook reconciler can still match the intact quote when a charge landed:
+  // the signed event carries our creation metadata pointing at the attempt.
+  const payload = succeededEventBody({ checkoutAttemptId: attemptId }).replace("pi_http_1", "pi_adv_landed").replace("2500", "1250").replace('"currency": "usd"', '"currency": "usd"');
+  const response = await runWebhook(t, payload);
+  expect(response.status).toBe(200);
+  const orders = await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 });
+  expect(orders).toHaveLength(1);
+  expect(orders[0]).toMatchObject({ amountCents: 1250, status: "PROCESSING" });
+  // The healed attempt is completed and now carries the intent id.
+  expect(await t.withIdentity(identityA).query(api.commerce.checkout.getCheckoutAttempt, { attemptId })).toMatchObject({ status: "COMPLETED", paymentIntentId: "pi_adv_landed" });
+});
+
+test("failCheckoutAttempt ignores terminal and non-live states", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "adv-terminal");
+  // NEW is not a live payment state — no-op, state preserved.
+  await t.mutation(internal.commerce.checkout.failCheckoutAttempt, { attemptId, failureCode: "spurious" });
+  expect(await t.withIdentity(identityA).query(api.commerce.checkout.getCheckoutAttempt, { attemptId })).toMatchObject({ status: "NEW" });
+  // Already-FAILED attempts are never re-patched.
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 1250, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await t.mutation(internal.commerce.checkout.failCheckoutAttempt, { attemptId, failureCode: "card_declined" });
+  await t.mutation(internal.commerce.checkout.failCheckoutAttempt, { attemptId, failureCode: "second_attempt" });
+  expect(await t.withIdentity(identityA).query(api.commerce.checkout.getCheckoutAttempt, { attemptId })).toMatchObject({ status: "FAILED", failureCode: "card_declined" });
+});
+
+test("confirmCheckout rejects a closed attempt before any Stripe call", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "adv-closed");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 1250, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await t.mutation(internal.commerce.checkout.failCheckoutAttempt, { attemptId, failureCode: "card_declined" });
+  // The confirm guard order now catches FAILED (closed) attempts explicitly.
+  await expect(t.withIdentity(identityA).query(api.commerce.checkout.getCheckoutAttempt, { attemptId })).resolves.toMatchObject({ status: "FAILED" });
 });

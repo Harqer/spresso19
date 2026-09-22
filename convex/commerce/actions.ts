@@ -114,6 +114,12 @@ export const createPaymentIntent = action({
   },
 });
 
+function failureCodeOf(error: unknown): string {
+  if (error instanceof Stripe.errors.StripeCardError) return error.decline_code || error.code || "card_error";
+  if (error instanceof Stripe.errors.StripeInvalidRequestError) return "invalid_request";
+  return "payment_unresolved";
+}
+
 /**
  * Off-session confirmation using the user's saved default card. The user has
  * already approved this exact listing/quantity through a biometric step-up on
@@ -129,9 +135,12 @@ export const confirmCheckout = action({
     const identity = await requireFirebaseIdentity(ctx);
     const attempt: CheckoutAttemptSnapshot | null = await ctx.runQuery(internal.commerce.checkout.getCheckoutAttemptInternal, { attemptId: args.attemptId });
     if (!attempt || attempt.tokenIdentifier !== identity.tokenIdentifier) throw new Error("Checkout attempt not found.");
-    if (!attempt.amountCents || !attempt.currency) throw new Error("Checkout has not been quoted yet.");
-    if (attempt.status === "COMPLETED") throw new Error("This checkout is already completed.");
+    // In-progress is checked before completed: an attempt whose charge has been
+    // made but not yet reconciled stays PROCESSING and must never re-charge.
     if (attempt.paymentIntentId) throw new Error("This checkout is already in progress.");
+    if (attempt.status === "COMPLETED") throw new Error("This checkout is already completed.");
+    if (attempt.status === "FAILED") throw new Error("This checkout attempt is closed. Start a new checkout.");
+    if (!attempt.amountCents || !attempt.currency) throw new Error("Checkout has not been quoted yet.");
     if (!env.STRIPE_SECRET_KEY) throw new Error("Stripe checkout is not configured in the Convex deployment.");
 
     const saved = await ctx.runQuery(internal.payments.records.getDefaultPaymentMethod, { tokenIdentifier: identity.tokenIdentifier });
@@ -150,9 +159,21 @@ export const confirmCheckout = action({
         metadata: { checkoutAttemptId: String(args.attemptId), tokenIdentifier: identity.tokenIdentifier, listingId: attempt.listingId, quantity: String(attempt.quantity) },
       }, { idempotencyKey: `convex_confirm_${identity.tokenIdentifier}_${attempt.idempotencyKey}` });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Payment failed.";
-      await ctx.runMutation(internal.commerce.checkout.failCheckoutAttempt, { attemptId: args.attemptId, failureCode: message.slice(0, 120) });
-      throw new Error(`Payment failed: ${message.slice(0, 160)}`);
+      if (error instanceof Stripe.errors.StripeCardError || error instanceof Stripe.errors.StripeInvalidRequestError) {
+        // Definitive outcome: no charge can exist, so the attempt and its
+        // verified quote are dead — kill them so no webhook can ever
+        // reconcile against this attempt again.
+        await ctx.runMutation(internal.commerce.checkout.failCheckoutAttempt, { attemptId: args.attemptId, failureCode: failureCodeOf(error) });
+        if (error instanceof Stripe.errors.StripeCardError) {
+          throw new Error("Your card was declined. Try another payment method.");
+        }
+        throw new Error("Payment failed. Please try again or use a different payment method.");
+      }
+      // Ambiguous outcome (network timeout, Stripe 5xx): the charge may or may
+      // not exist. Keep the attempt and its verified quote — the idempotency
+      // key makes any retry replay the same intent, and if the charge landed,
+      // the webhook reconciler matches the intact quote to create the order.
+      throw new Error("Payment could not be completed right now. You can try again.");
     }
     await ctx.runMutation(internal.commerce.checkout.attachPaymentIntent, { attemptId: args.attemptId, paymentIntentId: confirmedIntent.id, amountCents: attempt.amountCents, currency: attempt.currency });
     return { status: confirmedIntent.status, paymentIntentId: confirmedIntent.id, amountCents: attempt.amountCents, currency: attempt.currency, brand: saved.brand, last4: saved.last4 };

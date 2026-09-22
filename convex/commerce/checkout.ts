@@ -111,6 +111,20 @@ export const failCheckoutAttempt = internalMutation({
     const attempt = await ctx.db.get(args.attemptId);
     if (!attempt) return null;
     if (attempt.status !== "PROCESSING" && attempt.status !== "AWAITING_STEP_UP") return null;
+    // A failed charge invalidates the verified quote: stripping it keeps the
+    // webhook reconciler unable to match stale amounts to a new intent.
+    if (attempt.status === "AWAITING_STEP_UP") {
+      await ctx.db.patch(args.attemptId, {
+        amountCents: undefined,
+        currency: undefined,
+        merchantUrl: undefined,
+        quoteObservedAt: undefined,
+        status: "FAILED",
+        failureCode: args.failureCode.trim().slice(0, 120) || "unknown",
+        updatedAt: Date.now(),
+      });
+      return null;
+    }
     await ctx.db.patch(args.attemptId, { status: "FAILED", failureCode: args.failureCode.trim().slice(0, 120) || "unknown", updatedAt: Date.now() });
     return null;
   },
@@ -168,17 +182,33 @@ export const acquireWebhookEvent = internalMutation({
 });
 
 export const completePayment = internalMutation({
-  args: { provider: v.string(), eventId: v.string(), paymentIntentId: v.string(), amountCents: v.number(), currency: v.string() },
+  args: { provider: v.string(), eventId: v.string(), paymentIntentId: v.string(), amountCents: v.number(), currency: v.string(), checkoutAttemptId: v.optional(v.id("checkoutAttempts")) },
   returns: v.object({ orderId: v.id("orders"), created: v.boolean() }),
   handler: async (ctx, args) => {
     const event = await ctx.db.query("webhookInbox").withIndex("by_provider_and_event_id", (q) => q.eq("provider", args.provider).eq("eventId", args.eventId)).unique();
     if (!event) throw new Error("Webhook event has not been acquired.");
     const existingOrder = await ctx.db.query("orders").withIndex("by_payment_intent_id", (q) => q.eq("paymentIntentId", args.paymentIntentId)).unique();
     if (existingOrder) return { orderId: existingOrder._id, created: false };
-    const attempt = await ctx.db.query("checkoutAttempts").withIndex("by_payment_intent_id", (q) => q.eq("paymentIntentId", args.paymentIntentId)).unique();
+    let attempt = await ctx.db.query("checkoutAttempts").withIndex("by_payment_intent_id", (q) => q.eq("paymentIntentId", args.paymentIntentId)).unique();
+    if (!attempt && args.checkoutAttemptId) {
+      // Healing path: the charge landed but the intent was never attached to
+      // the attempt (ambiguous confirm failure). The metadata comes from our
+      // own signed event, and every ownership/amount/state check still applies.
+      const candidate = await ctx.db.get(args.checkoutAttemptId);
+      if (
+        candidate &&
+        candidate.amountCents === args.amountCents &&
+        candidate.currency === args.currency.toUpperCase() &&
+        !candidate.paymentIntentId &&
+        candidate.status !== "FAILED" &&
+        candidate.status !== "COMPLETED"
+      ) {
+        attempt = candidate;
+      }
+    }
     if (!attempt || attempt.amountCents !== args.amountCents || attempt.currency !== args.currency.toUpperCase()) throw new Error("Payment does not match a verified checkout attempt.");
     const orderId = await ctx.db.insert("orders", { tokenIdentifier: attempt.tokenIdentifier, checkoutAttemptId: attempt._id, paymentIntentId: args.paymentIntentId, listingId: attempt.listingId, listing: attempt.listing, quantity: attempt.quantity, amountCents: args.amountCents, currency: args.currency.toUpperCase(), merchantUrl: attempt.merchantUrl ?? attempt.listing.merchantUrl, status: "PROCESSING", humanConfirmedAt: new Date().toISOString(), createdAt: Date.now() });
-    await ctx.db.patch(attempt._id, { orderId: String(orderId), status: "COMPLETED", updatedAt: Date.now() });
+    await ctx.db.patch(attempt._id, { orderId: String(orderId), paymentIntentId: args.paymentIntentId, status: "COMPLETED", updatedAt: Date.now() });
     await ctx.db.patch(event._id, { status: "COMPLETED", updatedAt: Date.now() });
     return { orderId, created: true };
   },

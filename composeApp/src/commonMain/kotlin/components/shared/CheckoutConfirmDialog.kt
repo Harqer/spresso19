@@ -90,12 +90,26 @@ fun CheckoutConfirmDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     when (phase) {
-                        is CheckoutPhase.Failed ->
+                        is CheckoutPhase.Failed -> {
                             Text(
                                 phase.message,
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall,
                             )
+                            if (phase.retryable) {
+                                Text(
+                                    "You can try confirming again.",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            } else {
+                                Text(
+                                    "This attempt is closed — start a new checkout to try again.",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                         else -> Unit
                     }
                 }

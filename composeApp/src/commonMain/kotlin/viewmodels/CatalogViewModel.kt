@@ -33,6 +33,13 @@ sealed interface CheckoutPhase {
 
     data class Failed(
         val message: String,
+        /**
+         * True when the attempt is still chargeable (e.g. the user declined
+         * the biometric prompt before anything reached the backend). A charge
+         * the backend rejected kills the attempt server-side, so retrying is
+         * impossible and the UI must not offer it.
+         */
+        val retryable: Boolean,
     ) : CheckoutPhase
 }
 
@@ -79,7 +86,8 @@ class CatalogViewModel(
                 _checkoutDraft.value = CheckoutDraft(attemptId, product, quantity, quote)
             } catch (e: Exception) {
                 val message = e.message ?: "Unable to start checkout. Please try again."
-                _checkoutPhase.value = CheckoutPhase.Failed(message)
+                // Pre-charge failure: the attempt is not killed, retrying starts fresh.
+                _checkoutPhase.value = CheckoutPhase.Failed(message, retryable = true)
                 // Surfaces inline failures on screens that only observe checkoutStatus.
                 _checkoutStatus.value = message
             }
@@ -93,10 +101,14 @@ class CatalogViewModel(
      */
     fun confirmCheckout() {
         val draft = _checkoutDraft.value ?: return
-        when (_checkoutPhase.value) {
-            is CheckoutPhase.ConfirmingBiometric, is CheckoutPhase.Charging -> return
-            else -> Unit
+        // Reserve the flow synchronously: a double tap must not start a second
+        // biometric prompt or fire a second charge request.
+        when (val current = _checkoutPhase.value) {
+            is CheckoutPhase.AwaitingConfirmation -> Unit
+            is CheckoutPhase.Failed -> if (!current.retryable) return
+            else -> return
         }
+        _checkoutPhase.value = CheckoutPhase.ConfirmingBiometric
         scope.launch {
             val approved =
                 promptBiometricAuth(
@@ -104,7 +116,8 @@ class CatalogViewModel(
                     payload = draft.attemptId,
                 )
             if (approved == null) {
-                _checkoutPhase.value = CheckoutPhase.Failed("Purchase was not confirmed on this device.")
+                // Nothing reached the backend; the attempt is still valid.
+                _checkoutPhase.value = CheckoutPhase.Failed("Purchase was not confirmed on this device.", retryable = true)
                 return@launch
             }
             _checkoutPhase.value = CheckoutPhase.Charging
@@ -113,7 +126,9 @@ class CatalogViewModel(
                 _checkoutPhase.value = CheckoutPhase.Succeeded(confirmation)
                 _checkoutDraft.value = null
             } catch (e: Exception) {
-                _checkoutPhase.value = CheckoutPhase.Failed(e.message ?: "Payment failed. Please try again.")
+                // The backend strips the verified quote on any charge failure,
+                // so this attempt is dead: do not leave a confirmable draft.
+                _checkoutPhase.value = CheckoutPhase.Failed(e.message ?: "Payment failed. Please try again.", retryable = false)
             }
         }
     }

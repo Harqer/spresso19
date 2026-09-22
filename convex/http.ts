@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { httpAction, env } from "./_generated/server";
 import { httpRouter } from "convex/server";
 import { internal, api } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import {
   BridgeError,
   optionalListingSnapshot,
@@ -71,6 +72,19 @@ export const stripeWebhook = httpAction(async (ctx, request) => {
   const paymentIntentId = intent.id;
   const amountCents = intent.amount;
   const currency = intent.currency;
+  // Our own creation metadata enables the reconciler's healing path when the
+  // charge landed but the confirm action died before attaching the intent.
+  // Best-effort: malformed metadata downgrades to the strict intent-id match
+  // instead of wedging this webhook into a permanent retry loop.
+  const metadataAttemptIdRaw = intent.metadata?.checkoutAttemptId;
+  let metadataAttemptId: Id<"checkoutAttempts"> | undefined;
+  if (typeof metadataAttemptIdRaw === "string" && metadataAttemptIdRaw.trim()) {
+    try {
+      metadataAttemptId = requireConvexId<"checkoutAttempts">(metadataAttemptIdRaw, "checkoutAttemptId");
+    } catch {
+      metadataAttemptId = undefined;
+    }
+  }
   if (!paymentIntentId || !Number.isInteger(amountCents) || amountCents <= 0 || !currency) {
     return responseJson(200, { ignored: "Unmanaged payment intent payload." });
   }
@@ -96,6 +110,7 @@ export const stripeWebhook = httpAction(async (ctx, request) => {
       paymentIntentId,
       amountCents,
       currency,
+      checkoutAttemptId: metadataAttemptId,
     });
     return responseJson(200, { orderId, created });
   } catch (cause) {
