@@ -83,6 +83,24 @@
       ]
     },
     {
+      "path": "/api/checkout/attempt",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/checkout/confirm",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/checkout/prepare",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
       "path": "/api/creator/agents",
       "methods": [
         "GET"

@@ -356,6 +356,48 @@ export const detachPaymentMethodHttp = httpAction(async (ctx, request) => {
   });
 });
 
+// ---- Checkout: quote → biometric confirm → off-session charge -------------
+
+export const acquireCheckoutAttemptHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { listingId?: unknown; listing?: unknown; quantity?: unknown; idempotencyKey?: unknown };
+    if (typeof body.listingId !== "string" || !body.listingId.trim()) throw new BridgeError("listingId is required.", 400);
+    if (typeof body.idempotencyKey !== "string" || !body.idempotencyKey.trim()) throw new BridgeError("idempotencyKey is required.", 400);
+    const quantity = typeof body.quantity === "number" && Number.isInteger(body.quantity) ? body.quantity : 1;
+    // The domain mutation's validator fully validates the listing snapshot.
+    const attemptId = await ctx.runMutation(api.commerce.checkout.acquireCheckoutAttempt, {
+      listingId: body.listingId,
+      listing: requireListingSnapshot(body.listing),
+      quantity,
+      idempotencyKey: body.idempotencyKey,
+    });
+    return { attemptId };
+  });
+});
+
+export const prepareCheckoutHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { attemptId?: unknown };
+    if (typeof body.attemptId !== "string") throw new BridgeError("attemptId is required.", 400);
+    return ctx.runAction(api.commerce.actions.prepareCheckout, {
+      attemptId: requireConvexId<"checkoutAttempts">(body.attemptId, "attemptId"),
+    });
+  });
+});
+
+export const confirmCheckoutHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { attemptId?: unknown };
+    if (typeof body.attemptId !== "string") throw new BridgeError("attemptId is required.", 400);
+    return ctx.runAction(api.commerce.actions.confirmCheckout, {
+      attemptId: requireConvexId<"checkoutAttempts">(body.attemptId, "attemptId"),
+    });
+  });
+});
+
 http.route({ path: "/api/account/me", method: "GET", handler: userMeHttp });
 http.route({ path: "/api/account/preferences", method: "GET", handler: getPreferencesHttp });
 http.route({ path: "/api/account/preferences", method: "POST", handler: setPreferencesHttp });
@@ -367,6 +409,9 @@ http.route({ path: "/api/account/wallet/coinbase", method: "POST", handler: conn
 http.route({ path: "/api/payment-methods", method: "GET", handler: listPaymentMethodsHttp });
 http.route({ path: "/api/payment-methods/attach", method: "POST", handler: attachPaymentMethodHttp });
 http.route({ path: "/api/payment-methods/detach", method: "POST", handler: detachPaymentMethodHttp });
+http.route({ path: "/api/checkout/attempt", method: "POST", handler: acquireCheckoutAttemptHttp });
+http.route({ path: "/api/checkout/prepare", method: "POST", handler: prepareCheckoutHttp });
+http.route({ path: "/api/checkout/confirm", method: "POST", handler: confirmCheckoutHttp });
 
 // ---- Discovery: external-provider search + preference-derived feed --------
 

@@ -104,6 +104,18 @@ export const attachPaymentIntent = internalMutation({
   },
 });
 
+export const failCheckoutAttempt = internalMutation({
+  args: { attemptId: v.id("checkoutAttempts"), failureCode: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const attempt = await ctx.db.get(args.attemptId);
+    if (!attempt) return null;
+    if (attempt.status !== "PROCESSING" && attempt.status !== "AWAITING_STEP_UP") return null;
+    await ctx.db.patch(args.attemptId, { status: "FAILED", failureCode: args.failureCode.trim().slice(0, 120) || "unknown", updatedAt: Date.now() });
+    return null;
+  },
+});
+
 export const setOrderReminder = mutation({
   args: { orderId: v.id("orders"), reminderTime: v.string() }, returns: v.null(),
   handler: async (ctx, args) => {

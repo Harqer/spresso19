@@ -31,18 +31,18 @@
     {
       "id": "wearable-product-detection",
       "priority": 4,
-      "status": "PARTIAL",
+      "status": "IMPLEMENTED_BUT_UNVERIFIED",
       "spec": "docs/features.md#wearable-product-detection",
-      "evidence": "SpressoWearablesService.kt runs the DAT path: camera frames -> Gemini Live tool calls, toolLedger idempotency, response cache, typed DatResult handling. BREAK: searchProducts/addToCart/startHandsFreeCheckout broadcast com.spresso.intent.action.* intents and await ACTION_WEARABLE_ACTION_RESULT, but no manifest receiver or app component answers those intents (verified by grep across composeApp/src and both manifests) - wearable tool calls dead-end at the app boundary.",
-      "remaining": "Implement the app-side intent handlers that execute the action through ConvexApi and broadcast the result with EXTRA_ACTION_ID/EXTRA_SUCCESS; record DAT pillar evidence (MockDeviceKit or live DAT Inspector) per docs/meta-wearables-dat.md before any status promotion."
+      "evidence": "SpressoWearablesService.kt runs the DAT path (camera frames -> Gemini Live tool calls, toolLedger idempotency, response cache). The app-side loop is now closed: MainActivity registers a RECEIVER_NOT_EXPORTED receiver answering SEARCH_PRODUCTS/ADD_TO_CART/START_CHECKOUT (and COOKING/GROCERY modes), executing through ConvexApi and broadcasting ACTION_WEARABLE_ACTION_RESULT with EXTRA_ACTION_ID/EXTRA_SUCCESS/EXTRA_CUSTOMER_MESSAGE. Earlier dead-end evidence was stale (receivers predate the audit commit).",
+      "remaining": "Record DAT pillar evidence (MockDeviceKit or live DAT Inspector) per docs/meta-wearables-dat.md before any status promotion."
     },
     {
       "id": "agentic-checkout",
       "priority": 5,
-      "status": "PARTIAL",
+      "status": "IMPLEMENTED_BUT_UNVERIFIED",
       "spec": "docs/features.md#agentic-checkout",
-      "evidence": "Backend is production-grade: convex/commerce/actions.ts prepareCheckout prices from a fresh merchant observation with Stripe PI idempotency keys; convex/commerce/checkout.ts owns checkoutAttempts with per-user idempotency, webhookInbox dedupe (by_provider_and_event_id), acquire/complete webhook lifecycle, and Stripe order reconciliation in convex/http.ts (signed constructEventAsync). GAP: the client has zero checkout surface - ConvexApi.kt contains no checkout calls and HITLCheckoutSummaryCard is display-only; BiometricHelper.android.kt has zero callers, so biometric+MFA confirmation bound to the exact purchase intent is not implemented end-to-end.",
-      "remaining": "Wire the client checkout flow: quote display -> biometric confirmation (SystemBiometricPrompt exists) -> prepareCheckout -> Stripe Elements confirm -> order reconciliation states; bind server-side authorization to the confirmed intent per ARCHITECTURE.md invariant."
+      "evidence": "Backend is production-grade (convex/commerce/actions.ts, convex/commerce/checkout.ts, signed Stripe webhook with webhookInbox dedupe). Client now wired end-to-end: ConvexApi.acquireCheckoutAttempt/prepareCheckout/confirmCheckout call the new bridge routes /api/checkout/attempt|prepare|confirm; CatalogViewModel drives acquire -> server-verified quote -> promptBiometricAuth step-up -> confirmCheckout (off-session Stripe charge against the saved default card via convex/commerce/actions.ts confirmCheckout); CheckoutConfirmDialog renders quote/charge/success phases; MainActivity wearable receiver navigates to checkout.",
+      "remaining": "Live run against real providers (KITESURF/Cloudflare quote + STRIPE) with prod-vault secrets; record integration evidence per the Production-Ready Gate."
     },
     {
       "id": "realtime-ai",
@@ -57,8 +57,8 @@
       "priority": 7,
       "status": "IMPLEMENTED_BUT_UNVERIFIED",
       "spec": "docs/features.md#grocery-list",
-      "evidence": "convex/grocery.ts exposes deterministic user-owned mutations (addItem/setChecked/removeItem) with ownership-scoped getMyList; bridge routes /api/grocery* in convex/http.ts; client GroceryListPage + GroceryListWidget wired via ConvexApi.fetchGroceryItems.",
-      "remaining": "Add convex/grocery.test.ts (duplicate/concurrent-edit/authz cases); verify offline/reconnect behavior on device."
+      "evidence": "convex/grocery.ts exposes deterministic user-owned mutations with ownership-scoped getMyList; bridge routes /api/grocery*; client wired via ConvexApi. convex/grocery.test.ts now covers authz/ownership/normalization (4 tests) \u2014 backend fully gated.",
+      "remaining": "Verify offline/reconnect behavior on device."
     },
     {
       "id": "order-history",

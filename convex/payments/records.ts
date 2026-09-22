@@ -33,6 +33,42 @@ export const listPaymentMethods = query({
   },
 });
 
+/**
+ * Owner-scoped default payment method for off-session confirmation.
+ * Falls back to the most recently attached card when no explicit default
+ * exists, so checkout works before the user manages ordering in Profile.
+ */
+export const getDefaultPaymentMethod = internalQuery({
+  args: { tokenIdentifier: v.string() },
+  returns: v.union(v.null(), v.object({
+    stripePaymentMethodId: v.string(),
+    stripeCustomerId: v.string(),
+    brand: v.string(),
+    last4: v.string(),
+    expMonth: v.number(),
+    expYear: v.number(),
+    isDefault: v.boolean(),
+  })),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("paymentMethods")
+      .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", args.tokenIdentifier))
+      .order("desc")
+      .collect();
+    const selected = rows.find((row) => row.isDefault) ?? rows[0];
+    if (!selected) return null;
+    return {
+      stripePaymentMethodId: selected.stripePaymentMethodId,
+      stripeCustomerId: selected.stripeCustomerId,
+      brand: selected.brand,
+      last4: selected.last4,
+      expMonth: selected.expMonth,
+      expYear: selected.expYear,
+      isDefault: selected.isDefault,
+    };
+  },
+});
+
 export const getOwnedPaymentMethod = internalQuery({
   args: { tokenIdentifier: v.string(), paymentMethodId: v.id("paymentMethods") },
   handler: async (ctx, args) => {

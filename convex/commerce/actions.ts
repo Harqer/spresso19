@@ -113,3 +113,48 @@ export const createPaymentIntent = action({
     return { clientSecret: intent.client_secret, paymentIntentId: intent.id, amountCents: attempt.amountCents, currency: attempt.currency, publishableKey: env.STRIPE_PUBLISHABLE_KEY };
   },
 });
+
+/**
+ * Off-session confirmation using the user's saved default card. The user has
+ * already approved this exact listing/quantity through a biometric step-up on
+ * the device; the biometric signature is never transmitted — it only gates
+ * the request locally. Stripe off_session SCA is declared here so the charge
+ * is legal without a new client session, and the charge amount is pinned to
+ * the server-verified merchant quote (never client numbers).
+ */
+export const confirmCheckout = action({
+  args: { attemptId: v.id("checkoutAttempts") },
+  returns: v.object({ status: v.string(), paymentIntentId: v.string(), amountCents: v.number(), currency: v.string(), brand: v.string(), last4: v.string() }),
+  handler: async (ctx, args): Promise<{ status: string; paymentIntentId: string; amountCents: number; currency: string; brand: string; last4: string }> => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const attempt: CheckoutAttemptSnapshot | null = await ctx.runQuery(internal.commerce.checkout.getCheckoutAttemptInternal, { attemptId: args.attemptId });
+    if (!attempt || attempt.tokenIdentifier !== identity.tokenIdentifier) throw new Error("Checkout attempt not found.");
+    if (!attempt.amountCents || !attempt.currency) throw new Error("Checkout has not been quoted yet.");
+    if (attempt.status === "COMPLETED") throw new Error("This checkout is already completed.");
+    if (attempt.paymentIntentId) throw new Error("This checkout is already in progress.");
+    if (!env.STRIPE_SECRET_KEY) throw new Error("Stripe checkout is not configured in the Convex deployment.");
+
+    const saved = await ctx.runQuery(internal.payments.records.getDefaultPaymentMethod, { tokenIdentifier: identity.tokenIdentifier });
+    if (!saved) throw new Error("No saved payment method. Add a card in Profile before checkout.");
+
+    const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2025-01-27.acacia" as Stripe.LatestApiVersion });
+    let confirmedIntent: Stripe.PaymentIntent;
+    try {
+      confirmedIntent = await stripe.paymentIntents.create({
+        amount: attempt.amountCents,
+        currency: attempt.currency.toLowerCase(),
+        payment_method: saved.stripePaymentMethodId,
+        confirm: true,
+        off_session: true,
+        automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+        metadata: { checkoutAttemptId: String(args.attemptId), tokenIdentifier: identity.tokenIdentifier, listingId: attempt.listingId, quantity: String(attempt.quantity) },
+      }, { idempotencyKey: `convex_confirm_${identity.tokenIdentifier}_${attempt.idempotencyKey}` });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Payment failed.";
+      await ctx.runMutation(internal.commerce.checkout.failCheckoutAttempt, { attemptId: args.attemptId, failureCode: message.slice(0, 120) });
+      throw new Error(`Payment failed: ${message.slice(0, 160)}`);
+    }
+    await ctx.runMutation(internal.commerce.checkout.attachPaymentIntent, { attemptId: args.attemptId, paymentIntentId: confirmedIntent.id, amountCents: attempt.amountCents, currency: attempt.currency });
+    return { status: confirmedIntent.status, paymentIntentId: confirmedIntent.id, amountCents: attempt.amountCents, currency: attempt.currency, brand: saved.brand, last4: saved.last4 };
+  },
+});

@@ -32,6 +32,27 @@ import network.models.OrderRecord
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
+/** Server-verified merchant quote for a checkout attempt. */
+@kotlinx.serialization.Serializable
+data class CheckoutQuote(
+    val attemptId: String,
+    val amountCents: Long,
+    val currency: String,
+    val merchantUrl: String,
+    val observedAt: String,
+)
+
+/** Result of the off-session charge against the user's saved default card. */
+@kotlinx.serialization.Serializable
+data class CheckoutConfirmation(
+    val status: String,
+    val paymentIntentId: String,
+    val amountCents: Long,
+    val currency: String,
+    val brand: String,
+    val last4: String,
+)
+
 @kotlinx.serialization.Serializable
 data class UploadedMediaReference(
     val assetId: String,
@@ -573,6 +594,60 @@ class ConvexApi(
         // A wrong garment can lead to an incorrect try-on or purchase flow.
         return products.firstOrNull { it.id == productId || it.providerListingId == productId }
     }
+
+    // ---- Checkout: server-verified quote → biometric confirm → charge ----
+
+    /**
+     * Acquires (idempotently) a server-side checkout attempt for this listing.
+     * The amount is never supplied here — the backend verifies the merchant's
+     * current price through its own provider before anything can be charged.
+     */
+    suspend fun acquireCheckoutAttempt(
+        product: ProductItem,
+        quantity: Int = 1,
+        idempotencyKey: String,
+    ): String {
+        require(quantity in 1..25) { "Checkout quantity must be between 1 and 25." }
+        val merchantUrl = product.merchantUrl ?: throw IllegalArgumentException("A merchant URL is required for checkout.")
+        val source = product.source ?: "parallel"
+        require(source in setOf("parallel", "serpapi", "apify", "kitesurf")) { "Unsupported listing source." }
+        val body =
+            buildJsonObject {
+                put("listingId", product.id)
+                put(
+                    "listing",
+                    buildJsonObject {
+                        put("id", product.id)
+                        put("name", product.name)
+                        if (product.brand.isNotBlank()) put("brand", product.brand)
+                        if (product.category.isNotBlank()) put("category", product.category)
+                        if (product.imageUrl.isNotBlank()) put("imageUrl", product.imageUrl)
+                        put("merchantUrl", merchantUrl)
+                        put("source", source)
+                        if (product.providerListingId != null) put("providerListingId", product.providerListingId)
+                        put(
+                            "discoveredAt",
+                            kotlin.time.Clock.System
+                                .now()
+                                .toString(),
+                        )
+                    },
+                )
+                put("quantity", quantity)
+                put("idempotencyKey", idempotencyKey)
+            }
+        val response = json.parseToJsonElement(post("/api/checkout/attempt", body)).jsonObject
+        return response["attemptId"]?.jsonPrimitive?.contentOrNull
+            ?: throw IllegalStateException("Checkout attempt response did not include an attemptId.")
+    }
+
+    /** Asks the backend to re-verify the merchant's live price for this attempt. */
+    suspend fun prepareCheckout(attemptId: String): CheckoutQuote =
+        json.decodeFromString<CheckoutQuote>(post("/api/checkout/prepare", buildJsonObject { put("attemptId", attemptId) }))
+
+    /** Charges the user's saved default card off-session after device-side biometric approval. */
+    suspend fun confirmCheckout(attemptId: String): CheckoutConfirmation =
+        json.decodeFromString<CheckoutConfirmation>(post("/api/checkout/confirm", buildJsonObject { put("attemptId", attemptId) }))
 
     // ---- Saved listings: durable user bookmarks ---------------------------
 

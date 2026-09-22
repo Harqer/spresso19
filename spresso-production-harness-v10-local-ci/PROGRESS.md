@@ -52,7 +52,7 @@ All applicable items must be checked before the feature can be marked passing or
 - [ ] Applicable KMP/Android/Web targets compile. *(commonMain metadata, androidMain, wasmJs all green)*
 - [ ] Optimized/release build passes where applicable. *(wasmJs production distribution green, bundle 19.9/32MiB)*
 - [ ] Real integration/hardware verification is complete when mocks cannot prove production behavior. *(NOT DONE — this is the gate nothing currently passes)*
-- [ ] Any discovered legacy/duplicate/dead implementation has been migrated or removed safely. *(ApiClient.kt and gemini-streaming-mcp/ pending)*
+- [ ] Any discovered legacy/duplicate/dead implementation has been migrated or removed safely. *(gemini-streaming-mcp/ removed 2026-09-22 with its CI references; ApiClient.kt consolidation pending — it is a living façade with 25+ call sites, not dead code)*
 - [ ] `feature_list.json` is updated only after the above evidence exists. *(updated 2026-09-22 with audited statuses)*
 - [ ] Coherent working state is committed. *(this commit)*
 
@@ -60,14 +60,17 @@ All applicable items must be checked before the feature can be marked passing or
 - Reconciliation audit of all 8 registered features against repository reality (2026-09-22).
 - 4 features moved from `unverified` to `IMPLEMENTED_BUT_UNVERIFIED` with evidence: product-discovery, virtual-try-on, screen-product-discovery, grocery-list, order-history.
 - 3 features classified `PARTIAL` with named breaks: wearable-product-detection (intent loop), agentic-checkout (client surface), realtime-ai (barge-in/reconciliation).
+- Checkout wired end-to-end (2026-09-22): bridge routes `/api/checkout/attempt|prepare|confirm`, ConvexApi client methods, CatalogViewModel lifecycle (acquire → server-verified quote → biometric step-up → off-session confirm), CheckoutConfirmDialog, server-side `confirmCheckout` action charging the saved default card with Stripe `off_session` SCA, `failCheckoutAttempt` transition, and `convex/grocery.test.ts`.
+- Wearable intent loop verified closed: MainActivity's RECEIVER_NOT_EXPORTED receiver answers SEARCH_PRODUCTS/ADD_TO_CART/START_CHECKOUT — earlier dead-end evidence was stale.
+- `gemini-streaming-mcp/` removed with its release.yml cache line and ci-gate entries.
 
 ## Verified
 - None. No feature satisfies the Production-Ready Gate's real integration/hardware verification, and live provider paths are blocked on production vault secrets. Nothing is marked VERIFIED without that evidence.
 
 ## Open / Blocked
 - **Blocked on prod vault (Infisical prod -> Convex prod)**: PARALLEL_API_KEY, SERPAPI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, KITESURF_ALLOWED_DOMAINS, STRIPE_WEBHOOK_SECRET, FAL_API_KEY, BUNNY_* — live discovery, merchant verification, webhook reconciliation, try-on, and media delivery fail closed until provisioned.
-- **Open (code)**: wearable intent receivers (SEARCH_PRODUCTS/ADD_TO_CART dead-end at the app boundary); client checkout surface + biometric/MFA intent binding (BiometricHelper has zero callers); realtime barge-in/interruption + in-flight tool reconciliation; missing convex/grocery.test.ts and order tests.
-- **Duplicates awaiting removal (root-caused, do not delete in a feature pass)**: `composeApp/.../network/ApiClient.kt` legacy transport (zero consumers, dead origin) — consolidate into ConvexApi.kt; `gemini-streaming-mcp/` (dist-only scaffold, empty package description, referenced only by a release.yml cache line) — remove or define a real contract.
+- **Open (code)**: realtime barge-in/interruption + in-flight tool reconciliation; ApiClient.kt consolidation into ConvexApi.kt (25+ call sites — dedicated pass); order-history edge-case tests (duplicate webhook covered, partial shipment states not).
+- **Duplicates awaiting removal (root-caused, do not delete in a feature pass)**: `composeApp/.../network/ApiClient.kt` legacy transport (living façade with 25+ call sites; several methods still forward to legacy endpoints) — consolidate into ConvexApi.kt in a dedicated pass.
 
 ## Decisions
 - VERIFIED is never granted without Production-Ready Gate evidence; IMPLEMENTED_BUT_UNVERIFIED is the ceiling for code-complete features without live runs.
@@ -75,10 +78,10 @@ All applicable items must be checked before the feature can be marked passing or
 - Convex production deployment is `woozy-anteater-572` (HTTP bridge `https://woozy-anteater-572.convex.site`); dev deployment `decisive-dolphin-161` is never evidence of production wiring.
 
 ## Next
-1. Implement wearable intent receivers so DAT tool calls complete end-to-end (unblocks wearable-product-detection).
-2. Wire the client checkout surface: quote -> biometric confirmation -> prepareCheckout -> Stripe confirm -> order states (unblocks agentic-checkout).
-3. Remove `gemini-streaming-mcp/` and consolidate `ApiClient.kt` into `ConvexApi.kt` (dedicated cleanup pass).
-4. Add convex/grocery.test.ts and order-history tests (cross-user denial, duplicate webhook, partial states).
+1. ~~Implement wearable intent receivers~~ DONE — MainActivity receiver closes the DAT tool loop.
+2. ~~Wire the client checkout surface~~ DONE — quote → biometric → off-session confirm shipped.
+3. Consolidate `ApiClient.kt` into `ConvexApi.kt` (dedicated pass; 25+ call sites).
+4. Order-history edge-case tests (partial shipment/return states).
 5. Provision prod vault secrets, then run live provider smoke for discovery/try-on/webhook to earn VERIFIED statuses.
 
 ## Active Issue / PR

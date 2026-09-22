@@ -45,11 +45,9 @@ echo "clean"
 
 run_npm_ci "$ROOT"
 run_npm_ci "$ROOT/functions"
-run_npm_ci "$ROOT/gemini-streaming-mcp"
 
 run_npm_audit "$ROOT"
 run_npm_audit "$ROOT/functions"
-run_npm_audit "$ROOT/gemini-streaming-mcp"
 
 echo "== [gate] root typecheck, lint, and production build =="
 (

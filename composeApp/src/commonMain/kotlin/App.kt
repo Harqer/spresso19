@@ -53,7 +53,7 @@ import components.features.wardrobe.WardrobeViewPage
 import components.features.wearables.MetaWearablesPage
 import components.navigation.MainAppTemplate
 import components.navigation.defaultNavDestinations
-import components.shared.MerchantHandoffDialog
+import components.shared.CheckoutConfirmDialog
 import components.shared.overlays.GlobalChatOverlay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.boolean
@@ -162,7 +162,7 @@ fun App(
         val convexApi = remember { network.ConvexApi() }
         val liveApiClient = remember { LiveApiClient() }
         val chatViewModel = remember { ChatViewModel(apiClient, scope, liveApiClient) }
-        val catalogViewModel = remember { CatalogViewModel(scope) }
+        val catalogViewModel = remember { CatalogViewModel(scope, convexApi) }
         val audioRecorder = remember { AudioRecorder() }
         val audioPlayer = remember { AudioPlayer() }
 
@@ -690,12 +690,14 @@ fun App(
                         )
                     }
                     entry<NavKey.HITLCheckoutKey> { currentDestinationKey ->
-                        val payload by catalogViewModel.hitlCheckoutPayload.collectAsState()
-                        val checkoutStatus by catalogViewModel.checkoutStatus.collectAsState()
+                        val draft by catalogViewModel.checkoutDraft.collectAsState()
+                        val phase by catalogViewModel.checkoutPhase.collectAsState()
                         when {
-                            payload != null ->
-                                MerchantHandoffDialog(
-                                    payload = payload,
+                            draft != null ->
+                                CheckoutConfirmDialog(
+                                    draft = draft!!,
+                                    phase = phase,
+                                    onConfirm = { catalogViewModel.confirmCheckout() },
                                     onDismiss = {
                                         catalogViewModel.dismissCheckout()
                                         navigator.goBack()
@@ -703,7 +705,8 @@ fun App(
                                 )
                             else ->
                                 ColumnWithRouteMessage(
-                                    checkoutStatus ?: "Choose a product before starting checkout.",
+                                    (phase as? viewmodels.CheckoutPhase.Failed)?.message
+                                        ?: "Choose a product before starting checkout.",
                                 ) {}
                         }
                     }

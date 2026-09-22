@@ -40,7 +40,7 @@ import components.features.catalog.AICurationFeed
 import components.features.catalog.ProductCatalogDetailDialog
 import components.features.catalog.ProductCatalogHeader
 import components.features.chat.AIShopperInputBar
-import components.shared.MerchantHandoffDialog
+import components.shared.CheckoutConfirmDialog
 import components.shared.ProblemDetailsCard
 import components.shared.elements.SpressoButton
 import components.shared.elements.SpressoButtonVariant
@@ -77,7 +77,8 @@ fun ProductCatalogScreen(
 
     val activeDetailProduct by catalogViewModel.activeDetailProduct.collectAsState()
     val checkoutStatus by catalogViewModel.checkoutStatus.collectAsState()
-    val hitlCheckoutPayload by catalogViewModel.hitlCheckoutPayload.collectAsState()
+    val checkoutDraft by catalogViewModel.checkoutDraft.collectAsState()
+    val checkoutPhase by catalogViewModel.checkoutPhase.collectAsState()
 
     val scope = rememberCoroutineScope()
     val convexApi = remember { network.ConvexApi() }
@@ -272,9 +273,11 @@ fun ProductCatalogScreen(
                 )
             }
 
-            hitlCheckoutPayload?.let { payload ->
-                MerchantHandoffDialog(
-                    payload = payload,
+            checkoutDraft?.let { draft ->
+                CheckoutConfirmDialog(
+                    draft = draft,
+                    phase = checkoutPhase,
+                    onConfirm = { catalogViewModel.confirmCheckout() },
                     onDismiss = { catalogViewModel.dismissCheckout() },
                 )
             }

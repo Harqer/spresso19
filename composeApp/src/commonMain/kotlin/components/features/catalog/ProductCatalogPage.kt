@@ -40,7 +40,7 @@ fun ProductCatalogPage(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    val resolvedCatalogViewModel = catalogViewModel ?: remember { viewmodels.CatalogViewModel(scope) }
+    val resolvedCatalogViewModel = catalogViewModel ?: remember { viewmodels.CatalogViewModel(scope, convexApi) }
 
     LaunchedEffect(Unit) {
         isLoading = true
