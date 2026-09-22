@@ -3,7 +3,7 @@ package components.features.catalog
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import io.ktor.client.HttpClient
-import network.ApiClient
+import network.ConvexApi
 import theme.AppTheme
 
 @Preview
@@ -11,7 +11,7 @@ import theme.AppTheme
 fun ProductCatalogPagePreview() {
     AppTheme {
         ProductCatalogPage(
-            apiClient = ApiClient(),
+            apiClient = ConvexApi(),
             httpClient = HttpClient(),
             onProductSelected = {},
             onTryOnRequested = {},

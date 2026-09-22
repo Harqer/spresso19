@@ -14,12 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import components.models.*
-import network.ApiClient
+import network.ConvexApi
 
 @Composable
 @Suppress("UNUSED_PARAMETER")
 fun CreatorTemplatesSection(
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     scope: kotlinx.coroutines.CoroutineScope,
 ) {
     var templates by remember { mutableStateOf<List<network.CreativeTemplateData>>(emptyList()) }

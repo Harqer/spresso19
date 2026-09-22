@@ -30,14 +30,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import components.shared.widgets.SpressoListItem
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 import network.models.GroceryItem
 import utils.toPriceString
 
 @Composable
 fun GroceryListWidget(
     initialItems: List<GroceryItem> = emptyList(),
-    apiClient: ApiClient = remember { ApiClient() },
+    apiClient: ConvexApi = remember { ConvexApi() },
     listId: String? = null,
     onAskAI: (String) -> Unit = {},
     modifier: Modifier = Modifier,

@@ -38,7 +38,7 @@ import components.features.profile.widgets.ProfileListItem
 import components.features.profile.widgets.ThemeSelectorCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 import network.models.UserProfileData
 import network.sendEmailVerification
 import theme.ThemeMode
@@ -47,7 +47,7 @@ import theme.ThemeMode
 fun ProfilePage(
     userUid: String?,
     userName: String? = null,
-    apiClient: ApiClient? = null,
+    apiClient: ConvexApi? = null,
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChange: ((ThemeMode) -> Unit)? = null,
     onSignOut: (() -> Unit)? = null,

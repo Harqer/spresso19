@@ -10,7 +10,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import components.core.makeImageBitmap
-import network.ApiClient
+import network.ConvexApi
 import network.DetectedItem
 import network.ProductItem
 import network.models.HITLPayload
@@ -21,7 +21,7 @@ fun SmartVisionViewport(
     isScanning: Boolean,
     detectedItems: List<DetectedItem>,
     inventory: List<ProductItem>,
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     onSelectProduct: (String) -> Unit,
     onHitlCheckout: (HITLPayload) -> Unit,
     modifier: Modifier = Modifier,

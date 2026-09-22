@@ -56,14 +56,12 @@ import components.navigation.defaultNavDestinations
 import components.shared.CheckoutConfirmDialog
 import components.shared.overlays.GlobalChatOverlay
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.jsonPrimitive
 import navigation.ActionDestination
 import navigation.NavKey
 import navigation.Navigator
 import navigation.SpressoAction
 import navigation.rememberNavigationState
-import network.ApiClient
+import network.ConvexApi
 import network.LiveApiClient
 import network.ProductItem
 import network.signOut
@@ -158,7 +156,7 @@ fun App(
         }
 
         val scope = rememberCoroutineScope()
-        val apiClient = remember { ApiClient() }
+        val apiClient = remember { ConvexApi() }
         val convexApi = remember { network.ConvexApi() }
         val liveApiClient = remember { LiveApiClient() }
         val chatViewModel = remember { ChatViewModel(apiClient, scope, liveApiClient) }
@@ -168,7 +166,6 @@ fun App(
 
         DisposableEffect(Unit) {
             onDispose {
-                apiClient.client.close()
                 liveApiClient.close()
                 audioRecorder.stopRecording()
             }
@@ -659,8 +656,8 @@ fun App(
                                     scope.launch {
                                         isSubmittingReturn = true
                                         try {
-                                            val response = apiClient.requestOrderReturn(currentDestinationKey.orderId, returnReason.trim())
-                                            if (response["success"]?.jsonPrimitive?.boolean == true) {
+                                            val success = apiClient.requestOrderReturn(currentDestinationKey.orderId, returnReason.trim())
+                                            if (success) {
                                                 returnResultMessage =
                                                     "Your return request was submitted. We'll send the next steps when they are ready."
                                                 navigator.replace(NavKey.OrderReturnResultKey(currentDestinationKey.orderId))

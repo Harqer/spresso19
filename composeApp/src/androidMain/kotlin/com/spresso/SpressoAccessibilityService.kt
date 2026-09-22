@@ -25,7 +25,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
-import network.ApiClient
+import network.ConvexApi
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
@@ -43,7 +43,7 @@ import kotlin.math.sqrt
 class SpressoAccessibilityService : AccessibilityService() {
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(serviceJob + Dispatchers.IO)
-    private val apiClient = ApiClient()
+    private val apiClient = ConvexApi()
     private lateinit var consentStore: AccessibilityConsentStore
     private val captureGate = AccessibilityCaptureGate()
     private val captureInProgress = AtomicBoolean(false)
@@ -448,7 +448,7 @@ class SpressoAccessibilityService : AccessibilityService() {
             commandReceiverRegistered = false
         }
         serviceScope.cancel()
-        apiClient.close()
+        // ConvexApi shares one app-wide HTTP client; per-instance close would kill it.
         super.onDestroy()
     }
 

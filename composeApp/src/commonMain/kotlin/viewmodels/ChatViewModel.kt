@@ -7,17 +7,16 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import network.ApiClient
 import network.ChatMessage
+import network.ConvexApi
 import network.LiveApiClient
 import network.ProductItem
 import network.models.GroundingSource
 
 class ChatViewModel(
-    private val apiClient: ApiClient,
+    private val apiClient: ConvexApi,
     private val scope: CoroutineScope,
     private val liveApiClient: LiveApiClient = LiveApiClient(),
-    private val generativeAiService: network.GenerativeAiService? = null,
 ) {
     val messages = mutableStateListOf<ChatMessage>()
     var isGenerating by mutableStateOf(false)
@@ -250,31 +249,15 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Standard (non-live) audio analysis has no backend owner yet — the Convex
+     * Agent flow handles live voice. Report honestly instead of faking a path.
+     */
     fun sendStandardAudio(
         audioBytes: ByteArray,
         prompt: String = "Please analyze this audio.",
     ) {
-        if (generativeAiService != null) {
-            val userMsgId = "u-audio-" + messages.size
-            messages.add(ChatMessage(id = userMsgId, text = "🔊 [Audio Message Sent]", isUser = true))
-            val aiMsgId = "ai-audio-" + messages.size
-            isGenerating = true
-            errorMessage = null
-
-            scope.launch {
-                try {
-                    val aiResponse = generativeAiService.generateResponseFromAudio(prompt, audioBytes)
-                    updateOrAddAiMessage(aiMsgId, aiResponse)
-                } catch (e: Exception) {
-                    errorMessage = e.message
-                    updateOrAddAiMessage(aiMsgId, "Failed to process audio: ${e.message}")
-                } finally {
-                    isGenerating = false
-                }
-            }
-        } else {
-            errorMessage = "Generative AI Service is not available."
-        }
+        errorMessage = "Audio analysis is available in live voice mode."
     }
 
     private fun updateOrAddAiMessage(

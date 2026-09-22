@@ -954,6 +954,45 @@ http.route({ path: "/api/travel/detail", method: "GET", handler: listTripDetailH
 http.route({ path: "/api/travel/expense", method: "POST", handler: addTravelExpenseHttp });
 http.route({ path: "/api/travel/receipt", method: "POST", handler: parseTravelReceiptHttp });
 
+// ---- Context: weather classification for wardrobe/outfit flows ------------
+// The climate lookup runs server-side so clients never call the weather
+// provider directly; the app consumes one Convex-bridged context contract.
+
+function climateCategory(celsius: number): string {
+  if (celsius < 10) return "Winter";
+  if (celsius > 25) return "Summer";
+  return "Occasion";
+}
+
+export const weatherContextHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const params = new URL(request.url).searchParams;
+    const latitude = Number(params.get("latitude"));
+    const longitude = Number(params.get("longitude"));
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+      throw new BridgeError("latitude must be between -90 and 90.", 400);
+    }
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      throw new BridgeError("longitude must be between -180 and 180.", 400);
+    }
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`;
+    const payload = (await fetch(url).then((res) => {
+      if (!res.ok) throw new BridgeError("Weather provider request failed.", 502);
+      return res.json();
+    })) as { current_weather?: { temperature?: unknown } };
+    const celsius = payload.current_weather?.temperature;
+    if (typeof celsius !== "number" || !Number.isFinite(celsius)) {
+      throw new BridgeError("Weather provider returned no temperature.", 502);
+    }
+    return {
+      climate: climateCategory(celsius),
+      temperatureCelsius: Math.round(celsius * 10) / 10,
+      temperatureText: `${Math.round(celsius * 10) / 10}°C`,
+    };
+  });
+});
+
 // ---- Infrastructure health -------------------------------------------------
 // Unauthenticated liveness/readiness endpoint used by deployment smoke tests.
 // 503 is an expected, healthy status for a real readiness check: it means the
@@ -981,5 +1020,6 @@ export const healthHttp = httpAction(async () => {
 });
 
 http.route({ path: "/api/health", method: "GET", handler: healthHttp });
+http.route({ path: "/api/context/weather", method: "GET", handler: weatherContextHttp });
 
 export default http;

@@ -28,7 +28,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 
 enum class SpressoButtonVariant {
     PRIMARY,
@@ -51,7 +51,7 @@ fun SpressoButton(
     trackingAction: String? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val apiClient = remember { ApiClient() }
+    val apiClient = remember { ConvexApi() }
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 

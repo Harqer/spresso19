@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.xr.glimmer.GlimmerTheme
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 import org.json.JSONObject
 
 class SpressoGlimmerActivity : ComponentActivity() {
@@ -51,7 +51,7 @@ class SpressoGlimmerActivity : ComponentActivity() {
                                     // Request the current cooking guidance from the backend.
                                     val resultJson =
                                         JSONObject(
-                                            ApiClient()
+                                            ConvexApi()
                                                 .generateRecipeBargainChef(
                                                     "Give concise cooking instructions for the current ingredients.",
                                                 ).toString(),

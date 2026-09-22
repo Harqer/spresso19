@@ -12,12 +12,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import components.models.*
-import network.ApiClient
+import network.ConvexApi
 
 @Composable
 @Suppress("UNUSED_PARAMETER")
 fun CreatorAgentsPage(
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     selectedTemplateId: String = "tmpl-1",
     onTemplateSelected: (String) -> Unit = {},
     modifier: Modifier = Modifier,

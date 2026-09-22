@@ -3,8 +3,14 @@ package network
 import components.features.catalog.DiscoveredListing
 import components.features.catalog.ObservedPrice
 import components.features.catalog.toProductItem
+import components.models.ItineraryEvent
+import components.models.TravelExpense
+import components.models.TripRecord
+import components.models.VoiceNote
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.plugin
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -27,8 +33,11 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import network.models.GroceryItem
 import network.models.OrderItem
 import network.models.OrderRecord
+import network.models.PaymentCardInfo
+import network.models.UserProfileData
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -76,6 +85,13 @@ data class ConvexChatMessage(
     val text: String,
     val status: String,
     val products: List<ProductItem> = emptyList(),
+)
+
+/** Trip detail view model assembled from the Convex travel module. */
+data class TravelDetailData(
+    val events: List<ItineraryEvent>,
+    val expenses: List<TravelExpense>,
+    val voiceNotes: List<VoiceNote>,
 )
 
 fun inferImageMimeType(bytes: ByteArray): String {
@@ -139,9 +155,10 @@ private fun JsonObject.toWardrobeItemData(): WardrobeItemData? {
 class ConvexApi(
     private val idTokenProvider: suspend () -> String? = { getCurrentUserIdToken() },
 ) {
-    private val json = Json { ignoreUnknownKeys = true }
-    private val client: HttpClient
+    /** Exposed for image loading composites that share the app-wide client. */
+    val client: HttpClient
         get() = sharedClient
+    private val json = Json { ignoreUnknownKeys = true }
     private val baseUrl: String get() = SpressoConfig.convexSiteUrl
 
     private suspend fun get(path: String): String {
@@ -453,6 +470,11 @@ class ConvexApi(
                         item.jsonObject["id"]?.jsonPrimitive?.contentOrNull
                     }.orEmpty(),
             weatherMatchScore = outfit["weatherMatchScore"]?.jsonPrimitive?.doubleOrNull,
+            styleTips =
+                outfit["styleTips"]
+                    ?.jsonArray
+                    ?.mapNotNull { it.jsonPrimitive.contentOrNull }
+                    .orEmpty(),
         )
     }
 
@@ -570,6 +592,7 @@ class ConvexApi(
         productId: String,
         action: String,
     ): Boolean {
+        logCrashlyticsBreadcrumb(action, "productId=$productId")
         require(productId.isNotBlank()) { "Interaction subject is required." }
         require(action.isNotBlank()) { "Interaction action is required." }
         val response =
@@ -584,6 +607,56 @@ class ConvexApi(
                     ),
                 ).jsonObject
         return response["success"]?.jsonPrimitive?.boolean == true
+    }
+
+    /** Lens-style visual search over a base64 capture; uploads through Convex media. */
+    @OptIn(ExperimentalEncodingApi::class)
+    suspend fun performLensSearch(base64Image: String): LensSearchResponse {
+        val normalized = base64Image.substringAfter(",", base64Image)
+        val bytes =
+            runCatching { Base64.decode(normalized) }
+                .getOrElse { throw IllegalArgumentException("A valid captured image is required.", it) }
+        if (bytes.isEmpty()) throw IllegalArgumentException("A captured image is required.")
+        val uploaded = uploadMedia(bytes, inferImageMimeType(bytes))
+        return searchVision(uploaded.mediaKey)
+    }
+
+    suspend fun performAccessibilityLensSearch(base64Image: String): LensSearchResponse = performLensSearch(base64Image)
+
+    suspend fun initializeOnboarding(interests: List<String>) {
+        setPreferences(searchInquiries = interests, onboardingCompleted = true)
+    }
+
+    suspend fun removePaymentMethod(recordId: String): Boolean = detachPaymentMethod(recordId)
+
+    suspend fun generateRecipeBargainChef(
+        prompt: String,
+        ingredients: List<String> = emptyList(),
+    ): JsonObject {
+        val threadId = createChatThread("Bargain Chef")
+        val fullPrompt =
+            buildString {
+                append(prompt.trim())
+                if (ingredients.isNotEmpty()) append(" Ingredients: ${ingredients.joinToString()}.")
+            }
+        sendChatMessage(threadId, fullPrompt)
+        repeat(20) {
+            delay(500)
+            val response =
+                listChatMessages(threadId)
+                    .lastOrNull { it.role == "assistant" && it.text.isNotBlank() }
+            if (response != null) return buildJsonObject { put("text", response.text) }
+        }
+        error("Recipe guidance is still processing. Please try again shortly.")
+    }
+
+    /** Media preview for a listing: verified HTTPS URL only, never a guess. */
+    suspend fun requestSpin360(productId: String): String {
+        val product =
+            fetchProductById(productId)
+                ?: error("External listing not found.")
+        return product.imageUrl.takeIf { it.startsWith("https://") }
+            ?: error("This listing has no verified media preview.")
     }
 
     /** Resolve a known external listing by asking providers; never queries local inventory. */
@@ -1014,6 +1087,234 @@ class ConvexApi(
         return runCatching { json.decodeFromString<ConvexTripDetail>(response.toString()) }.getOrNull()
     }
 
+    // ---- Profile / account façade (portions migrated from legacy ApiClient) ----
+
+    suspend fun fetchUserProfile(uid: String): UserProfileData {
+        var result = fetchCurrentUser()
+        if (result == null) {
+            bootstrapCurrentUser(null, null)
+            result = fetchCurrentUser()
+        }
+        result = result ?: error("Authenticated profile was not found.")
+        val savedCards =
+            runCatching { fetchPaymentMethods() }.getOrDefault(emptyList()).mapNotNull { card ->
+                val id = card["_id"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                PaymentCardInfo(
+                    id = id,
+                    brand = card["brand"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                    last4 = card["last4"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                    expiryMonth = card["expMonth"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
+                    expiryYear = card["expYear"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
+                    isDefault = card["isDefault"]?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull() ?: false,
+                )
+            }
+        return UserProfileData(
+            uid = result["firebaseUid"]?.jsonPrimitive?.contentOrNull ?: uid,
+            name = result["displayName"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+            email = result["email"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+            avatarUrl = result["photoUrl"]?.jsonPrimitive?.contentOrNull,
+            savedCards = savedCards,
+            web3WalletAddress = result["coinbaseWalletAddress"]?.jsonPrimitive?.contentOrNull,
+        )
+    }
+
+    suspend fun updateUserProfile(profile: UserProfileData): Boolean {
+        updateCurrentUserProfile(profile.name, profile.avatarUrl)
+        setPreferences(
+            pushNotifications = profile.notificationsEnabled,
+            vibes = profile.explicitInterests,
+        )
+        return true
+    }
+
+    suspend fun deactivateAccount(): Boolean {
+        val operationId = requestAccountDeletion()
+        return try {
+            waitForAccountDeletion(operationId)
+            deleteCurrentUserIdentity()
+        } catch (error: Exception) {
+            throw IllegalStateException(
+                "Your account data is still being removed. Keep this session signed in and try again shortly.",
+                error,
+            )
+        }
+    }
+
+    // ---- Travel view mappers ------------------------------------------------
+
+    suspend fun fetchTravelTrips(): List<TripRecord> =
+        fetchTrips().map { trip ->
+            TripRecord(
+                id = trip.id,
+                title = trip.title,
+                destination = trip.destination,
+                startDate = trip.startDate,
+                endDate = trip.endDate,
+                status = trip.status,
+                coverImage = trip.coverImage.orEmpty(),
+                budgetTotal = trip.budgetTotal ?: 0.0,
+                spentTotal = 0.0,
+            )
+        }
+
+    suspend fun fetchTravelDetail(tripId: String): TravelDetailData {
+        val detail = fetchTripDetail(tripId)
+        return TravelDetailData(
+            events =
+                detail
+                    ?.events
+                    ?.map { event ->
+                        ItineraryEvent(
+                            id = event.id,
+                            tripId = tripId,
+                            type = event.type,
+                            title = event.title,
+                            description = event.description,
+                            eventTime = event.eventTime,
+                            location = event.location,
+                            price = event.price,
+                            qrData = event.qrData,
+                            confirmationCode = event.confirmationCode,
+                            gate = event.gate,
+                            seat = event.seat,
+                        )
+                    }.orEmpty(),
+            expenses =
+                detail
+                    ?.expenses
+                    ?.map { expense ->
+                        TravelExpense(
+                            expense.id,
+                            tripId,
+                            expense.amount,
+                            expense.currency,
+                            expense.category,
+                            expense.merchant,
+                            expense.date,
+                        )
+                    }.orEmpty(),
+            voiceNotes =
+                detail
+                    ?.voiceNotes
+                    ?.map { note ->
+                        VoiceNote(note.id, tripId, note.transcript, note.createdAt.toString())
+                    }.orEmpty(),
+        )
+    }
+
+    suspend fun fetchTravelEvents(tripId: String): List<ItineraryEvent> = fetchTravelDetail(tripId).events
+
+    suspend fun fetchTravelExpenses(tripId: String): List<TravelExpense> = fetchTravelDetail(tripId).expenses
+
+    suspend fun fetchVoiceNotes(tripId: String): List<VoiceNote> = fetchTravelDetail(tripId).voiceNotes
+
+    // ---- Grocery (list-scoped legacy signatures, Convex-backed) -------------
+
+    @Suppress("UNUSED_PARAMETER")
+    suspend fun fetchGroceryList(listId: String): List<GroceryItem> =
+        fetchGroceryItems().map { item ->
+            GroceryItem(
+                id = item.id,
+                name = item.name,
+                quantity = 1,
+                unit = "item",
+                category = item.category,
+                estimatedPrice = 0.0,
+                checked = item.checked,
+            )
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    suspend fun addGroceryItem(
+        listId: String,
+        productName: String,
+        productId: String?,
+        addedVia: String,
+    ): Boolean = addGroceryItem(productName, addedVia)
+
+    suspend fun toggleGroceryItem(
+        id: String,
+        isPurchased: Boolean,
+    ): Boolean = setGroceryChecked(id, isPurchased)
+
+    suspend fun deleteGroceryItem(id: String): Boolean = removeGroceryItem(id)
+
+    // ---- Wardrobe styling + preferences façade -------------------------------
+
+    suspend fun generateOutfit(
+        items: List<WardrobeItemData>,
+        weatherCondition: String,
+        temperatureText: String,
+    ): GeneratedOutfit? {
+        if (items.isEmpty()) return null
+        val normalizedWeather =
+            when (weatherCondition.trim().uppercase()) {
+                "WINTER" -> "WINTER_COLD"
+                "SUMMER" -> "SUMMER_HEAT"
+                "OCCASION" -> "ALL_WEATHER"
+                else -> weatherCondition.trim().uppercase().replace(" ", "_")
+            }
+        val idempotencyKey = "wardrobe-outfit-${items.joinToString("-") { it.id }}-$normalizedWeather-$temperatureText"
+        return generateWardrobeOutfit(
+            idempotencyKey = idempotencyKey,
+            items = items,
+            weatherCondition = normalizedWeather,
+            temperatureText = temperatureText,
+        )
+    }
+
+    suspend fun getUserPreferences(): Map<String, Any?> {
+        val result = fetchPreferences() ?: return emptyMap()
+        val avatarProfile = result["avatarProfile"]?.jsonObject
+        return mapOf(
+            "likedIds" to result["vibes"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull },
+            "bookmarkedIds" to result["searchInquiries"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull },
+            "fitPreference" to avatarProfile?.get("fitPreference")?.jsonPrimitive?.contentOrNull,
+            "height" to avatarProfile?.get("height")?.jsonPrimitive?.contentOrNull,
+            "weight" to avatarProfile?.get("weight")?.jsonPrimitive?.contentOrNull,
+        )
+    }
+
+    suspend fun updateUserPreferences(
+        fitPreference: String? = null,
+        height: String? = null,
+        weight: String? = null,
+        vibes: List<String>? = null,
+    ): Boolean {
+        setPreferences(
+            fitPreference = fitPreference,
+            height = height,
+            weight = weight,
+            vibes = vibes,
+        )
+        return true
+    }
+
+    // ---- Weather context (server-bridged; clients never call providers) ------
+
+    suspend fun getWeatherContext(latLng: Pair<Double, Double>): String {
+        val (latitude, longitude) = latLng
+        val body =
+            json
+                .parseToJsonElement(
+                    get("/api/context/weather?latitude=$latitude&longitude=$longitude"),
+                ).jsonObject
+        return body["climate"]?.jsonPrimitive?.contentOrNull
+            ?: error("Weather data unavailable")
+    }
+
+    suspend fun getTemperatureText(latLng: Pair<Double, Double>): String {
+        val (latitude, longitude) = latLng
+        val body =
+            runCatching {
+                json
+                    .parseToJsonElement(
+                        get("/api/context/weather?latitude=$latitude&longitude=$longitude"),
+                    ).jsonObject
+            }.getOrNull() ?: return ""
+        return body["temperatureText"]?.jsonPrimitive?.contentOrNull ?: ""
+    }
+
     suspend fun addTravelExpense(
         tripId: String,
         amount: Double,
@@ -1035,11 +1336,20 @@ class ConvexApi(
 
     companion object {
         private val sharedClient: HttpClient by lazy {
-            HttpClient {
-                install(ContentNegotiation) {
-                    json(Json { ignoreUnknownKeys = true })
+            val client =
+                HttpClient {
+                    install(ContentNegotiation) {
+                        json(Json { ignoreUnknownKeys = true })
+                    }
                 }
+            client.plugin(HttpSend).intercept { request ->
+                val appCheckToken = getCurrentAppCheckToken()
+                if (!appCheckToken.isNullOrBlank()) {
+                    request.headers.append("X-Firebase-AppCheck", appCheckToken)
+                }
+                execute(request)
             }
+            client
         }
     }
 }

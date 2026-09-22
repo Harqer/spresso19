@@ -19,7 +19,7 @@ import components.shared.elements.SpressoButton
 import components.shared.elements.SpressoButtonVariant
 import components.shared.widgets.MediaActionCard
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 import network.DetectedItem
 import network.ProductItem
 import network.models.HITLChallenge
@@ -33,7 +33,7 @@ fun SmartVisionDetectionOverlay(
     matchedProduct: ProductItem?,
     width: Dp,
     height: Dp,
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     onSelectProduct: (String) -> Unit,
     onHitlCheckout: (HITLPayload) -> Unit,
 ) {

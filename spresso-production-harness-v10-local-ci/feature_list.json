@@ -10,7 +10,7 @@
       "status": "IMPLEMENTED_BUT_UNVERIFIED",
       "spec": "docs/features.md#product-discovery",
       "evidence": "convex/discovery.ts implements Parallel->SerpApi fallback with provenance timestamps and Kitesurf merchant verification (verifyMerchantListing, fail-closed without CLOUDFLARE_* config); 47-route Convex HTTP bridge at https://woozy-anteater-572.convex.site; client ConvexApi.searchProducts/fetchRecommendedProducts/fetchProductById wired to /api/discovery/*; scripts/test/discovery-boundary.test.mjs pins no-owned-inventory; convex/discoveryState.test.ts + recommendationQueries.test.ts green.",
-      "remaining": "Live provider verification once prod vault secrets are provisioned; remove legacy duplicate transport ApiClient.kt (zero consumers, points at dead get-spresso.web.app origin) in a dedicated cleanup pass."
+      "remaining": "Live provider verification once prod vault secrets are provisioned. Legacy duplicate transport ApiClient.kt was consolidated into ConvexApi.kt and removed 2026-09-22 (single canonical transport, AppCheck interceptor unified, weather context moved behind /api/context/weather)."
     },
     {
       "id": "virtual-try-on",

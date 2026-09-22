@@ -68,10 +68,9 @@ fun GamifiedOnboardingDialog(
                         totalXp += 150
                         scope.launch {
                             try {
-                                val apiClient = network.ApiClient()
+                                val apiClient = network.ConvexApi()
                                 apiClient.initializeOnboarding(interests)
                                 network.Telemetry.recordInfo("Onboarding preferences persisted.")
-                                apiClient.close()
                             } catch (e: Exception) {
                                 network.Telemetry.recordError("Behavior analysis failed", e)
                             }

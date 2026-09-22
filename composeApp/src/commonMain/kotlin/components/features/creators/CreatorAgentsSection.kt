@@ -14,12 +14,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import network.ApiClient
+import network.ConvexApi
 
 @Composable
 @Suppress("UNUSED_PARAMETER")
 fun CreatorAgentsSection(
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     scope: kotlinx.coroutines.CoroutineScope,
 ) {
     var agents by remember { mutableStateOf<List<network.CreatorAgentData>>(emptyList()) }

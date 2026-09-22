@@ -26,14 +26,14 @@ import components.shared.elements.SpressoButton
 import components.shared.elements.SpressoButtonVariant
 import components.shared.widgets.SpressoListItem
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 import network.models.GroceryItem
 import utils.toPriceString
 
 @Composable
 fun GroceryListPage(
     initialItems: List<GroceryItem> = emptyList(),
-    apiClient: ApiClient = remember { ApiClient() },
+    apiClient: ConvexApi = remember { ConvexApi() },
     listId: String? = null,
     onAskAI: (String) -> Unit = {},
     modifier: Modifier = Modifier,

@@ -38,7 +38,7 @@ All applicable items must be checked before the feature can be marked passing or
 - [ ] Production path is fully implemented end to end. *(wearable intent loop, client checkout surface, realtime barge-in remain)*
 - [ ] No placeholder, stub, scaffold-only, fake-data, no-op, or mock implementation remains in the production path. *(strict mock scanner green; no dev bypasses found)*
 - [ ] Mocks/simulators are confined to tests or official SDK test tooling. *(verified)*
-- [ ] Canonical state ownership is preserved; no duplicate backend/auth/tool/state path was introduced. *(Convex canonical; legacy ApiClient.kt + gemini-streaming-mcp/ recorded as duplicates awaiting removal)*
+- [ ] Canonical state ownership is preserved; no duplicate backend/auth/tool/state path was introduced. *(Convex canonical; single transport — legacy ApiClient.kt removed 2026-09-22, all consumers on ConvexApi)*
 - [ ] Authentication and server-side authorization are verified. *(bridge-wide bearer identity + per-user ownership checks)*
 - [ ] External/provider inputs and outputs are validated. *(typed bridge parsers, zod guardrails, provider normalization)*
 - [ ] Lifecycle, cancellation, cleanup, retry, timeout, and failure behavior are implemented where applicable. *(media job state machine; LiveApiClient reconnect; gaps in wearable/realtime paths)*
@@ -52,7 +52,7 @@ All applicable items must be checked before the feature can be marked passing or
 - [ ] Applicable KMP/Android/Web targets compile. *(commonMain metadata, androidMain, wasmJs all green)*
 - [ ] Optimized/release build passes where applicable. *(wasmJs production distribution green, bundle 19.9/32MiB)*
 - [ ] Real integration/hardware verification is complete when mocks cannot prove production behavior. *(NOT DONE — this is the gate nothing currently passes)*
-- [ ] Any discovered legacy/duplicate/dead implementation has been migrated or removed safely. *(gemini-streaming-mcp/ removed 2026-09-22 with its CI references; ApiClient.kt consolidation pending — it is a living façade with 25+ call sites, not dead code)*
+- [ ] Any discovered legacy/duplicate/dead implementation has been migrated or removed safely. *(gemini-streaming-mcp/ removed 2026-09-22; ApiClient.kt consolidation completed 2026-09-22 — façade methods ported to ConvexApi, 30+ call sites repointed, dead DTOs/audio branch dropped, AppCheck interceptor unified into the shared Convex client, weather context moved behind /api/context/weather)*
 - [ ] `feature_list.json` is updated only after the above evidence exists. *(updated 2026-09-22 with audited statuses)*
 - [ ] Coherent working state is committed. *(this commit)*
 
@@ -69,8 +69,8 @@ All applicable items must be checked before the feature can be marked passing or
 
 ## Open / Blocked
 - **Blocked on prod vault (Infisical prod -> Convex prod)**: PARALLEL_API_KEY, SERPAPI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, KITESURF_ALLOWED_DOMAINS, STRIPE_WEBHOOK_SECRET, FAL_API_KEY, BUNNY_* — live discovery, merchant verification, webhook reconciliation, try-on, and media delivery fail closed until provisioned.
-- **Open (code)**: realtime barge-in/interruption + in-flight tool reconciliation; ApiClient.kt consolidation into ConvexApi.kt (25+ call sites — dedicated pass); order-history edge-case tests (duplicate webhook covered, partial shipment states not).
-- **Duplicates awaiting removal (root-caused, do not delete in a feature pass)**: `composeApp/.../network/ApiClient.kt` legacy transport (living façade with 25+ call sites; several methods still forward to legacy endpoints) — consolidate into ConvexApi.kt in a dedicated pass.
+- **Open (code)**: realtime barge-in/interruption + in-flight tool reconciliation; order-history edge-case tests (duplicate webhook covered, partial shipment states not).
+- **Duplicates awaiting removal (root-caused, do not delete in a feature pass)**: none remaining — `ApiClient.kt` legacy transport was consolidated into `ConvexApi.kt` and deleted 2026-09-22 (its direct provider call for weather moved behind `/api/context/weather`; per-instance `close()` calls that could kill the shared HTTP client were removed).
 
 ## Decisions
 - VERIFIED is never granted without Production-Ready Gate evidence; IMPLEMENTED_BUT_UNVERIFIED is the ceiling for code-complete features without live runs.
@@ -80,7 +80,7 @@ All applicable items must be checked before the feature can be marked passing or
 ## Next
 1. ~~Implement wearable intent receivers~~ DONE — MainActivity receiver closes the DAT tool loop.
 2. ~~Wire the client checkout surface~~ DONE — quote → biometric → off-session confirm shipped.
-3. Consolidate `ApiClient.kt` into `ConvexApi.kt` (dedicated pass; 25+ call sites).
+3. ~~Consolidate `ApiClient.kt` into `ConvexApi.kt`~~ — DONE 2026-09-22 (single transport; AppCheck on all bridge calls; weather context server-bridged).
 4. Order-history edge-case tests (partial shipment/return states).
 5. Provision prod vault secrets, then run live provider smoke for discovery/try-on/webhook to earn VERIFIED statuses.
 

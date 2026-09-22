@@ -24,14 +24,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 import network.models.UserProfileData
 import theme.ThemeMode
 
 @Composable
 private fun ProfileFeatureRoute(
     userUid: String?,
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     modifier: Modifier = Modifier,
     content: @Composable (UserProfileData, (String) -> Unit, (UserProfileData) -> Unit) -> Unit,
 ) {
@@ -81,7 +81,7 @@ private fun ProfileFeatureRoute(
 @Composable
 fun PaymentWalletRoute(
     userUid: String?,
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -120,7 +120,7 @@ fun PaymentWalletRoute(
 @Composable
 fun SubscriptionMembershipRoute(
     userUid: String?,
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -140,7 +140,7 @@ fun SubscriptionMembershipRoute(
 @Composable
 fun PreferencesRoute(
     userUid: String?,
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,

@@ -180,7 +180,7 @@ class MainActivity : FragmentActivity() {
                         if (analyticsConsent) {
                             lifecycleScope.launch(Dispatchers.IO) {
                                 try {
-                                    network.ApiClient().recordInteraction(orderId, "arrival_status_$arrivalStatus")
+                                    network.ConvexApi().recordInteraction(orderId, "arrival_status_$arrivalStatus")
                                 } catch (e: Exception) {
                                     network.Telemetry.recordError("recordInteraction failed", e)
                                 }

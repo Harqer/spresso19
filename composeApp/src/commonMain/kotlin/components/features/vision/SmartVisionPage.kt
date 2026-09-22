@@ -14,7 +14,7 @@ import components.features.chat.AIShopperInputBar
 import components.models.*
 import components.shared.MerchantHandoffDialog
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 import network.DetectedItem
 import network.ProductItem
 import network.models.HITLPayload
@@ -22,7 +22,7 @@ import ui.rememberImagePicker
 
 @Composable
 fun SmartVisionPage(
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     onSelectProduct: (String) -> Unit,
     onAskAI: (String) -> Unit = {},
     onTriggerGlobalLens: () -> Unit = {},

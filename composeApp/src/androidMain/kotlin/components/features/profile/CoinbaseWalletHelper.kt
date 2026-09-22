@@ -10,7 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import network.ApiClient
+import network.ConvexApi
 import kotlin.coroutines.resume
 
 object CoinbaseWalletManager {
@@ -19,7 +19,7 @@ object CoinbaseWalletManager {
     const val CALLBACK_URL = "$CALLBACK_SCHEME://$CALLBACK_HOST"
 
     private var pendingCallback: ((Boolean, String?) -> Unit)? = null
-    private var pendingApiClient: ApiClient? = null
+    private var pendingApiClient: ConvexApi? = null
     private var sdk: CoinbaseWalletSDK? = null
 
     suspend fun connectWallet(activity: Activity?): String =
@@ -45,7 +45,7 @@ object CoinbaseWalletManager {
      */
     fun connect(
         activity: Activity? = null,
-        apiClient: ApiClient? = null,
+        apiClient: ConvexApi? = null,
         onResult: ((Boolean, String?) -> Unit)? = null,
     ) {
         val targetActivity = activity ?: network.AndroidActivityBridge.currentActivity

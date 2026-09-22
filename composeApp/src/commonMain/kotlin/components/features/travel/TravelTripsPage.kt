@@ -18,7 +18,7 @@ fun TravelTripsPage(
     initialEvents: List<ItineraryEvent> = emptyList(),
     initialExpenses: List<TravelExpense> = emptyList(),
     initialVoiceNotes: List<VoiceNote> = emptyList(),
-    apiClient: network.ApiClient = remember { network.ApiClient() },
+    apiClient: network.ConvexApi = remember { network.ConvexApi() },
     onAskAI: (String) -> Unit = {},
 ) {
     var trips by remember { mutableStateOf(initialTrips) }

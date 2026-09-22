@@ -37,7 +37,7 @@ fun ChatMessageItem(
     onAddToCart: (ProductItem) -> Unit,
     onSelectTryOn: (ProductItem) -> Unit,
     httpClient: HttpClient?,
-    apiClient: network.ApiClient? = null,
+    apiClient: network.ConvexApi? = null,
     modifier: Modifier = Modifier,
 ) {
     val isUser = message.isUser
@@ -138,7 +138,7 @@ fun ChatMessageItem(
             if (message.widget == "GROCERY_LIST") {
                 Box(modifier = Modifier.padding(top = 12.dp).fillMaxWidth()) {
                     components.features.grocery.components.GroceryListWidget(
-                        apiClient = apiClient ?: network.ApiClient(),
+                        apiClient = apiClient ?: network.ConvexApi(),
                         modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp),
                     )
                 }

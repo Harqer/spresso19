@@ -14,12 +14,12 @@ import androidx.compose.ui.Modifier
 import components.features.catalog.screens.ProductCatalogScreen
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 import network.ProductItem
 
 @Composable
 fun ProductCatalogPage(
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     httpClient: HttpClient,
     catalogViewModel: viewmodels.CatalogViewModel? = null,
     onProductSelected: (String) -> Unit,

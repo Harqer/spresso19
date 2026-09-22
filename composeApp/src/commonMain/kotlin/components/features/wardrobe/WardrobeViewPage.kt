@@ -73,7 +73,7 @@ fun WardrobeViewPage(
     var activeSeason by remember { mutableStateOf<String?>(null) }
     var temperatureText by remember { mutableStateOf<String?>(null) }
     var stylingLoading by remember { mutableStateOf(false) }
-    val apiClient = remember { network.ApiClient() }
+    val apiClient = remember { network.ConvexApi() }
 
     val dynamicSeasons =
         remember {

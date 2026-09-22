@@ -50,7 +50,7 @@ fun PersonalAIShopperChatPage(
     onSelectTryOn: (ProductItem) -> Unit = { },
     initialPrompt: String? = null,
     initialImage: String? = null,
-    apiClient: network.ApiClient = remember { network.ApiClient() },
+    apiClient: network.ConvexApi = remember { network.ConvexApi() },
     modifier: Modifier = Modifier,
 ) {
     val messages = chatViewModel.messages

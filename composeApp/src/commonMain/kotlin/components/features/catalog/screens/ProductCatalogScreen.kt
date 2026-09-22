@@ -47,7 +47,7 @@ import components.shared.elements.SpressoButtonVariant
 import components.shared.widgets.MediaActionCard
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 import network.ProductItem
 
 @Composable
@@ -62,7 +62,7 @@ fun ProductCatalogScreen(
     onProductSelected: (String) -> Unit,
     onTryOnRequested: (ProductItem) -> Unit,
     onMediaGenerated: (String, String) -> Unit,
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     userLocation: String? = null,
     searchRadius: Int = 25,
     onRequestLocationPermission: () -> Unit = {},

@@ -36,7 +36,7 @@ import components.core.LocalAnalyticsConsent
 import components.core.NetworkImage
 import components.shared.elements.SelectedReactionIcon
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -52,7 +52,7 @@ fun MediaActionCard(
     trackingAction: String? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val apiClient = remember { ApiClient() }
+    val apiClient = remember { ConvexApi() }
     var showReactionPalette by remember { mutableStateOf(false) }
     var selectedReaction by remember { mutableStateOf<ImageVector?>(null) }
     val hasAnalyticsConsent = LocalAnalyticsConsent.current

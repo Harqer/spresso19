@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 
 @Composable
 @Suppress("UNUSED_PARAMETER")
@@ -42,7 +42,7 @@ fun DiscoveryCard(
     trackingAction: String? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val apiClient = androidx.compose.runtime.remember { network.ApiClient() }
+    val apiClient = androidx.compose.runtime.remember { network.ConvexApi() }
     val themeColor = if (isErrorTheme) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
     val themeBgColor = if (isErrorTheme) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer
 

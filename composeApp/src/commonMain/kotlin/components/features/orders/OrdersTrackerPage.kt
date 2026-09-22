@@ -26,12 +26,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import network.ApiClient
+import network.ConvexApi
 import network.models.OrderRecord
 
 @Composable
 fun OrdersTrackerPage(
-    apiClient: ApiClient = remember { ApiClient() },
+    apiClient: ConvexApi = remember { ConvexApi() },
     onAskAI: (String) -> Unit = {},
     onSetReminder: (String) -> Unit = {},
     onInitiateReturn: (String, String) -> Unit = { _, _ -> },

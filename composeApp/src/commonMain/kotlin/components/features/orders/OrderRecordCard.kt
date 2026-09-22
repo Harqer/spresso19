@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import components.shared.elements.SpressoButton
 import components.shared.elements.SpressoButtonVariant
-import network.ApiClient
+import network.ConvexApi
 import network.models.OrderRecord
 import utils.toPriceString
 
@@ -32,7 +32,7 @@ import utils.toPriceString
 @Composable
 fun OrderRecordCard(
     order: OrderRecord,
-    apiClient: ApiClient,
+    apiClient: ConvexApi,
     onSetReminder: (String) -> Unit,
     onInitiateReturn: (String) -> Unit,
     onAskAI: (String) -> Unit,

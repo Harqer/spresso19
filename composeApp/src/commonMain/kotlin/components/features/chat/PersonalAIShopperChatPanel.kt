@@ -54,7 +54,7 @@ fun PersonalAIShopperChatPanel(
     onStopVoice: (() -> Unit)? = null,
     isGenerating: Boolean = false,
     httpClient: io.ktor.client.HttpClient? = null,
-    apiClient: network.ApiClient? = null,
+    apiClient: network.ConvexApi? = null,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()

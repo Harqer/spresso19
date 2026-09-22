@@ -101,6 +101,12 @@
       ]
     },
     {
+      "path": "/api/context/weather",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
       "path": "/api/creator/agents",
       "methods": [
         "GET"
