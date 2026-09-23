@@ -57,8 +57,8 @@
       "priority": 7,
       "status": "PARTIAL",
       "spec": "docs/features.md#realtime-ai",
-      "evidence": "One canonical transport: LiveApiClient.kt (Ktor WS) connects to Gemini Live with an ephemeral token from Convex /api/live/token (convex/ai/liveToken.ts, Firebase identity enforced, key never leaves server); wired in App.kt and ChatViewModel; durable session/thread state lives in the Convex agent component (aiChat.ts), not in the transport.",
-      "remaining": "Implement interruption/barge-in handling and in-flight tool-call reconciliation on disconnect; verify reconnect/duplicate-response behavior on device before promotion."
+      "evidence": "One canonical transport: LiveApiClient.kt (Ktor WS) connects to Gemini Live with an ephemeral token from Convex /api/live/token (convex/ai/liveToken.ts, Firebase identity enforced, key never leaves server); wired in App.kt and ChatViewModel; durable session/thread state lives in the Convex agent component (aiChat.ts), not in the transport. Barge-in/interruption implemented 2026-09-22: interrupted frames (both protocol shapes, deduplicated) stop queued playback via ChatViewModel.onPlaybackInterrupted -> AudioPlayer.stop and flip listening state; endOfTurn applies the same playback reset; monotonic sessionGeneration drops stale frames after reconnect and resets the transcript so a dead session's partial answer is never concatenated onto the new one; close() is restartable (client recreated on demand) so voice can restart after stop. App.kt stop paths route through ChatViewModel.stopVoiceStream so UI state and the transport close together.",
+      "remaining": "In-flight tool-call reconciliation on disconnect (tool state is not yet durably reconciled against the Convex agent thread when the socket drops mid-tool); verify barge-in/reconnect/duplicate-response behavior on device before promotion."
     },
     {
       "id": "grocery-list",
@@ -73,8 +73,8 @@
       "priority": 9,
       "status": "IMPLEMENTED_BUT_UNVERIFIED",
       "spec": "docs/features.md#order-history",
-      "evidence": "convex/commerce/checkout.ts listOrders is paged (limit 1-50), ownership-filtered by tokenIdentifier via by_token_identifier index; acknowledge/reminder/return mutations are idempotent; Stripe webhook reconciliation writes authoritative processor state; client OrdersTrackerPage wired via ConvexApi.fetchOrders.",
-      "remaining": "Add dedicated order tests (cross-user denial, duplicate webhook, partial/unknown fulfillment states); reconcile partial/unknown states in the OrdersTrackerPage UI."
+      "evidence": "convex/commerce/checkout.ts listOrders is paged (limit 1-50), ownership-filtered by tokenIdentifier via by_token_identifier index; acknowledge/reminder/return mutations are idempotent; Stripe webhook reconciliation writes authoritative processor state; client OrdersTrackerPage wired via ConvexApi.fetchOrders. Edge coverage added 2026-09-22 (convex/commerceCheckout.test.ts, 19 tests): acknowledgeDelivery owner-only + unauthenticated rejection + DELIVERED transition + idempotent replay; requestReturn cross-user denial, reason validation (3-500 chars), delivered-order return flow, in-flight return no-op; reminder persistence across status transitions + blank-time rejection; duplicate webhook replay covered. OrdersTrackerPage/OrderRecordCard now map backend status enums to human labels (unknown backend states render as-is, never blank) and gate the Return action on returnable fulfillment states (AUTHORIZED/PROCESSING/IN_TRANSIT/DELIVERED) with a null returnStatus; in-flight/completed returns show state and disable the action.",
+      "remaining": "Live fulfillment-state progression (IN_TRANSIT/DELIVERED from a real carrier feed) and device verification of the orders UI; no code gaps remain."
     }
   ]
 }

@@ -229,3 +229,69 @@ test("confirmCheckout rejects a closed attempt before any Stripe call", async ()
   // The confirm guard order now catches FAILED (closed) attempts explicitly.
   await expect(t.withIdentity(identityA).query(api.commerce.checkout.getCheckoutAttempt, { attemptId })).resolves.toMatchObject({ status: "FAILED" });
 });
+
+test("acknowledgeDelivery advances fulfillment only for the owner", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "ack-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_ack_1", amountCents: 2500, currency: "USD" });
+  await t.mutation(internal.commerce.checkout.acquireWebhookEvent, { provider: "stripe", eventId: "evt_ack", payloadHash: "sha256:ack" });
+  const { orderId } = await t.mutation(internal.commerce.checkout.completePayment, { provider: "stripe", eventId: "evt_ack", paymentIntentId: "pi_ack_1", amountCents: 2500, currency: "USD" });
+
+  // Cross-user acknowledgement is ownership-denied.
+  await expect(t.withIdentity(identityB).mutation(api.commerce.checkout.acknowledgeDelivery, { orderId })).rejects.toThrow(/Order not found/);
+  // Unauthenticated acknowledgement is rejected.
+  await expect(t.mutation(api.commerce.checkout.acknowledgeDelivery, { orderId })).rejects.toThrow(/[Uu]nauthenticated|not found/i);
+
+  const orders = await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 });
+  expect(orders[0]).toMatchObject({ status: "PROCESSING" });
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.acknowledgeDelivery, { orderId });
+  const acknowledged = await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 });
+  expect(acknowledged[0]).toMatchObject({ status: "DELIVERED", trackingStatus: "DELIVERED" });
+  // Repeated acknowledgement is idempotent.
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.acknowledgeDelivery, { orderId });
+  expect((await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 }))[0]).toMatchObject({ status: "DELIVERED" });
+});
+
+test("requestReturn is ownership-gated and respects return lifecycle", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "return-edge-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_return_1", amountCents: 2500, currency: "USD" });
+  await t.mutation(internal.commerce.checkout.acquireWebhookEvent, { provider: "stripe", eventId: "evt_return", payloadHash: "sha256:return" });
+  const { orderId } = await t.mutation(internal.commerce.checkout.completePayment, { provider: "stripe", eventId: "evt_return", paymentIntentId: "pi_return_1", amountCents: 2500, currency: "USD" });
+
+  // Cross-user return requests are ownership-denied.
+  await expect(t.withIdentity(identityB).mutation(api.commerce.checkout.requestReturn, { orderId, reason: "Wrong item received", idempotencyKey: "return-b-1" })).rejects.toThrow(/Order not found/);
+  // Invalid reasons are rejected before any state change.
+  await expect(t.withIdentity(identityA).mutation(api.commerce.checkout.requestReturn, { orderId, reason: "ab", idempotencyKey: "return-b-2" })).rejects.toThrow(/valid return reason/);
+  await expect(t.withIdentity(identityA).mutation(api.commerce.checkout.requestReturn, { orderId, reason: "x".repeat(501), idempotencyKey: "return-b-3" })).rejects.toThrow(/valid return reason/);
+
+  // A delivered order can be returned.
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.acknowledgeDelivery, { orderId });
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.requestReturn, { orderId, reason: "Arrived damaged", idempotencyKey: "return-edge-1" });
+  let orders = await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 });
+  expect(orders[0]).toMatchObject({ status: "RETURN_REQUESTED", returnStatus: "REQUESTED", returnReason: "Arrived damaged" });
+
+  // A second return request is a no-op once the return is in flight, even with a different key.
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.requestReturn, { orderId, reason: "Changed my mind about the reason", idempotencyKey: "return-edge-2" });
+  orders = await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 });
+  expect(orders[0]).toMatchObject({ returnStatus: "REQUESTED", returnReason: "Arrived damaged" });
+});
+
+test("reminder state survives subsequent status transitions and is scoped per order", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "reminder-edge-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_reminder_1", amountCents: 2500, currency: "USD" });
+  await t.mutation(internal.commerce.checkout.acquireWebhookEvent, { provider: "stripe", eventId: "evt_reminder", payloadHash: "sha256:reminder" });
+  const { orderId } = await t.mutation(internal.commerce.checkout.completePayment, { provider: "stripe", eventId: "evt_reminder", paymentIntentId: "pi_reminder_1", amountCents: 2500, currency: "USD" });
+
+  // Reminder set on a PROCESSING order persists through delivery acknowledgement.
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.setOrderReminder, { orderId, reminderTime: "Tomorrow morning" });
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.acknowledgeDelivery, { orderId });
+  const orders = await t.withIdentity(identityA).query(api.commerce.checkout.listOrders, { limit: 10 });
+  expect(orders[0]).toMatchObject({ status: "DELIVERED", reminderSet: true, reminderTime: "Tomorrow morning" });
+  // Reminder requires a non-blank time.
+  await expect(t.withIdentity(identityA).mutation(api.commerce.checkout.setOrderReminder, { orderId, reminderTime: "   " })).rejects.toThrow(/reminderTime is required/);
+});

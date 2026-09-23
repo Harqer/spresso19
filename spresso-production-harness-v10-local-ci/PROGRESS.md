@@ -37,18 +37,18 @@ Use when an SDK/plugin/component is involved.
 ## Production-Ready Gate
 All applicable items must be checked before the feature can be marked passing or work can move to another feature.
 
-- [ ] Production path is fully implemented end to end. *(server-verifiable checkout authorization, merchant browser automation, realtime barge-in remain)*
+- [ ] Production path is fully implemented end to end. *(closed 2026-09-22: wearable intent loop, client checkout surface, realtime barge-in/restart, order-history edge states; remaining code gaps are server-verifiable exact-intent checkout authorization and merchant browser automation — everything else waits on live integration/hardware evidence, not code)*
 - [ ] No placeholder, stub, scaffold-only, fake-data, no-op, or mock implementation remains in the production path. *(strict mock scanner green; no dev bypasses found)*
 - [ ] Mocks/simulators are confined to tests or official SDK test tooling. *(verified)*
 - [ ] Canonical state ownership is preserved; no duplicate backend/auth/tool/state path was introduced. *(Convex canonical; single transport — legacy ApiClient.kt removed 2026-09-22, all consumers on ConvexApi)*
 - [ ] Authentication and server-side authorization are verified. *(bridge-wide bearer identity + per-user ownership checks)*
 - [ ] External/provider inputs and outputs are validated. *(typed bridge parsers, zod guardrails, provider normalization)*
-- [ ] Lifecycle, cancellation, cleanup, retry, timeout, and failure behavior are implemented where applicable. *(media job state machine; LiveApiClient reconnect; gaps in wearable/realtime paths)*
+- [ ] Lifecycle, cancellation, cleanup, retry, timeout, and failure behavior are implemented where applicable. *(media job state machine; LiveApiClient reconnect + restartable close + barge-in playback stop + stale-session frame dropping; weather route bounded fetch; wearable paths unchanged)*
 - [ ] Concurrency, ordering, idempotency, and reconciliation are implemented where applicable. *(checkout idempotency, webhookInbox dedupe, tool ledger)*
 - [ ] Loading, empty, stale, unsupported, unavailable, failed, rate-limited, and success states are preserved where meaningful. *(rate limiter component wired; UI-state audit pending per screen)*
 - [ ] Applicable SDK/plugin capability rows above are verified or explicitly N/A with reason. *(see table)*
-- [ ] Targeted tests/checks pass. *(74/74 convex vitest, contracts, smoke, boundary suites)*
-- [ ] Negative/error/authz paths pass. *(identity/ownership tests green; grocery/order suites missing)*
+- [ ] Targeted tests/checks pass. *(96/96 convex vitest incl. order-history edge suites + weather boundary tests, contracts, smoke, boundary suites)*
+- [ ] Negative/error/authz paths pass. *(identity/ownership tests green; grocery + order-history edge suites shipped 2026-09-22)*
 - [ ] Applicable broader CI/static/security/dependency checks pass. *(npm audit 0 vulns; lint green)*
 - [ ] Convex codegen/typecheck/deployment compilation passes when Convex is affected. *(green at 0433cc5)*
 - [ ] Applicable KMP/Android/Web targets compile. *(commonMain metadata, androidMain, wasmJs all green)*
@@ -59,6 +59,8 @@ All applicable items must be checked before the feature can be marked passing or
 - [ ] Coherent working state is committed. *(this commit)*
 
 ## Completed
+- Realtime barge-in + session reconciliation (2026-09-22): interruption frames stop queued playback (onPlaybackInterrupted -> AudioPlayer.stop), endOfTurn applies the same reset, monotonic sessionGeneration drops stale post-reconnect frames and resets the transcript, close() is restartable (per-connect client recreation), and App.kt stop paths route through ChatViewModel.stopVoiceStream so voice state and transport never desync.
+- Order-history edge tests + UI state reconciliation (2026-09-22): acknowledgeDelivery/reminder/requestReturn ownership + validation + idempotency suites (96/96 backend tests); OrderRecordCard renders human-readable fulfillment labels with unknown-state passthrough and gates Return on returnable states + null returnStatus.
 - Reconciliation audit of the original 8 registered features against repository reality (2026-09-22).
 - 4 features moved from `unverified` to `IMPLEMENTED_BUT_UNVERIFIED` with evidence: product-discovery, virtual-try-on, screen-product-discovery, grocery-list, order-history.
 - Agentic Checkout is `PARTIAL`: the payment path is wired, but the strong biometric assertion is discarded client-side and Convex receives only `attemptId`, so the server cannot prove biometric/MFA authorization.
@@ -72,7 +74,7 @@ All applicable items must be checked before the feature can be marked passing or
 
 ## Open / Blocked
 - **Blocked on prod vault (Infisical prod -> Convex prod)**: PARALLEL_API_KEY, SERPAPI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, KITESURF_ALLOWED_DOMAINS, STRIPE_WEBHOOK_SECRET, FAL_API_KEY, BUNNY_* — live discovery, merchant verification, webhook reconciliation, try-on, and media delivery fail closed until provisioned.
-- **Open (code)**: server-verifiable exact-intent checkout authorization; merchant Browser Sessions + adaptive chat/browser UI; realtime barge-in/interruption + in-flight tool reconciliation; order-history edge-case tests (duplicate webhook covered, partial shipment states not).
+- **Open (code)**: server-verifiable exact-intent checkout authorization; merchant Browser Sessions + adaptive chat/browser UI; in-flight tool-call reconciliation on disconnect for realtime AI (barge-in/restart itself shipped 2026-09-22); order-history code is complete, remaining work is live carrier/fulfillment evidence.
 - **Duplicates awaiting removal (root-caused, do not delete in a feature pass)**: none remaining — `ApiClient.kt` legacy transport was consolidated into `ConvexApi.kt` and deleted 2026-09-22 (its direct provider call for weather moved behind `/api/context/weather`; per-instance `close()` calls that could kill the shared HTTP client were removed).
 
 ## Decisions
@@ -85,12 +87,12 @@ All applicable items must be checked before the feature can be marked passing or
 ## Next
 1. Implement server-issued exact-intent checkout authorization and verify biometric/passkey + MFA proof in Convex; add bypass/replay/expiry/material-change tests.
 2. Implement `merchant-browser-automation` from `docs/merchant-browser-automation.md`: Convex session/events/tools → Browser Run Playwright/CDP → Kitesurf/Chromium engine selection → adaptive chat/browser UI → Live View/HITL.
-3. Implement realtime barge-in/interruption + in-flight tool reconciliation.
-4. Add order-history partial shipment/return-state tests.
+3. Implement in-flight tool-call reconciliation on disconnect for realtime AI (barge-in/restart DONE 2026-09-22).
+4. ~~Order-history edge-case tests~~ DONE 2026-09-22 (ownership/validation/idempotency suites; UI state gating shipped). Also DONE 2026-09-22: wearable intent receivers, client checkout surface, ApiClient.kt consolidation.
 5. Provision prod vault secrets, then run live provider verification before promoting any affected feature to VERIFIED.
 
 ## Active Issue / PR
 -
 
 ## Last Updated
-2026-09-22 (merchant browser automation + checkout authorization harness correction)
+2026-09-22 (merchant browser automation + checkout-authorization harness correction; realtime barge-in/restart + order-history edges implemented)

@@ -37,6 +37,10 @@ fun OrderRecordCard(
     onInitiateReturn: (String) -> Unit,
     onAskAI: (String) -> Unit,
 ) {
+    // Fulfillment states where a return makes sense. CANCELLED and RETURNED
+    // orders offer no return path; RETURN_REQUESTED is already in flight.
+    val returnable = order.status in setOf("AUTHORIZED", "PROCESSING", "IN_TRANSIT", "DELIVERED")
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -60,7 +64,7 @@ fun OrderRecordCard(
                     Text("Order #${order.id.take(8)}", style = MaterialTheme.typography.titleMedium)
                     Text(
                         buildString {
-                            append(order.status)
+                            append(statusLabel(order.status))
                             order.trackingStatus?.takeIf { it.isNotBlank() }?.let { append(" · $it") }
                             append("\n")
                             append(
@@ -87,9 +91,16 @@ fun OrderRecordCard(
                     trackingAction = "click",
                 )
                 SpressoButton(
-                    text = "Return",
+                    text =
+                        when (order.returnStatus) {
+                            "REQUESTED" -> "Return requested"
+                            "APPROVED" -> "Return approved"
+                            "COMPLETED" -> "Returned"
+                            else -> "Return"
+                        },
                     icon = Icons.AutoMirrored.Outlined.AssignmentReturn,
-                    onClick = { onInitiateReturn(order.id) },
+                    onClick = { if (returnable && order.returnStatus == null) onInitiateReturn(order.id) },
+                    enabled = returnable && order.returnStatus == null,
                     variant = SpressoButtonVariant.GHOST,
                     trackingId = "order_return_${order.id}",
                     trackingAction = "click",
@@ -106,3 +117,16 @@ fun OrderRecordCard(
         }
     }
 }
+
+/** Human-readable fulfillment status; unknown backend states render as-is, never blank. */
+private fun statusLabel(status: String): String =
+    when (status) {
+        "AUTHORIZED" -> "Payment authorized"
+        "PROCESSING" -> "Processing"
+        "IN_TRANSIT" -> "In transit"
+        "DELIVERED" -> "Delivered"
+        "RETURN_REQUESTED" -> "Return requested"
+        "RETURNED" -> "Returned"
+        "CANCELLED" -> "Cancelled"
+        else -> status
+    }

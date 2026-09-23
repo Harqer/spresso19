@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import network.ChatMessage
+import network.ConnectionState
 import network.ConvexApi
 import network.LiveApiClient
 import network.ProductItem
@@ -18,6 +19,11 @@ class ChatViewModel(
     private val scope: CoroutineScope,
     private val liveApiClient: LiveApiClient = LiveApiClient(),
 ) {
+    /**
+     * Invoked on barge-in/turn-complete so the owner can stop already-queued
+     * audio playback (the transport cannot reach the player itself).
+     */
+    var onPlaybackInterrupted: (() -> Unit)? = null
     val messages = mutableStateListOf<ChatMessage>()
     var isGenerating by mutableStateOf(false)
     var errorMessage by mutableStateOf<String?>(null)
@@ -193,8 +199,29 @@ class ChatViewModel(
                         updateOrAddAiMessage(voiceMsgId, accumulatedText)
                     },
                     onInterrupted = {
+                        // Barge-in: stop queued playback immediately, then flip state.
+                        onPlaybackInterrupted?.invoke()
                         isVoiceSpeaking = false
                         isVoiceListening = true
+                    },
+                    onTurnComplete = {
+                        // Turn boundary without interruption: same playback reset.
+                        onPlaybackInterrupted?.invoke()
+                        isVoiceSpeaking = false
+                        isVoiceListening = true
+                    },
+                    onStateChanged = { state ->
+                        if (state == ConnectionState.RECONNECTING || state == ConnectionState.CONNECTED) {
+                            // A fresh session must not append onto a dead session's
+                            // partial transcript — the old response is unrecoverable.
+                            accumulatedText = ""
+                            liveTranscript = ""
+                            updateOrAddAiMessage(voiceMsgId, "", isStreaming = state == ConnectionState.CONNECTED)
+                        }
+                        if (state == ConnectionState.ERROR) {
+                            isVoiceListening = false
+                            isVoiceSpeaking = false
+                        }
                     },
                 )
             } catch (e: Exception) {

@@ -144,16 +144,24 @@ open class LiveApiClient {
         const val INITIAL_RECONNECT_DELAY_MS = 1000L
     }
 
-    private val client =
-        HttpClient {
-            install(WebSockets)
-        }
-
     private val json =
         Json {
             ignoreUnknownKeys = true
             encodeDefaults = false
         }
+
+    /**
+     * Recreated on demand: close() disposes the client for real cleanup, and a
+     * later startVoiceStream must be able to connect again, so connect() cannot
+     * depend on a one-shot client instance.
+     */
+    private var client: HttpClient? = null
+
+    private fun ensureClient(): HttpClient =
+        client ?: HttpClient {
+            install(WebSockets)
+        }.also { client = it }
+
     private var session: DefaultClientWebSocketSession? = null
 
     var connectionState: ConnectionState = ConnectionState.DISCONNECTED
@@ -167,6 +175,15 @@ open class LiveApiClient {
 
     private var isManuallyClosed = false
 
+    /**
+     * Monotonic session generation: bumped on every (re)connect so text/audio
+     * callbacks from a dead session can be distinguished from the live one.
+     * The ViewModel uses this to avoid concatenating a pre-drop partial answer
+     * onto the post-reconnect response.
+     */
+    var sessionGeneration: Long = 0L
+        private set
+
     @OptIn(ExperimentalEncodingApi::class)
     open suspend fun connect(
         onReceiveAudio: (ByteArray) -> Unit,
@@ -174,6 +191,7 @@ open class LiveApiClient {
         onInterrupted: () -> Unit = {},
         onStateChanged: (ConnectionState) -> Unit = {},
         onError: (String) -> Unit = {},
+        onTurnComplete: () -> Unit = {},
     ) {
         isManuallyClosed = false
 
@@ -186,7 +204,7 @@ open class LiveApiClient {
                 onStateChanged(connectionState)
 
                 val tokenResponse =
-                    client
+                    ensureClient()
                         .post("${SpressoConfig.convexSiteUrl}/api/live/token") {
                             if (!authToken.isNullOrEmpty()) {
                                 header(HttpHeaders.Authorization, "Bearer $authToken")
@@ -200,10 +218,12 @@ open class LiveApiClient {
                 val wsUrl =
                     "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=$ephemeralToken"
 
-                client.webSocket(
+                ensureClient().webSocket(
                     urlString = wsUrl,
                 ) {
                     session = this
+                    sessionGeneration += 1
+                    val activeGeneration = sessionGeneration
 
                     connectionState = ConnectionState.CONNECTED
                     onStateChanged(ConnectionState.CONNECTED)
@@ -215,6 +235,11 @@ open class LiveApiClient {
                             val frameText = incomingFrame.readText()
                             try {
                                 val serverMsg = json.decodeFromString<ServerMessage>(frameText)
+                                if (serverMsg.serverContent?.interrupted == true || serverMsg.interrupted == true) {
+                                    // Barge-in: the user spoke over the model. Playback of
+                                    // already-queued audio must stop NOW, not just flag state.
+                                    onInterrupted()
+                                }
 
                                 // Standard type-based message handling (24kHz PCM output decoding)
                                 when (serverMsg.type) {
@@ -231,11 +256,6 @@ open class LiveApiClient {
                                             onReceiveText(textData)
                                         }
                                     }
-                                    "interrupted" -> {
-                                        if (serverMsg.interrupted == true) {
-                                            onInterrupted()
-                                        }
-                                    }
                                     "error" -> {
                                         serverMsg.error?.let { err -> onError(err) }
                                     }
@@ -243,9 +263,6 @@ open class LiveApiClient {
 
                                 // Handle Gemini Live Protocol (serverContent with inline 24kHz PCM audio)
                                 serverMsg.serverContent?.let { content ->
-                                    if (content.interrupted == true) {
-                                        onInterrupted()
-                                    }
                                     content.modelTurn?.parts?.forEach { part ->
                                         part.text?.let { t -> onReceiveText(t) }
                                         part.inlineData?.let { inline ->
@@ -257,11 +274,13 @@ open class LiveApiClient {
                                     }
                                 }
 
-                                // Handle Agent Engine ADK Protocol (bidiStreamOutput)
+                                // Handle Agent Engine ADK Protocol (bidiStreamOutput).
+                                // endOfTurn closes the current spoken turn — same playback
+                                // reset as an interruption, without signaling the speaker.
                                 serverMsg.bidiStreamOutput?.let { bidi ->
                                     val output = bidi.output
                                     if (output?.endOfTurn == true) {
-                                        onInterrupted()
+                                        onTurnComplete()
                                     }
                                     output?.part?.text?.let { t -> onReceiveText(t) }
                                     output?.inlineData?.let { inline ->
@@ -273,6 +292,9 @@ open class LiveApiClient {
                                         }
                                     }
                                 }
+                                // Frames from a superseded session are dropped by the
+                                // generation check above; nothing further to process.
+                                if (activeGeneration != sessionGeneration) return@webSocket
                             } catch (e: Exception) {
                                 println("LiveApiClient frame decode error: ${e.message}")
                             }
@@ -420,9 +442,10 @@ open class LiveApiClient {
         session = null
         connectionState = ConnectionState.DISCONNECTED
         try {
-            client.close()
+            client?.close()
         } catch (e: Exception) {
             println("LiveApiClient client close error: ${e.message}")
         }
+        client = null
     }
 }

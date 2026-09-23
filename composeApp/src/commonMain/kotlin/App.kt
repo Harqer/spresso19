@@ -163,6 +163,8 @@ fun App(
         val catalogViewModel = remember { CatalogViewModel(scope, convexApi) }
         val audioRecorder = remember { AudioRecorder() }
         val audioPlayer = remember { AudioPlayer() }
+        // Barge-in must cut off queued playback, not just flip conversation state.
+        chatViewModel.onPlaybackInterrupted = { audioPlayer.stop() }
 
         DisposableEffect(Unit) {
             onDispose {
@@ -228,8 +230,11 @@ fun App(
             isVoiceRecording = isVoiceRecording,
             onToggleVoiceRecording = {
                 if (isVoiceRecording) {
+                    // Route through the ViewModel so voice state and the transport
+                    // close together — closing the client directly left the UI
+                    // convinced a dead session was still live.
+                    chatViewModel.stopVoiceStream()
                     audioRecorder.stopRecording()
-                    liveApiClient.close()
                     isVoiceRecording = false
                 } else {
                     audioRecorder.onAudioChunk = { chunk ->
@@ -356,8 +361,8 @@ fun App(
                             onOpenObjectDetection = onTriggerGlobalLens,
                             onToggleVoice = {
                                 if (isVoiceRecording) {
+                                    chatViewModel.stopVoiceStream()
                                     audioRecorder.stopRecording()
-                                    liveApiClient.close()
                                     isVoiceRecording = false
                                 } else {
                                     audioRecorder.onAudioChunk = { chunk ->
