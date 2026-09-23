@@ -1,6 +1,6 @@
 # Repository Instructions
 
-Read `PROGRESS.md`, recent git history, the active ticket, `docs/workflow.md`, and the active feature in `docs/features.md` before editing.
+Read `PROGRESS.md`, recent git history, the active ticket, `docs/workflow.md`, and the active feature in `docs/features.md` before editing. For merchant browser automation or its chat UI, also read `docs/merchant-browser-automation.md` completely.
 
 Work on one feature at a time. Trace the existing end-to-end path before changing it.
 
@@ -23,5 +23,7 @@ Project decisions:
 - Convex = backend authorization/state/workflows
 - Infisical = secret source
 - Bunny = private media where configured
+- Cloudflare Browser Run = merchant browser execution provider; Convex remains canonical workflow/state authority
+- Kitesurf = compatible short/stateless browser tasks; Chromium Browser Run = authenticated/persistent/handoff flows
 
 Update `PROGRESS.md` and `feature_list.json` before ending.
