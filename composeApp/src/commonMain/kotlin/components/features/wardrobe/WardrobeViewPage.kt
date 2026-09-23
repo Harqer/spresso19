@@ -87,9 +87,9 @@ fun WardrobeViewPage(
     LaunchedEffect(Unit) {
         try {
             val coordinates = currentLatLng ?: return@LaunchedEffect
-            val climate = apiClient.getWeatherContext(coordinates)
-            activeSeason = climate
-            temperatureText = apiClient.getTemperatureText(coordinates)
+            val weather = apiClient.fetchWeatherContext(coordinates)
+            activeSeason = weather.climate
+            temperatureText = weather.temperatureText
         } catch (e: Exception) {
             snackbarHostState.showSnackbar("Weather-based suggestions are unavailable right now.")
         }

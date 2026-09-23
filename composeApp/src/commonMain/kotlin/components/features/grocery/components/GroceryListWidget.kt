@@ -46,7 +46,6 @@ fun GroceryListWidget(
     var newItemName by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
     val scope = rememberCoroutineScope()
-    val convexApi = remember { network.ConvexApi() }
     val categories = remember(items) { listOf("All") + items.map { it.category }.filter { it.isNotBlank() }.distinct() }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -64,7 +63,7 @@ fun GroceryListWidget(
                 scope.launch {
                     if (newItemName.isBlank()) return@launch
                     try {
-                        convexApi.addGroceryItem(newItemName, "Other")
+                        apiClient.addGroceryItem(newItemName, "Other")
                         newItemName = ""
                         items = apiClient.fetchGroceryList(listId.orEmpty())
                     } catch (e: Exception) {
@@ -109,7 +108,7 @@ fun GroceryListWidget(
                         onClick = {
                             scope.launch {
                                 try {
-                                    convexApi.setGroceryChecked(item.id, !item.checked)
+                                    apiClient.setGroceryChecked(item.id, !item.checked)
                                     items =
                                         items.map { current ->
                                             if (current.id ==
@@ -139,7 +138,7 @@ fun GroceryListWidget(
                                 IconButton(onClick = {
                                     scope.launch {
                                         try {
-                                            convexApi.removeGroceryItem(item.id)
+                                            apiClient.removeGroceryItem(item.id)
                                             items = items.filterNot { current -> current.id == item.id }
                                         } catch (e: Exception) {
                                             snackbarHostState.showSnackbar("Unable to delete this item. Please try again.")

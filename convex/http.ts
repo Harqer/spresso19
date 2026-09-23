@@ -958,26 +958,35 @@ http.route({ path: "/api/travel/receipt", method: "POST", handler: parseTravelRe
 // The climate lookup runs server-side so clients never call the weather
 // provider directly; the app consumes one Convex-bridged context contract.
 
-function climateCategory(celsius: number): string {
+export const WEATHER_FETCH_TIMEOUT_MS = 10_000;
+
+export function climateCategory(celsius: number): string {
   if (celsius < 10) return "Winter";
   if (celsius > 25) return "Summer";
   return "Occasion";
+}
+
+export function temperatureDisplay(celsius: number): string {
+  return `${Math.round(celsius * 10) / 10}°C`;
 }
 
 export const weatherContextHttp = httpAction(async (ctx, request) => {
   return runBridge(async () => {
     await bearerIdentity(ctx);
     const params = new URL(request.url).searchParams;
-    const latitude = Number(params.get("latitude"));
-    const longitude = Number(params.get("longitude"));
-    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+    const latitudeRaw = params.get("latitude");
+    const longitudeRaw = params.get("longitude");
+    const latitude = Number(latitudeRaw);
+    const longitude = Number(longitudeRaw);
+    // Empty/blank strings coerce to 0 — treat them as the missing values they are.
+    if (latitudeRaw === null || latitudeRaw.trim() === "" || !Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
       throw new BridgeError("latitude must be between -90 and 90.", 400);
     }
-    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    if (longitudeRaw === null || longitudeRaw.trim() === "" || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
       throw new BridgeError("longitude must be between -180 and 180.", 400);
     }
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`;
-    const payload = (await fetch(url).then((res) => {
+    const payload = (await fetch(url, { signal: AbortSignal.timeout(WEATHER_FETCH_TIMEOUT_MS) }).then((res) => {
       if (!res.ok) throw new BridgeError("Weather provider request failed.", 502);
       return res.json();
     })) as { current_weather?: { temperature?: unknown } };
@@ -988,7 +997,7 @@ export const weatherContextHttp = httpAction(async (ctx, request) => {
     return {
       climate: climateCategory(celsius),
       temperatureCelsius: Math.round(celsius * 10) / 10,
-      temperatureText: `${Math.round(celsius * 10) / 10}°C`,
+      temperatureText: temperatureDisplay(celsius),
     };
   });
 });

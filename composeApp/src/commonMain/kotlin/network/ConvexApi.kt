@@ -1292,27 +1292,19 @@ class ConvexApi(
 
     // ---- Weather context (server-bridged; clients never call providers) ------
 
-    suspend fun getWeatherContext(latLng: Pair<Double, Double>): String {
+    /** One server-verified weather reading: climate season + display text. */
+    suspend fun fetchWeatherContext(latLng: Pair<Double, Double>): WeatherContext {
         val (latitude, longitude) = latLng
         val body =
             json
                 .parseToJsonElement(
                     get("/api/context/weather?latitude=$latitude&longitude=$longitude"),
                 ).jsonObject
-        return body["climate"]?.jsonPrimitive?.contentOrNull
-            ?: error("Weather data unavailable")
-    }
-
-    suspend fun getTemperatureText(latLng: Pair<Double, Double>): String {
-        val (latitude, longitude) = latLng
-        val body =
-            runCatching {
-                json
-                    .parseToJsonElement(
-                        get("/api/context/weather?latitude=$latitude&longitude=$longitude"),
-                    ).jsonObject
-            }.getOrNull() ?: return ""
-        return body["temperatureText"]?.jsonPrimitive?.contentOrNull ?: ""
+        return WeatherContext(
+            climate = body["climate"]?.jsonPrimitive?.contentOrNull ?: error("Weather data unavailable"),
+            temperatureCelsius = body["temperatureCelsius"]?.jsonPrimitive?.doubleOrNull,
+            temperatureText = body["temperatureText"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+        )
     }
 
     suspend fun addTravelExpense(
@@ -1359,6 +1351,13 @@ class ConvexApi(
 data class SavedListingRecord(
     val productId: String,
     val listing: DiscoveredListing? = null,
+)
+
+/** Server-verified weather reading for wardrobe styling context. */
+data class WeatherContext(
+    val climate: String,
+    val temperatureCelsius: Double? = null,
+    val temperatureText: String = "",
 )
 
 /** Grocery row as owned by the Convex grocery module. */

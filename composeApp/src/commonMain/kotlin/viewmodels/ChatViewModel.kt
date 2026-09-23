@@ -249,17 +249,6 @@ class ChatViewModel(
         }
     }
 
-    /**
-     * Standard (non-live) audio analysis has no backend owner yet — the Convex
-     * Agent flow handles live voice. Report honestly instead of faking a path.
-     */
-    fun sendStandardAudio(
-        audioBytes: ByteArray,
-        prompt: String = "Please analyze this audio.",
-    ) {
-        errorMessage = "Audio analysis is available in live voice mode."
-    }
-
     private fun updateOrAddAiMessage(
         id: String,
         text: String,
