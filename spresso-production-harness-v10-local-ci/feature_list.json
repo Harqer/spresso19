@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "rule": "Work on one feature at a time. Complete the applicable Pre-Implementation Gate before coding. After implementing the real production path, scripts/ci.sh must pass. Then complete every applicable Production-Ready Gate item with evidence before marking passing or moving on. Scaffolds, placeholders, stubs, fake data, no-op adapters, and mocks do not satisfy production behavior.",
   "lastReconciled": "2026-09-22",
-  "reconciliationNote": "Statuses below come from the 2026-09-22 repository reconciliation audit (commit 0433cc5 tree): every feature was traced end-to-end through real callers, backend wiring, auth, state ownership, provider integrations, error paths, and tests. VERIFIED is deliberately not assigned anywhere: no feature has real integration/hardware evidence satisfying the Production-Ready Gate, and the production Convex vault lacks PARALLEL_API_KEY, SERPAPI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, KITESURF_ALLOWED_DOMAINS, STRIPE_WEBHOOK_SECRET, FAL_API_KEY, and BUNNY_* (verified 2026-09-18), so live provider paths fail closed.",
+  "reconciliationNote": "The 2026-09-22 reconciliation audited the original 8 registered features end-to-end. This harness update adds merchant-browser-automation as a ninth PLANNED feature and corrects agentic-checkout to PARTIAL after tracing the authorization boundary: the Android biometric is local-only and its signed assertion is not verified by Convex. No feature is VERIFIED without real integration/hardware evidence; production provider paths that lack required Infisical -> Convex secrets remain fail-closed.",
   "features": [
     {
       "id": "product-discovery",
@@ -39,14 +39,22 @@
     {
       "id": "agentic-checkout",
       "priority": 5,
-      "status": "IMPLEMENTED_BUT_UNVERIFIED",
+      "status": "PARTIAL",
       "spec": "docs/features.md#agentic-checkout",
-      "evidence": "Backend is production-grade (convex/commerce/actions.ts, convex/commerce/checkout.ts, signed Stripe webhook with webhookInbox dedupe). Client now wired end-to-end: ConvexApi.acquireCheckoutAttempt/prepareCheckout/confirmCheckout call the new bridge routes /api/checkout/attempt|prepare|confirm; CatalogViewModel drives acquire -> server-verified quote -> promptBiometricAuth step-up -> confirmCheckout (off-session Stripe charge against the saved default card via convex/commerce/actions.ts confirmCheckout); CheckoutConfirmDialog renders quote/charge/success phases; MainActivity wearable receiver navigates to checkout.",
-      "remaining": "Live run against real providers (KITESURF/Cloudflare quote + STRIPE) with prod-vault secrets; record integration evidence per the Production-Ready Gate."
+      "evidence": "Quote/payment/webhook path is wired: convex/commerce/actions.ts + checkout.ts verify owner/merchant quote, charge the saved Stripe method idempotently, and reconcile signed webhooks; client CatalogViewModel shows the verified quote and invokes strong Android biometric before confirm. Audit gap: promptBiometricAuth returns a signed assertion, but CatalogViewModel discards it and /api/checkout/confirm sends only attemptId, so Convex cannot prove biometric/MFA authorization occurred.",
+      "remaining": "Create a server-issued exact-intent challenge/digest and verify the biometric/passkey assertion + required MFA server-side; bind variant/quantity/amount/currency/payment method/nonce/expiry, invalidate on material changes or stale quotes, add bypass/replay tests, then record a live provider run."
+    },
+    {
+      "id": "merchant-browser-automation",
+      "priority": 6,
+      "status": "PLANNED",
+      "spec": "docs/features.md#merchant-browser-automation",
+      "evidence": "docs/merchant-browser-automation.md defines the approved chat-first adaptive UI plus Convex/Cloudflare Browser Run contract. Current code is intentionally narrower: convex/commerce/actions.ts and functions/src/kitesurfService.ts use one-shot Kitesurf JSON Quick Actions for public listing/quote inspection, functions/src/kitesurf/merchantAdapters.ts has supportsCheckout=false, executeKitesurfPurchase throws, and services/openclaw/tools/browser.ts is a guarded HTTP page reader rather than interactive browser automation.",
+      "remaining": "Implement typed Convex-owned merchant browser sessions/events/tools; Browser Run Playwright/CDP with Kitesurf->Chromium engine selection, destination guardrails and Human in the Loop; adaptive chat/browser UI; secure Live View handling; end-to-end merchant-cart and handoff verification."
     },
     {
       "id": "realtime-ai",
-      "priority": 6,
+      "priority": 7,
       "status": "PARTIAL",
       "spec": "docs/features.md#realtime-ai",
       "evidence": "One canonical transport: LiveApiClient.kt (Ktor WS) connects to Gemini Live with an ephemeral token from Convex /api/live/token (convex/ai/liveToken.ts, Firebase identity enforced, key never leaves server); wired in App.kt and ChatViewModel; durable session/thread state lives in the Convex agent component (aiChat.ts), not in the transport.",
@@ -54,15 +62,15 @@
     },
     {
       "id": "grocery-list",
-      "priority": 7,
+      "priority": 8,
       "status": "IMPLEMENTED_BUT_UNVERIFIED",
       "spec": "docs/features.md#grocery-list",
-      "evidence": "convex/grocery.ts exposes deterministic user-owned mutations with ownership-scoped getMyList; bridge routes /api/grocery*; client wired via ConvexApi. convex/grocery.test.ts now covers authz/ownership/normalization (4 tests) \u2014 backend fully gated.",
+      "evidence": "convex/grocery.ts exposes deterministic user-owned mutations with ownership-scoped getMyList; bridge routes /api/grocery*; client wired via ConvexApi. convex/grocery.test.ts now covers authz/ownership/normalization (4 tests) — backend fully gated.",
       "remaining": "Verify offline/reconnect behavior on device."
     },
     {
       "id": "order-history",
-      "priority": 8,
+      "priority": 9,
       "status": "IMPLEMENTED_BUT_UNVERIFIED",
       "spec": "docs/features.md#order-history",
       "evidence": "convex/commerce/checkout.ts listOrders is paged (limit 1-50), ownership-filtered by tokenIdentifier via by_token_identifier index; acknowledge/reminder/return mutations are idempotent; Stripe webhook reconciliation writes authoritative processor state; client OrdersTrackerPage wired via ConvexApi.fetchOrders.",
