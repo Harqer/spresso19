@@ -175,14 +175,16 @@ fun App(
 
         // Signed-in users who have not completed onboarding are routed to it once;
         // the flag is server-owned (preferences.onboardingCompleted), so a
-        // reinstall or new device replays onboarding instead of skipping it.
+        // reinstall or new device replays onboarding instead of skipping it. This
+        // effect is the single routing owner for the post-splash destination: the
+        // splash page only signals completion, it never decides the next route.
         LaunchedEffect(currentUserUid, isEmailVerificationRequired, onboardingGateResolved) {
             if (currentUserUid != null && !isEmailVerificationRequired && !onboardingGateResolved) {
                 onboardingGateResolved = true
                 val prefs = runCatching { apiClient.fetchPreferences() }.getOrNull()
                 val needsOnboarding = prefs?.get("onboardingCompleted")?.jsonPrimitive?.booleanOrNull != true
                 if (needsOnboarding) {
-                    navigator.resetTo(NavKey.SplashScreenKey)
+                    navigator.navigate(NavKey.GamifiedOnboardingKey())
                 }
             }
         }
@@ -305,11 +307,14 @@ fun App(
                     entry<NavKey.SplashScreenKey> { currentDestinationKey ->
                         SplashScreenPage(
                             onSplashComplete = {
+                                // Cold-start decision only; the onboarding effect owns
+                                // the signed-in-with-pending-onboarding case so the
+                                // video never plays twice.
                                 navigator.replace(
                                     when {
                                         currentUserUid == null -> NavKey.AuthKey
                                         isEmailVerificationRequired -> NavKey.EmailVerificationKey
-                                        else -> NavKey.GamifiedOnboardingKey()
+                                        else -> NavKey.ChatKey()
                                     },
                                 )
                             },
@@ -343,6 +348,10 @@ fun App(
                             onThemeModeChange = { themeMode = it },
                             onSignOut = {
                                 signOut()
+                                // Identity, transcript, and in-flight checkout are
+                                // per-account: none may survive into the next session.
+                                chatViewModel.clearSession()
+                                catalogViewModel.clearCheckoutStatus()
                                 navigator.resetTo(NavKey.AuthKey)
                             },
                             onVerifyEmail = onVerifyEmailRequested,
@@ -808,6 +817,8 @@ fun App(
                             onThemeModeChange = { themeMode = it },
                             onSignOut = {
                                 signOut()
+                                chatViewModel.clearSession()
+                                catalogViewModel.clearCheckoutStatus()
                                 navigator.replace(NavKey.AuthKey)
                             },
                             onVerifyEmail = onVerifyEmailRequested,
@@ -830,6 +841,8 @@ fun App(
                             onThemeModeChange = { themeMode = it },
                             onSignOut = {
                                 signOut()
+                                chatViewModel.clearSession()
+                                catalogViewModel.clearCheckoutStatus()
                                 navigator.resetTo(NavKey.AuthKey)
                             },
                             onVerifyEmail = onVerifyEmailRequested,
