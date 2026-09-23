@@ -383,6 +383,7 @@ fun App(
                                 // per-account: none may survive into the next session.
                                 chatViewModel.clearSession()
                                 catalogViewModel.clearCheckoutStatus()
+                                merchantViewModel.stop()
                                 navigator.resetTo(NavKey.AuthKey)
                             },
                             onVerifyEmail = onVerifyEmailRequested,
@@ -853,6 +854,7 @@ fun App(
                                 signOut()
                                 chatViewModel.clearSession()
                                 catalogViewModel.clearCheckoutStatus()
+                                merchantViewModel.stop()
                                 navigator.replace(NavKey.AuthKey)
                             },
                             onVerifyEmail = onVerifyEmailRequested,
@@ -878,6 +880,7 @@ fun App(
                                 signOut()
                                 chatViewModel.clearSession()
                                 catalogViewModel.clearCheckoutStatus()
+                                merchantViewModel.stop()
                                 navigator.resetTo(NavKey.AuthKey)
                             },
                             onVerifyEmail = onVerifyEmailRequested,

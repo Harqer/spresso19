@@ -132,25 +132,6 @@ export const startBrowserSession = internalAction({
   },
 });
 
-export const closeBrowserSession = internalAction({
-  args: { sessionId: v.id("merchantBrowserSessions"), reason: v.string() },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const session = (await ctx.runQuery(internal.merchantBrowser.state.getSessionInternal, {
-      sessionId: args.sessionId,
-    })) as { providerSessionId?: string } | null;
-    if (session?.providerSessionId) {
-      await closeProviderSession(ctx, session.providerSessionId);
-    }
-    await ctx.runMutation(internal.merchantBrowser.state.transitionInternal, {
-      sessionId: args.sessionId,
-      status: "EXPIRED",
-      reason: args.reason,
-    });
-    return null;
-  },
-});
-
 /**
  * Observe live page state (URL/title) via the provider target list and
  * refresh normalized session facts. Read-only; consumes no action budget.

@@ -95,13 +95,16 @@ export const createSessionInternal = internalMutation({
       engine: args.engine,
       status: "STARTING",
       currentUrl: args.merchantUrl,
-      lastEventSeq: 0,
+      // Sequences start at 1: the owner-facing events query is strictly
+      // greater-than `afterSeq`, and both the client and the API default
+      // afterSeq to 0 — a seq-0 event would be permanently unreachable.
+      lastEventSeq: 1,
       actionBudgetUsed: 0,
       createdAt: now,
       updatedAt: now,
       expiresAt: now + 20 * 60 * 1000,
     });
-    await appendEvent(ctx, sessionId, args.tokenIdentifier, 0, "SESSION_CREATED", `Browser session starting at ${args.merchantHost}.`);
+    await appendEvent(ctx, sessionId, args.tokenIdentifier, 1, "SESSION_CREATED", `Browser session starting at ${args.merchantHost}.`);
     return sessionId;
   },
 });
@@ -118,6 +121,16 @@ export const recordProviderStart = internalMutation({
   handler: async (ctx, args) => {
     const session = (await ctx.db.get(args.sessionId)) as SessionDoc | null;
     if (!session) throw new Error("Merchant session not found.");
+    // The scheduled provider start can race a terminal transition (owner
+    // closed the session, expiry swept it). Landing ACTIVE on a terminal
+    // session would resurrect it with a live provider browser and no
+    // cleanup path — refuse instead.
+    if (TERMINAL_STATUSES.has(session.status) || session.expiresAt <= Date.now()) {
+      throw new Error("Merchant session already ended; provider start skipped.");
+    }
+    // The provider start is also the STARTING -> ACTIVE landing; bump the
+    // event sequence here so PAGE_OPENED occupies a unique sequence number
+    // (otherwise the next STATUS_* event would reuse this one).
     await ctx.db.patch(args.sessionId, {
       providerSessionId: args.providerSessionId,
       currentUrl: args.currentUrl,
@@ -125,6 +138,7 @@ export const recordProviderStart = internalMutation({
       expiresAt: args.expiresAt,
       status: "ACTIVE",
       currentStep: "observing",
+      lastEventSeq: session.lastEventSeq + 1,
       updatedAt: Date.now(),
     });
     await appendEvent(ctx, args.sessionId, session.tokenIdentifier, session.lastEventSeq + 1, "PAGE_OPENED", `Opened ${args.pageTitle || "merchant page"}.`);
@@ -221,7 +235,17 @@ export const consumeActionBudget = internalMutation({
     const session = (await ctx.db.get(args.sessionId)) as SessionDoc | null;
     if (!session) throw new Error("Merchant session not found.");
     if (session.actionBudgetUsed >= 40) {
-      await appendEvent(ctx, args.sessionId, session.tokenIdentifier, session.lastEventSeq + 1, "BUDGET_EXHAUSTED", "Automation reached its action limit for this session.");
+      // Record exhaustion exactly once: every rejected call appending an
+      // event would both spam the timeline and collide sequences (the
+      // session's lastEventSeq is not advanced here).
+      const events = await ctx.db
+        .query("merchantBrowserEvents")
+        .withIndex("by_session_and_sequence", (q) => q.eq("sessionId", args.sessionId).gt("sequence", 0))
+        .filter((q) => q.eq(q.field("eventType"), "BUDGET_EXHAUSTED"))
+        .first();
+      if (!events) {
+        await appendEvent(ctx, args.sessionId, session.tokenIdentifier, session.lastEventSeq + 1, "BUDGET_EXHAUSTED", "Automation reached its action limit for this session.");
+      }
       return { ok: false, sequence: session.lastEventSeq };
     }
     const sequence = session.lastEventSeq + 1;
@@ -239,20 +263,6 @@ export const consumeActionBudget = internalMutation({
       createdAt: Date.now(),
     });
     return { ok: true, sequence };
-  },
-});
-
-export const appendHandoffResolution = internalMutation({
-  args: {
-    sessionId: v.id("merchantBrowserSessions"),
-    summary: v.string(),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const session = (await ctx.db.get(args.sessionId)) as SessionDoc | null;
-    if (!session) throw new Error("Merchant session not found.");
-    await appendEvent(ctx, args.sessionId, session.tokenIdentifier, session.lastEventSeq + 1, "HANDOFF_RESOLVED", args.summary.slice(0, 240));
-    return null;
   },
 });
 

@@ -127,14 +127,6 @@ data class MerchantBrowserEvent(
     val createdAt: Long,
 )
 
-/** Session state plus the events fetched after [afterSeq]; the UI poll unit. */
-@kotlinx.serialization.Serializable
-data class MerchantBrowserSnapshot(
-    val session: MerchantBrowserSession?,
-    val events: List<MerchantBrowserEvent> = emptyList(),
-    val afterSeq: Long = 0L,
-)
-
 fun inferImageMimeType(bytes: ByteArray): String {
     val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47)
     val webp = byteArrayOf(0x52, 0x49, 0x46, 0x46)

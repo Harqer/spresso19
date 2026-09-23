@@ -30,6 +30,7 @@ class MerchantBrowserViewModel(
 
     private var pollJob: Job? = null
     private var lastSeq = 0L
+    private var lastSessionId: String? = null
 
     /** Start (or restart) bounded polling; safe to call repeatedly. */
     fun start() {
@@ -40,11 +41,22 @@ class MerchantBrowserViewModel(
                     try {
                         val active = apiClient.fetchMerchantSession()
                         session = active
-                        if (active != null && active.lastEventSeq > lastSeq) {
-                            val fresh = apiClient.fetchMerchantSessionEvents(active.sessionId, lastSeq)
-                            if (fresh.isNotEmpty()) {
-                                events.addAll(fresh)
-                                lastSeq = fresh.last().sequence
+                        if (active != null) {
+                            // A different session id means the previous one
+                            // ended; its sequence counter is not comparable
+                            // with the new session's — restart tracking so
+                            // the new session's events are never skipped.
+                            if (active.sessionId != lastSessionId) {
+                                events.clear()
+                                lastSeq = 0L
+                                lastSessionId = active.sessionId
+                            }
+                            if (active.lastEventSeq > lastSeq) {
+                                val fresh = apiClient.fetchMerchantSessionEvents(active.sessionId, lastSeq)
+                                if (fresh.isNotEmpty()) {
+                                    events.addAll(fresh)
+                                    lastSeq = fresh.last().sequence
+                                }
                             }
                         }
                         if (active == null) reset()
@@ -83,5 +95,6 @@ class MerchantBrowserViewModel(
     private fun reset() {
         events.clear()
         lastSeq = 0L
+        lastSessionId = null
     }
 }

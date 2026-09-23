@@ -15,11 +15,13 @@ function testConvex() {
 
 const MERCHANT_URL = "https://shop.example/product/1";
 
+import type { Id } from "./_generated/dataModel";
+
 async function beginSession(t: ReturnType<typeof testConvex>, merchantUrl: string = MERCHANT_URL) {
   // beginSession schedules startBrowserSession via ctx.scheduler; convex-test
   // runs scheduled work with t.finishAll() (awaited implicitly on finish).
   const { sessionId } = await t.withIdentity(identityA).action(api.merchantBrowser.index.beginSession, { merchantUrl });
-  return sessionId as string;
+  return sessionId as Id<"merchantBrowserSessions">;
 }
 
 test("beginSession rejects non-allow-listed merchants", async () => {
@@ -167,4 +169,70 @@ test("duplicate begin for the same merchant reuses the live session", async () =
   const first = await beginSession(t);
   const second = await beginSession(t);
   expect(second).toBe(first);
+});
+
+test("recordProviderStart occupies a unique sequence and the session reflects it", async () => {
+  const t = testConvex();
+  const sessionId = await beginSession(t);
+  const before = (await t.query(internal.merchantBrowser.state.getSessionInternal, { sessionId })) as { lastEventSeq: number };
+  expect(before.lastEventSeq).toBe(1);
+  await t.mutation(internal.merchantBrowser.state.recordProviderStart, {
+    sessionId,
+    providerSessionId: "cf-session-1",
+    currentUrl: MERCHANT_URL,
+    pageTitle: "Widget — Shop Example",
+    expiresAt: Date.now() + 20 * 60 * 1000,
+  });
+  const after = (await t.query(internal.merchantBrowser.state.getSessionInternal, { sessionId })) as { lastEventSeq: number; status: string };
+  expect(after.lastEventSeq).toBe(2);
+  expect(after.status).toBe("ACTIVE");
+  // The next transition must continue from 2, not collide on 1.
+  await t.mutation(internal.merchantBrowser.state.transitionInternal, { sessionId, status: "PAUSED" });
+  const events = (await t.withIdentity(identityA).action(api.merchantBrowser.index.mySessionEvents, {
+    sessionId,
+    afterSeq: 0,
+    limit: 10,
+  })) as Array<{ sequence: number; eventType: string }>;
+  const sequences = events.map((event) => event.sequence);
+  expect(new Set(sequences).size).toBe(sequences.length);
+  expect(events.map((event) => event.eventType)).toEqual(["SESSION_CREATED", "PAGE_OPENED", "STATUS_PAUSED"]);
+});
+
+test("budget exhaustion records exactly one BUDGET_EXHAUSTED event", async () => {
+  const t = testConvex();
+  const sessionId = await beginSession(t);
+  await t.mutation(internal.merchantBrowser.state.transitionInternal, { sessionId, status: "ACTIVE" });
+  for (let i = 0; i < 40; i += 1) {
+    await t.mutation(internal.merchantBrowser.state.consumeActionBudget, { sessionId, actionType: "TOOL_OBSERVE", summary: `Action ${i}.` });
+  }
+  for (let i = 0; i < 5; i += 1) {
+    const rejected = await t.mutation(internal.merchantBrowser.state.consumeActionBudget, { sessionId, actionType: "TOOL_OBSERVE", summary: `Over ${i}.` });
+    expect(rejected.ok).toBe(false);
+  }
+  const events = (await t.withIdentity(identityA).action(api.merchantBrowser.index.mySessionEvents, {
+    sessionId,
+    afterSeq: 0,
+    limit: 50,
+  })) as Array<{ eventType: string }>;
+  const exhausted = events.filter((event) => event.eventType === "BUDGET_EXHAUSTED");
+  expect(exhausted.length).toBe(1);
+});
+
+test("provider start refuses to resurrect a terminal session", async () => {
+  const t = testConvex();
+  const sessionId = await beginSession(t);
+  // Owner closes the session while the scheduled provider start is in flight.
+  await t.mutation(internal.merchantBrowser.state.transitionInternal, { sessionId, status: "EXPIRED" });
+  await expect(
+    t.mutation(internal.merchantBrowser.state.recordProviderStart, {
+      sessionId,
+      providerSessionId: "cf-late-1",
+      currentUrl: MERCHANT_URL,
+      pageTitle: "Late page",
+      expiresAt: Date.now() + 20 * 60 * 1000,
+    }),
+  ).rejects.toThrow(/already ended/);
+  const session = (await t.query(internal.merchantBrowser.state.getSessionInternal, { sessionId })) as { status: string; providerSessionId?: string };
+  expect(session.status).toBe("EXPIRED");
+  expect(session.providerSessionId).toBeUndefined();
 });
