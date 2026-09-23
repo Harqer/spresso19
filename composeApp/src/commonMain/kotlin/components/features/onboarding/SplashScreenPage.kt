@@ -16,13 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import components.models.*
 import kotlinx.coroutines.delay
 
 /**
- * KMP Splash Video & Animation Page (58 lines).
- * Plays the user's custom splash screen video animation upon app icon launch
- * and transitions smoothly into the main application onboarding flow.
+ * KMP Splash Video & Animation Page.
+ * Plays the brand splash video and routes into auth (signed-out) or the app
+ * (signed-in). Purely presentational: no backend calls happen during splash.
  */
 @Composable
 fun SplashScreenPage(
@@ -30,26 +29,10 @@ fun SplashScreenPage(
     modifier: Modifier = Modifier,
 ) {
     var isVisible by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    val convexApi = remember { network.ConvexApi() }
-
+    // Minimum brand-moment duration regardless of network weather; the video itself
+    // decides when the transition completes via onSplashComplete.
     LaunchedEffect(Unit) {
-        val startTime =
-            kotlin.time.Clock.System
-                .now()
-                .toEpochMilliseconds()
-        try {
-            convexApi.fetchRecommendedProducts()
-        } catch (e: Exception) {
-            errorMessage = "Spresso could not finish loading. You can continue and try again."
-        }
-        val elapsed =
-            kotlin.time.Clock.System
-                .now()
-                .toEpochMilliseconds() - startTime
-        if (elapsed < 500) {
-            kotlinx.coroutines.delay(500 - elapsed)
-        }
+        delay(500)
         isVisible = false
         onSplashComplete()
     }
@@ -72,16 +55,6 @@ fun SplashScreenPage(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 SplashVideoPlayer(modifier = Modifier.fillMaxSize())
-            }
-
-            if (errorMessage != null) {
-                Text(
-                    text = errorMessage!!,
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 64.dp),
-                )
             }
 
             Text(

@@ -10,6 +10,7 @@ import androidx.navigation3.runtime.NavKey as RuntimeNavKey
 actual fun PlatformNavHost(
     entries: List<NavEntry<RuntimeNavKey>>,
     onBack: () -> Unit,
+    onForward: () -> Unit,
     modifier: Modifier,
 ) {
     NavDisplay(entries = entries, onBack = onBack, modifier = modifier)

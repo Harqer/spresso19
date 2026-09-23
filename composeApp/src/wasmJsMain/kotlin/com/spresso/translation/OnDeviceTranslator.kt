@@ -5,5 +5,5 @@ actual class OnDeviceTranslator {
     actual suspend fun translate(
         text: String,
         targetLanguage: String,
-    ): String = text
+    ): String = throw UnsupportedOperationException("On-device translation is not available in the browser app.")
 }

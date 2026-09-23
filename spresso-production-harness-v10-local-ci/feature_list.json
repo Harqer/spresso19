@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "rule": "Work on one feature at a time. Complete the applicable Pre-Implementation Gate before coding. After implementing the real production path, scripts/ci.sh must pass. Then complete every applicable Production-Ready Gate item with evidence before marking passing or moving on. Scaffolds, placeholders, stubs, fake data, no-op adapters, and mocks do not satisfy production behavior.",
-  "lastReconciled": "2026-09-22",
-  "reconciliationNote": "The 2026-09-22 reconciliation audited the original 8 registered features end-to-end. This harness update adds merchant-browser-automation as a ninth PLANNED feature and corrects agentic-checkout to PARTIAL after tracing the authorization boundary: the Android biometric is local-only and its signed assertion is not verified by Convex. No feature is VERIFIED without real integration/hardware evidence; production provider paths that lack required Infisical -> Convex secrets remain fail-closed.",
+  "lastReconciled": "2026-09-23",
+  "reconciliationNote": "The 2026-09-22 reconciliation audited the original 8 registered features end-to-end. This harness update adds merchant-browser-automation as a ninth PLANNED feature and corrects agentic-checkout to PARTIAL after tracing the authorization boundary: the Android biometric is local-only and its signed assertion is not verified by Convex. No feature is VERIFIED without real integration/hardware evidence; production provider paths that lack required Infisical -> Convex secrets remain fail-closed. | 2026-09-23: canonical auth/onboarding/splash flow implemented (splash-first cold start, server-owned onboardingCompleted gate, signed-out chat send guards) + functional wasm splash video; evidence in PROGRESS.md Completed.",
   "features": [
     {
       "id": "product-discovery",
@@ -65,7 +65,7 @@
       "priority": 8,
       "status": "IMPLEMENTED_BUT_UNVERIFIED",
       "spec": "docs/features.md#grocery-list",
-      "evidence": "convex/grocery.ts exposes deterministic user-owned mutations with ownership-scoped getMyList; bridge routes /api/grocery*; client wired via ConvexApi. convex/grocery.test.ts now covers authz/ownership/normalization (4 tests) — backend fully gated.",
+      "evidence": "convex/grocery.ts exposes deterministic user-owned mutations with ownership-scoped getMyList; bridge routes /api/grocery*; client wired via ConvexApi. convex/grocery.test.ts now covers authz/ownership/normalization (4 tests) \u2014 backend fully gated.",
       "remaining": "Verify offline/reconnect behavior on device."
     },
     {

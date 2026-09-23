@@ -56,6 +56,8 @@ import components.navigation.defaultNavDestinations
 import components.shared.CheckoutConfirmDialog
 import components.shared.overlays.GlobalChatOverlay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import navigation.ActionDestination
 import navigation.NavKey
 import navigation.Navigator
@@ -117,9 +119,14 @@ fun App(
             return@AppTheme
         }
 
+        // Splash-first: every cold start plays the brand video before deciding
+        // between auth and the signed-in home. Auth/onboarding surfaces are non-tab
+        // entries on the start stack; signed-out, the only reachable destinations
+        // are auth, verification, and splash — the tab bar and drawer never appear
+        // because those keys never resolve to a top-level route.
         val navigationState =
             rememberNavigationState(
-                startRoute = NavKey.ChatKey(),
+                startRoute = NavKey.SplashScreenKey,
                 topLevelRoutes = defaultNavDestinations.map { it.key }.toSet(),
             )
         val navigator = remember(navigationState) { Navigator(navigationState) }
@@ -129,13 +136,21 @@ fun App(
         // the stacked Chat tab. The gate runs before deep-link handling in the same
         // coroutine so a cold-start link is shown above either the auth or the home UI.
         var hasShownAuthGate by remember { mutableStateOf(false) }
+        var onboardingGateResolved by remember { mutableStateOf(false) }
+        // Deep links may only land on signed-in destinations; the gate effect is the
+        // sole authority for placing AuthKey/EmailVerificationKey.
+        val canReceiveDeepLinks = currentUserUid != null && !isEmailVerificationRequired
         var lastHandledLink by remember { mutableStateOf<NavKey?>(null) }
         var lastHandledLinkUid by remember { mutableStateOf<String?>(null) }
 
         LaunchedEffect(currentUserUid, isEmailVerificationRequired, externalNavKey) {
             if (currentUserUid == null) {
+                // A signed-out session is never left on a chat/app route: this both
+                // guards cold-start rendering and evicts any deep link to app content.
                 if (!hasShownAuthGate) {
                     hasShownAuthGate = true
+                    navigator.resetTo(NavKey.AuthKey)
+                } else if (navigator.state.backStacks[navigator.state.startRoute]?.lastOrNull() !is NavKey.AuthKey) {
                     navigator.resetTo(NavKey.AuthKey)
                 }
             } else if (isEmailVerificationRequired) {
@@ -148,7 +163,7 @@ fun App(
             }
 
             val pending = externalNavKey
-            if (pending != null && !(pending == lastHandledLink && currentUserUid == lastHandledLinkUid)) {
+            if (pending != null && canReceiveDeepLinks && !(pending == lastHandledLink && currentUserUid == lastHandledLinkUid)) {
                 lastHandledLink = pending
                 lastHandledLinkUid = currentUserUid
                 navigator.navigate(pending)
@@ -157,10 +172,23 @@ fun App(
 
         val scope = rememberCoroutineScope()
         val apiClient = remember { ConvexApi() }
-        val convexApi = remember { network.ConvexApi() }
+
+        // Signed-in users who have not completed onboarding are routed to it once;
+        // the flag is server-owned (preferences.onboardingCompleted), so a
+        // reinstall or new device replays onboarding instead of skipping it.
+        LaunchedEffect(currentUserUid, isEmailVerificationRequired, onboardingGateResolved) {
+            if (currentUserUid != null && !isEmailVerificationRequired && !onboardingGateResolved) {
+                onboardingGateResolved = true
+                val prefs = runCatching { apiClient.fetchPreferences() }.getOrNull()
+                val needsOnboarding = prefs?.get("onboardingCompleted")?.jsonPrimitive?.booleanOrNull != true
+                if (needsOnboarding) {
+                    navigator.resetTo(NavKey.SplashScreenKey)
+                }
+            }
+        }
         val liveApiClient = remember { LiveApiClient() }
         val chatViewModel = remember { ChatViewModel(apiClient, scope, liveApiClient) }
-        val catalogViewModel = remember { CatalogViewModel(scope, convexApi) }
+        val catalogViewModel = remember { CatalogViewModel(scope, apiClient) }
         val audioRecorder = remember { AudioRecorder() }
         val audioPlayer = remember { AudioPlayer() }
         // Barge-in must cut off queued playback, not just flip conversation state.
@@ -204,10 +232,10 @@ fun App(
                             try {
                                 val productId = activeProductId ?: error("Select a product before starting try-on.")
                                 val garment =
-                                    convexApi.fetchProductById(productId)?.imageUrl?.takeIf { it.startsWith("https://") }
+                                    apiClient.fetchProductById(productId)?.imageUrl?.takeIf { it.startsWith("https://") }
                                         ?: error("A verified garment image is required for try-on.")
                                 displayMediaUrl =
-                                    convexApi.generateVirtualTryOn(
+                                    apiClient.generateVirtualTryOn(
                                         bytes = bytes,
                                         garmentImageUrl = garment,
                                         idempotencyKey = "tryon:$productId:${kotlin.time.Clock.System.now().toEpochMilliseconds()}",
@@ -240,13 +268,14 @@ fun App(
                     audioRecorder.onAudioChunk = { chunk ->
                         scope.launch {
                             @OptIn(ExperimentalEncodingApi::class)
-                            liveApiClient.sendAudioChunk(Base64.encode(chunk))
+                            chatViewModel.sendVoiceChunk(Base64.encode(chunk))
                         }
                     }
                     audioRecorder.startRecording()
                     if (audioRecorder.isRecording()) {
                         chatViewModel.startVoiceStream(
                             onReceiveAudio = { chunk -> audioPlayer.playChunk(chunk) },
+                            onPlaybackInterrupted = { audioPlayer.stop() },
                         )
                         isVoiceRecording = true
                     } else {
@@ -266,13 +295,23 @@ fun App(
                     entry<NavKey.AuthKey> { currentDestinationKey ->
                         AuthPage(
                             onGoogleSignInRequested = onGoogleSignInRequested,
-                            onSuccess = { navigator.replace(NavKey.ChatKey()) },
+                            onSuccess = {
+                                // Firebase now owns identity; Convex accepts the token.
+                                // Every new account goes through the gamified onboarding once.
+                                navigator.resetTo(NavKey.SplashScreenKey)
+                            },
                         )
                     }
                     entry<NavKey.SplashScreenKey> { currentDestinationKey ->
                         SplashScreenPage(
                             onSplashComplete = {
-                                navigator.replace(if (currentUserUid == null) NavKey.AuthKey else NavKey.ChatKey())
+                                navigator.replace(
+                                    when {
+                                        currentUserUid == null -> NavKey.AuthKey
+                                        isEmailVerificationRequired -> NavKey.EmailVerificationKey
+                                        else -> NavKey.GamifiedOnboardingKey()
+                                    },
+                                )
                             },
                         )
                     }
@@ -280,7 +319,16 @@ fun App(
                         GamifiedOnboardingDialog(
                             isOpen = true,
                             onDismiss = { navigator.goBack() },
-                            onComplete = { navigator.replace(NavKey.CatalogKey) },
+                            apiClient = apiClient,
+                            onComplete = {
+                                // Completion — not interest selection — flips the
+                                // server-owned flag so a reinstall replays onboarding.
+                                scope.launch {
+                                    runCatching { apiClient.setPreferences(onboardingCompleted = true) }
+                                        .onFailure { error -> network.Telemetry.recordError("Onboarding completion persist failed", error) }
+                                    navigator.resetTo(NavKey.ChatKey())
+                                }
+                            },
                             onLaunchVirtualTryOn = { pickImage() },
                             onOpenPaymentWallet = { navigator.navigate(NavKey.PaymentWalletKey) },
                             onOpenWardrobe = { navigator.navigate(NavKey.WardrobeKey()) },
@@ -327,7 +375,7 @@ fun App(
                             onAddToCart = { product ->
                                 scope.launch {
                                     try {
-                                        val added = convexApi.addCartItem(product, quantity = 1)
+                                        val added = apiClient.addCartItem(product, quantity = 1)
                                         if (!added) {
                                             errorMessage = "Unable to save this listing to your cart. Please try again."
                                             return@launch
@@ -368,17 +416,15 @@ fun App(
                                     audioRecorder.onAudioChunk = { chunk ->
                                         scope.launch {
                                             @OptIn(ExperimentalEncodingApi::class)
-                                            liveApiClient.sendAudioChunk(Base64.encode(chunk))
+                                            chatViewModel.sendVoiceChunk(Base64.encode(chunk))
                                         }
                                     }
                                     audioRecorder.startRecording()
                                     if (audioRecorder.isRecording()) {
-                                        scope.launch {
-                                            liveApiClient.connect(
-                                                onReceiveAudio = { chunk -> audioPlayer.playChunk(chunk) },
-                                                onReceiveText = { text -> chatViewModel.liveTranscript = text },
-                                            )
-                                        }
+                                        chatViewModel.startVoiceStream(
+                                            onReceiveAudio = { chunk -> audioPlayer.playChunk(chunk) },
+                                            onPlaybackInterrupted = { audioPlayer.stop() },
+                                        )
                                         isVoiceRecording = true
                                     }
                                 }
@@ -451,7 +497,7 @@ fun App(
 
                         LaunchedEffect(currentDestinationKey.productId) {
                             try {
-                                detailProduct = convexApi.fetchProductById(currentDestinationKey.productId)
+                                detailProduct = apiClient.fetchProductById(currentDestinationKey.productId)
                             } catch (e: Exception) {
                                 loadError = "Failed to fetch product details"
                             }
@@ -481,7 +527,7 @@ fun App(
                                 onLike = {
                                     scope.launch {
                                         try {
-                                            convexApi.setSavedProduct(currentProduct, saved = true)
+                                            apiClient.setSavedProduct(currentProduct, saved = true)
                                             errorMessage = "Saved to your favorites."
                                         } catch (e: Exception) {
                                             errorMessage = "Failed to save to favorites."
@@ -509,7 +555,7 @@ fun App(
                         var curationError by remember { mutableStateOf<String?>(null) }
                         LaunchedEffect(Unit) {
                             try {
-                                curatedProducts = convexApi.fetchRecommendedProducts()
+                                curatedProducts = apiClient.fetchRecommendedProducts()
                             } catch (e: Exception) {
                                 curationError = "Recommendations are unavailable right now. Please try again later."
                             }
@@ -562,13 +608,13 @@ fun App(
                         var recommendationsError by remember { mutableStateOf<String?>(null) }
                         LaunchedEffect(Unit) {
                             try {
-                                recommendedProducts = convexApi.fetchRecommendedProducts()
+                                recommendedProducts = apiClient.fetchRecommendedProducts()
                             } catch (e: Exception) {
                                 recommendationsError = "Live product recommendations are unavailable right now."
                                 recommendedProducts = emptyList()
                             }
                             runCatching {
-                                likedProducts = convexApi.fetchSavedListings().mapNotNull { it.listing?.toProductItem() }
+                                likedProducts = apiClient.fetchSavedListings().mapNotNull { it.listing?.toProductItem() }
                             }
                         }
                         ColumnWithRouteMessage(recommendationsError) {

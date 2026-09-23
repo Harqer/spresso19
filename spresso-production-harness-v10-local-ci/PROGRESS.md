@@ -59,6 +59,9 @@ All applicable items must be checked before the feature can be marked passing or
 - [ ] Coherent working state is committed. *(this commit)*
 
 ## Completed
+- Canonical auth/onboarding/splash flow (2026-09-23): cold start is splash-first (`SplashScreenKey` start route), splash routes to Auth (signed-out) / EmailVerification (unverified) / GamifiedOnboarding (signed-in, `preferences.onboardingCompleted != true`), auth success replays the brand video then onboarding, and completion — not interest selection — persists the server-owned `onboardingCompleted` flag; signed-out sessions are evicted back to Auth and deep links are gated on signed-in state; ChatViewModel text/lens/voice sends fail fast with a sign-in message when signed out (server `aiChat.ts` `requireFirebaseIdentity` remains the enforcement boundary).
+- Splash video restored on both platforms (2026-09-23): the brand MP4 ships in common compose resources + wasm resources; the wasm `SplashVideoPlayer` is a real HTML5 `<video>` loop (Media3 has no Wasm target) with lifecycle cleanup, and the Android `VideoView` handles a missing raw resource without crashing; the splash page no longer makes an unauthenticated `fetchRecommendedProducts` call or instantiates a duplicate `ConvexApi`.
+- KMP architecture pass (2026-09-23): duplicate `ConvexApi` instances in App.kt unified to one; wasm `PlatformNavHost` is a functional browser-history host (typed Navigator back/forward, indexed history state, opaque route hashes); common wasm no-op actuals (audio, Telemetry, Coinbase helper, translator) made functional or honest; Vite removed from package.json/package-lock (Vitest retained).
 - Realtime barge-in + session reconciliation (2026-09-22): interruption frames stop queued playback (onPlaybackInterrupted -> AudioPlayer.stop), endOfTurn applies the same reset, monotonic sessionGeneration drops stale post-reconnect frames and resets the transcript, close() is restartable (per-connect client recreation), and App.kt stop paths route through ChatViewModel.stopVoiceStream so voice state and transport never desync.
 - Order-history edge tests + UI state reconciliation (2026-09-22): acknowledgeDelivery/reminder/requestReturn ownership + validation + idempotency suites (96/96 backend tests); OrderRecordCard renders human-readable fulfillment labels with unknown-state passthrough and gates Return on returnable states + null returnStatus.
 - Reconciliation audit of the original 8 registered features against repository reality (2026-09-22).
@@ -95,4 +98,4 @@ All applicable items must be checked before the feature can be marked passing or
 -
 
 ## Last Updated
-2026-09-22 (merchant browser automation + checkout-authorization harness correction; realtime barge-in/restart + order-history edges implemented)
+2026-09-23 (canonical auth/onboarding/splash flow + functional wasm splash video + KMP boundary pass; Android + Wasm compiles, distribution, unit tests green)

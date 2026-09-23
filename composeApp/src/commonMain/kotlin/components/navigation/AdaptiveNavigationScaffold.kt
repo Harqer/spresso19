@@ -43,6 +43,7 @@ fun AdaptiveNavigationScaffold(
             navigation.PlatformNavHost(
                 entries = navigationState.toDecoratedEntries(entryProvider),
                 onBack = { navigator.goBack() },
+                onForward = { navigator.goForward() },
             )
         }
     } else {

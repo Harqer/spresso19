@@ -18,6 +18,7 @@ import androidx.compose.ui.window.Dialog
 import components.features.auth.PasskeyRegistrationResult
 import components.models.*
 import kotlinx.coroutines.launch
+import network.ConvexApi
 
 @Composable
 fun GamifiedOnboardingDialog(
@@ -27,6 +28,7 @@ fun GamifiedOnboardingDialog(
     onLaunchVirtualTryOn: () -> Unit,
     onOpenPaymentWallet: () -> Unit,
     onOpenWardrobe: () -> Unit,
+    apiClient: ConvexApi,
     onRegisterPasskey: suspend () -> PasskeyRegistrationResult = { PasskeyRegistrationResult.BackendUnavailable },
 ) {
     if (!isOpen) return
@@ -65,15 +67,11 @@ fun GamifiedOnboardingDialog(
                     },
                     onRegisterPasskey = onRegisterPasskey,
                     onSelectInterests = { interests ->
-                        totalXp += 150
+                        // Interests feed the discovery bandit; completion of the
+                        // flow itself flips onboardingCompleted in onComplete.
                         scope.launch {
-                            try {
-                                val apiClient = network.ConvexApi()
-                                apiClient.initializeOnboarding(interests)
-                                network.Telemetry.recordInfo("Onboarding preferences persisted.")
-                            } catch (e: Exception) {
-                                network.Telemetry.recordError("Behavior analysis failed", e)
-                            }
+                            runCatching { apiClient.setPreferences(searchInquiries = interests) }
+                                .onFailure { error -> network.Telemetry.recordError("Onboarding preferences persist failed", error) }
                         }
                     },
                 )

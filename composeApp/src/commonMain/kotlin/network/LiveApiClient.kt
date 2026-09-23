@@ -173,7 +173,12 @@ open class LiveApiClient {
     var isPaused: Boolean = false
         private set
 
-    private var isManuallyClosed = false
+    /**
+     * Monotonic connect-loop token: bumped by every connect() (which adopts
+     * ++generation) and by close(). Loops compare against it to detect that a
+     * newer session superseded them and exit instead of racing it.
+     */
+    private var generation = 0L
 
     /**
      * Monotonic session generation: bumped on every (re)connect so text/audio
@@ -193,11 +198,15 @@ open class LiveApiClient {
         onError: (String) -> Unit = {},
         onTurnComplete: () -> Unit = {},
     ) {
-        isManuallyClosed = false
+        // Each connect() owns a generation token. A newer connect() or close()
+        // bumps `generation`, so any superseded loop (e.g. parked in a backoff
+        // delay) exits instead of resurrecting alongside the new session and
+        // double-delivering audio/text.
+        val myGeneration = ++generation
 
         var attempt = 0
 
-        while (!isManuallyClosed) {
+        while (myGeneration == generation) {
             val authToken = getCurrentUserIdToken()
             try {
                 connectionState = if (attempt == 0) ConnectionState.CONNECTING else ConnectionState.RECONNECTING
@@ -230,7 +239,7 @@ open class LiveApiClient {
                     attempt = 0 // Reset reconnect attempts on successful handshake
 
                     for (incomingFrame in incoming) {
-                        if (!isActive || isManuallyClosed) break
+                        if (!isActive || myGeneration != generation) break
                         if (incomingFrame is Frame.Text) {
                             val frameText = incomingFrame.readText()
                             try {
@@ -308,12 +317,7 @@ open class LiveApiClient {
                     println("LiveApiClient cancel session error: ${ce.message}")
                 }
                 session = null
-                if (isManuallyClosed) {
-                    connectionState = ConnectionState.DISCONNECTED
-                    onStateChanged(ConnectionState.DISCONNECTED)
-                    break
-                }
-
+                if (myGeneration != generation) return
                 attempt++
                 if (attempt <= MAX_RECONNECT_ATTEMPTS) {
                     connectionState = ConnectionState.RECONNECTING
@@ -329,7 +333,7 @@ open class LiveApiClient {
             }
         }
 
-        if (isManuallyClosed) {
+        if (myGeneration == generation) {
             connectionState = ConnectionState.DISCONNECTED
             onStateChanged(ConnectionState.DISCONNECTED)
         }
@@ -433,7 +437,7 @@ open class LiveApiClient {
     }
 
     open fun close() {
-        isManuallyClosed = true
+        generation++
         try {
             session?.cancel()
         } catch (e: Exception) {

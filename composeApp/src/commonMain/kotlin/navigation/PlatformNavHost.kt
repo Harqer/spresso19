@@ -12,5 +12,6 @@ import androidx.navigation3.runtime.NavKey as RuntimeNavKey
 expect fun PlatformNavHost(
     entries: List<NavEntry<RuntimeNavKey>>,
     onBack: () -> Unit,
+    onForward: () -> Unit = {},
     modifier: Modifier = Modifier,
 )

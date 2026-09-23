@@ -48,6 +48,13 @@ class ChatViewModel(
     }
 
     fun sendMessage(prompt: String) {
+        // The AI chat is a signed-in-only surface: Firebase owns identity and the
+        // Convex thread/message plane keys off it, so an unauthenticated prompt can
+        // only fail server-side. Fail fast and visibly instead.
+        if (network.getCurrentUserUid() == null) {
+            errorMessage = "Sign in to chat with your Spresso AI shopper."
+            return
+        }
         if (prompt.isBlank()) return
         val userMsgId = "u-" + messages.size
         messages.add(ChatMessage(id = userMsgId, text = prompt, isUser = true))
@@ -116,6 +123,10 @@ class ChatViewModel(
         imageBase64: String,
         prompt: String? = null,
     ) {
+        if (network.getCurrentUserUid() == null) {
+            errorMessage = "Sign in to use Lens and visual search."
+            return
+        }
         val userPrompt = prompt ?: "Identify items in camera image and find matches."
         val userMsgId = "u-cam-" + messages.size
         messages.add(ChatMessage(id = userMsgId, text = userPrompt, isUser = true))
@@ -176,7 +187,14 @@ class ChatViewModel(
         }
     }
 
-    fun startVoiceStream(onReceiveAudio: ((ByteArray) -> Unit)? = null) {
+    fun startVoiceStream(
+        onReceiveAudio: ((ByteArray) -> Unit)? = null,
+        onPlaybackInterrupted: (() -> Unit)? = null,
+    ) {
+        if (network.getCurrentUserUid() == null) {
+            errorMessage = "Sign in to talk to your Spresso AI shopper."
+            return
+        }
         isVoiceActive = true
         isVoiceListening = true
         isVoiceSpeaking = false

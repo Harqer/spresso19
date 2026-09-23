@@ -8,7 +8,17 @@ import components.navigation.isSameDestinationGroup
 class Navigator(
     val state: NavigationState,
 ) {
+    private data class FutureNavigation(
+        val topLevelRoute: NavKey,
+        val route: NavKey? = null,
+    )
+
+    private val futureNavigation = mutableListOf<FutureNavigation>()
+
     fun navigate(route: NavKey) {
+        // A new user action forks history; browser forward entries are no longer
+        // valid after that fork.
+        futureNavigation.clear()
         val topLevelMatch = state.topLevelRoutes.firstOrNull { isSameDestinationGroup(it, route) }
 
         if (topLevelMatch != null) {
@@ -27,6 +37,7 @@ class Navigator(
     }
 
     fun replace(route: NavKey) {
+        futureNavigation.clear()
         val currentStack = state.backStacks[state.topLevelRoute] ?: return
         if (currentStack.size > 0) {
             currentStack.removeLastOrNull()
@@ -35,20 +46,41 @@ class Navigator(
     }
 
     fun resetTo(key: NavKey) {
+        futureNavigation.clear()
         state.backStacks.values.forEach { it.clear() }
         state.backStacks[state.startRoute]?.add(key)
         state.topLevelRoute = state.startRoute
+    }
+
+    fun goForward() {
+        val future = futureNavigation.removeLastOrNull() ?: return
+        state.topLevelRoute = future.topLevelRoute
+        future.route?.let { route ->
+            state.backStacks[future.topLevelRoute]?.add(route)
+        }
     }
 
     fun goBack() {
         val currentStack = state.backStacks[state.topLevelRoute] ?: error("Stack for ${state.topLevelRoute} not found")
         val currentRoute = currentStack.lastOrNull()
 
-        // If we're at the base of the current route, go back to the start route stack.
+        // Browser history can send a back event even when the current stack is
+        // already at its root. Preserve the root entry instead of rendering an
+        // empty host (Android's NavDisplay normally guards this for us).
+        if (currentStack.size <= 1 && state.topLevelRoute == state.startRoute) return
+
+        // If we're at the base of a non-start tab, remember the tab selection
+        // so browser Forward can restore it without duplicating its root entry.
         if (currentRoute == state.topLevelRoute && state.topLevelRoute != state.startRoute) {
+            futureNavigation += FutureNavigation(topLevelRoute = state.topLevelRoute)
             state.topLevelRoute = state.startRoute
         } else {
-            currentStack.removeLastOrNull()
+            val removedRoute = currentStack.removeLastOrNull() ?: return
+            futureNavigation +=
+                FutureNavigation(
+                    topLevelRoute = state.topLevelRoute,
+                    route = removedRoute as? NavKey,
+                )
         }
     }
 }
