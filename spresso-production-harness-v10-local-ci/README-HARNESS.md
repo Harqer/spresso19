@@ -9,6 +9,7 @@ Core:
 - `feature_list.json` — durable feature status
 - `docs/workflow.md` — autonomous production loop
 - `docs/features.md` — concise feature contracts
+- `docs/merchant-browser-automation.md` — adaptive chat/browser UI + Cloudflare Browser Run/Kitesurf implementation contract
 - `docs/convex.md` — Convex steering only
 - `docs/meta-wearables-dat.md` — full-plugin DAT steering
 - `docs/glimmer.md` — Glimmer/XR boundary
