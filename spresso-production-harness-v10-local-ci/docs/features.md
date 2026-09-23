@@ -15,7 +15,10 @@ Android MediaProjection capture → observations/OCR/detections → verified pro
 Use `docs/meta-wearables-dat.md`. Meta DAT and Glimmer remain separate platform paths. Cover the full applicable wearable lifecycle before perception/product resolution. Detection confidence is not verified product identity.
 
 ## Agentic Checkout
-No dedicated Checkout screen is required. AI may prepare and execute only after explicit biometric + MFA confirmation of the exact intent. Bind authorization to user, merchant, offer/cart, variant, quantity, amount, currency, nonce/expiry/idempotency. Material changes invalidate authorization. Reconcile ambiguous payment/merchant outcomes before retry.
+AI may prepare a purchase but final commit requires explicit **server-verifiable** biometric + MFA confirmation of the exact intent. Bind authorization to user, merchant, offer/cart, variant, quantity, amount, currency, selected payment method where applicable, nonce, expiry, and idempotency. Client-only biometric success is not sufficient authorization. Material changes invalidate authorization. Reconcile ambiguous payment/merchant outcomes before retry.
+
+## Merchant Browser Automation
+Use `docs/merchant-browser-automation.md`. AI may operate reversible merchant browsing/cart actions through typed tools and Cloudflare Browser Sessions, while Convex owns canonical session/workflow state. Keep Spresso cart and merchant cart separate. Account creation/profile disclosure requires explicit approval; MFA/SSO/CAPTCHA/sensitive credential entry uses Human in the Loop; purchase commit remains the separate Agentic Checkout authorization boundary. Kitesurf is not assumed to support persistent authenticated state; use Chromium Browser Run where required.
 
 ## Realtime AI
 Use one canonical realtime media/session transport. Convex stores durable session/tool/application state. Cover permissions, reconnect, interruption/barge-in, cancellation, duplicate/stale responses, backpressure, cleanup, and in-flight tool behavior. Voice/transcript is never purchase authorization.
