@@ -1,7 +1,7 @@
 # Progress
 
 ## Active Feature
-Reconciliation audit (2026-09-22): entire repository audited against this harness and `docs/spresso_architecture_context.md`. Every registered feature traced end-to-end through real callers, backend wiring, auth, state ownership, provider integrations, error paths, and tests. Results encoded in `feature_list.json`.
+Reconciliation audit (2026-09-22): the original 8 registered features were traced end-to-end through real callers, backend wiring, auth, state ownership, provider integrations, error paths, and tests. `merchant-browser-automation` is now registered as a ninth PLANNED feature with its implementation contract in `docs/merchant-browser-automation.md`; it is not represented as already implemented.
 
 ## Pre-Implementation Gate
 All applicable items must be checked before production implementation begins.
@@ -28,6 +28,8 @@ Use when an SDK/plugin/component is involved.
 | Bunny private media | verified (code) / unverified (live) | convex/media/bunnyStore.ts fails closed without BUNNY_*; BUNNY_* absent from prod vault |
 | FAL (try-on generation) | verified (code) / unverified (live) | convex/media/actions.ts typed env access; FAL_API_KEY absent from prod vault |
 | Discovery providers (Parallel, SerpApi, Kitesurf via Cloudflare) | verified (code) / unverified (live) | convex/discovery.ts fallback chain + provenance; PARALLEL/SERPAPI/CLOUDFLARE/KITESURF secrets absent from prod vault |
+| Cloudflare Browser Run / Kitesurf merchant automation | planned / unverified | Current Kitesurf use is one-shot public inspection only; interactive Browser Sessions, Playwright/CDP tools, Kitesurf→Chromium selection, guardrails, Live View/HITL, merchant cart/account state are specified in docs/merchant-browser-automation.md but not implemented |
+| Android chat/browser adaptive UI | dependencies present / implementation planned | Navigation 3, Material 3 Adaptive, Compose, kotlinx.serialization and existing AppTheme/ComponentStyles are present; new supporting-pane/compact browser UI must follow Android CLI adaptive/navigation-3/edge-to-edge/testing guidance |
 | Gemini Live (ephemeral token, WS transport) | verified (code) / unverified (device) | convex/ai/liveToken.ts + LiveApiClient.kt; GEMINI_API_KEY present in prod vault |
 | Meta Wearables DAT | partial | SpressoWearablesService.kt live path with tool ledger; intent loop broken (no receiver answers SEARCH_PRODUCTS/ADD_TO_CART); DAT pillar evidence not yet recorded |
 | Jetpack XR / Compose Glimmer | N/A | No XR display-glasses feature registered in feature_list.json; boundary doc honored |
@@ -35,7 +37,7 @@ Use when an SDK/plugin/component is involved.
 ## Production-Ready Gate
 All applicable items must be checked before the feature can be marked passing or work can move to another feature.
 
-- [ ] Production path is fully implemented end to end. *(wearable intent loop, client checkout surface, realtime barge-in remain)*
+- [ ] Production path is fully implemented end to end. *(server-verifiable checkout authorization, merchant browser automation, realtime barge-in remain)*
 - [ ] No placeholder, stub, scaffold-only, fake-data, no-op, or mock implementation remains in the production path. *(strict mock scanner green; no dev bypasses found)*
 - [ ] Mocks/simulators are confined to tests or official SDK test tooling. *(verified)*
 - [ ] Canonical state ownership is preserved; no duplicate backend/auth/tool/state path was introduced. *(Convex canonical; single transport — legacy ApiClient.kt removed 2026-09-22, all consumers on ConvexApi)*
@@ -57,9 +59,10 @@ All applicable items must be checked before the feature can be marked passing or
 - [ ] Coherent working state is committed. *(this commit)*
 
 ## Completed
-- Reconciliation audit of all 8 registered features against repository reality (2026-09-22).
+- Reconciliation audit of the original 8 registered features against repository reality (2026-09-22).
 - 4 features moved from `unverified` to `IMPLEMENTED_BUT_UNVERIFIED` with evidence: product-discovery, virtual-try-on, screen-product-discovery, grocery-list, order-history.
-- 3 features classified `PARTIAL` with named breaks: wearable-product-detection (intent loop), agentic-checkout (client surface), realtime-ai (barge-in/reconciliation).
+- Agentic Checkout is `PARTIAL`: the payment path is wired, but the strong biometric assertion is discarded client-side and Convex receives only `attemptId`, so the server cannot prove biometric/MFA authorization.
+- Merchant Browser Automation registered as a ninth `PLANNED` feature with a chat-first adaptive UI + Browser Run/Kitesurf backend/integration blueprint.
 - Checkout wired end-to-end (2026-09-22): bridge routes `/api/checkout/attempt|prepare|confirm`, ConvexApi client methods, CatalogViewModel lifecycle (acquire → server-verified quote → biometric step-up → off-session confirm), CheckoutConfirmDialog, server-side `confirmCheckout` action charging the saved default card with Stripe `off_session` SCA, `failCheckoutAttempt` transition, and `convex/grocery.test.ts`.
 - Wearable intent loop verified closed: MainActivity's RECEIVER_NOT_EXPORTED receiver answers SEARCH_PRODUCTS/ADD_TO_CART/START_CHECKOUT — earlier dead-end evidence was stale.
 - `gemini-streaming-mcp/` removed with its release.yml cache line and ci-gate entries.
@@ -69,23 +72,25 @@ All applicable items must be checked before the feature can be marked passing or
 
 ## Open / Blocked
 - **Blocked on prod vault (Infisical prod -> Convex prod)**: PARALLEL_API_KEY, SERPAPI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, KITESURF_ALLOWED_DOMAINS, STRIPE_WEBHOOK_SECRET, FAL_API_KEY, BUNNY_* — live discovery, merchant verification, webhook reconciliation, try-on, and media delivery fail closed until provisioned.
-- **Open (code)**: realtime barge-in/interruption + in-flight tool reconciliation; order-history edge-case tests (duplicate webhook covered, partial shipment states not).
+- **Open (code)**: server-verifiable exact-intent checkout authorization; merchant Browser Sessions + adaptive chat/browser UI; realtime barge-in/interruption + in-flight tool reconciliation; order-history edge-case tests (duplicate webhook covered, partial shipment states not).
 - **Duplicates awaiting removal (root-caused, do not delete in a feature pass)**: none remaining — `ApiClient.kt` legacy transport was consolidated into `ConvexApi.kt` and deleted 2026-09-22 (its direct provider call for weather moved behind `/api/context/weather`; per-instance `close()` calls that could kill the shared HTTP client were removed).
 
 ## Decisions
 - VERIFIED is never granted without Production-Ready Gate evidence; IMPLEMENTED_BUT_UNVERIFIED is the ceiling for code-complete features without live runs.
 - Harness registry is a subset of the repo: travel, creator studio, trial/entitlements, wardrobe, users/profile, vision pipeline, and the Stripe plane are implemented and tested but not registered features; they are recorded here rather than invented into feature_list.json.
 - Convex production deployment is `woozy-anteater-572` (HTTP bridge `https://woozy-anteater-572.convex.site`); dev deployment `decisive-dolphin-161` is never evidence of production wiring.
+- Merchant automation uses Cloudflare Browser Sessions behind Convex-owned typed tools/state: Kitesurf for compatible short/stateless tasks, Chromium for authenticated/persistent/HITL flows. Quick Actions remain bounded extraction/verification, not merchant-session automation.
+- Chat/browser UI uses the existing Material 3 theme, Navigation 3, Material 3 Adaptive and edge-to-edge; no hard-coded palette or duplicate theme.
 
 ## Next
-1. ~~Implement wearable intent receivers~~ DONE — MainActivity receiver closes the DAT tool loop.
-2. ~~Wire the client checkout surface~~ DONE — quote → biometric → off-session confirm shipped.
-3. ~~Consolidate `ApiClient.kt` into `ConvexApi.kt`~~ — DONE 2026-09-22 (single transport; AppCheck on all bridge calls; weather context server-bridged).
-4. Order-history edge-case tests (partial shipment/return states).
-5. Provision prod vault secrets, then run live provider smoke for discovery/try-on/webhook to earn VERIFIED statuses.
+1. Implement server-issued exact-intent checkout authorization and verify biometric/passkey + MFA proof in Convex; add bypass/replay/expiry/material-change tests.
+2. Implement `merchant-browser-automation` from `docs/merchant-browser-automation.md`: Convex session/events/tools → Browser Run Playwright/CDP → Kitesurf/Chromium engine selection → adaptive chat/browser UI → Live View/HITL.
+3. Implement realtime barge-in/interruption + in-flight tool reconciliation.
+4. Add order-history partial shipment/return-state tests.
+5. Provision prod vault secrets, then run live provider verification before promoting any affected feature to VERIFIED.
 
 ## Active Issue / PR
 -
 
 ## Last Updated
-2026-09-22 (reconciliation audit at commit 0433cc5)
+2026-09-22 (merchant browser automation + checkout authorization harness correction)
