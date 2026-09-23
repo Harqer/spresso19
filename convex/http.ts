@@ -902,6 +902,62 @@ http.route({ path: "/api/chat/thread", method: "POST", handler: createChatThread
 http.route({ path: "/api/chat/messages", method: "GET", handler: listChatMessagesHttp });
 http.route({ path: "/api/chat/message", method: "POST", handler: sendChatMessageHttp });
 
+// ---- Merchant browser automation: owner-scoped session surfaces ------------
+
+export const merchantSessionHttp = httpAction(async (ctx) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    return ctx.runAction(api.merchantBrowser.index.mySession, {});
+  });
+});
+
+export const merchantSessionEventsHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const params = new URL(request.url).searchParams;
+    const sessionIdRaw = params.get("sessionId");
+    if (!sessionIdRaw) throw new BridgeError("sessionId is required.", 400);
+    const afterSeqRaw = params.get("afterSeq");
+    const afterSeq = Number(afterSeqRaw ?? "0");
+    if (!Number.isFinite(afterSeq) || afterSeq < 0) throw new BridgeError("afterSeq must be a non-negative number.", 400);
+    return ctx.runAction(api.merchantBrowser.index.mySessionEvents, {
+      sessionId: requireConvexId<"merchantBrowserSessions">(sessionIdRaw, "sessionId"),
+      afterSeq,
+      limit: 30,
+    });
+  });
+});
+
+export const merchantSessionControlHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { sessionId?: unknown; control?: unknown };
+    if (typeof body.sessionId !== "string") throw new BridgeError("sessionId is required.", 400);
+    if (body.control !== "PAUSE" && body.control !== "TAKE_OVER" && body.control !== "RESUME" && body.control !== "COMPLETE") {
+      throw new BridgeError("control must be PAUSE, TAKE_OVER, RESUME, or COMPLETE.", 400);
+    }
+    await ctx.runAction(api.merchantBrowser.index.controlSession, {
+      sessionId: requireConvexId<"merchantBrowserSessions">(body.sessionId, "sessionId"),
+      control: body.control,
+    });
+    return { ok: true };
+  });
+});
+
+export const merchantSessionBeginHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { merchantUrl?: unknown };
+    if (typeof body.merchantUrl !== "string" || !body.merchantUrl.trim()) throw new BridgeError("merchantUrl is required.", 400);
+    return ctx.runAction(api.merchantBrowser.index.beginSession, { merchantUrl: body.merchantUrl });
+  });
+});
+
+http.route({ path: "/api/merchant/session", method: "GET", handler: merchantSessionHttp });
+http.route({ path: "/api/merchant/session/events", method: "GET", handler: merchantSessionEventsHttp });
+http.route({ path: "/api/merchant/session/control", method: "POST", handler: merchantSessionControlHttp });
+http.route({ path: "/api/merchant/session/begin", method: "POST", handler: merchantSessionBeginHttp });
+
 export const generateWardrobeOutfitHttp = httpAction(async (ctx, request) => {
   return runBridge(async () => {
     await bearerIdentity(ctx);

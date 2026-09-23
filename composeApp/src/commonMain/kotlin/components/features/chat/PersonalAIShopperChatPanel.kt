@@ -53,6 +53,7 @@ fun PersonalAIShopperChatPanel(
     isListening: Boolean = false,
     onStopVoice: (() -> Unit)? = null,
     isGenerating: Boolean = false,
+    merchantViewModel: viewmodels.MerchantBrowserViewModel? = null,
     httpClient: io.ktor.client.HttpClient? = null,
     apiClient: network.ConvexApi? = null,
     modifier: Modifier = Modifier,
@@ -100,6 +101,16 @@ fun PersonalAIShopperChatPanel(
         }
 
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            val merchantSession = merchantViewModel?.session
+            if (merchantSession != null) {
+                MerchantBrowserSessionCard(
+                    session = merchantSession,
+                    onPause = { merchantViewModel.pause() },
+                    onResume = { merchantViewModel.resume() },
+                    onTakeOver = { merchantViewModel.takeOver() },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).widthIn(max = 840.dp),
+                )
+            }
             if (errorMessage != null) {
                 Text(
                     text = errorMessage,

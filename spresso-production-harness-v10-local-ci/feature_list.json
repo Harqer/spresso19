@@ -47,10 +47,10 @@
     {
       "id": "merchant-browser-automation",
       "priority": 6,
-      "status": "PLANNED",
+      "status": "IMPLEMENTED_BUT_UNVERIFIED",
       "spec": "docs/features.md#merchant-browser-automation",
-      "evidence": "docs/merchant-browser-automation.md defines the approved chat-first adaptive UI plus Convex/Cloudflare Browser Run contract. Current code is intentionally narrower: convex/commerce/actions.ts and functions/src/kitesurfService.ts use one-shot Kitesurf JSON Quick Actions for public listing/quote inspection, functions/src/kitesurf/merchantAdapters.ts has supportsCheckout=false, executeKitesurfPurchase throws, and services/openclaw/tools/browser.ts is a guarded HTTP page reader rather than interactive browser automation.",
-      "remaining": "Implement typed Convex-owned merchant browser sessions/events/tools; Browser Run Playwright/CDP with Kitesurf->Chromium engine selection, destination guardrails and Human in the Loop; adaptive chat/browser UI; secure Live View handling; end-to-end merchant-cart and handoff verification."
+      "evidence": "Convex-owned merchant automation implemented 2026-09-23: merchantBrowserSessions/merchantBrowserEvents tables with server-enforced state machine; Cloudflare Browser Sessions provider layer (devtools/browser REST, verified against developers.cloudflare.com) with redirect-escape guardrail; typed merchant_* agent tools with permission classes (account/profile disclosure fails closed pending approval records); 40-action budget; HTTPS+allow-list enforcement; bridge routes /api/merchant/session[/events|/control|/begin]; ConvexApi typed client + MerchantBrowserViewModel polling; chat-first Material 3 UI (MerchantBrowserSessionCard, MerchantBrowserTimelinePane). convex/merchantBrowser.test.ts: 9 adversarial suites (ownership, allow-list, transitions, budget, event hygiene, handoff, redirect escape, reuse); 120/120 backend tests green.",
+      "remaining": "Live Cloudflare Browser Run verification: one compatible merchant cart flow and one human-handoff flow with real provider evidence before VERIFIED; explicit-approval records for merchant_begin_account_flow/profile disclosure; profile-disclosure bounded storage; Live View embed boundary (expect/actual browser surface) for takeover."
     },
     {
       "id": "realtime-ai",
@@ -65,7 +65,7 @@
       "priority": 8,
       "status": "IMPLEMENTED_BUT_UNVERIFIED",
       "spec": "docs/features.md#grocery-list",
-      "evidence": "convex/grocery.ts exposes deterministic user-owned mutations with ownership-scoped getMyList; bridge routes /api/grocery*; client wired via ConvexApi. convex/grocery.test.ts now covers authz/ownership/normalization (4 tests) — backend fully gated.",
+      "evidence": "convex/grocery.ts exposes deterministic user-owned mutations with ownership-scoped getMyList; bridge routes /api/grocery*; client wired via ConvexApi. convex/grocery.test.ts now covers authz/ownership/normalization (4 tests) \u2014 backend fully gated.",
       "remaining": "Verify offline/reconnect behavior on device."
     },
     {

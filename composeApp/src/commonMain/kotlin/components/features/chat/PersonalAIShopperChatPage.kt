@@ -48,6 +48,7 @@ fun PersonalAIShopperChatPage(
     onToggleVoiceRecording: (() -> Unit)? = null,
     onAddToCart: (ProductItem) -> Unit = { },
     onSelectTryOn: (ProductItem) -> Unit = { },
+    merchantViewModel: viewmodels.MerchantBrowserViewModel? = null,
     initialPrompt: String? = null,
     initialImage: String? = null,
     apiClient: network.ConvexApi = remember { network.ConvexApi() },
@@ -55,6 +56,8 @@ fun PersonalAIShopperChatPage(
 ) {
     val messages = chatViewModel.messages
     val isGenerating = chatViewModel.isGenerating
+
+    LaunchedEffect(merchantViewModel) { merchantViewModel?.start() }
 
     LaunchedEffect(initialPrompt, initialImage) {
         if (!initialImage.isNullOrBlank()) {
@@ -124,6 +127,7 @@ fun PersonalAIShopperChatPage(
             isListening = chatViewModel.isVoiceListening,
             onStopVoice = { chatViewModel.stopVoiceStream() },
             isGenerating = isGenerating,
+            merchantViewModel = merchantViewModel,
             httpClient = apiClient.client,
             apiClient = apiClient,
             modifier =

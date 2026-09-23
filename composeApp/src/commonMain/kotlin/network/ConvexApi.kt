@@ -26,6 +26,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
@@ -100,6 +101,38 @@ data class TravelDetailData(
     val events: List<ItineraryEvent>,
     val expenses: List<TravelExpense>,
     val voiceNotes: List<VoiceNote>,
+)
+
+/** Live merchant browser automation session state (Convex-owned, owner-scoped). */
+@kotlinx.serialization.Serializable
+data class MerchantBrowserSession(
+    val sessionId: String,
+    val merchantHost: String,
+    val engine: String,
+    val status: String,
+    val currentStep: String? = null,
+    val pageTitle: String? = null,
+    val currentUrl: String? = null,
+    val handoffReason: String? = null,
+    val lastEventSeq: Long = 0L,
+)
+
+/** One customer-safe automation event from the session's append-only log. */
+@kotlinx.serialization.Serializable
+data class MerchantBrowserEvent(
+    val eventId: String,
+    val sequence: Long,
+    val eventType: String,
+    val summary: String,
+    val createdAt: Long,
+)
+
+/** Session state plus the events fetched after [afterSeq]; the UI poll unit. */
+@kotlinx.serialization.Serializable
+data class MerchantBrowserSnapshot(
+    val session: MerchantBrowserSession?,
+    val events: List<MerchantBrowserEvent> = emptyList(),
+    val afterSeq: Long = 0L,
 )
 
 fun inferImageMimeType(bytes: ByteArray): String {
@@ -191,6 +224,58 @@ class ConvexApi(
         val body = get("/api/account/me")
         if (body == "null") return null
         return json.parseToJsonElement(body).jsonObject
+    }
+
+    /** Poll the owner's active merchant browser session (or null). */
+    suspend fun fetchMerchantSession(): MerchantBrowserSession? {
+        val body = get("/api/merchant/session")
+        if (body.isEmpty() || body == "null") return null
+        return json.decodeFromString<MerchantBrowserSession>(body)
+    }
+
+    /** Fetch customer-safe automation events after [afterSeq] (newest last). */
+    suspend fun fetchMerchantSessionEvents(
+        sessionId: String,
+        afterSeq: Long,
+    ): List<MerchantBrowserEvent> {
+        val body = get("/api/merchant/session/events?sessionId=${sessionId.encodeURLParameter()}&afterSeq=$afterSeq")
+        if (body.isEmpty() || body == "null") return emptyList()
+        return json.decodeFromString<List<MerchantBrowserEvent>>(body)
+    }
+
+    /** Pause / take over / resume / complete the owner's session. */
+    suspend fun controlMerchantSession(
+        sessionId: String,
+        control: String,
+    ): Boolean {
+        val body =
+            post(
+                "/api/merchant/session/control",
+                buildJsonObject {
+                    put("sessionId", sessionId)
+                    put("control", control)
+                },
+            )
+        return json
+            .parseToJsonElement(body)
+            .jsonObject["ok"]
+            ?.jsonPrimitive
+            ?.booleanOrNull == true
+    }
+
+    /** Begin a merchant automation session on an allow-listed merchant URL. */
+    suspend fun beginMerchantSession(merchantUrl: String): String {
+        val body =
+            post(
+                "/api/merchant/session/begin",
+                buildJsonObject { put("merchantUrl", merchantUrl) },
+            )
+        return json
+            .parseToJsonElement(body)
+            .jsonObject["sessionId"]
+            ?.jsonPrimitive
+            ?.content
+            ?: error("Merchant session did not return an id.")
     }
 
     suspend fun fetchPaymentMethods(): List<JsonObject> {

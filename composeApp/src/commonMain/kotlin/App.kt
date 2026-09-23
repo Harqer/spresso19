@@ -74,6 +74,7 @@ import theme.ThemeMode
 import ui.rememberImagePicker
 import viewmodels.CatalogViewModel
 import viewmodels.ChatViewModel
+import viewmodels.MerchantBrowserViewModel
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -192,6 +193,7 @@ fun App(
         }
         val liveApiClient = remember { LiveApiClient() }
         val chatViewModel = remember { ChatViewModel(apiClient, scope, liveApiClient) }
+        val merchantViewModel = remember { MerchantBrowserViewModel(apiClient, scope) }
         val catalogViewModel = remember { CatalogViewModel(scope, apiClient) }
         val audioRecorder = remember { AudioRecorder() }
         val audioPlayer = remember { AudioPlayer() }
@@ -399,6 +401,7 @@ fun App(
                             userName = currentUserName,
                             errorMessage = errorMessage,
                             userLatLng = currentLatLng,
+                            merchantViewModel = merchantViewModel,
                             isAccessibilityEnabled = isAccessibilityEnabled,
                             hasAccessibilityConsent = hasAccessibilityConsent,
                             showAccessibilityDisclosure = showAccessibilityDisclosure,
@@ -478,6 +481,7 @@ fun App(
                             liveTranscript = chatViewModel.liveTranscript,
                             userName = currentUserName,
                             errorMessage = errorMessage,
+                            merchantViewModel = merchantViewModel,
                             onTriggerGlobalLens = onTriggerGlobalLens,
                             onLaunchCamera = { pickImage() },
                             apiClient = apiClient,

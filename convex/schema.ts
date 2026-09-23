@@ -327,6 +327,49 @@ export default defineSchema({
     .index("by_token_identifier", ["tokenIdentifier"])
     .index("by_token_identifier_and_public_key", ["tokenIdentifier", "publicKey"]),
 
+  // Merchant browser automation: Convex owns the durable workflow state and
+  // Cloudflare Browser Run is only the execution provider. Sessions are
+  // owner-scoped; events are an append-only, monotonic-sequence log with
+  // customer-safe summaries only (no provider URLs, cookies, or tokens).
+  merchantBrowserSessions: defineTable({
+    tokenIdentifier: v.string(),
+    merchantHost: v.string(),
+    engine: v.union(v.literal("KITESURF"), v.literal("CHROMIUM")),
+    status: v.union(
+      v.literal("STARTING"),
+      v.literal("ACTIVE"),
+      v.literal("PAUSED"),
+      v.literal("HANDOFF_REQUIRED"),
+      v.literal("HUMAN_CONTROL"),
+      v.literal("RESUMING"),
+      v.literal("COMPLETED"),
+      v.literal("FAILED"),
+      v.literal("EXPIRED"),
+    ),
+    providerSessionId: v.optional(v.string()),
+    currentUrl: v.optional(v.string()),
+    pageTitle: v.optional(v.string()),
+    currentStep: v.optional(v.string()),
+    lastEventSeq: v.number(),
+    actionBudgetUsed: v.number(),
+    handoffReason: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    expiresAt: v.number(),
+  })
+    .index("by_token_identifier", ["tokenIdentifier"])
+    .index("by_token_identifier_and_status", ["tokenIdentifier", "status"]),
+
+  merchantBrowserEvents: defineTable({
+    sessionId: v.id("merchantBrowserSessions"),
+    tokenIdentifier: v.string(),
+    sequence: v.number(),
+    eventType: v.string(),
+    summary: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_session_and_sequence", ["sessionId", "sequence"]),
+
   paymentMethods: defineTable({
     tokenIdentifier: v.string(),
     stripePaymentMethodId: v.string(),
