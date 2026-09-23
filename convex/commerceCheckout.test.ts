@@ -9,6 +9,69 @@ import schema from "./schema";
 const modules = import.meta.glob("./**/*.ts");
 const identityA = { issuer: "https://securetoken.google.com/get-spresso", subject: "commerce-user-a", tokenIdentifier: "https://securetoken.google.com/get-spresso:commerce-user-a" };
 const identityB = { issuer: "https://securetoken.google.com/get-spresso", subject: "commerce-user-b", tokenIdentifier: "https://securetoken.google.com/get-spresso:commerce-user-b" };
+
+// ---- Server-verifiable purchase authorization test scaffolding -------------
+
+/** Real P-256 keypair + message signing through Node's WebCrypto. */
+async function makeDeviceKey() {
+  const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign"]);
+  const raw = new Uint8Array(await crypto.subtle.exportKey("raw", pair.publicKey));
+  const toB64 = (bytes: Uint8Array): string => Buffer.from(bytes).toString("base64");
+  return {
+    publicKeyB64: toB64(raw),
+    signMessage: async (message: string): Promise<string> => {
+      // Signs the message bytes directly (WebCrypto hashes internally with
+      // SHA-256) — matching the server's crypto.verify("sha256", message).
+      const sig = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, pair.privateKey, new TextEncoder().encode(message)));
+      return toB64(sig);
+    },
+  };
+}
+
+function b64urlToB64(value: string): string {
+  return value.replace(/-/g, "+").replace(/_/g, "/");
+}
+
+/**
+ * Full server-verifiable authorization chain for tests: register a real
+ * device key, issue the exact-intent challenge, sign it, and authorize.
+ * The canonical message format must match `checkoutIntentMessage` exactly.
+ */
+async function authorizeAttempt(
+  t: ReturnType<typeof testConvex>,
+  attemptId: string,
+  options: { identity?: typeof identityA; amountCents?: number; currency?: string; merchantUrl?: string; keyPair?: Awaited<ReturnType<typeof makeDeviceKey>>; registerDevice?: boolean } = {},
+) {
+  const identity = options.identity ?? identityA;
+  const keyPair = options.keyPair ?? (await makeDeviceKey());
+  if (options.registerDevice !== false) {
+    await t.withIdentity(identity).mutation(api.commerce.checkout.registerCheckoutDevice, { publicKey: keyPair.publicKeyB64, label: "test device" });
+  }
+  // The challenge is server-minted inside the action; tests read it back from
+  // the attempt snapshot after issueCheckoutChallenge has run.
+  const issueChallengeInternal = async (): Promise<string> => {
+    const challenge = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url");
+    const attempt = (await t.query(internal.commerce.checkout.getCheckoutAttemptInternal, { attemptId: attemptId as never }))!;
+    const message = [
+      "SPRESSO PURCHASE CONFIRMATION",
+      `Merchant: ${options.merchantUrl ?? attempt.merchantUrl ?? listing.merchantUrl}`,
+      `Amount: ${options.amountCents ?? attempt.amountCents ?? 0} ${options.currency ?? attempt.currency ?? "USD"}`,
+      `Quantity: ${attempt.quantity}`,
+      `Listing: ${attempt.listingId}`,
+      `Challenge: ${challenge}`,
+      "",
+    ].join("\n");
+    await t.mutation(internal.commerce.checkout.issueCheckoutChallenge, { attemptId: attemptId as never, challenge, digest: message, ttlMs: 5 * 60 * 1000 });
+    return message;
+  };
+  const message = await issueChallengeInternal();
+  const signature = await keyPair.signMessage(message);
+  return t.withIdentity(identity).action(api.commerce.actions.authorizeCheckout, {
+    attemptId: attemptId as never,
+    signature,
+    publicKey: keyPair.publicKeyB64,
+  });
+}
 const listing = {
   id: "listing-1", name: "Verified jacket", brand: "Merchant", category: "outerwear",
   imageUrl: "https://merchant.example/jacket.jpg", merchantUrl: "https://merchant.example/item", source: "kitesurf" as const,
@@ -53,6 +116,147 @@ test("orders are bounded and scoped to the authenticated user", async () => {
   expect(await t.withIdentity(identityB).query(api.commerce.checkout.listOrders, { limit: 10 })).toEqual([]);
 });
 
+// ---- Server-verifiable exact-intent purchase authorization ----------------
+
+test("payment cannot be attached without server-verified device authorization (bypass)", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "bypass-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await expect(
+    t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_bypass", amountCents: 2500, currency: "USD" }),
+  ).rejects.toThrow(/authorization is required/i);
+});
+
+test("confirmCheckout refuses attempts that never reached READY_FOR_PAYMENT", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "confirm-gate-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await expect(t.withIdentity(identityA).action(api.commerce.actions.confirmCheckout, { attemptId })).rejects.toThrow(/authorization is required/i);
+});
+
+test("authorize advances a quoted attempt to READY_FOR_PAYMENT with a valid device signature", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "authorize-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  const result = await authorizeAttempt(t, attemptId);
+  expect(result.status).toBe("READY_FOR_PAYMENT");
+  // Payment attachment now succeeds: the authorization boundary was crossed.
+  await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_auth_1", amountCents: 2500, currency: "USD" });
+});
+
+test("a signature from an unregistered key is rejected", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "unreg-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  // A real, valid signature — but from a key that was never registered.
+  await expect(authorizeAttempt(t, attemptId, { registerDevice: false })).rejects.toThrow(/not registered for purchase confirmation/i);
+});
+
+test("a tampered signature over the registered key is rejected", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "tamper-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  const keyPair = await makeDeviceKey();
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.registerCheckoutDevice, { publicKey: keyPair.publicKeyB64 });
+  const challenge = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url");
+  const message = `SPRESSO PURCHASE CONFIRMATION\nMerchant: ${listing.merchantUrl}\nAmount: 2500 USD\nQuantity: 2\nListing: ${listing.id}\nChallenge: ${challenge}\n`;
+  await t.mutation(internal.commerce.checkout.issueCheckoutChallenge, { attemptId, challenge, digest: message, ttlMs: 5 * 60 * 1000 });
+  // A real signature — but over a different intent than the stored digest.
+  await expect(t.withIdentity(identityA).action(api.commerce.actions.authorizeCheckout, {
+    attemptId,
+    signature: await keyPair.signMessage("SPRESSO PURCHASE CONFIRMATION\\nAmount: 1 USD\\n"),
+    publicKey: keyPair.publicKeyB64,
+  })).rejects.toThrow(/signature is invalid/i);
+});
+
+test("cross-user device registration does not authorize another user's attempt", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "cross-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  // B registers a device and signs, but the attempt belongs to A.
+  await expect(authorizeAttempt(t, attemptId, { identity: identityB })).rejects.toThrow(/not registered for purchase confirmation|Checkout attempt not found/i);
+});
+
+test("a consumed challenge cannot authorize (replay of consumed nonce)", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "consumed-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  const keyPair = await makeDeviceKey();
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.registerCheckoutDevice, { publicKey: keyPair.publicKeyB64 });
+  await t.mutation(internal.commerce.checkout.issueCheckoutChallenge, { attemptId, challenge: "one-shot", digest: "one-shot message", ttlMs: 30_000 });
+  const device = (await t.query(internal.commerce.checkout.getCheckoutDeviceInternal, { tokenIdentifier: identityA.tokenIdentifier, publicKey: keyPair.publicKeyB64 }))!;
+  await t.mutation(internal.commerce.checkout.consumeCheckoutChallenge, { attemptId, deviceKeyId: device._id });
+  await expect(t.withIdentity(identityA).action(api.commerce.actions.authorizeCheckout, {
+    attemptId,
+    signature: await keyPair.signMessage("one-shot message"),
+    publicKey: keyPair.publicKeyB64,
+  })).rejects.toThrow(/already authorized/i);
+});
+
+test("challenge consumption is single-use (replay)", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "replay-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  // The first authorization consumes the challenge; the exact same signature
+  // replayed must fail.
+  const keyPair = await makeDeviceKey();
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.registerCheckoutDevice, { publicKey: keyPair.publicKeyB64 });
+  const issueAndSign = async (): Promise<{ challenge: string; signature: string }> => {
+    const challenge = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url");
+    const message = `SPRESSO PURCHASE CONFIRMATION\nMerchant: ${listing.merchantUrl}\nAmount: 2500 USD\nQuantity: 2\nListing: ${listing.id}\nChallenge: ${challenge}\n`;
+    await t.mutation(internal.commerce.checkout.issueCheckoutChallenge, { attemptId, challenge, digest: message, ttlMs: 5 * 60 * 1000 });
+    return { challenge, signature: await keyPair.signMessage(message) };
+  };
+  const first = await issueAndSign();
+  await expect(t.withIdentity(identityA).action(api.commerce.actions.authorizeCheckout, { attemptId, signature: first.signature, publicKey: keyPair.publicKeyB64 })).resolves.toMatchObject({ status: "READY_FOR_PAYMENT" });
+  // Replay of the same signature against a re-issued identical challenge:
+  // consumption is one-shot per challenge, and READY_FOR_PAYMENT refuses.
+  await expect(t.withIdentity(identityA).action(api.commerce.actions.authorizeCheckout, { attemptId, signature: first.signature, publicKey: keyPair.publicKeyB64 })).rejects.toThrow(/already authorized/i);
+});
+
+test("a stale signature is rejected after the challenge is re-issued (material change)", async () => {
+  const t = testConvex();
+  const attemptId = await acquire(t, identityA, "material-key");
+  await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  const keyPair = await makeDeviceKey();
+  await t.withIdentity(identityA).mutation(api.commerce.checkout.registerCheckoutDevice, { publicKey: keyPair.publicKeyB64 });
+  // Challenge #1: the user signs this exact intent.
+  const buildMessage = (challenge: string): string =>
+    `SPRESSO PURCHASE CONFIRMATION\nMerchant: ${listing.merchantUrl}\nAmount: 2500 USD\nQuantity: 2\nListing: ${listing.id}\nChallenge: ${challenge}\n`;
+  await t.mutation(internal.commerce.checkout.issueCheckoutChallenge, { attemptId, challenge: "nonce-1", digest: buildMessage("nonce-1"), ttlMs: 5 * 60 * 1000 });
+  const staleSignature = await keyPair.signMessage(buildMessage("nonce-1"));
+  // Re-verify (the prepareCheckout re-quote path) re-issues a fresh nonce,
+  // which invalidates every signature over the old intent.
+  await t.mutation(internal.commerce.checkout.issueCheckoutChallenge, { attemptId, challenge: "nonce-2", digest: buildMessage("nonce-2"), ttlMs: 5 * 60 * 1000 });
+  await expect(t.withIdentity(identityA).action(api.commerce.actions.authorizeCheckout, {
+    attemptId,
+    signature: staleSignature,
+    publicKey: keyPair.publicKeyB64,
+  })).rejects.toThrow(/signature is invalid/i);
+  // A signature over the CURRENT intent authorizes.
+  const result = await t.withIdentity(identityA).action(api.commerce.actions.authorizeCheckout, {
+    attemptId,
+    signature: await keyPair.signMessage(buildMessage("nonce-2")),
+    publicKey: keyPair.publicKeyB64,
+  });
+  expect(result.status).toBe("READY_FOR_PAYMENT");
+});
+
+test("device keys are scoped per user and normalized (SPKI DER accepted)", async () => {
+  const t = testConvex();
+  const keyPair = await makeDeviceKey();
+  const raw = Buffer.from(keyPair.publicKeyB64, "base64");
+  // Android form: the 26-byte SPKI header already ends in the 0x04 tag, so
+  // only X||Y (raw minus its own tag) is appended — total 91 bytes.
+  const spki = Buffer.concat([Buffer.from("MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE", "base64"), raw.subarray(1)]);
+  const a1 = await t.withIdentity(identityA).mutation(api.commerce.checkout.registerCheckoutDevice, { publicKey: spki.toString("base64") });
+  const a2 = await t.withIdentity(identityA).mutation(api.commerce.checkout.registerCheckoutDevice, { publicKey: keyPair.publicKeyB64 });
+  expect(a1.deviceKeyId).toBe(a2.deviceKeyId);
+  // The internal lookup normalizes the submitted form the same way.
+  const found = await t.query(internal.commerce.checkout.getCheckoutDeviceInternal, { tokenIdentifier: identityA.tokenIdentifier, publicKey: spki.toString("base64") });
+  expect(found).not.toBeNull();
+});
+
 test("webhook inbox is idempotent and rejects payload mismatch", async () => {
   const t = testConvex();
   const input = { provider: "stripe", eventId: "evt_123", payloadHash: "sha256:abc" };
@@ -65,6 +269,7 @@ test("payment completion writes one owner-scoped order and replays are idempoten
   const t = testConvex();
   const attemptId = await acquire(t, identityA, "order-key");
   await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await authorizeAttempt(t, attemptId);
   await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_test_1", amountCents: 2500, currency: "USD" });
   await expect(t.mutation(internal.commerce.checkout.completePayment, { provider: "stripe", eventId: "evt_order", paymentIntentId: "pi_test_1", amountCents: 2500, currency: "USD" })).rejects.toThrow(/not been acquired/);
   await t.mutation(internal.commerce.checkout.acquireWebhookEvent, { provider: "stripe", eventId: "evt_order", payloadHash: "sha256:order" });
@@ -127,6 +332,7 @@ test("stripe webhook completes a verified payment into one owner-visible order",
   const t = testConvex();
   const attemptId = await acquire(t, identityA, "http-key");
   await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await authorizeAttempt(t, attemptId);
   await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_http_1", amountCents: 2500, currency: "USD" });
 
   const response = await runWebhook(t, succeededEventBody());
@@ -142,6 +348,7 @@ test("stripe webhook replays do not create duplicate orders", async () => {
   const t = testConvex();
   const attemptId = await acquire(t, identityA, "http-replay-key");
   await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await authorizeAttempt(t, attemptId);
   await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_http_replay", amountCents: 2500, currency: "USD" });
 
   const payload = succeededEventBody().replace("pi_http_1", "pi_http_replay").replace("evt_http_1", "evt_http_replay");
@@ -234,6 +441,7 @@ test("acknowledgeDelivery advances fulfillment only for the owner", async () => 
   const t = testConvex();
   const attemptId = await acquire(t, identityA, "ack-key");
   await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await authorizeAttempt(t, attemptId);
   await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_ack_1", amountCents: 2500, currency: "USD" });
   await t.mutation(internal.commerce.checkout.acquireWebhookEvent, { provider: "stripe", eventId: "evt_ack", payloadHash: "sha256:ack" });
   const { orderId } = await t.mutation(internal.commerce.checkout.completePayment, { provider: "stripe", eventId: "evt_ack", paymentIntentId: "pi_ack_1", amountCents: 2500, currency: "USD" });
@@ -257,6 +465,7 @@ test("requestReturn is ownership-gated and respects return lifecycle", async () 
   const t = testConvex();
   const attemptId = await acquire(t, identityA, "return-edge-key");
   await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await authorizeAttempt(t, attemptId);
   await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_return_1", amountCents: 2500, currency: "USD" });
   await t.mutation(internal.commerce.checkout.acquireWebhookEvent, { provider: "stripe", eventId: "evt_return", payloadHash: "sha256:return" });
   const { orderId } = await t.mutation(internal.commerce.checkout.completePayment, { provider: "stripe", eventId: "evt_return", paymentIntentId: "pi_return_1", amountCents: 2500, currency: "USD" });
@@ -283,6 +492,7 @@ test("reminder state survives subsequent status transitions and is scoped per or
   const t = testConvex();
   const attemptId = await acquire(t, identityA, "reminder-edge-key");
   await t.mutation(internal.commerce.checkout.markQuoted, { attemptId, amountCents: 2500, currency: "USD", merchantUrl: listing.merchantUrl, observedAt: "2026-09-08T00:00:00.000Z" });
+  await authorizeAttempt(t, attemptId);
   await t.mutation(internal.commerce.checkout.attachPaymentIntent, { attemptId, paymentIntentId: "pi_reminder_1", amountCents: 2500, currency: "USD" });
   await t.mutation(internal.commerce.checkout.acquireWebhookEvent, { provider: "stripe", eventId: "evt_reminder", payloadHash: "sha256:reminder" });
   const { orderId } = await t.mutation(internal.commerce.checkout.completePayment, { provider: "stripe", eventId: "evt_reminder", paymentIntentId: "pi_reminder_1", amountCents: 2500, currency: "USD" });

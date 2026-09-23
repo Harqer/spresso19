@@ -68,6 +68,7 @@ echo "== [gate] API route, Firebase wiring, and callable contracts =="
   cd "$ROOT"
   npm run test:ci-wiring
   node --test scripts/test/firebase-config.test.mjs
+  node --test scripts/test/web-auth.test.mjs
   npm run test:contracts
   node scripts/verify-action-contract.mjs
 )

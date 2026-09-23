@@ -22,10 +22,10 @@ fun rememberNavigationState(
 ): NavigationState {
     val topLevelRouteState = remember { mutableStateOf(startRoute) }
 
-    // Create a back stack for each top level route.
+    // Auth and splash live on the start stack even when it is not a tab.
     val backStacks =
         buildMap<NavKey, NavBackStack<androidx.navigation3.runtime.NavKey>> {
-            topLevelRoutes.forEach { route ->
+            (topLevelRoutes + startRoute).forEach { route ->
                 // The Android-only convenience overload is unavailable on
                 // Wasm. Keep the stack in Compose state; a shared
                 // SavedStateConfiguration can be added once all route

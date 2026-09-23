@@ -41,7 +41,12 @@ import network.models.UserProfileData
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-/** Server-verified merchant quote for a checkout attempt. */
+/**
+ * Server-verified merchant quote plus the exact-intent authorization
+ * challenge. `message` is the canonical string the device must sign with its
+ * registered checkout key; the server verifies the signature before allowing
+ * any charge.
+ */
 @kotlinx.serialization.Serializable
 data class CheckoutQuote(
     val attemptId: String,
@@ -49,6 +54,9 @@ data class CheckoutQuote(
     val currency: String,
     val merchantUrl: String,
     val observedAt: String,
+    val challenge: String = "",
+    val message: String = "",
+    val authorizationExpiresAt: Long = 0L,
 )
 
 /** Result of the off-session charge against the user's saved default card. */
@@ -718,7 +726,52 @@ class ConvexApi(
     suspend fun prepareCheckout(attemptId: String): CheckoutQuote =
         json.decodeFromString<CheckoutQuote>(post("/api/checkout/prepare", buildJsonObject { put("attemptId", attemptId) }))
 
-    /** Charges the user's saved default card off-session after device-side biometric approval. */
+    /**
+     * Registers this device's checkout signing key with the backend. Requires
+     * a fresh sign-in (the backend enforces Firebase auth_time freshness).
+     */
+    suspend fun registerCheckoutDevice(
+        publicKey: String,
+        label: String? = null,
+    ): String {
+        val body =
+            buildJsonObject {
+                put("publicKey", publicKey)
+                if (label != null) put("label", label)
+            }
+        val response = json.parseToJsonElement(post("/api/checkout/devices", body)).jsonObject
+        return response["deviceKeyId"]?.jsonPrimitive?.content
+            ?: throw IllegalStateException("Device registration did not return a key id.")
+    }
+
+    /**
+     * Submits the device signature over the exact-intent message. The server
+     * verifies the ECDSA P-256 signature against the registered key and pins
+     * the attempt into READY_FOR_PAYMENT.
+     */
+    suspend fun authorizeCheckout(
+        attemptId: String,
+        signature: String,
+        publicKey: String,
+    ): CheckoutConfirmation {
+        val body =
+            buildJsonObject {
+                put("attemptId", attemptId)
+                put("signature", signature)
+                put("publicKey", publicKey)
+            }
+        val response = json.parseToJsonElement(post("/api/checkout/authorize", body)).jsonObject
+        return CheckoutConfirmation(
+            status = response["status"]?.jsonPrimitive?.content ?: "AUTHORIZED",
+            paymentIntentId = "",
+            amountCents = 0,
+            currency = "",
+            brand = "",
+            last4 = "",
+        )
+    }
+
+    /** Charges the user's saved default card off-session after server-verified device authorization. */
     suspend fun confirmCheckout(attemptId: String): CheckoutConfirmation =
         json.decodeFromString<CheckoutConfirmation>(post("/api/checkout/confirm", buildJsonObject { put("attemptId", attemptId) }))
 

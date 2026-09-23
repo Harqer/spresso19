@@ -84,18 +84,24 @@ window.deleteCurrentUserIdentityFirebase = async function() {
 };
 
 window.signInWithPhone = async function(phoneNumber) {
-    if (!window.recaptchaVerifier) {
+    // Each SMS request gets its own challenge; never retain an older number's
+    // confirmation after a new request fails.
+    window.confirmationResult = null;
+    if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
+    window.recaptchaVerifier = null;
+    try {
         window.recaptchaVerifier = new RecaptchaVerifier(getAuthInstance(), 'recaptcha-container', {
           'size': 'invisible'
         });
-    }
-    try {
         const confirmationResult = await signInWithPhoneNumber(getAuthInstance(), phoneNumber, window.recaptchaVerifier);
         window.confirmationResult = confirmationResult;
         return true;
     } catch (error) {
-        console.error("Phone Auth Error", error);
+        console.error("Phone Auth Error", error.code);
         throw error;
+    } finally {
+        if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
     }
 };
 
@@ -103,11 +109,44 @@ window.verifyPhoneCode = async function(code) {
     if (window.confirmationResult) {
         try {
             const result = await window.confirmationResult.confirm(code);
+            window.confirmationResult = null;
             return result.user !== null;
         } catch (error) {
-            console.error("Verify Code Error", error);
+            console.error("Verify Code Error", error.code);
             throw error;
         }
     }
     return false;
+};
+
+// Keep the whole Promise chain in one error boundary. A synchronous Kotlin
+// try/catch cannot catch an SMS request or verification Promise rejection.
+let phoneSignInPending = false;
+window.requestPhoneSignIn = async function() {
+    if (phoneSignInPending) return false;
+    phoneSignInPending = true;
+    try {
+        const phoneNumber = window.prompt("Enter your phone number with country code (e.g. +1234567890)");
+        if (!phoneNumber?.trim()) return false;
+        await window.signInWithPhone(phoneNumber.trim());
+        while (true) {
+            const code = window.prompt("Enter the code from your text message");
+            if (!code?.trim()) return false;
+            try {
+                const verified = await window.verifyPhoneCode(code.trim());
+                if (!verified) throw new Error("No pending phone verification");
+                // The auth observer owns navigation; no synthetic success alert.
+                return true;
+            } catch (error) {
+                if (error.code !== "auth/invalid-verification-code") throw error;
+                window.alert("That code wasn't correct. Please try again.");
+            }
+        }
+    } catch {
+        window.alert("Unable to sign in with your phone number. Please try again.");
+        return false;
+    } finally {
+        window.confirmationResult = null;
+        phoneSignInPending = false;
+    }
 };

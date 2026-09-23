@@ -1,11 +1,13 @@
 "use node";
 
+import crypto from "crypto";
 import Stripe from "stripe";
 import { action, env } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { requireFirebaseIdentity } from "../lib/identity";
 import type { Id } from "../_generated/dataModel";
+import { CHECKOUT_CHALLENGE_TTL_MS, normalizeToRawP256, P256_SPKI_HEADER_B64 } from "./checkout";
 
 function httpsUrl(value: string): string {
   let parsed: URL;
@@ -46,6 +48,7 @@ type CheckoutAttemptSnapshot = {
   quoteObservedAt?: string;
   paymentIntentId?: string;
   idempotencyKey: string;
+  authorization?: { challenge: string; digest: string; issuedAt: number; expiresAt: number; consumed: boolean };
 };
 
 async function merchantQuote(attempt: CheckoutAttemptSnapshot) {
@@ -75,25 +78,184 @@ async function merchantQuote(attempt: CheckoutAttemptSnapshot) {
   }
 }
 
-type PrepareCheckoutResult = { attemptId: Id<"checkoutAttempts">; amountCents: number; currency: string; merchantUrl: string; observedAt: string };
+type PrepareCheckoutResult = {
+  attemptId: Id<"checkoutAttempts">;
+  amountCents: number;
+  currency: string;
+  merchantUrl: string;
+  observedAt: string;
+  /** Single-use challenge the device must sign (plain text, unhashed). */
+  challenge: string;
+  /** Canonical intent message the device must sign (identical to the digest). */
+  message: string;
+  authorizationExpiresAt: number;
+};
 
-type PaymentIntentResult = { clientSecret: string; paymentIntentId: string; amountCents: number; currency: string; publishableKey: string };
+/** Canonical, human-readable exact-intent message the device signs. */
+export function checkoutIntentMessage(input: {
+  merchantUrl: string;
+  amountCents: number;
+  currency: string;
+  quantity: number;
+  listingId: string;
+  challenge: string;
+}): string {
+  return [
+    "SPRESSO PURCHASE CONFIRMATION",
+    `Merchant: ${input.merchantUrl}`,
+    `Amount: ${input.amountCents} ${input.currency}`,
+    `Quantity: ${input.quantity}`,
+    `Listing: ${input.listingId}`,
+    `Challenge: ${input.challenge}`,
+    "",
+  ].join("\n");
+}
 
+function randomChallenge(): string {
+  return crypto.randomBytes(32).toString("base64url");
+}
+
+/**
+ * Normalizes an ECDSA signature to the raw 64-byte r||s (ieee-p1363) form.
+ * WebCrypto emits raw r||s directly; Android Keystore emits DER, which is
+ * unwrapped (leading zero-padding of r/s handled by the 32-byte left-align).
+ */
+export function normalizeCheckoutSignature(submitted: string): Buffer {
+  let bytes: Buffer;
+  try {
+    bytes = Buffer.from(submitted.trim(), "base64");
+  } catch {
+    throw new Error("Invalid checkout signature.");
+  }
+  if (bytes.length === 64) {
+    return bytes;
+  }
+  if (bytes.length >= 8 && bytes.length <= 72 && bytes[0] === 0x30) {
+    // SEQUENCE { INTEGER r, INTEGER s } — unwrap the two minimal integers.
+    let index = 2;
+    if (bytes[index] & 0x80) {
+      const lengthBytes = bytes[index] & 0x7f;
+      index += 1 + lengthBytes;
+    }
+    index += 1; // step past the SEQUENCE content length
+    const readInteger = (): Buffer | null => {
+      if (index >= bytes.length || bytes[index] !== 0x02) return null;
+      index += 1;
+      const length = bytes[index];
+      index += 1;
+      if (length === 0 || index + length > bytes.length) return null;
+      const value = bytes.subarray(index, index + length);
+      index += length;
+      return value;
+    };
+    const r = readInteger();
+    const s = readInteger();
+    if (!r || !s || r.length > 33 || s.length > 33) throw new Error("Invalid checkout signature.");
+    const out = Buffer.alloc(64);
+    r.copy(out, 32 - Math.min(r.length, 32));
+    s.copy(out, 64 - Math.min(s.length, 32));
+    return out;
+  }
+  throw new Error("Invalid checkout signature.");
+}
+
+function requireHttpsUrl(value: string): string {
+  let parsed: URL;
+  try { parsed = new URL(value.trim()); } catch { throw new Error("Merchant URL must be a valid HTTPS URL."); }
+  if (parsed.protocol !== "https:" || !parsed.hostname) throw new Error("Merchant URL must use HTTPS.");
+  return parsed.toString();
+}
+
+/**
+ * Issues a single-use authorization challenge alongside the verified quote.
+ * Re-quoting re-issues and thereby invalidates the previous challenge, so a
+ * stale signature can never authorize a changed amount.
+ */
 export const prepareCheckout = action({
   args: { attemptId: v.id("checkoutAttempts") },
-  returns: v.object({ attemptId: v.id("checkoutAttempts"), amountCents: v.number(), currency: v.string(), merchantUrl: v.string(), observedAt: v.string() }),
+  returns: v.object({
+    attemptId: v.id("checkoutAttempts"), amountCents: v.number(), currency: v.string(),
+    merchantUrl: v.string(), observedAt: v.string(), challenge: v.string(),
+    message: v.string(), authorizationExpiresAt: v.number(),
+  }),
   handler: async (ctx, args): Promise<PrepareCheckoutResult> => {
     const identity = await requireFirebaseIdentity(ctx);
     const attempt: CheckoutAttemptSnapshot | null = await ctx.runQuery(internal.commerce.checkout.getCheckoutAttemptInternal, { attemptId: args.attemptId });
     if (!attempt || attempt.tokenIdentifier !== identity.tokenIdentifier) throw new Error("Checkout attempt not found.");
     if (attempt.status !== "NEW" && attempt.status !== "QUOTING") {
-      if (attempt.amountCents && attempt.currency && attempt.merchantUrl && attempt.quoteObservedAt) return { attemptId: args.attemptId, amountCents: attempt.amountCents, currency: attempt.currency, merchantUrl: attempt.merchantUrl, observedAt: attempt.quoteObservedAt };
+      if (attempt.status === "AWAITING_STEP_UP" && attempt.amountCents && attempt.currency && attempt.merchantUrl && attempt.quoteObservedAt) {
+        // Re-quote of an uncharged attempt: re-issue a fresh challenge (the
+        // previous one may be consumed/expired/lost by the client).
+        const challenge = randomChallenge();
+        const message = checkoutIntentMessage({ merchantUrl: attempt.merchantUrl, amountCents: attempt.amountCents, currency: attempt.currency, quantity: attempt.quantity, listingId: attempt.listingId, challenge });
+        const issued = await ctx.runMutation(internal.commerce.checkout.issueCheckoutChallenge, { attemptId: args.attemptId, challenge, digest: message, ttlMs: CHECKOUT_CHALLENGE_TTL_MS });
+        return { attemptId: args.attemptId, amountCents: attempt.amountCents, currency: attempt.currency, merchantUrl: attempt.merchantUrl, observedAt: attempt.quoteObservedAt, challenge: issued.challenge, message: issued.message, authorizationExpiresAt: issued.expiresAt };
+      }
+      if (attempt.amountCents && attempt.currency && attempt.merchantUrl && attempt.quoteObservedAt) return { attemptId: args.attemptId, amountCents: attempt.amountCents, currency: attempt.currency, merchantUrl: attempt.merchantUrl, observedAt: attempt.quoteObservedAt, challenge: "", message: "", authorizationExpiresAt: 0 };
       throw new Error(`Checkout cannot be quoted from state ${attempt.status}.`);
     }
     const quote = await merchantQuote(attempt);
-    return ctx.runMutation(internal.commerce.checkout.markQuoted, { attemptId: args.attemptId, ...quote });
+    const quoted = await ctx.runMutation(internal.commerce.checkout.markQuoted, { attemptId: args.attemptId, ...quote });
+    const challenge = randomChallenge();
+    const message = checkoutIntentMessage({ merchantUrl: quoted.merchantUrl, amountCents: quoted.amountCents, currency: quoted.currency, quantity: attempt.quantity, listingId: attempt.listingId, challenge });
+    const issued = await ctx.runMutation(internal.commerce.checkout.issueCheckoutChallenge, { attemptId: args.attemptId, challenge, digest: message, ttlMs: CHECKOUT_CHALLENGE_TTL_MS });
+    return { attemptId: quoted.attemptId, amountCents: quoted.amountCents, currency: quoted.currency, merchantUrl: quoted.merchantUrl, observedAt: quoted.observedAt, challenge: issued.challenge, message: issued.message, authorizationExpiresAt: issued.expiresAt };
   },
 });
+
+/**
+ * Verifies the device's ECDSA P-256 signature over the exact-intent message
+ * against a registered, unrevoked device key owned by the caller, then
+ * atomically consumes the single-use challenge. Only after this does the
+ * attempt reach READY_FOR_PAYMENT — the only state from which a charge can
+ * be attached. This is the server-verifiable purchase authorization boundary.
+ */
+export const authorizeCheckout = action({
+  args: { attemptId: v.id("checkoutAttempts"), signature: v.string(), publicKey: v.string() },
+  returns: v.object({ status: v.string(), authorizedAt: v.number() }),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const attempt: CheckoutAttemptSnapshot | null = await ctx.runQuery(internal.commerce.checkout.getCheckoutAttemptInternal, { attemptId: args.attemptId });
+    if (!attempt || attempt.tokenIdentifier !== identity.tokenIdentifier) throw new Error("Checkout attempt not found.");
+    if (attempt.status !== "AWAITING_STEP_UP") {
+      if (attempt.status === "READY_FOR_PAYMENT") throw new Error("This checkout is already authorized.");
+      throw new Error(`Checkout cannot be authorized from state ${attempt.status}.`);
+    }
+    const authorization = await ctx.runQuery(internal.commerce.checkout.getCheckoutAttemptInternal, { attemptId: args.attemptId });
+    const challenge = authorization?.authorization;
+    if (!challenge) throw new Error("Checkout has no active authorization challenge.");
+    if (challenge.consumed) throw new Error("This checkout authorization has already been used.");
+    if (Date.now() > challenge.expiresAt) throw new Error("Checkout authorization has expired. Re-verify to continue.");
+
+    const device: { _id: Id<"checkoutDeviceKeys"> } | null = await ctx.runQuery(internal.commerce.checkout.getCheckoutDeviceInternal, { tokenIdentifier: identity.tokenIdentifier, publicKey: args.publicKey }) as { _id: Id<"checkoutDeviceKeys"> } | null;
+    if (!device) throw new Error("This device is not registered for purchase confirmation. Register it in Profile.");
+
+    // Server-side signature verification against the registered device key —
+    // a client-side biometric success alone authorizes nothing. Android emits
+    // DER ECDSA signatures; WebCrypto emits raw 64-byte r||s — normalize.
+    const rawPublicKey = normalizeToRawP256(args.publicKey.trim());
+    // SPKI = fixed 26-byte header + the raw point minus its own 0x04 tag.
+    const spki = Buffer.concat([
+      Buffer.from(P256_SPKI_HEADER_B64, "base64"),
+      Buffer.from(rawPublicKey, "base64").subarray(1),
+    ]);
+    const keyObject = crypto.createPublicKey({ key: spki, format: "der", type: "spki" });
+    // WebCrypto-style signatures are raw 64-byte r||s (ieee-p1363); Android's
+    // DER form is normalized to that same encoding before verification.
+    const verified = crypto.verify(
+      "sha256",
+      Buffer.from(challenge.digest, "utf8"),
+      { key: keyObject, dsaEncoding: "ieee-p1363" },
+      normalizeCheckoutSignature(args.signature),
+    );
+    if (!verified) throw new Error("Purchase confirmation signature is invalid.");
+
+    const result = (await ctx.runMutation(internal.commerce.checkout.consumeCheckoutChallenge, { attemptId: args.attemptId, deviceKeyId: device._id })) as { status: string };
+    return { status: result.status, authorizedAt: Date.now() };
+  },
+});
+
+type PaymentIntentResult = { clientSecret: string; paymentIntentId: string; amountCents: number; currency: string; publishableKey: string };
 
 export const createPaymentIntent = action({
   args: { attemptId: v.id("checkoutAttempts"), confirmedAmountCents: v.number(), confirmedCurrency: v.string() },
@@ -122,11 +284,12 @@ function failureCodeOf(error: unknown): string {
 
 /**
  * Off-session confirmation using the user's saved default card. The user has
- * already approved this exact listing/quantity through a biometric step-up on
- * the device; the biometric signature is never transmitted — it only gates
- * the request locally. Stripe off_session SCA is declared here so the charge
- * is legal without a new client session, and the charge amount is pinned to
- * the server-verified merchant quote (never client numbers).
+ * already approved this exact transaction through a device signature that
+ * Convex verified server-side (authorizeCheckout) — this action refuses any
+ * attempt that is not READY_FOR_PAYMENT, so a stolen bearer token alone can
+ * never charge the user. Stripe off_session SCA is declared here so the
+ * charge is legal without a new client session, and the charge amount is
+ * pinned to the server-verified merchant quote (never client numbers).
  */
 export const confirmCheckout = action({
   args: { attemptId: v.id("checkoutAttempts") },
@@ -140,6 +303,7 @@ export const confirmCheckout = action({
     if (attempt.paymentIntentId) throw new Error("This checkout is already in progress.");
     if (attempt.status === "COMPLETED") throw new Error("This checkout is already completed.");
     if (attempt.status === "FAILED") throw new Error("This checkout attempt is closed. Start a new checkout.");
+    if (attempt.status !== "READY_FOR_PAYMENT") throw new Error("Purchase authorization is required before payment. Confirm with biometrics on your device first.");
     if (!attempt.amountCents || !attempt.currency) throw new Error("Checkout has not been quoted yet.");
     if (!env.STRIPE_SECRET_KEY) throw new Error("Stripe checkout is not configured in the Convex deployment.");
 

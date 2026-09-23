@@ -24,7 +24,7 @@ test("addItem requires a name and normalizes blank categories", async () => {
   await expect(t.withIdentity(identityA).mutation(api.grocery.addItem, { name: "   ", category: "Produce" })).rejects.toThrow(/name/);
   const id = await t.withIdentity(identityA).mutation(api.grocery.addItem, { name: "Basil", category: "   " });
   const list = await t.withIdentity(identityA).query(api.grocery.getMyList, {});
-  const item = list.items.find((entry) => entry.id === id);
+  const item = list.items.find((entry: { id: string }) => entry.id === id);
   expect(item?.category).toBe("Other");
 });
 

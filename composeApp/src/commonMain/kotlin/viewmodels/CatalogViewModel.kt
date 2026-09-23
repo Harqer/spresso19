@@ -9,6 +9,8 @@ import network.CheckoutConfirmation
 import network.CheckoutQuote
 import network.ConvexApi
 import network.ProductItem
+import network.getCheckoutDevicePublicKey
+import network.parseBiometricAssertion
 import network.promptBiometricAuth
 
 /** A checkout that the backend has accepted and quoted; pending user confirmation. */
@@ -47,6 +49,13 @@ class CatalogViewModel(
     private val scope: CoroutineScope,
     private val convexApi: ConvexApi,
 ) {
+    /**
+     * Authorization failures the user can recover from by trying again without
+     * a fresh quote (e.g. a transient verify hiccup). Everything else —
+     * consumed/expired challenge, revoked key — needs a re-prepare.
+     */
+    private val authorizationRetryableMarkers = listOf("expired", "re-verify")
+
     private val _activeDetailProduct = MutableStateFlow<ProductItem?>(null)
     val activeDetailProduct: StateFlow<ProductItem?> = _activeDetailProduct.asStateFlow()
 
@@ -95,12 +104,20 @@ class CatalogViewModel(
     }
 
     /**
-     * Confirms the draft: a strong local biometric step-up gates the request
-     * (the signature never leaves the device), then the backend charges the
-     * user's saved default card off-session for the quoted amount.
+     * Confirms the draft. The device biometric unlocks a Keystore/WebCrypto
+     * signing key that signs the server-issued exact-intent message; the
+     * signature is submitted to Convex, which verifies it server-side against
+     * the registered device key and consumes the single-use challenge. Only
+     * then is the off-session charge attempted. Client biometric success alone
+     * authorizes nothing — the server gate is authoritative.
      */
     fun confirmCheckout() {
         val draft = _checkoutDraft.value ?: return
+        if (draft.quote.message.isBlank()) {
+            _checkoutPhase.value =
+                CheckoutPhase.Failed("Checkout is missing its authorization challenge. Refresh and try again.", retryable = true)
+            return
+        }
         // Reserve the flow synchronously: a double tap must not start a second
         // biometric prompt or fire a second charge request.
         when (val current = _checkoutPhase.value) {
@@ -110,14 +127,35 @@ class CatalogViewModel(
         }
         _checkoutPhase.value = CheckoutPhase.ConfirmingBiometric
         scope.launch {
-            val approved =
+            // The platform signs the exact-intent message bytes — never a
+            // pre-computed digest — so the server's crypto.verify over the
+            // stored message applies a single, matching SHA-256.
+            val assertion =
                 promptBiometricAuth(
                     reason = "Confirm ${draft.quote.amountCents / 100.0} ${draft.quote.currency} for ${draft.product.name}?",
-                    payload = draft.attemptId,
+                    payload = draft.quote.message,
                 )
-            if (approved == null) {
+            if (assertion == null) {
                 // Nothing reached the backend; the attempt is still valid.
                 _checkoutPhase.value = CheckoutPhase.Failed("Purchase was not confirmed on this device.", retryable = true)
+                return@launch
+            }
+            val parsed = parseBiometricAssertion(assertion)
+            if (parsed == null) {
+                _checkoutPhase.value = CheckoutPhase.Failed("Device confirmation could not be read. Try again.", retryable = true)
+                return@launch
+            }
+            try {
+                // Server-verifiable authorization: Convex verifies the device
+                // signature over the exact intent before any charge.
+                convexApi.authorizeCheckout(draft.attemptId, parsed.signature, parsed.publicKey)
+            } catch (e: Exception) {
+                // Authorization failures (unregistered/revoked key, expired or
+                // consumed challenge, bad signature) keep the attempt alive for
+                // a re-quote only when the server says the challenge is gone.
+                val message = e.message ?: "Purchase could not be authorized."
+                _checkoutPhase.value =
+                    CheckoutPhase.Failed(message, retryable = authorizationRetryableMarkers.any { message.contains(it, ignoreCase = true) })
                 return@launch
             }
             _checkoutPhase.value = CheckoutPhase.Charging
@@ -131,6 +169,12 @@ class CatalogViewModel(
                 _checkoutPhase.value = CheckoutPhase.Failed(e.message ?: "Payment failed. Please try again.", retryable = false)
             }
         }
+    }
+
+    /** Registers this device's checkout signing key. Returns null when the platform has no enrollment surface. */
+    suspend fun registerCheckoutDevice(): String? {
+        val publicKey = getCheckoutDevicePublicKey() ?: return null
+        return convexApi.registerCheckoutDevice(publicKey, "Spresso checkout key")
     }
 
     fun dismissCheckout() {

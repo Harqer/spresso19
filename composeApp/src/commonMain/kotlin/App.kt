@@ -1,9 +1,11 @@
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -196,6 +198,32 @@ fun App(
         // Barge-in must cut off queued playback, not just flip conversation state.
         chatViewModel.onPlaybackInterrupted = { audioPlayer.stop() }
 
+        var checkoutDeviceStatus by remember { mutableStateOf<String?>(null) }
+        val onRegisterCheckoutDeviceRequested: () -> Unit = {
+            scope.launch {
+                checkoutDeviceStatus =
+                    try {
+                        if (catalogViewModel.registerCheckoutDevice() != null) {
+                            "This device can now confirm purchases with biometrics."
+                        } else {
+                            "Purchase confirmation is not available on this device."
+                        }
+                    } catch (e: Exception) {
+                        e.message ?: "Device registration failed. Sign in again and retry."
+                    }
+            }
+        }
+        checkoutDeviceStatus?.let { message ->
+            AlertDialog(
+                onDismissRequest = { checkoutDeviceStatus = null },
+                confirmButton = {
+                    TextButton(onClick = { checkoutDeviceStatus = null }) { Text("OK") }
+                },
+                title = { Text("Purchase confirmation") },
+                text = { Text(message) },
+            )
+        }
+
         DisposableEffect(Unit) {
             onDispose {
                 liveApiClient.close()
@@ -297,6 +325,7 @@ fun App(
                     entry<NavKey.AuthKey> { currentDestinationKey ->
                         AuthPage(
                             onGoogleSignInRequested = onGoogleSignInRequested,
+                            onPhoneSignInRequested = onPhoneSignInRequested,
                             onSuccess = {
                                 // Firebase now owns identity; Convex accepts the token.
                                 // Every new account goes through the gamified onboarding once.
@@ -355,6 +384,7 @@ fun App(
                                 navigator.resetTo(NavKey.AuthKey)
                             },
                             onVerifyEmail = onVerifyEmailRequested,
+                            onRegisterCheckoutDevice = onRegisterCheckoutDeviceRequested,
                             onNavigateToWearables = { navigator.navigate(NavKey.MetaWearablesKey) },
                         )
                     }
@@ -822,6 +852,7 @@ fun App(
                                 navigator.replace(NavKey.AuthKey)
                             },
                             onVerifyEmail = onVerifyEmailRequested,
+                            onRegisterCheckoutDevice = onRegisterCheckoutDeviceRequested,
                             onNavigateToFavorites = {
                                 navigator.navigate(ActionDestination.resolve(SpressoAction.OpenSavedListings))
                             },
@@ -846,6 +877,7 @@ fun App(
                                 navigator.resetTo(NavKey.AuthKey)
                             },
                             onVerifyEmail = onVerifyEmailRequested,
+                            onRegisterCheckoutDevice = onRegisterCheckoutDeviceRequested,
                             onNavigateToFavorites = {
                                 navigator.navigate(ActionDestination.resolve(SpressoAction.OpenSavedListings))
                             },

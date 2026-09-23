@@ -1,5 +1,7 @@
 import Stripe from "stripe";
-import { httpAction, env } from "./_generated/server";
+import { env } from "./_generated/server";
+import { browserHttpAction as httpAction, browserOrigins } from "./lib/browserHttp";
+import { corsRouter } from "convex-helpers/server/cors";
 import { httpRouter } from "convex/server";
 import { internal, api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -124,9 +126,14 @@ export const stripeWebhook = httpAction(async (ctx, request) => {
   }
 });
 
-const http = httpRouter();
+const http = corsRouter(httpRouter(), {
+  allowedOrigins: browserOrigins,
+  allowedHeaders: ["Authorization", "Content-Type", "X-Firebase-AppCheck"],
+  exposedHeaders: [],
+  browserCacheMaxAge: 600,
+});
 
-http.route({ path: "/stripe_webhook", method: "POST", handler: stripeWebhook });
+http.http.route({ path: "/stripe_webhook", method: "POST", handler: stripeWebhook });
 
 export const uploadMediaHttp = httpAction(async (ctx, request) => {
   return runBridge(async () => {
@@ -371,7 +378,51 @@ export const detachPaymentMethodHttp = httpAction(async (ctx, request) => {
   });
 });
 
-// ---- Checkout: quote → biometric confirm → off-session charge -------------
+// ---- Checkout: quote → device-verified authorization → off-session charge --
+
+/**
+ * Registers a device-bound P-256 signing key used to authorize exact-intent
+ * checkouts. This is a sensitive security-state change, so it additionally
+ * requires a **fresh sign-in**: Convex exposes Firebase's `auth_time` claim
+ * on the verified identity (as `authTime`), and we require it to be within
+ * the last 10 minutes. This is the server-verifiable reauthentication/MFA
+ * gate — a stolen bearer token from an old session cannot enroll a new
+ * purchase-authorizing key.
+ */
+const DEVICE_REGISTRATION_MAX_AGE_MS = 10 * 60 * 1000;
+
+export const registerCheckoutDeviceHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    const identity = await bearerIdentity(ctx);
+    const authTime = (identity as { authTime?: unknown }).authTime;
+    const authTimeMs = typeof authTime === "number" && Number.isFinite(authTime) ? authTime * 1000 : null;
+    if (authTimeMs === null || Date.now() - authTimeMs > DEVICE_REGISTRATION_MAX_AGE_MS) {
+      throw new BridgeError("Sign in again to register this device for purchase confirmation.", 403);
+    }
+    const body = (await request.json().catch(() => ({}))) as { publicKey?: unknown; label?: unknown };
+    if (typeof body.publicKey !== "string" || !body.publicKey.trim()) throw new BridgeError("publicKey is required.", 400);
+    const label = typeof body.label === "string" ? body.label : undefined;
+    return ctx.runMutation(api.commerce.checkout.registerCheckoutDevice, {
+      publicKey: body.publicKey,
+      ...(label !== undefined ? { label } : {}),
+    });
+  });
+});
+
+export const authorizeCheckoutHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const body = (await request.json().catch(() => ({}))) as { attemptId?: unknown; signature?: unknown; publicKey?: unknown };
+    if (typeof body.attemptId !== "string") throw new BridgeError("attemptId is required.", 400);
+    if (typeof body.signature !== "string" || !body.signature.trim()) throw new BridgeError("signature is required.", 400);
+    if (typeof body.publicKey !== "string" || !body.publicKey.trim()) throw new BridgeError("publicKey is required.", 400);
+    return ctx.runAction(api.commerce.actions.authorizeCheckout, {
+      attemptId: requireConvexId<"checkoutAttempts">(body.attemptId, "attemptId"),
+      signature: body.signature,
+      publicKey: body.publicKey,
+    });
+  });
+});
 
 export const acquireCheckoutAttemptHttp = httpAction(async (ctx, request) => {
   return runBridge(async () => {
@@ -426,7 +477,9 @@ http.route({ path: "/api/payment-methods/attach", method: "POST", handler: attac
 http.route({ path: "/api/payment-methods/detach", method: "POST", handler: detachPaymentMethodHttp });
 http.route({ path: "/api/checkout/attempt", method: "POST", handler: acquireCheckoutAttemptHttp });
 http.route({ path: "/api/checkout/prepare", method: "POST", handler: prepareCheckoutHttp });
+http.route({ path: "/api/checkout/authorize", method: "POST", handler: authorizeCheckoutHttp });
 http.route({ path: "/api/checkout/confirm", method: "POST", handler: confirmCheckoutHttp });
+http.route({ path: "/api/checkout/devices", method: "POST", handler: registerCheckoutDeviceHttp });
 
 // ---- Discovery: external-provider search + preference-derived feed --------
 
@@ -1031,4 +1084,4 @@ export const healthHttp = httpAction(async () => {
 http.route({ path: "/api/health", method: "GET", handler: healthHttp });
 http.route({ path: "/api/context/weather", method: "GET", handler: weatherContextHttp });
 
-export default http;
+export default http.http;

@@ -2,19 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Spresso - Chef</title>
-    <script type="application/javascript" src="composeApp.js"></script>
-    <script type="module" src="firebase-auth.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spresso</title>
+    <script type="module" src="bootstrap.js"></script>
     <style>
-        html, body {
+        html, body, #app {
             width: 100%;
             height: 100%;
             margin: 0;
             padding: 0;
             overflow: hidden;
         }
+        #startup-message { position: fixed; inset: 0; display: grid; place-content: center; font-family: sans-serif; }
     </style>
 </head>
 <body>
+    <div id="app"></div>
+    <div id="startup-message" role="status">Loading Spresso...</div>
+    <div id="recaptcha-container"></div>
 </body>
 </html>

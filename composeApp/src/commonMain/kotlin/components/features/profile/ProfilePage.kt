@@ -52,6 +52,7 @@ fun ProfilePage(
     onThemeModeChange: ((ThemeMode) -> Unit)? = null,
     onSignOut: (() -> Unit)? = null,
     onVerifyEmail: (() -> Unit)? = null,
+    onRegisterCheckoutDevice: (() -> Unit)? = null,
     onNavigateToFavorites: (() -> Unit)? = null,
     onNavigateToOrderHistory: (() -> Unit)? = null,
     onNavigateToNotifications: (() -> Unit)? = null,
@@ -159,6 +160,7 @@ fun ProfilePage(
                 PaymentWalletSection(
                     savedCards = userProfile!!.savedCards,
                     web3WalletAddress = userProfile!!.web3WalletAddress,
+                    onRegisterCheckoutDevice = onRegisterCheckoutDevice,
                     onAddPaymentCard = {
                         scope.launch {
                             snackbarHostState.showSnackbar(

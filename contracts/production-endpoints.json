@@ -89,7 +89,19 @@
       ]
     },
     {
+      "path": "/api/checkout/authorize",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
       "path": "/api/checkout/confirm",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/checkout/devices",
       "methods": [
         "POST"
       ]

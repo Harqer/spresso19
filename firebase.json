@@ -15,13 +15,19 @@
           { "key": "X-Content-Type-Options", "value": "nosniff" },
           { "key": "X-Frame-Options", "value": "DENY" },
           { "key": "X-XSS-Protection", "value": "1; mode=block" },
-          { "key": "Content-Security-Policy", "value": "default-src 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://apis.google.com;" }
+          { "key": "Content-Security-Policy", "value": "default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval' https://apis.google.com https://www.gstatic.com/firebasejs/ https://www.gstatic.com/recaptcha/ https://www.google.com/recaptcha/; frame-src 'self' https://get-spresso.firebaseapp.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://get-spresso.firebaseapp.com https://www.google.com/recaptcha/ https://www.gstatic.com https://woozy-anteater-572.convex.site https://woozy-anteater-572.convex.cloud wss://woozy-anteater-572.convex.cloud; worker-src 'self' blob:; font-src 'self' data:; media-src 'self' blob: https:;" }
         ]
       },
       {
-        "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|js|mjs|wasm|css)",
+        "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|css)",
         "headers": [
           { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      },
+      {
+        "source": "**/*.@(js|mjs|wasm)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
         ]
       }
     ],
@@ -43,6 +49,7 @@
     ]
   },
   "auth": {
+    "authorizedDomains": ["get-spresso.web.app", "get-spresso.firebaseapp.com"],
     "providers": {
       "anonymous": true,
       "emailPassword": true,

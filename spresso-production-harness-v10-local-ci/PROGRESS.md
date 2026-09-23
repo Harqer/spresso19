@@ -77,7 +77,8 @@ All applicable items must be checked before the feature can be marked passing or
 
 ## Open / Blocked
 - **Blocked on prod vault (Infisical prod -> Convex prod)**: PARALLEL_API_KEY, SERPAPI_API_KEY, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, KITESURF_ALLOWED_DOMAINS, STRIPE_WEBHOOK_SECRET, FAL_API_KEY, BUNNY_* — live discovery, merchant verification, webhook reconciliation, try-on, and media delivery fail closed until provisioned.
-- **Open (code)**: server-verifiable exact-intent checkout authorization; merchant Browser Sessions + adaptive chat/browser UI; in-flight tool-call reconciliation on disconnect for realtime AI (barge-in/restart itself shipped 2026-09-22); order-history code is complete, remaining work is live carrier/fulfillment evidence.
+- **Open (code)**: merchant Browser Sessions + adaptive chat/browser UI; in-flight tool-call reconciliation on disconnect for realtime AI (barge-in/restart itself shipped 2026-09-22); order-history code is complete, remaining work is live carrier/fulfillment evidence. DONE 2026-09-23: server-verifiable exact-intent checkout authorization — see Completed.
+- **Checkout device management (partial by scope)**: register/list endpoints + key normalization are live; a Profile device-revoke UI and a Firebase `auth_time` reauthentication prompt UX are the remaining polish.
 - **Duplicates awaiting removal (root-caused, do not delete in a feature pass)**: none remaining — `ApiClient.kt` legacy transport was consolidated into `ConvexApi.kt` and deleted 2026-09-22 (its direct provider call for weather moved behind `/api/context/weather`; per-instance `close()` calls that could kill the shared HTTP client were removed).
 
 ## Decisions
@@ -88,7 +89,7 @@ All applicable items must be checked before the feature can be marked passing or
 - Chat/browser UI uses the existing Material 3 theme, Navigation 3, Material 3 Adaptive and edge-to-edge; no hard-coded palette or duplicate theme.
 
 ## Next
-1. Implement server-issued exact-intent checkout authorization and verify biometric/passkey + MFA proof in Convex; add bypass/replay/expiry/material-change tests.
+1. ~~Implement server-issued exact-intent checkout authorization~~ DONE 2026-09-23: device-bound P-256 keys registered behind a Firebase `auth_time` freshness gate (10 min); `prepareCheckout` issues a single-use challenge + canonical exact-intent message (merchant/amount/currency/quantity/listing/nonce); new `authorizeCheckout` action verifies the ECDSA P-256 signature server-side (SPKI↔raw-point + DER↔r||s normalization for both Keystore and WebCrypto) and atomically consumes the nonce into `READY_FOR_PAYMENT`; `attachPaymentIntent`/`confirmCheckout` refuse anything not READY_FOR_PAYMENT; re-quote clears the challenge (material change). Bypass/tamper/replay/cross-user/consumed-nonce/material-change suites in `convex/commerceCheckout.test.ts` (29 tests).
 2. Implement `merchant-browser-automation` from `docs/merchant-browser-automation.md`: Convex session/events/tools → Browser Run Playwright/CDP → Kitesurf/Chromium engine selection → adaptive chat/browser UI → Live View/HITL.
 3. Implement in-flight tool-call reconciliation on disconnect for realtime AI (barge-in/restart DONE 2026-09-22).
 4. ~~Order-history edge-case tests~~ DONE 2026-09-22 (ownership/validation/idempotency suites; UI state gating shipped). Also DONE 2026-09-22: wearable intent receivers, client checkout surface, ApiClient.kt consolidation.

@@ -293,11 +293,39 @@ export default defineSchema({
       confidence: v.optional(v.number()),
     }),
     returnRequestKey: v.optional(v.string()),
+    // Server-issued exact-intent purchase authorization. The challenge digest
+    // pins the full immutable offer; the device key signs it and Convex
+    // verifies the signature before any off-session charge is allowed.
+    authorization: v.optional(
+      v.object({
+        challenge: v.string(),
+        digest: v.string(),
+        issuedAt: v.number(),
+        expiresAt: v.number(),
+        consumed: v.boolean(),
+      }),
+    ),
+    authorizedAt: v.optional(v.number()),
+    authorizedByDeviceKeyId: v.optional(v.id("checkoutDeviceKeys")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_token_identifier_and_idempotency_key", ["tokenIdentifier", "idempotencyKey"])
     .index("by_payment_intent_id", ["paymentIntentId"]),
+
+  // Device-bound signing keys authorized to confirm exact-intent checkouts.
+  // Stored canonically as a raw uncompressed P-256 point (65 bytes, base64);
+  // clients may submit SPKI DER or raw — the server normalizes. The private
+  // key never leaves the device (Keystore / WebCrypto).
+  checkoutDeviceKeys: defineTable({
+    tokenIdentifier: v.string(),
+    publicKey: v.string(),
+    label: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_token_identifier", ["tokenIdentifier"])
+    .index("by_token_identifier_and_public_key", ["tokenIdentifier", "publicKey"]),
 
   paymentMethods: defineTable({
     tokenIdentifier: v.string(),

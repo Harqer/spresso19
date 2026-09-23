@@ -39,10 +39,10 @@
     {
       "id": "agentic-checkout",
       "priority": 5,
-      "status": "PARTIAL",
+      "status": "IMPLEMENTED_BUT_UNVERIFIED",
       "spec": "docs/features.md#agentic-checkout",
       "evidence": "Quote/payment/webhook path is wired: convex/commerce/actions.ts + checkout.ts verify owner/merchant quote, charge the saved Stripe method idempotently, and reconcile signed webhooks; client CatalogViewModel shows the verified quote and invokes strong Android biometric before confirm. Audit gap: promptBiometricAuth returns a signed assertion, but CatalogViewModel discards it and /api/checkout/confirm sends only attemptId, so Convex cannot prove biometric/MFA authorization occurred.",
-      "remaining": "Create a server-issued exact-intent challenge/digest and verify the biometric/passkey assertion + required MFA server-side; bind variant/quantity/amount/currency/payment method/nonce/expiry, invalidate on material changes or stale quotes, add bypass/replay tests, then record a live provider run."
+      "remaining": "Live provider run only: the server-verifiable exact-intent authorization boundary shipped 2026-09-23 (device-bound P-256 key registration behind a Firebase auth_time freshness gate, single-use challenge + canonical intent message, server-side ECDSA verification in authorizeCheckout, single-use consumption into READY_FOR_PAYMENT, confirm/attach gated on it, re-quote invalidates; bypass/tamper/replay/cross-user/material-change tests green). Remaining: device-revoke UI polish and a live Stripe/merchant run before any VERIFIED claim."
     },
     {
       "id": "merchant-browser-automation",
@@ -65,7 +65,7 @@
       "priority": 8,
       "status": "IMPLEMENTED_BUT_UNVERIFIED",
       "spec": "docs/features.md#grocery-list",
-      "evidence": "convex/grocery.ts exposes deterministic user-owned mutations with ownership-scoped getMyList; bridge routes /api/grocery*; client wired via ConvexApi. convex/grocery.test.ts now covers authz/ownership/normalization (4 tests) \u2014 backend fully gated.",
+      "evidence": "convex/grocery.ts exposes deterministic user-owned mutations with ownership-scoped getMyList; bridge routes /api/grocery*; client wired via ConvexApi. convex/grocery.test.ts now covers authz/ownership/normalization (4 tests) — backend fully gated.",
       "remaining": "Verify offline/reconnect behavior on device."
     },
     {
