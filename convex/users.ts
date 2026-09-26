@@ -96,10 +96,183 @@ async function ensureUserForIdentity(ctx: MutationCtx, args: { email?: string; d
   });
 }
 
+/**
+ * Canonical authenticated bootstrap (one idempotent mutation):
+ *   verified Firebase identity → users row (create, or reconcile a migrated
+ *   row by firebaseUid) → exactly one preferences row with required defaults
+ *   (galleryPermission UNDETERMINED, onboardingCompleted false) → typed
+ *   launch state. Identity derives ONLY from ctx.auth.getUserIdentity(); the
+ *   optional email/displayName/photoUrl args are profile hints, never
+ *   authorization inputs.
+ */
 export const bootstrap = mutation({
-  args: profileArgs,
-  returns: v.id("users"),
-  handler: (ctx, args) => ensureUserForIdentity(ctx, args),
+  args: {
+    email: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    photoUrl: v.optional(v.string()),
+  },
+  returns: v.object({
+    userId: v.id("users"),
+    firebaseUid: v.string(),
+    displayName: v.optional(v.string()),
+    email: v.optional(v.string()),
+    photoUrl: v.optional(v.string()),
+    onboardingCompleted: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    // Firebase-owned identity metadata comes FIRST from verified token claims;
+    // client-supplied fields are profile hints only (validated below, bounded,
+    // never ownership). A claim always wins over a client argument.
+    const email = identity.email ?? (typeof args.email === "string" ? args.email.slice(0, 320) : undefined);
+    const displayName = identity.name ?? (typeof args.displayName === "string" ? args.displayName.slice(0, 120) : undefined);
+    const photoUrl = identity.picture ?? (typeof args.photoUrl === "string" ? args.photoUrl.slice(0, 2048) : undefined);
+
+    let user = await ctx.db
+      .query("users")
+      .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user) {
+      const byUid = await ctx.db
+        .query("users")
+        .withIndex("by_firebase_uid", (q) => q.eq("firebaseUid", identity.firebaseUid))
+        .unique();
+      if (byUid) {
+        await ctx.db.patch(byUid._id, { tokenIdentifier: identity.tokenIdentifier });
+        user = await ctx.db.get(byUid._id);
+      }
+    }
+
+    if (!user) {
+      const now = Date.now();
+      const userId = await ctx.db.insert("users", {
+        firebaseUid: identity.firebaseUid,
+        tokenIdentifier: identity.tokenIdentifier,
+        email,
+        displayName,
+        photoUrl,
+        createdAt: now,
+        trialStartedAt: now,
+        trialEndsAt: now + 14 * 24 * 60 * 60 * 1000,
+      });
+      user = await ctx.db.get(userId);
+    } else {
+      const patch: Record<string, string> = {};
+      if (email !== undefined && !user.email) patch.email = email;
+      if (displayName !== undefined && !user.displayName) patch.displayName = displayName;
+      if (photoUrl !== undefined && !user.photoUrl) patch.photoUrl = photoUrl;
+      if (Object.keys(patch).length > 0) await ctx.db.patch(user._id, patch);
+    }
+
+    let prefs = await ctx.db
+      .query("preferences")
+      .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!prefs) {
+      await ctx.db.insert("preferences", {
+        tokenIdentifier: identity.tokenIdentifier,
+        galleryPermission: "UNDETERMINED",
+        onboardingCompleted: false,
+        updatedAt: Date.now(),
+      });
+      prefs = await ctx.db
+        .query("preferences")
+        .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+        .unique();
+    }
+
+    return {
+      userId: user!._id,
+      firebaseUid: identity.firebaseUid,
+      displayName: user!.displayName,
+      email: user!.email,
+      photoUrl: user!.photoUrl,
+      onboardingCompleted: prefs!.onboardingCompleted === true,
+    };
+  },
+});
+
+/** The authenticated caller's complete account state (users + preferences). */
+export const meWithPreferences = query({
+  args: {},
+  returns: v.union(
+    v.object({
+      user: v.union(
+        v.object({
+          _id: v.id("users"),
+          firebaseUid: v.string(),
+          email: v.optional(v.string()),
+          displayName: v.optional(v.string()),
+          photoUrl: v.optional(v.string()),
+          createdAt: v.number(),
+        }),
+        v.null(),
+      ),
+      preferences: v.union(
+        v.object({
+          galleryPermission: v.string(),
+          onboardingCompleted: v.boolean(),
+        }),
+        v.null(),
+      ),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    const prefs = await ctx.db
+      .query("preferences")
+      .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user) return null;
+    return {
+      user: {
+        _id: user._id,
+        firebaseUid: user.firebaseUid,
+        email: user.email,
+        displayName: user.displayName,
+        photoUrl: user.photoUrl,
+        createdAt: user.createdAt,
+      },
+      preferences: {
+        galleryPermission: prefs?.galleryPermission ?? "UNDETERMINED",
+        onboardingCompleted: prefs?.onboardingCompleted === true,
+      },
+    };
+  },
+});
+
+/**
+ * Update only the caller's own preferences (partial patch). The preferences
+ * row is established exclusively by users.bootstrap; this fails loudly if it
+ * has not run, rather than silently creating a divergent row.
+ */
+export const updatePreferences = mutation({
+  args: {
+    galleryPermission: v.optional(v.union(v.literal("UNDETERMINED"), v.literal("GRANTED"), v.literal("DENIED"))),
+    theme: v.optional(v.union(v.literal("system"), v.literal("light"), v.literal("dark"))),
+    onboardingCompleted: v.optional(v.boolean()),
+    locationEnabled: v.optional(v.boolean()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const identity = await requireFirebaseIdentity(ctx);
+    const prefs = await ctx.db
+      .query("preferences")
+      .withIndex("by_token_identifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!prefs) throw new Error("Preferences not initialized; call users.bootstrap first.");
+    const patch: Record<string, unknown> = { updatedAt: Date.now() };
+    for (const [key, value] of Object.entries(args)) {
+      if (value !== undefined) patch[key] = value;
+    }
+    await ctx.db.patch(prefs._id, patch);
+    return null;
+  },
 });
 
 export const ensureUser = internalMutation({

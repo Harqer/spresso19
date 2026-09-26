@@ -25,13 +25,19 @@ import network.MerchantBrowserSession
 /**
  * Compact merchant automation card shown above the chat composer while a
  * session is live (harness contract: chat stays primary, automation is a
- * card). Status presentation uses semantic Material roles — no hard-coded
- * colors — and exposes only the customer-safe actions: Expand is left to the
- * host (pane navigation), Pause/Resume and Take over go to Convex control.
+ * card). Shows the customer-safe semantic step (docs/merchant-browser-automation.md
+ * "Semantic CurrentStep Values") translated to plain copy; DOM selectors, CDP
+ * commands, provider payloads, and Live View URLs are never rendered.
+ *
+ * HITL: while status is HUMAN_CONTROL with a live view available, the card
+ * tells the user they hold control of the SAME browser session and offers a
+ * dismiss affordance; actions remain customer-safe only (Pause/Resume/Take over).
  */
 @Composable
 fun MerchantBrowserSessionCard(
     session: MerchantBrowserSession,
+    liveViewUrl: String?,
+    onDismissLiveView: () -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
     onTakeOver: () -> Unit,
@@ -61,6 +67,15 @@ fun MerchantBrowserSessionCard(
                 )
                 MerchantStatusLabel(status = session.status)
             }
+            stepCopy(session.currentStep)?.let { step ->
+                Text(
+                    text = step,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             val pageTitle = session.pageTitle
             if (!pageTitle.isNullOrBlank()) {
                 Text(
@@ -80,6 +95,16 @@ fun MerchantBrowserSessionCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            if (session.status == "HUMAN_CONTROL") {
+                Text(
+                    text = "You're in control — finish the step in the secure browser view, then resume.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (liveViewUrl != null) {
+                    TextButton(onClick = onDismissLiveView) { Text("Dismiss view") }
+                }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 when (session.status) {
@@ -102,6 +127,28 @@ fun MerchantBrowserSessionCard(
         }
     }
 }
+
+/**
+ * Translates a semantic currentStep value (docs/merchant-browser-automation.md
+ * "Semantic CurrentStep Values") into customer-facing copy. Unknown or legacy
+ * values map to null so internal strings never leak into the UI.
+ */
+internal fun stepCopy(currentStep: String?): String? =
+    when (currentStep) {
+        "OPENING_MERCHANT" -> "Opening the store…"
+        "FINDING_PRODUCT" -> "Finding your product…"
+        "SELECTING_VARIANT" -> "Selecting size and color…"
+        "ADDING_TO_CART" -> "Adding to cart…"
+        "VERIFYING_CART" -> "Checking your cart…"
+        "CHECKING_DELIVERY" -> "Checking delivery options…"
+        "ENTERING_CHECKOUT" -> "Entering checkout…"
+        "NEEDS_USER" -> "Needs your help…"
+        "READY_FOR_CONFIRMATION" -> "Ready for your confirmation"
+        "SUBMITTING_ORDER" -> "Placing the order…"
+        "VERIFYING_ORDER" -> "Confirming with the merchant…"
+        "COMPLETED" -> "Done"
+        else -> null
+    }
 
 @Composable
 private fun MerchantStatusLabel(

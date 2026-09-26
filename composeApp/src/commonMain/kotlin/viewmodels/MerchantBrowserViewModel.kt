@@ -17,6 +17,11 @@ import network.MerchantBrowserSession
  * canonical Convex transport on a bounded interval (the KMP client has no
  * realtime subscription for these actions) and exposes typed state only —
  * provider payloads never reach composables.
+ *
+ * HITL takeover: TAKE_OVER returns a short-lived Live View URL for the SAME
+ * provider browser session; it is held in [liveViewUrl] purely for display,
+ * never persisted, and expires by provider policy (the card re-fetches it
+ * through [refreshLiveView] while the user holds control).
  */
 class MerchantBrowserViewModel(
     private val apiClient: ConvexApi,
@@ -26,6 +31,10 @@ class MerchantBrowserViewModel(
         private set
     val events = mutableStateListOf<MerchantBrowserEvent>()
     var controlError by mutableStateOf<String?>(null)
+        private set
+    var liveViewUrl by mutableStateOf<String?>(null)
+        private set
+    var liveViewError by mutableStateOf<String?>(null)
         private set
 
     private var pollJob: Job? = null
@@ -80,12 +89,33 @@ class MerchantBrowserViewModel(
 
     fun takeOver() = control("TAKE_OVER")
 
+    /** Re-fetch the short-lived Live View while the user holds control. */
+    fun refreshLiveView() {
+        val current = session ?: return
+        if (current.status != "HUMAN_CONTROL") return
+        scope.launch {
+            try {
+                liveViewError = null
+                liveViewUrl = apiClient.fetchMerchantLiveView(current.sessionId)
+            } catch (error: Exception) {
+                liveViewError = error.message ?: "Could not open the live browser view."
+            }
+        }
+    }
+
+    fun dismissLiveView() {
+        liveViewUrl = null
+    }
+
     private fun control(control: String) {
         val current = session ?: return
         scope.launch {
             try {
                 controlError = null
-                apiClient.controlMerchantSession(current.sessionId, control)
+                val result = apiClient.controlMerchantSession(current.sessionId, control)
+                if (control == "TAKE_OVER" && result.ok) {
+                    liveViewUrl = result.liveViewUrl
+                }
             } catch (error: Exception) {
                 controlError = error.message ?: "Could not update the automation."
             }
@@ -96,5 +126,6 @@ class MerchantBrowserViewModel(
         events.clear()
         lastSeq = 0L
         lastSessionId = null
+        liveViewUrl = null
     }
 }

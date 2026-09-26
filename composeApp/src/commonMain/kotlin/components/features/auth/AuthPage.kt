@@ -16,15 +16,27 @@ import androidx.compose.ui.unit.dp
 import components.core.LogoSize
 import components.core.SpressoLogo
 import components.features.auth.widgets.SocialAuthButtons
-import components.models.*
 import kotlinx.coroutines.launch
 import network.createUserWithEmailAndPassword
+import network.reloadCurrentUser
+import network.sendPasswordResetEmail
 import network.signInWithEmailAndPassword
-import network.signInWithGoogle
 
 /**
- * AuthPage Template.
- * Responsive layout with official brand assets and identical Web UI parity.
+ * AuthPage Template (auth correction scope).
+ *
+ * Sign-up: full name + email + password → Firebase createUser →
+ * updateProfile(displayName) → sendEmailVerification. The root state machine
+ * then drives the verification gate and canonical bootstrap — this screen
+ * NEVER navigates directly to Home/Chat, and never creates a Convex user.
+ *
+ * Sign-in: email + password → Firebase; the auth-state listener pushes the
+ * fresh ID token into the Convex client session; the root state machine
+ * takes over. Same for Google (MainActivity CredentialManager path) and
+ * phone (FirebaseUI) — all providers converge on one Convex identity path.
+ *
+ * Forgot password: Firebase sendPasswordResetEmail → generic confirmation
+ * (no account enumeration) → back to sign in. No Convex mutation involved.
  */
 @Composable
 @Suppress("UNUSED_PARAMETER")
@@ -38,10 +50,20 @@ fun AuthPage(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var showForgotPassword by remember { mutableStateOf(false) }
+    var resetEmailSent by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    suspend fun refreshVerificationGate() {
+        // After account creation the user must verify; reload mints a fresh
+        // token so the root gate re-evaluates against Firebase's truth.
+        reloadCurrentUser()
+        onSuccess()
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -80,14 +102,9 @@ fun AuthPage(
                 ) {
                     SocialAuthButtons(
                         onGoogleSignInRequested = {
-                            coroutineScope.launch {
-                                val success = signInWithGoogle()
-                                if (success) {
-                                    onSuccess()
-                                } else {
-                                    snackbarHostState.showSnackbar("Google Sign in failed")
-                                }
-                            }
+                            // One Google path: the platform host owns it
+                            // (Android CredentialManager in MainActivity).
+                            onGoogleSignInRequested?.invoke()
                         },
                         onPhoneSignInRequested = {
                             if (onPhoneSignInRequested != null) onPhoneSignInRequested()
@@ -101,79 +118,139 @@ fun AuthPage(
                         modifier = Modifier.padding(vertical = 4.dp),
                     )
 
-                    if (mode == "register") {
+                    if (showForgotPassword) {
+                        // Password recovery: Firebase reset email → generic
+                        // confirmation → back to sign in. Nothing touches Convex.
+                        Text(
+                            text = if (resetEmailSent) {
+                                "If an account exists for that address, a reset link is on its way."
+                            } else {
+                                "Enter your account email and we'll send a reset link."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (!resetEmailSent) {
+                            OutlinedTextField(
+                                value = email,
+                                onValueChange = { email = it },
+                                label = { Text("Email address") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(25.dp),
+                                singleLine = true,
+                            )
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        busy = true
+                                        val sent = sendPasswordResetEmail(email)
+                                        busy = false
+                                        if (sent) {
+                                            resetEmailSent = true
+                                        } else {
+                                            snackbarHostState.showSnackbar("Could not send a reset email. Please try again.")
+                                        }
+                                    }
+                                },
+                                enabled = !busy && email.isNotBlank(),
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(25.dp),
+                            ) {
+                                Text("Send reset link", style = MaterialTheme.typography.labelLarge)
+                            }
+                        }
+                        TextButton(onClick = { showForgotPassword = false; resetEmailSent = false }) {
+                            Text("Back to sign in", style = MaterialTheme.typography.labelMedium)
+                        }
+                    } else {
+                        if (mode == "register") {
+                            OutlinedTextField(
+                                value = name,
+                                onValueChange = { name = it },
+                                label = { Text("Full name") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(25.dp),
+                                singleLine = true,
+                            )
+                        }
+
                         OutlinedTextField(
-                            value = name,
-                            onValueChange = { name = it },
-                            label = { Text("Full name") },
+                            value = email,
+                            onValueChange = { email = it },
+                            label = { Text("Email address") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(25.dp),
                             singleLine = true,
                         )
-                    }
 
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Email address") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(25.dp),
-                        singleLine = true,
-                    )
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("Password") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(25.dp),
+                            visualTransformation = PasswordVisualTransformation(),
+                            singleLine = true,
+                        )
 
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("Password") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(25.dp),
-                        visualTransformation = PasswordVisualTransformation(),
-                        singleLine = true,
-                    )
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Button(
-                        onClick = {
-                            if (email.isNotBlank() && password.isNotBlank()) {
-                                coroutineScope.launch {
-                                    if (mode == "signin") {
-                                        val success = signInWithEmailAndPassword(email, password)
-                                        if (success) onSuccess() else snackbarHostState.showSnackbar("Sign in failed. Please try again.")
-                                    } else {
-                                        val success = createUserWithEmailAndPassword(email, password)
-                                        if (success) {
-                                            onSuccess()
+                        Button(
+                            onClick = {
+                                if (email.isNotBlank() && password.isNotBlank() && (mode == "signin" || name.isNotBlank())) {
+                                    coroutineScope.launch {
+                                        busy = true
+                                        if (mode == "signin") {
+                                            val success = signInWithEmailAndPassword(email, password)
+                                            busy = false
+                                            // No direct navigation: the Firebase
+                                            // auth-state listener starts the Convex
+                                            // session and the root state machine
+                                            // re-renders from it.
+                                            if (success) onSuccess() else snackbarHostState.showSnackbar("Sign in failed. Please try again.")
                                         } else {
-                                            snackbarHostState.showSnackbar(
-                                                "Account creation failed. Please try again.",
-                                            )
+                                            val success = createUserWithEmailAndPassword(email, password, name.trim())
+                                            busy = false
+                                            if (success) {
+                                                refreshVerificationGate()
+                                            } else {
+                                                snackbarHostState.showSnackbar("Account creation failed. Please try again.")
+                                            }
                                         }
                                     }
+                                } else {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Please fill out all fields")
+                                    }
                                 }
-                            } else {
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Please fill out all fields")
-                                }
+                            },
+                            enabled = !busy,
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            shape = RoundedCornerShape(25.dp),
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                        ) {
+                            Text(if (mode == "signin") "Continue" else "Create Account", style = MaterialTheme.typography.labelLarge)
+                        }
+
+                        if (mode == "signin") {
+                            TextButton(onClick = { showForgotPassword = true }) {
+                                Text("Forgot password?", style = MaterialTheme.typography.labelMedium)
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        shape = RoundedCornerShape(25.dp),
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ),
-                    ) {
-                        Text(if (mode == "signin") "Continue" else "Create Account", style = MaterialTheme.typography.labelLarge)
+                        }
                     }
 
-                    TextButton(onClick = { mode = if (mode == "signin") "register" else "signin" }) {
-                        Text(
-                            text = if (mode == "signin") "Don't have an account? Sign up" else "Already have an account? Sign in",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                    if (!showForgotPassword) {
+                        TextButton(onClick = { mode = if (mode == "signin") "register" else "signin" }) {
+                            Text(
+                                text = if (mode == "signin") "Don't have an account? Sign up" else "Already have an account? Sign in",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     }
                 }
 

@@ -1,2 +1,0 @@
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo

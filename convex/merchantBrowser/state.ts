@@ -1,4 +1,5 @@
-import { internalMutation, internalQuery } from "../_generated/server";
+import { internalAction, internalMutation, internalQuery } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import type { GenericMutationCtx } from "convex/server";
@@ -12,31 +13,51 @@ type StateCtx = GenericMutationCtx<DataModel>;
  * tools.ts (agent tools). Status transitions follow the harness contract in
  * docs/merchant-browser-automation.md:
  *
- * STARTING → ACTIVE → (PAUSED ↔ RESUMING → ACTIVE) → COMPLETED
+ * STARTING → ACTIVE → (PAUSED ↔ RESUMING → ACTIVE) → READY_FOR_PURCHASE_AUTHORIZATION
+ *                    ↘ WAITING_USER_INPUT / WAITING_SECURE_INPUT          → SUBMITTING_PURCHASE → COMPLETED
  *                    ↘ HANDOFF_REQUIRED → HUMAN_CONTROL → RESUMING
  * Any state → FAILED / EXPIRED (terminal)
+ *
+ * Exactly-one control owner: every status maps to exactly one of
+ * AGENT | USER | CREDENTIAL_BROKER | NONE (below). Every transition writes
+ * controlOwner together with status, so the pair can never disagree.
  */
 
 const TERMINAL_STATUSES = new Set(["COMPLETED", "FAILED", "EXPIRED"]);
 
 const ALLOWED_TRANSITIONS: Record<string, Set<string>> = {
   STARTING: new Set(["ACTIVE", "FAILED", "EXPIRED"]),
-  ACTIVE: new Set(["PAUSED", "HANDOFF_REQUIRED", "COMPLETED", "FAILED", "EXPIRED"]),
+  ACTIVE: new Set(["PAUSED", "WAITING_USER_INPUT", "WAITING_SECURE_INPUT", "HANDOFF_REQUIRED", "READY_FOR_PURCHASE_AUTHORIZATION", "COMPLETED", "FAILED", "EXPIRED"]),
   PAUSED: new Set(["RESUMING", "FAILED", "EXPIRED"]),
+  WAITING_USER_INPUT: new Set(["ACTIVE", "RESUMING", "HANDOFF_REQUIRED", "FAILED", "EXPIRED"]),
+  WAITING_SECURE_INPUT: new Set(["ACTIVE", "RESUMING", "HANDOFF_REQUIRED", "FAILED", "EXPIRED"]),
   HANDOFF_REQUIRED: new Set(["HUMAN_CONTROL", "FAILED", "EXPIRED"]),
   HUMAN_CONTROL: new Set(["RESUMING", "FAILED", "EXPIRED"]),
   RESUMING: new Set(["ACTIVE", "FAILED", "EXPIRED"]),
+  READY_FOR_PURCHASE_AUTHORIZATION: new Set(["ACTIVE", "SUBMITTING_PURCHASE", "HANDOFF_REQUIRED", "FAILED", "EXPIRED"]),
+  SUBMITTING_PURCHASE: new Set(["COMPLETED", "FAILED", "EXPIRED"]),
   COMPLETED: new Set(),
   FAILED: new Set(),
   EXPIRED: new Set(),
 };
 
+/**
+ * Exactly-one control owner per status. Canonical map lives in
+ * merchantBrowser/contracts.ts (STATUS_CONTROL_OWNER); imported here for the
+ * mutation handlers that write the field atomically with status.
+ */
+import { STATUS_CONTROL_OWNER } from "./contracts";
+export { STATUS_CONTROL_OWNER };
+export type { MerchantSessionStatus, ControlOwner } from "./contracts";
+
 type SessionDoc = {
   _id: string;
   tokenIdentifier: string;
   merchantHost: string;
-  engine: "KITESURF" | "CHROMIUM";
+  taskId?: string;
+  provider?: "CLOUDFLARE" | "BROWSERBASE" | "LOCAL";
   status: string;
+  controlOwner?: "AGENT" | "USER" | "CREDENTIAL_BROKER" | "NONE";
   providerSessionId?: string;
   currentUrl?: string;
   pageTitle?: string;
@@ -83,8 +104,9 @@ export const createSessionInternal = internalMutation({
   args: {
     tokenIdentifier: v.string(),
     merchantHost: v.string(),
-    engine: v.union(v.literal("KITESURF"), v.literal("CHROMIUM")),
+    provider: v.union(v.literal("CLOUDFLARE"), v.literal("BROWSERBASE"), v.literal("LOCAL")),
     merchantUrl: v.string(),
+    taskId: v.optional(v.string()),
   },
   returns: v.id("merchantBrowserSessions"),
   handler: async (ctx, args) => {
@@ -92,8 +114,10 @@ export const createSessionInternal = internalMutation({
     const sessionId = await ctx.db.insert("merchantBrowserSessions", {
       tokenIdentifier: args.tokenIdentifier,
       merchantHost: args.merchantHost,
-      engine: args.engine,
+      taskId: args.taskId,
+      provider: args.provider,
       status: "STARTING",
+      controlOwner: STATUS_CONTROL_OWNER.STARTING,
       currentUrl: args.merchantUrl,
       // Sequences start at 1: the owner-facing events query is strictly
       // greater-than `afterSeq`, and both the client and the API default
@@ -137,7 +161,8 @@ export const recordProviderStart = internalMutation({
       pageTitle: args.pageTitle,
       expiresAt: args.expiresAt,
       status: "ACTIVE",
-      currentStep: "observing",
+      controlOwner: STATUS_CONTROL_OWNER.ACTIVE,
+      currentStep: "OPENING_MERCHANT",
       lastEventSeq: session.lastEventSeq + 1,
       updatedAt: Date.now(),
     });
@@ -151,12 +176,30 @@ export const recordObservation = internalMutation({
     sessionId: v.id("merchantBrowserSessions"),
     currentUrl: v.string(),
     pageTitle: v.string(),
+    currentStep: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     await ctx.db.patch(args.sessionId, {
       currentUrl: args.currentUrl || undefined,
       pageTitle: args.pageTitle || undefined,
+      ...(args.currentStep ? { currentStep: args.currentStep } : {}),
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
+/** Advance the customer-facing semantic step without a page observation. */
+export const recordStep = internalMutation({
+  args: {
+    sessionId: v.id("merchantBrowserSessions"),
+    currentStep: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.sessionId, {
+      currentStep: args.currentStep,
       updatedAt: Date.now(),
     });
     return null;
@@ -165,8 +208,15 @@ export const recordObservation = internalMutation({
 
 /**
  * Canonical state transition. Enforces the machine above, stamps terminal
- * time, and records a customer-safe event. reason/errorCode are sanitized
- * short strings; provider details never enter the log.
+ * time, writes the control owner implied by the new status, and records a
+ * customer-safe event. reason/errorCode are sanitized short strings; provider
+ * details never enter the log.
+ *
+ * Optimistic concurrency: pass expectedSeq to assert the caller's view of the
+ * session is current. A stale expectedSeq (lastEventSeq already advanced past
+ * it) is rejected without mutating anything — this is the OUTCOME_UNKNOWN
+ * guard: two racing writers must not both apply a transition after either one
+ * observed an ambiguous result.
  */
 export const transitionInternal = internalMutation({
   args: {
@@ -175,9 +225,13 @@ export const transitionInternal = internalMutation({
       v.literal("STARTING"),
       v.literal("ACTIVE"),
       v.literal("PAUSED"),
+      v.literal("WAITING_USER_INPUT"),
+      v.literal("WAITING_SECURE_INPUT"),
       v.literal("HANDOFF_REQUIRED"),
       v.literal("HUMAN_CONTROL"),
       v.literal("RESUMING"),
+      v.literal("READY_FOR_PURCHASE_AUTHORIZATION"),
+      v.literal("SUBMITTING_PURCHASE"),
       v.literal("COMPLETED"),
       v.literal("FAILED"),
       v.literal("EXPIRED"),
@@ -185,20 +239,34 @@ export const transitionInternal = internalMutation({
     reason: v.optional(v.string()),
     errorCode: v.optional(v.string()),
     currentStep: v.optional(v.string()),
+    expectedSeq: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const session = (await ctx.db.get(args.sessionId)) as SessionDoc | null;
     if (!session) throw new Error("Merchant session not found.");
+    if (args.expectedSeq !== undefined && session.lastEventSeq !== args.expectedSeq) {
+      throw new Error(
+        `Stale session view: expected event sequence ${args.expectedSeq}, session is at ${session.lastEventSeq}.`,
+      );
+    }
     const allowed = ALLOWED_TRANSITIONS[session.status];
     if (!allowed || (!allowed.has(args.status) && session.status !== args.status)) {
       throw new Error(`Invalid merchant session transition ${session.status} -> ${args.status}.`);
     }
+    // Exactly-one control owner: written atomically with the status change,
+    // derived from the same table, so status/controlOwner can never disagree.
+    // lastEventSeq advances with the appended event: without this, two
+    // consecutive transitions would both write lastEventSeq + 1 and collide
+    // on the same sequence number, breaking the append-only log.
+    const controlOwner = STATUS_CONTROL_OWNER[args.status];
     await ctx.db.patch(args.sessionId, {
       status: args.status,
+      controlOwner,
       currentStep: args.currentStep ?? session.currentStep,
       handoffReason: args.status === "HANDOFF_REQUIRED" ? args.reason?.slice(0, 160) : undefined,
       updatedAt: Date.now(),
+      lastEventSeq: session.lastEventSeq + 1,
       expiresAt: TERMINAL_STATUSES.has(args.status) ? Math.min(session.expiresAt, Date.now()) : session.expiresAt,
     });
     const summary =
@@ -208,6 +276,14 @@ export const transitionInternal = internalMutation({
           ? `Needs your help: ${args.reason ?? "merchant verification"}.`
           : STATUS_SUMMARY[args.status] ?? args.status;
     await appendEvent(ctx, args.sessionId, session.tokenIdentifier, session.lastEventSeq + 1, `STATUS_${args.status}`, summary);
+    // Release the remote browser when the workflow reaches a terminal state:
+    // no provider session may outlive its workflow (architecture contract).
+    // Scheduled so the terminal transition itself never blocks on the provider.
+    if (TERMINAL_STATUSES.has(args.status) && session.providerSessionId) {
+      await ctx.scheduler.runAfter(0, internal.merchantBrowser.provider.releaseSession, {
+        sessionId: args.sessionId,
+      });
+    }
     return null;
   },
 });
@@ -216,13 +292,67 @@ const STATUS_SUMMARY: Record<string, string> = {
   STARTING: "Browser session starting.",
   ACTIVE: "Automation running.",
   PAUSED: "Automation paused.",
+  WAITING_USER_INPUT: "Waiting for your input on the page.",
+  WAITING_SECURE_INPUT: "Waiting for secure payment details to be entered.",
   HANDOFF_REQUIRED: "Needs your help.",
   HUMAN_CONTROL: "You have control of the browser.",
   RESUMING: "Resuming automation.",
+  READY_FOR_PURCHASE_AUTHORIZATION: "Cart is ready — your approval is needed before any purchase.",
+  SUBMITTING_PURCHASE: "Submitting the purchase with your authorization.",
   COMPLETED: "Automation completed.",
   FAILED: "Automation failed.",
   EXPIRED: "Automation session expired.",
 };
+
+/**
+ * Resume completion: after the provider browser is re-observed, RESUMING
+ * lands back on ACTIVE. Called by internal.merchantBrowser.state.reobserveAfterResume.
+ */
+export const reobserveAfterResume = internalAction({
+  args: { sessionId: v.id("merchantBrowserSessions") },
+  returns: v.object({ currentUrl: v.string(), pageTitle: v.string() }),
+  handler: async (ctx, args) => {
+    const session = (await ctx.runQuery(internal.merchantBrowser.state.getSessionInternal, {
+      sessionId: args.sessionId,
+    })) as { providerSessionId?: string; merchantHost: string; status: string } | null;
+    if (!session) throw new Error("Merchant session not found.");
+    if (session.status !== "RESUMING") throw new Error(`Merchant session is ${session.status}; expected RESUMING.`);
+    if (!session.providerSessionId) {
+      // The provider browser is gone (expired/closed mid-session): fail the
+      // session cleanly instead of stranding it in RESUMING.
+      await ctx.runMutation(internal.merchantBrowser.state.transitionInternal, {
+        sessionId: args.sessionId,
+        status: "FAILED",
+        errorCode: "PROVIDER_BROWSER_GONE",
+      });
+      throw new Error("The merchant browser is no longer available; this session ended.");
+    }
+    const observed = (await ctx.runAction(internal.merchantBrowser.provider.observeBrowserSession, {
+      sessionId: args.sessionId,
+    })) as { currentUrl: string; pageTitle: string };
+    await ctx.runMutation(internal.merchantBrowser.state.transitionInternal, {
+      sessionId: args.sessionId,
+      status: "ACTIVE",
+    });
+    return observed;
+  },
+});
+
+/** Audit stamp when a short-lived Live View was issued for HITL takeover. */
+export const markLiveViewIssued = internalMutation({
+  args: { sessionId: v.id("merchantBrowserSessions") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const session = (await ctx.db.get(args.sessionId)) as SessionDoc | null;
+    if (!session) throw new Error("Merchant session not found.");
+    await appendEvent(ctx, args.sessionId, session.tokenIdentifier, session.lastEventSeq + 1, "LIVE_VIEW_ISSUED", "A secure view of the live browser was opened for you.");
+    await ctx.db.patch(args.sessionId, {
+      lastEventSeq: session.lastEventSeq + 1,
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
 
 export const consumeActionBudget = internalMutation({
   args: {

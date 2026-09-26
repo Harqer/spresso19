@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -65,6 +66,7 @@ import navigation.NavKey
 import navigation.Navigator
 import navigation.SpressoAction
 import navigation.rememberNavigationState
+import network.ConnectionState
 import network.ConvexApi
 import network.LiveApiClient
 import network.ProductItem
@@ -105,9 +107,15 @@ fun App(
     onVerifyEmailRequested: () -> Unit = {},
     externalNavKey: NavKey? = null,
     isAuthLoading: Boolean = false,
+    rootAuthError: String? = null,
+    /** onboardingCompleted from the canonical users.bootstrap launch state (null = not bootstrapped). */
+    bootstrappedOnboardingCompleted: Boolean? = null,
+    /** Firebase-verified email of the account awaiting verification (gate UI copy only). */
+    verificationEmail: String? = null,
     isEmailVerificationRequired: Boolean = false,
     currentLatLng: Pair<Double, Double>? = null,
     onRequestLocationPermission: () -> Unit = {},
+    onRequestMicrophonePermission: ((Boolean) -> Unit) -> Unit = { onResult -> onResult(true) },
 ) {
     var themeMode by rememberSaveable { mutableStateOf(ThemeMode.SYSTEM) }
 
@@ -117,39 +125,35 @@ fun App(
                 modifier = modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    if (rootAuthError != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = rootAuthError,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
             }
             return@AppTheme
         }
 
-        // Splash-first: every cold start plays the brand video before deciding
-        // between auth and the signed-in home. Auth/onboarding surfaces are non-tab
-        // entries on the start stack; signed-out, the only reachable destinations
-        // are auth, verification, and splash — the tab bar and drawer never appear
-        // because those keys never resolve to a top-level route.
         val navigationState =
             rememberNavigationState(
                 startRoute = NavKey.SplashScreenKey,
                 topLevelRoutes = defaultNavDestinations.map { it.key }.toSet(),
             )
         val navigator = remember(navigationState) { Navigator(navigationState) }
-
-        // Auth gating mirrors the conditional-navigation recipe: a signed-out session
-        // sits on AuthKey placed on top of the start stack, while signed-in starts at
-        // the stacked Chat tab. The gate runs before deep-link handling in the same
-        // coroutine so a cold-start link is shown above either the auth or the home UI.
         var hasShownAuthGate by remember { mutableStateOf(false) }
         var onboardingGateResolved by remember { mutableStateOf(false) }
-        // Deep links may only land on signed-in destinations; the gate effect is the
-        // sole authority for placing AuthKey/EmailVerificationKey.
         val canReceiveDeepLinks = currentUserUid != null && !isEmailVerificationRequired
         var lastHandledLink by remember { mutableStateOf<NavKey?>(null) }
         var lastHandledLinkUid by remember { mutableStateOf<String?>(null) }
 
         LaunchedEffect(currentUserUid, isEmailVerificationRequired, externalNavKey) {
             if (currentUserUid == null) {
-                // A signed-out session is never left on a chat/app route: this both
-                // guards cold-start rendering and evicts any deep link to app content.
                 if (!hasShownAuthGate) {
                     hasShownAuthGate = true
                     navigator.resetTo(NavKey.AuthKey)
@@ -175,29 +179,25 @@ fun App(
 
         val scope = rememberCoroutineScope()
         val apiClient = remember { ConvexApi() }
-
-        // Signed-in users who have not completed onboarding are routed to it once;
-        // the flag is server-owned (preferences.onboardingCompleted), so a
-        // reinstall or new device replays onboarding instead of skipping it. This
-        // effect is the single routing owner for the post-splash destination: the
-        // splash page only signals completion, it never decides the next route.
         LaunchedEffect(currentUserUid, isEmailVerificationRequired, onboardingGateResolved) {
             if (currentUserUid != null && !isEmailVerificationRequired && !onboardingGateResolved) {
                 onboardingGateResolved = true
-                val prefs = runCatching { apiClient.fetchPreferences() }.getOrNull()
-                val needsOnboarding = prefs?.get("onboardingCompleted")?.jsonPrimitive?.booleanOrNull != true
-                if (needsOnboarding) {
-                    navigator.navigate(NavKey.GamifiedOnboardingKey())
-                }
+                // Canonical launch state from users.bootstrap (delivered by
+                // the host on Android; the web bridge path falls back to the
+                // HTTP preferences read).
+                val needsOnboarding = bootstrappedOnboardingCompleted
+                    ?: (runCatching { apiClient.fetchPreferences() }.getOrNull()
+                        ?.get("onboardingCompleted")?.jsonPrimitive?.booleanOrNull != true)
+                if (needsOnboarding) navigator.navigate(NavKey.GamifiedOnboardingKey())
             }
         }
+
         val liveApiClient = remember { LiveApiClient() }
         val chatViewModel = remember { ChatViewModel(apiClient, scope, liveApiClient) }
         val merchantViewModel = remember { MerchantBrowserViewModel(apiClient, scope) }
         val catalogViewModel = remember { CatalogViewModel(scope, apiClient) }
         val audioRecorder = remember { AudioRecorder() }
         val audioPlayer = remember { AudioPlayer() }
-        // Barge-in must cut off queued playback, not just flip conversation state.
         chatViewModel.onPlaybackInterrupted = { audioPlayer.stop() }
 
         var checkoutDeviceStatus by remember { mutableStateOf<String?>(null) }
@@ -218,29 +218,149 @@ fun App(
         checkoutDeviceStatus?.let { message ->
             AlertDialog(
                 onDismissRequest = { checkoutDeviceStatus = null },
-                confirmButton = {
-                    TextButton(onClick = { checkoutDeviceStatus = null }) { Text("OK") }
-                },
+                confirmButton = { TextButton(onClick = { checkoutDeviceStatus = null }) { Text("OK") } },
                 title = { Text("Purchase confirmation") },
                 text = { Text(message) },
             )
         }
 
-        DisposableEffect(Unit) {
-            onDispose {
-                liveApiClient.close()
-                audioRecorder.stopRecording()
-            }
-        }
-
         var isVideoPlaying by remember { mutableStateOf(false) }
         var displayMediaUrl by remember { mutableStateOf<String?>(null) }
         var isVoiceRecording by remember { mutableStateOf(false) }
+        var isVoiceStartPending by remember { mutableStateOf(false) }
         var activeProductId by remember { mutableStateOf<String?>(null) }
         var errorMessage by remember { mutableStateOf<String?>(null) }
         var selectedTemplateId by remember { mutableStateOf("economic") }
         var returnResultMessage by rememberSaveable { mutableStateOf<String?>(null) }
         var lastVisionContext by remember { mutableStateOf<String?>(null) }
+        var voiceActivationGeneration by remember { mutableStateOf(0L) }
+        var isVoiceCaptureStarting by remember { mutableStateOf(false) }
+        val connectionState by liveApiClient.connectionStateFlow.collectAsState()
+        val currentChatViewModel by rememberUpdatedState(chatViewModel)
+
+        DisposableEffect(chatViewModel, liveApiClient, audioRecorder, audioPlayer) {
+            onDispose {
+                voiceActivationGeneration += 1
+                chatViewModel.stopVoiceStream()
+                audioRecorder.stopRecording()
+                audioPlayer.release()
+            }
+        }
+
+        val stopVoiceRecording: () -> Unit = {
+            voiceActivationGeneration += 1
+            isVoiceStartPending = false
+            isVoiceCaptureStarting = false
+            chatViewModel.stopVoiceStream()
+            audioRecorder.stopRecording()
+            audioPlayer.stop()
+            isVoiceRecording = false
+        }
+
+        val startAudioCapture: () -> Unit = {
+            if (!audioRecorder.isRecording() && !isVoiceCaptureStarting) {
+                isVoiceCaptureStarting = true
+                val activationGeneration = voiceActivationGeneration
+                onRequestMicrophonePermission permissionResult@{ granted ->
+                    if (activationGeneration != voiceActivationGeneration) return@permissionResult
+                    isVoiceCaptureStarting = false
+                    if (!granted) {
+                        errorMessage = "Microphone permission is required to start voice chat."
+                        stopVoiceRecording()
+                        return@permissionResult
+                    }
+                    if (!chatViewModel.isVoiceActive ||
+                        liveApiClient.connectionState != ConnectionState.CONNECTED ||
+                        !liveApiClient.isSetupComplete
+                    ) {
+                        return@permissionResult
+                    }
+
+                    try {
+                        audioRecorder.onAudioChunk = { chunk ->
+                            scope.launch {
+                                @OptIn(ExperimentalEncodingApi::class)
+                                chatViewModel.sendVoiceChunk(Base64.encode(chunk))
+                            }
+                        }
+                        audioRecorder.onStarted = {
+                            isVoiceRecording = true
+                            isVoiceStartPending = false
+                            isVoiceCaptureStarting = false
+                        }
+                        audioRecorder.onStopped = {
+                            isVoiceRecording = false
+                            isVoiceCaptureStarting = false
+                            isVoiceStartPending = chatViewModel.isVoiceActive
+                        }
+                        audioRecorder.startRecording()
+                    } catch (error: Exception) {
+                        stopVoiceRecording()
+                        errorMessage = "Unable to start microphone capture. Please check microphone access and try again."
+                        network.Telemetry.recordError("Microphone activation failed", error)
+                    }
+                }
+            }
+        }
+
+        val startVoiceRecording: () -> Unit = {
+            if (!isVoiceRecording && !isVoiceStartPending && !chatViewModel.isVoiceActive) {
+                isVoiceStartPending = true
+                errorMessage = null
+                voiceActivationGeneration += 1
+                chatViewModel.startVoiceStream(
+                    onReceiveAudio = { chunk -> audioPlayer.playChunk(chunk) },
+                    onPlaybackInterrupted = { audioPlayer.stop() },
+                )
+                if (!chatViewModel.isVoiceActive) {
+                    isVoiceStartPending = false
+                    errorMessage = chatViewModel.errorMessage ?: "Unable to start voice chat. Please try again."
+                }
+            }
+        }
+
+        val toggleVoiceRecording: () -> Unit = {
+            if (isVoiceRecording || isVoiceStartPending || chatViewModel.isVoiceActive) {
+                stopVoiceRecording()
+            } else {
+                startVoiceRecording()
+            }
+        }
+
+        LaunchedEffect(chatViewModel.isVoiceActive, connectionState) {
+            if (chatViewModel.isVoiceActive && connectionState == ConnectionState.CONNECTED) {
+                try {
+                    startAudioCapture()
+                    isVoiceStartPending = isVoiceCaptureStarting || !isVoiceRecording
+                } catch (error: Exception) {
+                    stopVoiceRecording()
+                    errorMessage = "Unable to start microphone capture. Please check microphone access and try again."
+                    network.Telemetry.recordError("Microphone activation failed", error)
+                }
+            } else {
+                audioRecorder.stopRecording()
+                audioPlayer.stop()
+                isVoiceCaptureStarting = false
+                isVoiceRecording = false
+                isVoiceStartPending = chatViewModel.isVoiceActive
+            }
+        }
+
+        val currentStopVoiceRecording by rememberUpdatedState(stopVoiceRecording)
+        DisposableEffect(audioRecorder) {
+            audioRecorder.onError = { error ->
+                scope.launch {
+                    currentStopVoiceRecording()
+                    errorMessage = "Microphone access is unavailable. Please try again."
+                    network.Telemetry.recordError("Microphone capture failed", error)
+                }
+            }
+            onDispose {
+                audioRecorder.onError = null
+                audioRecorder.onStarted = null
+                audioRecorder.onStopped = null
+            }
+        }
 
         val pickImage =
             rememberImagePicker(
@@ -248,7 +368,7 @@ fun App(
                     if (isVoiceRecording) {
                         scope.launch {
                             @OptIn(ExperimentalEncodingApi::class)
-                            liveApiClient.sendVideoFrame(Base64.encode(frameBytes))
+                            chatViewModel.sendLiveVideoFrame(Base64.encode(frameBytes))
                         }
                     }
                 },
@@ -263,15 +383,13 @@ fun App(
                         scope.launch {
                             try {
                                 val productId = activeProductId ?: error("Select a product before starting try-on.")
-                                val garment =
-                                    apiClient.fetchProductById(productId)?.imageUrl?.takeIf { it.startsWith("https://") }
-                                        ?: error("A verified garment image is required for try-on.")
-                                displayMediaUrl =
-                                    apiClient.generateVirtualTryOn(
-                                        bytes = bytes,
-                                        garmentImageUrl = garment,
-                                        idempotencyKey = "tryon:$productId:${kotlin.time.Clock.System.now().toEpochMilliseconds()}",
-                                    )
+                                val garment = apiClient.fetchProductById(productId)?.imageUrl?.takeIf { it.startsWith("https://") }
+                                    ?: error("A verified garment image is required for try-on.")
+                                displayMediaUrl = apiClient.generateVirtualTryOn(
+                                    bytes = bytes,
+                                    garmentImageUrl = garment,
+                                    idempotencyKey = "tryon:$productId:${kotlin.time.Clock.System.now().toEpochMilliseconds()}",
+                                )
                                 isVideoPlaying = false
                                 navigator.navigate(NavKey.WardrobeKey(displayMediaUrl = displayMediaUrl, isVideoPlaying = false))
                             } catch (e: Exception) {
@@ -287,34 +405,8 @@ fun App(
             modifier = modifier,
             navigationState = navigationState,
             navigator = navigator,
-            isVoiceRecording = isVoiceRecording,
-            onToggleVoiceRecording = {
-                if (isVoiceRecording) {
-                    // Route through the ViewModel so voice state and the transport
-                    // close together — closing the client directly left the UI
-                    // convinced a dead session was still live.
-                    chatViewModel.stopVoiceStream()
-                    audioRecorder.stopRecording()
-                    isVoiceRecording = false
-                } else {
-                    audioRecorder.onAudioChunk = { chunk ->
-                        scope.launch {
-                            @OptIn(ExperimentalEncodingApi::class)
-                            chatViewModel.sendVoiceChunk(Base64.encode(chunk))
-                        }
-                    }
-                    audioRecorder.startRecording()
-                    if (audioRecorder.isRecording()) {
-                        chatViewModel.startVoiceStream(
-                            onReceiveAudio = { chunk -> audioPlayer.playChunk(chunk) },
-                            onPlaybackInterrupted = { audioPlayer.stop() },
-                        )
-                        isVoiceRecording = true
-                    } else {
-                        errorMessage = "Microphone access required for voice AI recording."
-                    }
-                }
-            },
+            isVoiceRecording = isVoiceRecording || isVoiceStartPending,
+            onToggleVoiceRecording = toggleVoiceRecording,
             themeMode = themeMode,
             onThemeModeChange = { themeMode = it },
             onAskAI = { prompt ->
@@ -323,24 +415,16 @@ fun App(
             },
             entryProvider =
                 entryProvider {
-                    // 1. Auth & Onboarding Flow
                     entry<NavKey.AuthKey> { currentDestinationKey ->
                         AuthPage(
                             onGoogleSignInRequested = onGoogleSignInRequested,
                             onPhoneSignInRequested = onPhoneSignInRequested,
-                            onSuccess = {
-                                // Firebase now owns identity; Convex accepts the token.
-                                // Every new account goes through the gamified onboarding once.
-                                navigator.resetTo(NavKey.SplashScreenKey)
-                            },
+                            onSuccess = { navigator.resetTo(NavKey.SplashScreenKey) },
                         )
                     }
                     entry<NavKey.SplashScreenKey> { currentDestinationKey ->
                         SplashScreenPage(
                             onSplashComplete = {
-                                // Cold-start decision only; the onboarding effect owns
-                                // the signed-in-with-pending-onboarding case so the
-                                // video never plays twice.
                                 navigator.replace(
                                     when {
                                         currentUserUid == null -> NavKey.AuthKey
@@ -357,8 +441,6 @@ fun App(
                             onDismiss = { navigator.goBack() },
                             apiClient = apiClient,
                             onComplete = {
-                                // Completion — not interest selection — flips the
-                                // server-owned flag so a reinstall replays onboarding.
                                 scope.launch {
                                     runCatching { apiClient.setPreferences(onboardingCompleted = true) }
                                         .onFailure { error -> network.Telemetry.recordError("Onboarding completion persist failed", error) }
@@ -371,33 +453,28 @@ fun App(
                         )
                     }
                     entry<NavKey.EmailVerificationKey> { currentDestinationKey ->
-                        ProfilePage(
-                            userUid = currentUserUid,
-                            userName = currentUserName,
-                            apiClient = apiClient,
-                            themeMode = themeMode,
-                            onThemeModeChange = { themeMode = it },
+                        // Dedicated verification gate (auth correction scope):
+                        // Firebase stays authoritative for verification state —
+                        // Resend / I've-verified act on the Firebase user, and
+                        // the root state machine re-evaluates on token refresh.
+                        components.features.auth.widgets.EmailVerificationPage(
+                            email = verificationEmail,
+                            onVerified = { navigator.resetTo(NavKey.SplashScreenKey) },
                             onSignOut = {
                                 signOut()
-                                // Identity, transcript, and in-flight checkout are
-                                // per-account: none may survive into the next session.
                                 chatViewModel.clearSession()
                                 catalogViewModel.clearCheckoutStatus()
                                 merchantViewModel.stop()
                                 navigator.resetTo(NavKey.AuthKey)
                             },
-                            onVerifyEmail = onVerifyEmailRequested,
-                            onRegisterCheckoutDevice = onRegisterCheckoutDeviceRequested,
-                            onNavigateToWearables = { navigator.navigate(NavKey.MetaWearablesKey) },
                         )
                     }
 
-                    // 2. Personal AI Shopper / Chat Flow
                     entry<NavKey.ChatKey> { currentDestinationKey ->
                         PersonalAIShopperChatPage(
                             chatViewModel = chatViewModel,
                             isVideoPlaying = isVideoPlaying,
-                            isVoiceRecording = isVoiceRecording,
+                            isVoiceRecording = isVoiceRecording || isVoiceStartPending,
                             liveTranscript = chatViewModel.liveTranscript,
                             userName = currentUserName,
                             errorMessage = errorMessage,
@@ -415,6 +492,7 @@ fun App(
                             onRequestLocationPermission = onRequestLocationPermission,
                             onCloseGlobalChat = onCloseGlobalChat,
                             onLaunchCamera = { pickImage() },
+                            onToggleVoiceRecording = toggleVoiceRecording,
                             onAddToCart = { product ->
                                 scope.launch {
                                     try {
@@ -450,41 +528,21 @@ fun App(
                             },
                             onOpenLiveCamera = { pickImage() },
                             onOpenObjectDetection = onTriggerGlobalLens,
-                            onToggleVoice = {
-                                if (isVoiceRecording) {
-                                    chatViewModel.stopVoiceStream()
-                                    audioRecorder.stopRecording()
-                                    isVoiceRecording = false
-                                } else {
-                                    audioRecorder.onAudioChunk = { chunk ->
-                                        scope.launch {
-                                            @OptIn(ExperimentalEncodingApi::class)
-                                            chatViewModel.sendVoiceChunk(Base64.encode(chunk))
-                                        }
-                                    }
-                                    audioRecorder.startRecording()
-                                    if (audioRecorder.isRecording()) {
-                                        chatViewModel.startVoiceStream(
-                                            onReceiveAudio = { chunk -> audioPlayer.playChunk(chunk) },
-                                            onPlaybackInterrupted = { audioPlayer.stop() },
-                                        )
-                                        isVoiceRecording = true
-                                    }
-                                }
-                            },
+                            onToggleVoice = toggleVoiceRecording,
                         )
                     }
                     entry<NavKey.ChatbotCanvasKey> { currentDestinationKey ->
                         PersonalAIShopperChatPage(
                             chatViewModel = chatViewModel,
                             isVideoPlaying = isVideoPlaying,
-                            isVoiceRecording = isVoiceRecording,
+                            isVoiceRecording = isVoiceRecording || isVoiceStartPending,
                             liveTranscript = chatViewModel.liveTranscript,
                             userName = currentUserName,
                             errorMessage = errorMessage,
                             merchantViewModel = merchantViewModel,
                             onTriggerGlobalLens = onTriggerGlobalLens,
                             onLaunchCamera = { pickImage() },
+                            onToggleVoiceRecording = toggleVoiceRecording,
                             apiClient = apiClient,
                         )
                     }
@@ -502,8 +560,6 @@ fun App(
                             },
                         )
                     }
-
-                    // 3. Product Catalog & Curation Flow
                     entry<NavKey.CatalogKey> { currentDestinationKey ->
                         ProductCatalogPage(
                             apiClient = apiClient,
@@ -527,18 +583,13 @@ fun App(
                                 )
                             },
                             onShareRequested = onShare,
-                            onAskAI = { prompt ->
-                                navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
-                            },
-                            onCheckoutRequested = {
-                                navigator.navigate(NavKey.HITLCheckoutKey)
-                            },
+                            onAskAI = { prompt -> navigator.navigate(NavKey.ChatKey(initialPrompt = prompt)) },
+                            onCheckoutRequested = { navigator.navigate(NavKey.HITLCheckoutKey) },
                         )
                     }
                     entry<NavKey.ProductDetailKey> { currentDestinationKey ->
                         var detailProduct by remember { mutableStateOf<ProductItem?>(null) }
                         var loadError by remember { mutableStateOf<String?>(null) }
-
                         LaunchedEffect(currentDestinationKey.productId) {
                             try {
                                 detailProduct = apiClient.fetchProductById(currentDestinationKey.productId)
@@ -546,17 +597,13 @@ fun App(
                                 loadError = "Failed to fetch product details"
                             }
                         }
-
                         val currentProduct = detailProduct
                         if (currentProduct != null) {
                             ProductCatalogDetailDialog(
                                 product = currentProduct,
                                 checkoutStatus = null,
                                 onDismiss = { navigator.goBack() },
-                                onTryOn = { product ->
-                                    activeProductId = product.id
-                                    pickImage()
-                                },
+                                onTryOn = { product -> activeProductId = product.id; pickImage() },
                                 onSpin360 = { id ->
                                     scope.launch {
                                         try {
@@ -579,10 +626,7 @@ fun App(
                                     }
                                 },
                                 onShare = { id -> onShare(id) },
-                                onBuyNow = {
-                                    catalogViewModel.initiateCheckout(currentProduct)
-                                    navigator.navigate(NavKey.HITLCheckoutKey)
-                                },
+                                onBuyNow = { catalogViewModel.initiateCheckout(currentProduct); navigator.navigate(NavKey.HITLCheckoutKey) },
                             )
                         } else if (loadError != null) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -605,28 +649,15 @@ fun App(
                             }
                         }
                         when {
-                            curationError != null ->
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text(curationError!!, color = MaterialTheme.colorScheme.error)
-                                }
-                            curatedProducts == null ->
-                                Box(
-                                    Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center,
-                                ) { CircularProgressIndicator() }
-                            else ->
-                                AICurationFeed(
-                                    curatedProducts = curatedProducts!!,
-                                    httpClient = apiClient.client,
-                                    onTryOnRequested = { product ->
-                                        activeProductId = product.id
-                                        pickImage()
-                                    },
-                                )
+                            curationError != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(curationError!!, color = MaterialTheme.colorScheme.error)
+                            }
+                            curatedProducts == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                            else -> AICurationFeed(curatedProducts = curatedProducts!!, httpClient = apiClient.client, onTryOnRequested = { product -> activeProductId = product.id; pickImage() })
                         }
                     }
-
-                    // 4. Wardrobe & Virtual Try-On Flow
                     entry<NavKey.WardrobeKey> { currentDestinationKey ->
                         WardrobeViewPage(
                             displayMediaUrl = currentDestinationKey.displayMediaUrl ?: displayMediaUrl,
@@ -638,13 +669,7 @@ fun App(
                         )
                     }
                     entry<NavKey.WardrobeMainKey> { currentDestinationKey ->
-                        WardrobePage(
-                            onNavigateToTryOn = { id ->
-                                activeProductId = id
-                                pickImage()
-                            },
-                            onOpenLens = onTriggerGlobalLens,
-                        )
+                        WardrobePage(onNavigateToTryOn = { id -> activeProductId = id; pickImage() }, onOpenLens = onTriggerGlobalLens)
                     }
                     entry<NavKey.StackedWardrobeDecksKey> { currentDestinationKey ->
                         var recommendedProducts by remember { mutableStateOf<List<ProductItem>?>(null) }
@@ -657,82 +682,44 @@ fun App(
                                 recommendationsError = "Live product recommendations are unavailable right now."
                                 recommendedProducts = emptyList()
                             }
-                            runCatching {
-                                likedProducts = apiClient.fetchSavedListings().mapNotNull { it.listing?.toProductItem() }
-                            }
+                            runCatching { likedProducts = apiClient.fetchSavedListings().mapNotNull { it.listing?.toProductItem() } }
                         }
                         ColumnWithRouteMessage(recommendationsError) {
                             StackedWardrobeDecks(
                                 products = recommendedProducts.orEmpty(),
                                 likedProducts = likedProducts,
-                                onSelectTryOn = { product ->
-                                    activeProductId = product.id
-                                    pickImage()
-                                },
+                                onSelectTryOn = { product -> activeProductId = product.id; pickImage() },
                                 onOpenUploadModal = { pickImage() },
                             )
                         }
                     }
                     entry<NavKey.GallerySyncDisabledKey> { currentDestinationKey ->
-                        GallerySyncDisabledView(
-                            onGrant = { pickImage() },
-                        )
+                        GallerySyncDisabledView(onGrant = { pickImage() })
                     }
-
-                    // 5. Smart Vision & Lens Flow
                     entry<NavKey.SmartVisionKey> { currentDestinationKey ->
                         SmartVisionPage(
                             apiClient = apiClient,
-                            onSelectProduct = { productId ->
-                                activeProductId = productId
-                                navigator.navigate(NavKey.CatalogKey)
-                            },
-                            onAskAI = { prompt ->
-                                navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
-                            },
+                            onSelectProduct = { productId -> activeProductId = productId; navigator.navigate(NavKey.CatalogKey) },
+                            onAskAI = { prompt -> navigator.navigate(NavKey.ChatKey(initialPrompt = prompt)) },
                             onTriggerGlobalLens = onTriggerGlobalLens,
                         )
                     }
                     entry<NavKey.SmartVisionDetectionKey> {
                         SmartVisionPage(
                             apiClient = apiClient,
-                            onSelectProduct = { productId ->
-                                activeProductId = productId
-                                navigator.navigate(NavKey.ProductDetailKey(productId))
-                            },
-                            onAskAI = { prompt ->
-                                navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
-                            },
+                            onSelectProduct = { productId -> activeProductId = productId; navigator.navigate(NavKey.ProductDetailKey(productId)) },
+                            onAskAI = { prompt -> navigator.navigate(NavKey.ChatKey(initialPrompt = prompt)) },
                             onTriggerGlobalLens = onTriggerGlobalLens,
                         )
                     }
-
-                    // 6. Grocery & Ingredients Flow
                     entry<NavKey.GroceryKey> { currentDestinationKey ->
-                        GroceryListPage(
-                            apiClient = apiClient,
-                            onAskAI = { prompt ->
-                                navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
-                            },
-                        )
+                        GroceryListPage(apiClient = apiClient, onAskAI = { prompt -> navigator.navigate(NavKey.ChatKey(initialPrompt = prompt)) })
                     }
                     entry<NavKey.IngredientChecklistKey> { currentDestinationKey ->
-                        GroceryListPage(
-                            apiClient = apiClient,
-                            onAskAI = { prompt ->
-                                navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
-                            },
-                        )
+                        GroceryListPage(apiClient = apiClient, onAskAI = { prompt -> navigator.navigate(NavKey.ChatKey(initialPrompt = prompt)) })
                     }
-
-                    // 7. Orders & Checkout Flow
                     entry<NavKey.OrdersKey> { currentDestinationKey ->
-                        OrdersTrackerPage(
-                            apiClient = apiClient,
-                            onAskAI = { prompt ->
-                                navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
-                            },
-                        )
+                        OrdersTrackerPage(apiClient = apiClient, onAskAI = { prompt -> navigator.navigate(NavKey.ChatKey(initialPrompt = prompt)) })
                     }
                     entry<NavKey.OrderReturnKey> { currentDestinationKey ->
                         var returnReason by remember { mutableStateOf("") }
@@ -745,104 +732,40 @@ fun App(
                             isSubmittingReturn = isSubmittingReturn,
                             onDismissRequest = { navigator.goBack() },
                             onConfirmReturn = {
-                                if (returnReason.isBlank()) {
-                                    returnError = "Tell us why you would like to return this order."
-                                } else {
-                                    scope.launch {
-                                        isSubmittingReturn = true
-                                        try {
-                                            val success = apiClient.requestOrderReturn(currentDestinationKey.orderId, returnReason.trim())
-                                            if (success) {
-                                                returnResultMessage =
-                                                    "Your return request was submitted. We'll send the next steps when they are ready."
-                                                navigator.replace(NavKey.OrderReturnResultKey(currentDestinationKey.orderId))
-                                            } else {
-                                                returnError = "Unable to submit this return. Please try again."
-                                            }
-                                        } catch (e: Exception) {
-                                            returnError = "Unable to submit this return. Please try again."
-                                        } finally {
-                                            isSubmittingReturn = false
-                                        }
-                                    }
+                                if (returnReason.isBlank()) returnError = "Tell us why you would like to return this order."
+                                else scope.launch {
+                                    isSubmittingReturn = true
+                                    try {
+                                        if (apiClient.requestOrderReturn(currentDestinationKey.orderId, returnReason.trim())) {
+                                            returnResultMessage = "Your return request was submitted. We'll send the next steps when they are ready."
+                                            navigator.replace(NavKey.OrderReturnResultKey(currentDestinationKey.orderId))
+                                        } else returnError = "Unable to submit this return. Please try again."
+                                    } catch (e: Exception) {
+                                        returnError = "Unable to submit this return. Please try again."
+                                    } finally { isSubmittingReturn = false }
                                 }
                             },
                         )
-                        returnError?.let { message ->
-                            Text(message, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(24.dp))
-                        }
+                        returnError?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(24.dp)) }
                     }
                     entry<NavKey.OrderReturnResultKey> { currentDestinationKey ->
-                        OrderReturnResultCard(
-                            msg = returnResultMessage ?: "Return details are unavailable. Open order history to check the latest status.",
-                            onDismiss = {
-                                returnResultMessage = null
-                                navigator.goBack()
-                            },
-                        )
+                        OrderReturnResultCard(msg = returnResultMessage ?: "Return details are unavailable. Open order history to check the latest status.", onDismiss = { returnResultMessage = null; navigator.goBack() })
                     }
                     entry<NavKey.HITLCheckoutKey> { currentDestinationKey ->
                         val draft by catalogViewModel.checkoutDraft.collectAsState()
                         val phase by catalogViewModel.checkoutPhase.collectAsState()
                         when {
-                            draft != null ->
-                                CheckoutConfirmDialog(
-                                    draft = draft!!,
-                                    phase = phase,
-                                    onConfirm = { catalogViewModel.confirmCheckout() },
-                                    onDismiss = {
-                                        catalogViewModel.dismissCheckout()
-                                        navigator.goBack()
-                                    },
-                                )
-                            else ->
-                                ColumnWithRouteMessage(
-                                    (phase as? viewmodels.CheckoutPhase.Failed)?.message
-                                        ?: "Choose a product before starting checkout.",
-                                ) {}
+                            draft != null -> CheckoutConfirmDialog(draft = draft!!, phase = phase, onConfirm = { catalogViewModel.confirmCheckout() }, onDismiss = { catalogViewModel.dismissCheckout(); navigator.goBack() })
+                            else -> ColumnWithRouteMessage((phase as? viewmodels.CheckoutPhase.Failed)?.message ?: "Choose a product before starting checkout.") {}
                         }
                     }
-
-                    // 8. Creator Agents & Studio Flow
                     entry<NavKey.CreatorKey> { currentDestinationKey ->
-                        CreatorAgentsPage(
-                            apiClient = apiClient,
-                            selectedTemplateId = currentDestinationKey.selectedTemplateId.ifEmpty { selectedTemplateId },
-                            onTemplateSelected = { id -> selectedTemplateId = id },
-                        )
+                        CreatorAgentsPage(apiClient = apiClient, selectedTemplateId = currentDestinationKey.selectedTemplateId.ifEmpty { selectedTemplateId }, onTemplateSelected = { id -> selectedTemplateId = id })
                     }
-                    entry<NavKey.CreatorTemplatesKey> { currentDestinationKey ->
-                        CreatorTemplatesSection(
-                            apiClient = apiClient,
-                            scope = scope,
-                        )
-                    }
-                    entry<NavKey.CreatorAgentsSectionKey> { currentDestinationKey ->
-                        CreatorAgentsSection(
-                            apiClient = apiClient,
-                            scope = scope,
-                        )
-                    }
-
-                    // 9. Travel & Expenses Flow
-                    entry<NavKey.TravelKey> { currentDestinationKey ->
-                        TravelTripsPage(
-                            apiClient = apiClient,
-                            onAskAI = { prompt ->
-                                navigator.navigate(NavKey.ChatKey(initialPrompt = prompt))
-                            },
-                        )
-                    }
-                    entry<NavKey.TravelQrModalKey> { currentDestinationKey ->
-                        QrModal(
-                            title = currentDestinationKey.eventTitle,
-                            location = currentDestinationKey.eventLocation,
-                            qrData = currentDestinationKey.qrData,
-                            onClose = { navigator.goBack() },
-                        )
-                    }
-
-                    // 10. Profile & Account Settings Flow
+                    entry<NavKey.CreatorTemplatesKey> { currentDestinationKey -> CreatorTemplatesSection(apiClient = apiClient, scope = scope) }
+                    entry<NavKey.CreatorAgentsSectionKey> { currentDestinationKey -> CreatorAgentsSection(apiClient = apiClient, scope = scope) }
+                    entry<NavKey.TravelKey> { currentDestinationKey -> TravelTripsPage(apiClient = apiClient, onAskAI = { prompt -> navigator.navigate(NavKey.ChatKey(initialPrompt = prompt)) }) }
+                    entry<NavKey.TravelQrModalKey> { currentDestinationKey -> QrModal(title = currentDestinationKey.eventTitle, location = currentDestinationKey.eventLocation, qrData = currentDestinationKey.qrData, onClose = { navigator.goBack() }) }
                     entry<NavKey.ProfileKey> { currentDestinationKey ->
                         ProfilePage(
                             userUid = currentUserUid,
@@ -850,18 +773,10 @@ fun App(
                             apiClient = apiClient,
                             themeMode = themeMode,
                             onThemeModeChange = { themeMode = it },
-                            onSignOut = {
-                                signOut()
-                                chatViewModel.clearSession()
-                                catalogViewModel.clearCheckoutStatus()
-                                merchantViewModel.stop()
-                                navigator.replace(NavKey.AuthKey)
-                            },
+                            onSignOut = { signOut(); chatViewModel.clearSession(); catalogViewModel.clearCheckoutStatus(); merchantViewModel.stop(); navigator.replace(NavKey.AuthKey) },
                             onVerifyEmail = onVerifyEmailRequested,
                             onRegisterCheckoutDevice = onRegisterCheckoutDeviceRequested,
-                            onNavigateToFavorites = {
-                                navigator.navigate(ActionDestination.resolve(SpressoAction.OpenSavedListings))
-                            },
+                            onNavigateToFavorites = { navigator.navigate(ActionDestination.resolve(SpressoAction.OpenSavedListings)) },
                             onNavigateToOrderHistory = { navigator.navigate(NavKey.OrdersKey) },
                             onNavigateToNotifications = { navigator.navigate(NavKey.PreferencesKey) },
                             onNavigateToWearables = { navigator.navigate(NavKey.MetaWearablesKey) },
@@ -876,18 +791,10 @@ fun App(
                             apiClient = apiClient,
                             themeMode = themeMode,
                             onThemeModeChange = { themeMode = it },
-                            onSignOut = {
-                                signOut()
-                                chatViewModel.clearSession()
-                                catalogViewModel.clearCheckoutStatus()
-                                merchantViewModel.stop()
-                                navigator.resetTo(NavKey.AuthKey)
-                            },
+                            onSignOut = { signOut(); chatViewModel.clearSession(); catalogViewModel.clearCheckoutStatus(); merchantViewModel.stop(); navigator.resetTo(NavKey.AuthKey) },
                             onVerifyEmail = onVerifyEmailRequested,
                             onRegisterCheckoutDevice = onRegisterCheckoutDeviceRequested,
-                            onNavigateToFavorites = {
-                                navigator.navigate(ActionDestination.resolve(SpressoAction.OpenSavedListings))
-                            },
+                            onNavigateToFavorites = { navigator.navigate(ActionDestination.resolve(SpressoAction.OpenSavedListings)) },
                             onNavigateToOrderHistory = { navigator.navigate(NavKey.OrdersKey) },
                             onNavigateToNotifications = { navigator.navigate(NavKey.PreferencesKey) },
                             onNavigateToWearables = { navigator.navigate(NavKey.MetaWearablesKey) },
@@ -895,41 +802,18 @@ fun App(
                             onNavigateToSupport = { navigator.navigate(NavKey.SupportKey) },
                         )
                     }
-                    entry<NavKey.PaymentWalletKey> { currentDestinationKey ->
-                        PaymentWalletRoute(userUid = currentUserUid, apiClient = apiClient)
-                    }
-                    entry<NavKey.SubscriptionMembershipKey> { currentDestinationKey ->
-                        SubscriptionMembershipRoute(userUid = currentUserUid, apiClient = apiClient)
-                    }
-                    entry<NavKey.LegalSecurityKey> { currentDestinationKey ->
-                        ColumnWithRouteMessage(null) { LegalSecuritySection() }
-                    }
-                    entry<NavKey.PreferencesKey> { currentDestinationKey ->
-                        PreferencesRoute(
-                            userUid = currentUserUid,
-                            apiClient = apiClient,
-                            themeMode = themeMode,
-                            onThemeModeChange = { themeMode = it },
-                        )
-                    }
-                    entry<NavKey.SupportKey> { currentDestinationKey ->
-                        SupportPage(
-                            onOpenChat = {
-                                navigator.navigate(NavKey.ChatKey(initialPrompt = "I need help with my Spresso account."))
-                            },
-                        )
-                    }
-
-                    // 11. Wearables & Spatial Flow
+                    entry<NavKey.PaymentWalletKey> { currentDestinationKey -> PaymentWalletRoute(userUid = currentUserUid, apiClient = apiClient) }
+                    entry<NavKey.SubscriptionMembershipKey> { currentDestinationKey -> SubscriptionMembershipRoute(userUid = currentUserUid, apiClient = apiClient) }
+                    entry<NavKey.LegalSecurityKey> { currentDestinationKey -> ColumnWithRouteMessage(null) { LegalSecuritySection() } }
+                    entry<NavKey.PreferencesKey> { currentDestinationKey -> PreferencesRoute(userUid = currentUserUid, apiClient = apiClient, themeMode = themeMode, onThemeModeChange = { themeMode = it }) }
+                    entry<NavKey.SupportKey> { currentDestinationKey -> SupportPage(onOpenChat = { navigator.navigate(NavKey.ChatKey(initialPrompt = "I need help with my Spresso account.")) }) }
                     entry<NavKey.MetaWearablesKey> { currentDestinationKey ->
                         MetaWearablesPage(
                             isConnected = false,
                             batteryPercent = 0,
                             glassesModelName = "Meta smart glasses",
                             isCameraStreaming = false,
-                            onStartHandsFreeCheckout = {
-                                navigator.navigate(NavKey.HITLCheckoutKey)
-                            },
+                            onStartHandsFreeCheckout = { navigator.navigate(NavKey.HITLCheckoutKey) },
                             onDismiss = { navigator.goBack() },
                             modifier = Modifier,
                         )

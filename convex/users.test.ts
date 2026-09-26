@@ -20,10 +20,11 @@ const other = {
 };
 
 async function bootstrapAs(t: ReturnType<typeof convexTest>, identity: typeof owner) {
-  return await t.withIdentity(identity).mutation(api.users.bootstrap, {
+  const result = await t.withIdentity(identity).mutation(api.users.bootstrap, {
     email: "owner@example.com",
     displayName: "Owner",
   });
+  return result.userId;
 }
 
 test("profile update is authenticated, owner-scoped, and visible only to its owner", async () => {

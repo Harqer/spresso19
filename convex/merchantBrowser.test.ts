@@ -1,10 +1,33 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { expect, test } from "vitest";
+import { expect, test, vi, afterEach, beforeAll } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
+
+import { existsSync } from "node:fs";
+import { transport } from "./merchantBrowser/browserbase";
+
+const CHROME_CANDIDATES = ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser"];
+const EXECUTABLE = CHROME_CANDIDATES.find((path) => existsSync(path));
+
+// Hermetic Convex-level suite: the Browserbase transport is always answered
+// locally so no scheduled provider start ever touches the network, and the
+// executor runs in truthful LOCAL mode (real system Chromium, same code path)
+// for flows that must observe a live browser (HITL resume re-observation).
+beforeAll(() => {
+  vi.spyOn(transport, "createSession").mockResolvedValue("bb_local_herm_1");
+  vi.spyOn(transport, "getDebugUrls").mockResolvedValue({
+    liveViewUrl: "https://browserbase.example/debug/live-view",
+    expiresInSeconds: 300,
+  });
+  vi.spyOn(transport, "releaseSession").mockResolvedValue(undefined);
+  if (EXECUTABLE) {
+    process.env.SPRESSO_LOCAL_BROWSER_EXECUTOR = "1";
+    process.env.SPRESSO_LOCAL_BROWSER_EXECUTOR_PATH = EXECUTABLE;
+  }
+});
 
 const identityA = { issuer: "https://securetoken.google.com/get-spresso", subject: "browser-user-a", tokenIdentifier: "https://securetoken.google.com/get-spresso:browser-user-a" };
 const identityB = { issuer: "https://securetoken.google.com/get-spresso", subject: "browser-user-b", tokenIdentifier: "https://securetoken.google.com/get-spresso:browser-user-b" };
@@ -12,6 +35,13 @@ const identityB = { issuer: "https://securetoken.google.com/get-spresso", subjec
 function testConvex() {
   return convexTest(schema, modules);
 }
+
+process.env.CLOUDFLARE_ACCOUNT_ID = "acct-test";
+process.env.CLOUDFLARE_API_TOKEN = "token-test";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const MERCHANT_URL = "https://shop.example/product/1";
 
@@ -124,7 +154,7 @@ test("events are monotonic, owner-scoped, and bounded", async () => {
   }
 });
 
-test("handoff flow: request pauses automation, owner take-over and resume are legal", async () => {
+test.skipIf(!EXECUTABLE)("handoff flow: request pauses automation, owner take-over and resume are legal", async () => {
   const t = testConvex();
   const sessionId = await beginSession(t);
   await t.mutation(internal.merchantBrowser.state.transitionInternal, { sessionId, status: "ACTIVE" });
@@ -139,11 +169,31 @@ test("handoff flow: request pauses automation, owner take-over and resume are le
   expect(session.status).toBe("HANDOFF_REQUIRED");
   expect(session.handoffReason).toContain("sign-in");
 
-  // Owner takes over, then hands control back by resuming.
-  await t.withIdentity(identityA).action(api.merchantBrowser.index.controlSession, { sessionId, control: "TAKE_OVER" });
-  await t.withIdentity(identityA).action(api.merchantBrowser.index.controlSession, { sessionId, control: "RESUME" });
-  const resumed = (await t.query(internal.merchantBrowser.state.getSessionInternal, { sessionId })) as { status: string };
-  expect(resumed.status).toBe("RESUMING");
+  // A live provider browser must exist for a takeover to surface a view.
+  // providerSessionId prefixed bb_local_ so the real transport stub stays off
+  // the network and resolves the view from the local registry spy.
+  await t.mutation(internal.merchantBrowser.state.recordProviderStart, {
+    sessionId,
+    providerSessionId: "bb_local_hitl_1",
+    currentUrl: MERCHANT_URL,
+    pageTitle: "Widget — Shop Example",
+    expiresAt: Date.now() + 20 * 60 * 1000,
+  });
+  vi.stubGlobal("fetch", vi.fn(async () =>
+    new Response(JSON.stringify({ result: [{ id: "page-1", type: "page", url: MERCHANT_URL, devtoolsFrontendUrl: "https://live.cloudflare.dev/devtools/inspector.html?ws=cf-hitl-1" }] }), { status: 200, headers: { "content-type": "application/json" } }),
+  ));
+
+  // Owner takes over (same provider session), then hands control back by resuming.
+  const takeover = await t.withIdentity(identityA).action(api.merchantBrowser.index.controlSession, { sessionId, control: "TAKE_OVER" });
+  expect(takeover.ok).toBe(true);
+  expect(takeover.liveViewUrl).toContain("live-view");
+  const controlled = (await t.query(internal.merchantBrowser.state.getSessionInternal, { sessionId })) as { status: string };
+  expect(controlled.status).toBe("HUMAN_CONTROL");
+
+  const resumed = await t.withIdentity(identityA).action(api.merchantBrowser.index.controlSession, { sessionId, control: "RESUME" });
+  expect(resumed.ok).toBe(true);
+  const afterResume = (await t.query(internal.merchantBrowser.state.getSessionInternal, { sessionId })) as { status: string };
+  expect(afterResume.status).toBe("ACTIVE");
 });
 
 test("redirect escape guardrail fails the session and records the failure", async () => {

@@ -125,7 +125,7 @@ fun PersonalAIShopperChatPage(
             onToggleVoiceRecording = onToggleVoiceRecording ?: { chatViewModel.toggleVoiceStream() },
             isSpeaking = chatViewModel.isVoiceSpeaking,
             isListening = chatViewModel.isVoiceListening,
-            onStopVoice = { chatViewModel.stopVoiceStream() },
+            onStopVoice = onToggleVoiceRecording ?: { chatViewModel.stopVoiceStream() },
             isGenerating = isGenerating,
             merchantViewModel = merchantViewModel,
             httpClient = apiClient.client,

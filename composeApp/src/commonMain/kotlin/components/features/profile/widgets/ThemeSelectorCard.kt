@@ -52,7 +52,7 @@ fun ThemeSelectorCard(
                 ) {
                     Icon(Icons.Outlined.Palette, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                 }
-                Text("Display Theme", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Display Theme", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
 
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {

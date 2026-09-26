@@ -37,6 +37,8 @@ type Env = {
   readonly BUNNY_STORAGE_ACCESS_KEY: string | undefined;
   readonly BUNNY_STORAGE_HOST: string | undefined;
   readonly BUNNY_STORAGE_ZONE: string | undefined;
+  readonly BROWSERBASE_API_KEY: string | undefined;
+  readonly BROWSERBASE_PROJECT_ID: string | undefined;
   readonly CLOUDFLARE_ACCOUNT_ID: string | undefined;
   readonly CLOUDFLARE_API_TOKEN: string | undefined;
   readonly FAL_API_KEY: string | undefined;
@@ -44,6 +46,8 @@ type Env = {
   readonly KITESURF_ALLOWED_DOMAINS: string | undefined;
   readonly PARALLEL_API_KEY: string | undefined;
   readonly SERPAPI_API_KEY: string | undefined;
+  readonly SPRESSO_LOCAL_BROWSER_EXECUTOR: string | undefined;
+  readonly SPRESSO_LOCAL_BROWSER_EXECUTOR_PATH: string | undefined;
   readonly SPRESSO_LLM_MODEL: string | undefined;
   readonly STRIPE_PUBLISHABLE_KEY: string | undefined;
   readonly STRIPE_SECRET_KEY: string | undefined;

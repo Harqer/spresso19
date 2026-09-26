@@ -138,6 +138,9 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.ui.text.google.fonts)
+    // Convex Android SDK: MainActivity observes the client's authState flow.
+    implementation(libs.convex.android)
     debugImplementation(libs.androidx.ui.tooling)
 }
 

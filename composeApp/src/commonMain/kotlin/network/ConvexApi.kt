@@ -117,6 +117,13 @@ data class MerchantBrowserSession(
     val lastEventSeq: Long = 0L,
 )
 
+/** Result of a merchant session control transition (HITL hands back a live view). */
+@kotlinx.serialization.Serializable
+data class MerchantSessionControlResult(
+    val ok: Boolean,
+    val liveViewUrl: String? = null,
+)
+
 /** One customer-safe automation event from the session's append-only log. */
 @kotlinx.serialization.Serializable
 data class MerchantBrowserEvent(
@@ -185,6 +192,17 @@ private fun JsonObject.toWardrobeItemData(): WardrobeItemData? {
  * the caller's Firebase ID token, which Convex verifies against
  * `auth.config.ts` before any domain function runs.
  */
+/**
+ * Account/commerce HTTP façade — COMPATIBILITY TRANSPORT (auth correction §28).
+ *
+ * Convex has a native web client (convex/browser) with setAuth(); web should
+ * ultimately subscribe reactively through it. Until that adapter lands, this
+ * authenticated HTTP bridge remains the web transport and calls the SAME
+ * canonical Convex queries/mutations server-side — it is a migration
+ * compatibility layer, NOT a parallel business logic or an ingress
+ * requirement. On Android the process-lifetime ConvexClientWithAuth handles
+ * the canonical entry paths (bootstrap, root auth state) directly.
+ */
 class ConvexApi(
     private val idTokenProvider: suspend () -> String? = { getCurrentUserIdToken() },
 ) {
@@ -239,7 +257,7 @@ class ConvexApi(
     suspend fun controlMerchantSession(
         sessionId: String,
         control: String,
-    ): Boolean {
+    ): MerchantSessionControlResult {
         val body =
             post(
                 "/api/merchant/session/control",
@@ -248,11 +266,21 @@ class ConvexApi(
                     put("control", control)
                 },
             )
+        val payload = json.parseToJsonElement(body).jsonObject
+        val ok = payload["ok"]?.jsonPrimitive?.booleanOrNull == true
+        val liveViewUrl = payload["liveViewUrl"]?.jsonPrimitive?.contentOrNull
+        return MerchantSessionControlResult(ok = ok, liveViewUrl = liveViewUrl)
+    }
+
+    /** Re-fetch the short-lived Live View while the user holds control (HITL). */
+    suspend fun fetchMerchantLiveView(sessionId: String): String? {
+        val body = get("/api/merchant/session/live-view?sessionId=${sessionId.encodeURLParameter()}")
+        if (body.isEmpty() || body == "null") return null
         return json
             .parseToJsonElement(body)
-            .jsonObject["ok"]
+            .jsonObject["liveViewUrl"]
             ?.jsonPrimitive
-            ?.booleanOrNull == true
+            ?.contentOrNull
     }
 
     /** Begin a merchant automation session on an allow-listed merchant URL. */
@@ -341,22 +369,25 @@ class ConvexApi(
         return true
     }
 
-    suspend fun bootstrapCurrentUser(
-        email: String?,
+    /** Canonical bootstrap over the HTTP bridge: returns the full launch state. */
+    suspend fun bootstrapUser(
         displayName: String?,
-    ): String {
+        email: String?,
+        photoUrl: String?,
+    ): kotlinx.serialization.json.JsonObject {
         val response =
             json
                 .parseToJsonElement(
                     post(
                         "/api/account/bootstrap",
                         buildJsonObject {
-                            if (!email.isNullOrBlank()) put("email", email)
                             if (!displayName.isNullOrBlank()) put("displayName", displayName)
+                            if (!email.isNullOrBlank()) put("email", email)
+                            if (!photoUrl.isNullOrBlank()) put("photoUrl", photoUrl)
                         },
                     ),
                 ).jsonObject
-        return response["userId"]?.jsonPrimitive?.content ?: error("Account bootstrap returned no user id.")
+        return response
     }
 
     suspend fun requestAccountDeletion(): String {
@@ -459,6 +490,54 @@ class ConvexApi(
                 put("prompt", prompt)
             },
         )
+    }
+
+    suspend fun saveLiveTurn(
+        threadId: String,
+        turnId: String,
+        userTranscript: String,
+        assistantTranscript: String,
+    ): String {
+        require(threadId.isNotBlank()) { "A chat thread is required." }
+        require(turnId.matches(Regex("^[A-Za-z0-9_-]{1,128}$"))) { "A valid voice turn id is required." }
+        require(userTranscript.isNotBlank() || assistantTranscript.isNotBlank()) { "A finalized voice transcript is required." }
+        require(userTranscript.length <= 4000 && assistantTranscript.length <= 8000) { "The voice transcript is too long." }
+        val response =
+            json.parseToJsonElement(
+                post(
+                    "/api/chat/live-turn",
+                    buildJsonObject {
+                        put("threadId", threadId)
+                        put("turnId", turnId)
+                        put("userTranscript", userTranscript)
+                        put("assistantTranscript", assistantTranscript)
+                    },
+                ),
+            ).jsonObject
+        return response["threadId"]?.jsonPrimitive?.contentOrNull
+            ?: throw IllegalStateException("Voice turn was saved without a chat thread id.")
+    }
+
+    suspend fun updateLiveTurnUserTranscript(
+        threadId: String,
+        turnId: String,
+        userTranscript: String,
+    ): Boolean {
+        require(threadId.isNotBlank()) { "A chat thread is required." }
+        require(turnId.matches(Regex("^[A-Za-z0-9_-]{1,128}$"))) { "A valid voice turn id is required." }
+        require(userTranscript.isNotBlank() && userTranscript.length <= 4000) { "A valid finalized voice transcript is required." }
+        val response =
+            json.parseToJsonElement(
+                post(
+                    "/api/chat/live-turn/input",
+                    buildJsonObject {
+                        put("threadId", threadId)
+                        put("turnId", turnId)
+                        put("userTranscript", userTranscript)
+                    },
+                ),
+            ).jsonObject
+        return response["updated"]?.jsonPrimitive?.booleanOrNull ?: false
     }
 
     suspend fun listChatMessages(threadId: String): List<ConvexChatMessage> {
@@ -1222,7 +1301,7 @@ class ConvexApi(
     suspend fun fetchUserProfile(uid: String): UserProfileData {
         var result = fetchCurrentUser()
         if (result == null) {
-            bootstrapCurrentUser(null, null)
+            bootstrapUser(null, null, null)
             result = fetchCurrentUser()
         }
         result = result ?: error("Authenticated profile was not found.")

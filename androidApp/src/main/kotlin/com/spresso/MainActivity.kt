@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,9 +45,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import navigation.NavKey
 import network.AndroidActivityBridge
-import theme.SpressoAndroidTheme
+import theme.AppTheme
 import theme.ThemeMode
 import java.util.concurrent.TimeUnit
+
+/** Keeps the last root auth state across recompositions (reducer input). */
+private object RootAuthStateHolder {
+    var last: auth.RootAuthState = auth.RootAuthState.ResolvingFirebase
+}
 
 @kotlin.OptIn(androidx.credentials.ExperimentalDigitalCredentialApi::class)
 class MainActivity : FragmentActivity() {
@@ -59,6 +65,12 @@ class MainActivity : FragmentActivity() {
     private lateinit var consentManager: ConsentManager
     private lateinit var screenCapture: MediaProjectionScreenCapture
     private var lensResultHandler: ((String) -> Unit)? = null
+    private var microphonePermissionCallback: ((Boolean) -> Unit)? = null
+
+    private val microphonePermissionRequest =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            microphonePermissionCallback?.also { microphonePermissionCallback = null }?.invoke(granted)
+        }
 
     private val screenCaptureLauncher =
         registerForActivityResult(
@@ -163,6 +175,55 @@ class MainActivity : FragmentActivity() {
             var user by remember { mutableStateOf(FirebaseAuth.getInstance().currentUser) }
             var isAuthLoading by remember { mutableStateOf(true) }
             var externalNavKey by remember { mutableStateOf<NavKey?>(null) }
+
+            // Root auth state machine (auth correction scope): Firebase and
+            // Convex session facts compose through auth.reduceRootAuthState.
+            // A Firebase session alone never renders authenticated Spresso.
+            val app = application as SpressoApp
+            val convexAuthState by app.authState.collectAsState()
+            var launchState by remember { mutableStateOf<auth.AccountLaunchState?>(null) }
+            var bootstrapError by remember { mutableStateOf<String?>(null) }
+            LaunchedEffect(convexAuthState, user?.uid) {
+                when (convexAuthState) {
+                    is dev.convex.android.AuthState.Authenticated -> {
+                        if (launchState == null && bootstrapError == null) {
+                            try {
+                                launchState = auth.bootstrapAccount(
+                                    displayName = user?.displayName,
+                                    email = user?.email,
+                                    photoUrl = user?.photoUrl?.toString(),
+                                )
+                                bootstrapError = null
+                            } catch (e: Exception) {
+                                bootstrapError = e.message ?: "Account bootstrap failed."
+                            }
+                        }
+                    }
+                    is dev.convex.android.AuthState.Unauthenticated -> {
+                        launchState = null
+                        bootstrapError = null
+                    }
+                    else -> Unit
+                }
+            }
+            val rootAuthState = auth.reduceRootAuthState(
+                current = RootAuthStateHolder.last,
+                firebase = auth.FirebaseSnapshot(
+                    uid = user?.uid,
+                    isEmailPasswordProvider = user?.providerData?.any { it.providerId == "password" } == true,
+                    isEmailVerified = user?.isEmailVerified == true,
+                    displayName = user?.displayName,
+                    email = user?.email,
+                ),
+                convex = when (convexAuthState) {
+                    is dev.convex.android.AuthState.Authenticated -> auth.ConvexSessionSnapshot.Authenticated
+                    is dev.convex.android.AuthState.AuthLoading -> auth.ConvexSessionSnapshot.Authenticating
+                    else -> auth.ConvexSessionSnapshot.Unauthenticated
+                },
+                launch = launchState,
+                bootstrapError = bootstrapError,
+            )
+            RootAuthStateHolder.last = rootAuthState
             var analyticsConsent by remember { mutableStateOf(consentManager.hasAnalyticsConsent()) }
             var showDataConsentDialog by remember {
                 mutableStateOf(
@@ -400,7 +461,7 @@ class MainActivity : FragmentActivity() {
                             ?.joinToString(" ") { word -> word.replaceFirstChar { char -> char.uppercase() } }
                 } ?: ""
 
-            SpressoAndroidTheme(themeMode = themeMode) {
+            AppTheme(themeMode = themeMode) {
                 androidx.compose.runtime.CompositionLocalProvider(
                     LocalConsentManager provides consentManager,
                     components.core.LocalAnalyticsConsent provides analyticsConsent,
@@ -480,10 +541,27 @@ class MainActivity : FragmentActivity() {
                                     !firebaseUser.isEmailVerified
                             } == true,
                         externalNavKey = externalNavKey,
-                        isAuthLoading = isAuthLoading,
+                        isAuthLoading = isAuthLoading || rootAuthState is auth.RootAuthState.ResolvingFirebase ||
+                            rootAuthState is auth.RootAuthState.AuthenticatingConvex ||
+                            rootAuthState is auth.RootAuthState.BootstrappingUser,
+                        rootAuthError = (rootAuthState as? auth.RootAuthState.AuthError)?.message,
+                        bootstrappedOnboardingCompleted = launchState?.onboardingCompleted,
+                        verificationEmail = user?.email,
                         currentLatLng = currentLatLngState.value,
                         onRequestLocationPermission = {
                             showLocationDisclosureDialog = true
+                        },
+                        onRequestMicrophonePermission = { onResult ->
+                            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                                    this@MainActivity,
+                                    Manifest.permission.RECORD_AUDIO,
+                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            ) {
+                                onResult(true)
+                            } else {
+                                microphonePermissionCallback = onResult
+                                microphonePermissionRequest.launch(Manifest.permission.RECORD_AUDIO)
+                            }
                         },
                         onShare = { productId ->
                             val sendIntent =
@@ -509,6 +587,13 @@ class MainActivity : FragmentActivity() {
                         },
                         onLensResult = { image -> externalNavKey = NavKey.ChatKey(initialImage = image) },
                         onGoogleSignInRequested = googleSignIn@{
+                            // TOKEN CHAIN (auth correction §4): the Credential
+                            // Manager result is a GOOGLE ID token. It authenticates
+                            // WITH Firebase (GoogleAuthProvider.getCredential →
+                            // signInWithCredential). It is NEVER the Convex token.
+                            // Convex receives the Firebase Auth ID token minted for
+                            // the resulting FirebaseUser, pushed by
+                            // FirebaseConvexAuthProvider's IdTokenListener.
                             val serverClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
                             if (serverClientId.isBlank()) {
                                 Toast.makeText(this@MainActivity, "Google Sign-In isn’t available yet.", Toast.LENGTH_LONG).show()

@@ -1,0 +1,122 @@
+# Spresso semantic screen and capability ownership
+
+Spresso has relatively few true screens. Several major features are capabilities or backend processes invoked from those screens rather than independent destinations.
+
+1. **Chat Home** — The primary Spresso interface immediately after onboarding. Users ask Spresso to search, compare, recommend, save, add products to cart, interact with websites, or complete supported shopping tasks. Product discovery results, browser-automation progress, tool results, and agent responses appear conversationally. Realtime voice is another interaction mode for this same agent.
+
+2. **For You** — A dedicated personalized product feed populated from the user's interests, searches, likes/saves, purchase history, style signals, and other legitimate personalization context. Spresso derives likely category-specific interests—such as fashion, technology, sports, beauty, or home—and queries real external products rather than displaying fabricated or static recommendations.
+
+3. **Product Detail** — The authoritative presentation of one externally discovered product. It includes the richest verified information available: merchant, current price, images, variants such as size/color/configuration, availability, shipping/returns evidence, ratings, written reviews, and real external video reviews. It also exposes actions such as Save, Like, Add to Cart, Try On, Compare, Share, and Ask Spresso.
+
+4. **Lens** — A system-level Spresso capability rather than a normal destination screen. Screenshot capture, share-to-Spresso, browser-extension capture, image sharing, and other explicit capture surfaces can invoke Lens even when the main app is closed. The resulting image or URL is resolved through Spresso's visual/product-search tools and handed into Chat, Product Detail, Save, Compare, or Try-On.
+
+5. **Browser Automation** — A core execution capability of the Spresso agent rather than a standalone screen. When fulfilling a request requires interacting with a website, Spresso uses Cloudflare Browser Run to navigate sites, click controls, choose product options, enter information, fill forms, and perform other required browser actions. Browser execution is headless by default, using Kitesurf when compatible and another Browser Run engine such as Chromium when required. Chat shows live semantic progress, and **Watch Browser** lets the user attach to the same already-running browser session at any time. The user may optionally take control and later return control to Spresso. Watching, closing the viewer, or opening Chat must not create a second browser session or restart the task.
+
+6. **Order History / Collection** — One user-owned history and collection area containing purchased products together with liked, saved, and bookmarked products. For fashion, it may also use user-authorized photo-gallery clothing context to understand what the user already owns, personalize future recommendations, and recommend outfits without treating gallery photos as purchases.
+
+7. **Cart** — The user's active purchase-intent surface containing products, quantities, selected variants, merchant/price information, totals, and the transition into checkout. Cart state is canonical Spresso state and remains distinct from any retailer-side cart being manipulated through browser automation.
+
+8. **Checkout / Purchase Process** — A backend and transactional UI process initiated from Cart rather than an independent top-level screen. Merchant/UCP checkout, AP2 authorization, payment infrastructure, merchant-order confirmation, and Convex reconciliation happen through this flow while the Cart/checkout UI exposes the current user-facing state.
+
+9. **Orders & Tracking** — Functionality inside Order History / Collection rather than a separate global Tracking screen. Purchased orders expose authoritative merchant/carrier status, tracking number, delivery estimate, and fulfillment history when available. Selecting an order opens its order-detail/tracking state.
+
+10. **Returns** — An action initiated from an existing order rather than a primary destination. It invokes the actual supported merchant/provider return workflow and presents that state with the associated order. Browser automation may perform the merchant-site interaction when a structured return API is unavailable.
+
+11. **Virtual Try-On** — A product action launched from a real garment in Product Detail, For You, Chat results, or the user's collection. It combines that garment with user-owned imagery and returns generated try-on media without automatically saving it unless the user chooses to. Virtual Try-On is the supported generative product-media capability; Spin 360 is deprecated.
+
+12. **Grocery / Ingredients** — A specialized Spresso agent workspace for grocery lists, ingredient planning, product discovery, and cooking assistance. Grocery intent remains planning/list state until subsequent user actions actually change commerce or order state.
+
+13. **Creator** — A specialized agent workspace for creating content through the same Convex AI infrastructure used by Spresso. Templates, generations, assets, and creator-specific state belong here rather than inside the general shopping conversation.
+
+14. **Travel** — A specialized agent workspace for trips, bookings, events, receipts, expenses, and travel-related AI assistance. It reuses Spresso's common Agent infrastructure while maintaining travel-specific state separately from commerce state.
+
+15. **Meta Smart Glasses / Wearables** — Another interface to the same Spresso agent. Camera frames support object/product detection, realtime voice lets the user ask about what they are seeing, and detected products can be searched, compared, saved, added to the Spresso cart, or acted on through the same browser automation and commerce capabilities used by the phone. Wearables must not maintain a parallel shopping, browser, Agent, cart, or order system.
+
+16. **Glimmer / XR** — A spatial presentation of supported Spresso domains such as products, groceries, cooking assistance, cart state, collection items, browser-task progress, or agent responses. XR changes presentation and interaction modality, not backend ownership.
+
+17. **Account** — The normal user account hub. It owns profile identity plus normal account-management destinations: avatar/name/email, personalization preferences, notifications, agent permissions and memory controls, connected services/devices, payment credentials, purchase authorization/security, subscription/usage, privacy/data controls, support/legal, sign-out, and account deletion.
+
+18. **Profile inside Account** — The identity portion of Account: profile photo, display name, verified email/account identities, and other genuine account identity information. It remains simple rather than becoming another application dashboard.
+
+19. **Settings inside Account** — Settings are subsections of Account rather than a separate top-level screen. They expose deterministic controls for appearance, notifications, personalization, agent memory/permissions, connected devices/services, data controls, payments/purchase security, subscription, security, support, and legal.
+
+## Core ownership
+
+```text
+There is NO standalone Search/Catalog screen.
+
+Chat Home
+→ conversational Spresso agent
+→ explicit product discovery/search
+→ multiple real product results
+→ browser automation when website interaction is required
+→ live progress and results remain in the conversation
+
+For You
+→ proactive personalized discovery
+→ inferred + explicit interests
+→ real external products
+→ dedicated recommendation feed
+
+Product Detail
+→ one authoritative product
+→ full variants + reviews + video reviews + product actions
+
+Browser Automation
+→ agent execution capability
+→ Cloudflare Browser Run
+→ Kitesurf when compatible
+→ Chromium/other Browser Run engine when required
+→ headless by default
+→ Watch Browser attaches to same running session
+→ optional human takeover
+→ no duplicate browser architecture
+
+Order History / Collection
+→ purchased + liked + saved + bookmarked
+→ optional authorized gallery-derived fashion context
+→ orders/tracking/returns live within this domain
+
+Cart
+→ active purchase intent
+→ selected variants + quantities
+→ checkout represented as a transactional process
+
+Account
+→ Profile + Settings
+→ security + devices + preferences + subscription + privacy + support
+```
+
+## Cross-cutting capabilities
+
+```text
+Lens
+= system-wide Spresso invocation surface
+
+Realtime Voice
+= interaction mode for the same Spresso agent
+
+Browser Automation
+= execution capability of the same Spresso agent
+= used whenever fulfillment requires site navigation/clicking/forms
+= headless by default
+= live progress surfaced in Chat
+= existing session viewable on demand
+= optional human takeover
+= closing Watch Browser does not stop the task
+
+Wearables
+= another client of the same Agent, Lens, voice, browser, product, cart, and order capabilities
+
+Virtual Try-On
+= explicit product/collection action
+= only generative product-media path
+
+Returns
+= action from an existing order
+
+Checkout
+= transactional process associated with Cart
+```
+
+This semantic map is the ownership contract for subsequent repository audits. Implementation details such as Convex Agent, Browser Run, Kitesurf, Chromium, provider APIs, tool calls, or background jobs must support these product boundaries rather than create new user-facing screens or duplicate state owners.

@@ -9,6 +9,16 @@ export const ChatRequestSchema = z.object({
   locale: z.string().trim().min(2).max(MAX_LOCALE_LENGTH).optional(),
 }).strict();
 
+/** Finalized Gemini Live transcription only; audio/video payloads never cross this boundary. */
+export const LiveTurnRequestSchema = z.object({
+  turnId: z.string().trim().min(1).max(128).regex(/^[A-Za-z0-9_-]+$/),
+  userTranscript: z.string().trim().max(4000),
+  assistantTranscript: z.string().trim().max(8000),
+}).strict().refine(
+  (turn) => turn.userTranscript.length > 0 || turn.assistantTranscript.length > 0,
+  "A finalized voice turn must contain transcript text.",
+);
+
 const TextBlockSchema = z.object({
   type: z.literal("text"),
   text: z.string().trim().min(1).max(8000),

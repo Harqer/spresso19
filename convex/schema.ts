@@ -210,6 +210,17 @@ export default defineSchema({
     .index("by_token_identifier", ["tokenIdentifier"])
     .index("by_token_identifier_and_created_at", ["tokenIdentifier", "createdAt"]),
 
+  // Idempotency markers only; finalized transcript text lives exclusively in
+  // the canonical @convex-dev/agent messages component.
+  liveConversationTurns: defineTable({
+    tokenIdentifier: v.string(),
+    threadId: v.string(),
+    turnId: v.string(),
+    userMessageId: v.optional(v.string()),
+    assistantMessageId: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_token_identifier_and_thread_id_and_turn_id", ["tokenIdentifier", "threadId", "turnId"]),
+
   mediaAssets: defineTable({
     tokenIdentifier: v.string(),
     mediaKey: v.string(),
@@ -328,23 +339,50 @@ export default defineSchema({
     .index("by_token_identifier_and_public_key", ["tokenIdentifier", "publicKey"]),
 
   // Merchant browser automation: Convex owns the durable workflow state and
-  // Cloudflare Browser Run is only the execution provider. Sessions are
-  // owner-scoped; events are an append-only, monotonic-sequence log with
-  // customer-safe summaries only (no provider URLs, cookies, or tokens).
+  // the provider (Cloudflare / Browserbase) is only the execution runtime.
+  // Sessions are owner-scoped; events are an append-only, monotonic-sequence
+  // log with customer-safe summaries only (no provider URLs, cookies, or
+  // tokens). The credential-bearing connectUrl/debugUrl is NEVER persisted —
+  // the only provider identifier stored is providerSessionId.
   merchantBrowserSessions: defineTable({
     tokenIdentifier: v.string(),
+    // Workflow identity: the agent task this session belongs to.
+    taskId: v.optional(v.string()),
     merchantHost: v.string(),
-    engine: v.union(v.literal("KITESURF"), v.literal("CHROMIUM")),
+    // Execution provider. Optional for schema evolution: rows created before
+    // Phase 1 predate the field, while every new session writes it. LOCAL is
+    // the deterministic controlled-integration mode (a system Chromium driven
+    // by the SAME playwright-core executor as BROWSERBASE — never a fake).
+    // Wire-compat note: the legacy `engine` field name was superseded by
+    // `provider` (Phase 1 contracts); the public session payload still exposes
+    // an `engine` alias until the KMP client migrates (Phase 3).
+    provider: v.optional(v.union(v.literal("CLOUDFLARE"), v.literal("BROWSERBASE"), v.literal("LOCAL"))),
     status: v.union(
       v.literal("STARTING"),
       v.literal("ACTIVE"),
       v.literal("PAUSED"),
+      v.literal("WAITING_USER_INPUT"),
+      v.literal("WAITING_SECURE_INPUT"),
       v.literal("HANDOFF_REQUIRED"),
       v.literal("HUMAN_CONTROL"),
       v.literal("RESUMING"),
+      v.literal("READY_FOR_PURCHASE_AUTHORIZATION"),
+      v.literal("SUBMITTING_PURCHASE"),
       v.literal("COMPLETED"),
       v.literal("FAILED"),
       v.literal("EXPIRED"),
+    ),
+    // Exactly-one invariant: for every status exactly one of AGENT | USER |
+    // CREDENTIAL_BROKER | NONE owns browser control (enforced centrally in
+    // merchantBrowser/state.ts via STATUS_CONTROL_OWNER, written atomically
+    // with every status change). Optional only for pre-Phase-1 rows.
+    controlOwner: v.optional(
+      v.union(
+        v.literal("AGENT"),
+        v.literal("USER"),
+        v.literal("CREDENTIAL_BROKER"),
+        v.literal("NONE"),
+      ),
     ),
     providerSessionId: v.optional(v.string()),
     currentUrl: v.optional(v.string()),
@@ -358,7 +396,9 @@ export default defineSchema({
     expiresAt: v.number(),
   })
     .index("by_token_identifier", ["tokenIdentifier"])
-    .index("by_token_identifier_and_status", ["tokenIdentifier", "status"]),
+    .index("by_token_identifier_and_status", ["tokenIdentifier", "status"])
+    .index("by_token_identifier_and_created_at", ["tokenIdentifier", "createdAt"])
+    .index("by_task_id", ["taskId"]),
 
   merchantBrowserEvents: defineTable({
     sessionId: v.id("merchantBrowserSessions"),

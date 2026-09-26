@@ -1,0 +1,30 @@
+# Phase 1 complete
+
+- completed_at_utc: 2026-09-25T21:55:00Z
+- branch_commit: main@e50969c3cae8fd68693c5961e49e887f8bfc5bd2 (working tree, uncommitted)
+- changed_paths:
+  - docs/browser-automation/phase-1-audit.md (new)
+  - convex/schema.ts (merchantBrowserSessions evolution)
+  - convex/merchantBrowser/contracts.ts (new — execution contracts)
+  - convex/merchantBrowser/state.ts (transitions, control owner, stale-seq, seq fix)
+  - convex/merchantBrowser/index.ts (provider selection, wire-compatible payload)
+  - convex/merchantBrowser/tools.ts (success-semantics contract, waiting-state classification)
+  - convex/merchantBrowser.test.ts (provider-rename fix in one createSessionInternal call)
+  - convex/merchantBrowserProvider.test.ts (provider rename)
+  - convex/merchantBrowserContracts.test.ts (new — 15 contract tests)
+- verification:
+  - `npx tsc -p convex/tsconfig.json --noEmit`: pass (no output)
+  - `npx vitest run`: 156/156 tests pass in 23 files (was 141/141 in 22 files)
+  - `npm run test:smoke` (production-smoke + no-synthetic-success + boundary checks): 13/13 pass, 0 fail
+  - `npm run test:contracts`: pass
+- invariants:
+  - Existing `merchantBrowserSessions` table evolved in place (no second session table); optional-field evolution for pre-Phase-1 rows (`provider`, `controlOwner` optional at read, always written at create/transition).
+  - Status union extended with WAITING_USER_INPUT, WAITING_SECURE_INPUT, READY_FOR_PURCHASE_AUTHORIZATION, SUBMITTING_PURCHASE; transition map keeps terminal states final and gates SUBMITTING_PURCHASE behind READY_FOR_PURCHASE_AUTHORIZATION.
+  - Exactly-one control owner: every status maps to exactly one of AGENT | USER | CREDENTIAL_BROKER | NONE (canonical map in merchantBrowser/contracts.ts STATUS_CONTROL_OWNER), written atomically with every status change.
+  - Provider persisted as a Browserbase-capable enum (CLOUDFLARE | BROWSERBASE); no connectUrl/debugUrl field exists anywhere in the table; providerSessionId is the only provider identifier stored.
+  - Session identity complete: tokenIdentifier, taskId (optional), merchantHost, providerSessionId, status/controlOwner, lastEventSeq, currentUrl/pageTitle/currentStep, actionBudgetUsed, createdAt/updatedAt/expiresAt.
+  - Events remain append-only with strictly monotonic sequences; transitionInternal now advances lastEventSeq with every appended event (collision defect found and fixed this phase); stale expectedSeq is rejected without mutation.
+  - Execution contracts (BrowserExecutionRequest, BrowserOperation union incl. evaluate and broker-only cdp, locator targets, BrowserAssertion, BrowserExecutionResult) encode OUTCOME_UNKNOWN for dispatched-but-unconfirmed writes; a batch is success only when outcome OK and every postcondition assertion passed (isVerifiedSuccess); AGENT-authority requests carrying cdp must be rejected by the Phase 2 executor.
+  - Tool success contract is verified-browser-evidence only; recording events or consuming budget is never success evidence. No Browserbase/Playwright dependency was added in this phase.
+  - New statuses degrade safely on the KMP client (String status, Json ignoreUnknownKeys, unknown→"Starting" label; relabeling is a Phase 3 item).
+- next_phase: 2

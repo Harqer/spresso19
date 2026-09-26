@@ -22,10 +22,26 @@ export type FirebaseIdentity = {
   /** Convex-verified canonical identity key. */
   tokenIdentifier: string;
   issuer: string;
+  /** Verified token claims (Firebase-owned profile metadata). Present only
+   *  when the ID token carries them; NEVER client-supplied. */
+  email?: string;
+  name?: string;
+  picture?: string;
+  emailVerified?: boolean;
 };
 
 type IdentityCtx = {
-  auth: { getUserIdentity(): Promise<{ subject: string; issuer: string; tokenIdentifier: string } | null> };
+  auth: {
+    getUserIdentity(): Promise<{
+      subject: string;
+      issuer: string;
+      tokenIdentifier: string;
+      email?: string;
+      name?: string;
+      picture?: string;
+      emailVerified?: boolean;
+    } | null>;
+  };
 };
 
 type AnyCtx = QueryCtx | MutationCtx | ActionCtx;
@@ -49,6 +65,11 @@ export async function requireFirebaseIdentity(ctx: AnyCtx): Promise<FirebaseIden
     firebaseUid: identity.subject,
     tokenIdentifier: identity.tokenIdentifier,
     issuer: identity.issuer,
+    // Standard Firebase ID-token claims (firebase claim + verified profile).
+    email: typeof identity.email === "string" ? identity.email : undefined,
+    name: typeof identity.name === "string" ? identity.name : undefined,
+    picture: typeof identity.picture === "string" ? identity.picture : undefined,
+    emailVerified: identity.emailVerified === true,
   };
 }
 
@@ -72,5 +93,9 @@ export async function getOptionalFirebaseIdentity(ctx: AnyCtx): Promise<Firebase
     firebaseUid: identity.subject,
     tokenIdentifier: identity.tokenIdentifier,
     issuer: identity.issuer,
+    email: typeof identity.email === "string" ? identity.email : undefined,
+    name: typeof identity.name === "string" ? identity.name : undefined,
+    picture: typeof identity.picture === "string" ? identity.picture : undefined,
+    emailVerified: identity.emailVerified === true,
   };
 }

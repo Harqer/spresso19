@@ -13,6 +13,8 @@ import kotlinx.coroutines.launch
 actual class AudioRecorder {
     actual var onAudioChunk: ((ByteArray) -> Unit)? = null
     actual var onError: ((Exception) -> Unit)? = null
+    actual var onStarted: (() -> Unit)? = null
+    actual var onStopped: (() -> Unit)? = null
     private var audioRecord: AudioRecord? = null
     private var isRecording = false
     private var recordingJob: Job? = null
@@ -53,6 +55,7 @@ actual class AudioRecorder {
             audioRecord = record
             record.startRecording()
             isRecording = true
+            onStarted?.invoke()
 
             recordingJob =
                 recorderScope.launch {
@@ -95,6 +98,8 @@ actual class AudioRecorder {
                 // Ignore during error tear down
             }
             audioRecord = null
+            onStopped?.invoke()
+            onError?.invoke(IllegalStateException("Microphone RECORD_AUDIO permission missing or denied.", e))
             throw IllegalStateException("Microphone RECORD_AUDIO permission missing or denied.", e)
         } catch (e: Exception) {
             isRecording = false
@@ -104,6 +109,7 @@ actual class AudioRecorder {
                 // Ignore during error tear down
             }
             audioRecord = null
+            onStopped?.invoke()
             network.Telemetry.recordError("Exception starting AudioRecord", e)
             throw e
         }
@@ -111,7 +117,9 @@ actual class AudioRecorder {
 
     actual fun stopRecording() {
         if (!isRecording) return
+        onAudioChunk = null
         isRecording = false
+        onStopped?.invoke()
         recordingJob?.cancel()
         recordingJob = null
 

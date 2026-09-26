@@ -105,9 +105,13 @@ fun PersonalAIShopperChatPanel(
             if (merchantSession != null) {
                 MerchantBrowserSessionCard(
                     session = merchantSession,
+                    liveViewUrl = merchantViewModel.liveViewUrl,
+                    onDismissLiveView = { merchantViewModel.dismissLiveView() },
                     onPause = { merchantViewModel.pause() },
                     onResume = { merchantViewModel.resume() },
-                    onTakeOver = { merchantViewModel.takeOver() },
+                    onTakeOver = {
+                        merchantViewModel.takeOver()
+                    },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).widthIn(max = 840.dp),
                 )
             }

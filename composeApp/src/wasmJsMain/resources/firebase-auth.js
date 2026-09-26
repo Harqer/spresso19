@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 try {
     const configResponse = await fetch("/firebase-applet-config.json");
@@ -62,14 +62,52 @@ window.signOutFirebase = function() {
     signOut(getAuthInstance());
 };
 
+// Auth-state bridge for the KMP identity-session contract: emits a plain
+// JSON payload per Firebase auth change (sign-in/out, user replacement,
+// token refresh). No tokens are ever included in this payload.
+window.onAuthStateChanged = function(callback) {
+    return onAuthStateChanged(getAuthInstance(), function(user) {
+        if (!user) {
+            callback({});
+            return;
+        }
+        var isPassword = false;
+        user.providerData.forEach(function(profile) {
+            if (profile.providerId === 'password') isPassword = true;
+        });
+        callback({
+            uid: user.uid,
+            email: user.email || null,
+            displayName: user.displayName || null,
+            photoUrl: user.photoURL || null,
+            isEmailPassword: isPassword,
+            isEmailVerified: user.emailVerified === true
+        });
+    });
+};
+
 window.signInWithEmailAndPasswordFirebase = async function(email, password) {
     return await signInWithEmailAndPassword(getAuthInstance(), email, password);
 };
 
-window.createUserWithEmailAndPasswordFirebase = async function(email, password) {
+window.createUserWithEmailAndPasswordFirebase = async function(email, password, displayName) {
     const result = await createUserWithEmailAndPassword(getAuthInstance(), email, password);
+    if (displayName) {
+        await result.user.updateProfile({ displayName });
+    }
     await result.user.sendEmailVerification();
     return result;
+};
+
+window.sendPasswordResetEmailFirebase = async function(email) {
+    await sendPasswordResetEmail(getAuthInstance(), email);
+};
+
+window.reloadCurrentUserFirebase = async function() {
+    const user = getAuthInstance().currentUser;
+    if (!user) throw new Error("Sign in first.");
+    await user.reload();
+    await user.getIdToken(true);
 };
 
 window.sendEmailVerificationFirebase = async function() {
@@ -149,4 +187,21 @@ window.requestPhoneSignIn = async function() {
         window.confirmationResult = null;
         phoneSignInPending = false;
     }
+};
+
+// Dispose helper for the KMP identity-session bridge.
+window.jsDisposeListener = function(handle) {
+    if (typeof handle === 'function') handle();
+};
+
+// Field accessors for the wasmJs interop boundary (payload is a plain object).
+window.jsFieldString = function(payload, key) {
+    if (payload == null) return null;
+    var value = payload[key];
+    return (typeof value === 'string') ? value : null;
+};
+window.jsFieldBoolean = function(payload, key) {
+    if (payload == null) return null;
+    var value = payload[key];
+    return (typeof value === 'boolean') ? value : null;
 };

@@ -6,12 +6,23 @@ import kotlin.io.encoding.Base64
 
 @JsFun(
     """
-(onChunk, onError) => {
-    globalThis.__spressoRecorder ??= { generation: 0, stream: null, context: null, source: null, node: null };
+(onChunk, onError, onStarted, onStopped) => {
+    globalThis.__spressoRecorder ??= { generation: 0, stream: null, context: null, source: null, node: null, onChunk: null, onError: null, onStarted: null, onStopped: null };
     const state = globalThis.__spressoRecorder;
     const generation = ++state.generation;
+    state.onChunk = onChunk;
+    state.onError = onError;
+    state.onStarted = onStarted;
+    state.onStopped = onStopped;
     if (!navigator.mediaDevices?.getUserMedia) {
-        onError("Microphone access is not available in this browser.");
+        const reportError = state.onError;
+        const reportStopped = state.onStopped;
+        state.onChunk = null;
+        state.onError = null;
+        state.onStarted = null;
+        state.onStopped = null;
+        reportStopped?.();
+        reportError?.("Microphone access is not available in this browser.");
         return;
     }
     navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
@@ -22,22 +33,49 @@ import kotlin.io.encoding.Base64
         state.stream = stream;
         state.context = new (globalThis.AudioContext || globalThis.webkitAudioContext)();
         return state.context.audioWorklet.addModule("/audio-processor.js").then(() => {
-            if (generation !== state.generation) return;
+            if (generation !== state.generation) {
+                state.context?.close();
+                return;
+            }
             state.source = state.context.createMediaStreamSource(stream);
             state.node = new AudioWorkletNode(state.context, "audio-processor");
             state.node.port.onmessage = event => {
-                if (generation !== state.generation) return;
+                if (generation !== state.generation || state.context?.state !== "running") return;
                 const samples = new Int8Array(event.data.buffer);
                 let binary = "";
                 for (let i = 0; i < samples.length; i++) binary += String.fromCharCode(samples[i] & 255);
-                onChunk(btoa(binary));
+                state.onChunk?.(btoa(binary));
             };
             state.source.connect(state.node);
             state.node.connect(state.context.destination);
-            if (state.context.state === "suspended") state.context.resume();
+            if (state.context.state === "suspended") {
+                return state.context.resume().then(() => {
+                    if (generation !== state.generation) return;
+                    if (state.context.state !== "running") throw new Error("Microphone audio could not be started.");
+                    state.onStarted?.();
+                });
+            }
+            if (state.context.state !== "running") throw new Error("Microphone audio could not be started.");
+            state.onStarted?.();
         });
     }).catch(error => {
-        if (generation === state.generation) onError(error?.message || "Microphone permission was denied.");
+        if (generation !== state.generation) return;
+        const onError = state.onError;
+        const onStopped = state.onStopped;
+        if (state.node) state.node.disconnect();
+        if (state.source) state.source.disconnect();
+        if (state.stream) state.stream.getTracks().forEach(track => track.stop());
+        if (state.context) state.context.close();
+        state.stream = null;
+        state.context = null;
+        state.source = null;
+        state.node = null;
+        state.onChunk = null;
+        state.onError = null;
+        state.onStarted = null;
+        state.onStopped = null;
+        onStopped?.();
+        onError?.(error?.message || "Microphone permission was denied.");
     });
 }
 """,
@@ -45,6 +83,8 @@ import kotlin.io.encoding.Base64
 private external fun startWebAudioRecording(
     onChunk: (String) -> Unit,
     onError: (String) -> Unit,
+    onStarted: () -> Unit,
+    onStopped: () -> Unit,
 )
 
 @JsFun(
@@ -52,6 +92,7 @@ private external fun startWebAudioRecording(
 () => {
     const state = globalThis.__spressoRecorder;
     if (!state) return;
+    const onStopped = state.onStopped;
     state.generation++;
     if (state.node) state.node.disconnect();
     if (state.source) state.source.disconnect();
@@ -61,6 +102,11 @@ private external fun startWebAudioRecording(
     state.context = null;
     state.source = null;
     state.node = null;
+    state.onChunk = null;
+    state.onError = null;
+    state.onStarted = null;
+    state.onStopped = null;
+    onStopped?.();
 }
 """,
 )
@@ -69,6 +115,8 @@ private external fun stopWebAudioRecording()
 actual class AudioRecorder {
     actual var onAudioChunk: ((ByteArray) -> Unit)? = null
     actual var onError: ((Exception) -> Unit)? = null
+    actual var onStarted: (() -> Unit)? = null
+    actual var onStopped: (() -> Unit)? = null
     private var recording = false
 
     actual fun startRecording() {
@@ -82,6 +130,13 @@ actual class AudioRecorder {
                 recording = false
                 onError?.invoke(IllegalStateException(message))
             },
+            onStarted = {
+                if (recording) onStarted?.invoke()
+            },
+            onStopped = {
+                recording = false
+                onStopped?.invoke()
+            },
         )
     }
 
@@ -89,6 +144,8 @@ actual class AudioRecorder {
         recording = false
         stopWebAudioRecording()
         onAudioChunk = null
+        onStarted = null
+        onStopped = null
     }
 
     actual fun isRecording(): Boolean = recording

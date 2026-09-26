@@ -234,6 +234,7 @@ function errorStatus(cause: unknown): number {
   if (/rate limit exceeded/i.test(message)) return 429;
   if (/not configured/i.test(message)) return 503;
   if (/unauthenticated/i.test(message)) return 401;
+  if (/forbidden/i.test(message)) return 403;
   if (/not found|must be|is required|invalid|validator|cannot/i.test(message)) return 400;
   return 500;
 }
@@ -287,13 +288,14 @@ export const updateUserProfileHttp = httpAction(async (ctx, request) => {
 export const bootstrapUserHttp = httpAction(async (ctx, request) => {
   return runBridge(async () => {
     await bearerIdentity(ctx);
-    const body = (await request.json().catch(() => ({}))) as { email?: unknown; displayName?: unknown };
-    return {
-      userId: await ctx.runMutation(api.users.bootstrap, {
-        ...(typeof body.email === "string" ? { email: body.email } : {}),
-        ...(typeof body.displayName === "string" ? { displayName: body.displayName } : {}),
-      }),
-    };
+    const body = (await request.json().catch(() => ({}))) as { email?: unknown; displayName?: unknown; photoUrl?: unknown };
+    // Canonical bootstrap result: full launch state (identity fields are
+    // derived server-side from the verified Firebase bearer token).
+    return await ctx.runMutation(api.users.bootstrap, {
+      ...(typeof body.email === "string" ? { email: body.email } : {}),
+      ...(typeof body.displayName === "string" ? { displayName: body.displayName } : {}),
+      ...(typeof body.photoUrl === "string" ? { photoUrl: body.photoUrl } : {}),
+    });
   });
 });
 
@@ -898,9 +900,59 @@ export const sendChatMessageHttp = httpAction(async (ctx, request) => {
   });
 });
 
+export const saveLiveTurnHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const parsedBody: unknown = await request.json().catch(() => undefined);
+    if (typeof parsedBody !== "object" || parsedBody === null || Array.isArray(parsedBody)) {
+      throw new BridgeError("A valid voice turn object is required.", 400);
+    }
+    const body = parsedBody as {
+      threadId?: unknown;
+      turnId?: unknown;
+      userTranscript?: unknown;
+      assistantTranscript?: unknown;
+    };
+    if (typeof body.threadId !== "string" || !body.threadId.trim()) throw new BridgeError("threadId is required.", 400);
+    if (typeof body.turnId !== "string" || !body.turnId.trim()) throw new BridgeError("turnId is required.", 400);
+    if (typeof body.userTranscript !== "string" || typeof body.assistantTranscript !== "string") {
+      throw new BridgeError("Finalized voice transcripts are required.", 400);
+    }
+    return ctx.runMutation(api.aiChat.saveLiveTurn, {
+      threadId: body.threadId,
+      turnId: body.turnId,
+      userTranscript: body.userTranscript,
+      assistantTranscript: body.assistantTranscript,
+    });
+  });
+});
+
+export const updateLiveTurnInputHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const parsedBody: unknown = await request.json().catch(() => undefined);
+    if (typeof parsedBody !== "object" || parsedBody === null || Array.isArray(parsedBody)) {
+      throw new BridgeError("A valid voice turn update object is required.", 400);
+    }
+    const body = parsedBody as { threadId?: unknown; turnId?: unknown; userTranscript?: unknown };
+    if (typeof body.threadId !== "string" || !body.threadId.trim()) throw new BridgeError("threadId is required.", 400);
+    if (typeof body.turnId !== "string" || !body.turnId.trim()) throw new BridgeError("turnId is required.", 400);
+    if (typeof body.userTranscript !== "string") throw new BridgeError("userTranscript is required.", 400);
+    const result = await ctx.runMutation(api.aiChat.updateLiveTurnUserTranscript, {
+      threadId: body.threadId,
+      turnId: body.turnId,
+      userTranscript: body.userTranscript,
+    });
+    if (!result.updated) throw new BridgeError("The finalized voice turn could not be reconciled.", 409);
+    return result;
+  });
+});
+
 http.route({ path: "/api/chat/thread", method: "POST", handler: createChatThreadHttp });
 http.route({ path: "/api/chat/messages", method: "GET", handler: listChatMessagesHttp });
 http.route({ path: "/api/chat/message", method: "POST", handler: sendChatMessageHttp });
+http.route({ path: "/api/chat/live-turn", method: "POST", handler: saveLiveTurnHttp });
+http.route({ path: "/api/chat/live-turn/input", method: "POST", handler: updateLiveTurnInputHttp });
 
 // ---- Merchant browser automation: owner-scoped session surfaces ------------
 
@@ -936,11 +988,25 @@ export const merchantSessionControlHttp = httpAction(async (ctx, request) => {
     if (body.control !== "PAUSE" && body.control !== "TAKE_OVER" && body.control !== "RESUME" && body.control !== "COMPLETE") {
       throw new BridgeError("control must be PAUSE, TAKE_OVER, RESUME, or COMPLETE.", 400);
     }
-    await ctx.runAction(api.merchantBrowser.index.controlSession, {
+    // TAKE_OVER returns the short-lived Live View URL for the SAME browser
+    // session (HITL). It is issued only to the authenticated owner and is
+    // never persisted or logged.
+    return ctx.runAction(api.merchantBrowser.index.controlSession, {
       sessionId: requireConvexId<"merchantBrowserSessions">(body.sessionId, "sessionId"),
       control: body.control,
     });
-    return { ok: true };
+  });
+});
+
+export const merchantSessionLiveViewHttp = httpAction(async (ctx, request) => {
+  return runBridge(async () => {
+    await bearerIdentity(ctx);
+    const params = new URL(request.url).searchParams;
+    const sessionIdRaw = params.get("sessionId");
+    if (!sessionIdRaw) throw new BridgeError("sessionId is required.", 400);
+    return ctx.runAction(api.merchantBrowser.index.myLiveView, {
+      sessionId: requireConvexId<"merchantBrowserSessions">(sessionIdRaw, "sessionId"),
+    });
   });
 });
 
@@ -956,6 +1022,7 @@ export const merchantSessionBeginHttp = httpAction(async (ctx, request) => {
 http.route({ path: "/api/merchant/session", method: "GET", handler: merchantSessionHttp });
 http.route({ path: "/api/merchant/session/events", method: "GET", handler: merchantSessionEventsHttp });
 http.route({ path: "/api/merchant/session/control", method: "POST", handler: merchantSessionControlHttp });
+http.route({ path: "/api/merchant/session/live-view", method: "GET", handler: merchantSessionLiveViewHttp });
 http.route({ path: "/api/merchant/session/begin", method: "POST", handler: merchantSessionBeginHttp });
 
 export const generateWardrobeOutfitHttp = httpAction(async (ctx, request) => {

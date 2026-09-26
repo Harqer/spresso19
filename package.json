@@ -25,6 +25,7 @@
     "lavish": "tsx scripts/lavish.ts"
   },
   "dependencies": {
+    "@browserbasehq/sdk": "^2.21.0",
     "@convex-dev/agent": "^0.7.2",
     "@convex-dev/ai-sdk-provider": "^0.1.0",
     "@convex-dev/rate-limiter": "^0.3.2",
@@ -32,9 +33,11 @@
     "@modelcontextprotocol/ext-apps": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "ai": "^7.0.94",
+    "chromium-bidi": "^5.3.1",
     "convex": "^1.45.0",
     "convex-helpers": "^0.1.124",
     "parallel-web": "^1.3.0",
+    "playwright-core": "^1.63.0",
     "stripe": "^22.5.0",
     "zod": "^4.5.4"
   },
@@ -44,6 +47,7 @@
     "convex-test": "^0.0.56",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2",
+    "vite": "^7.3.6",
     "vitest": "^5.0.0"
   },
   "overrides": {

@@ -1,0 +1,65 @@
+{
+  "name": "spresso-browser-noodle",
+  "version": "1.0.0",
+  "generated_utc": "2026-09-26T01:06:47.300605+00:00",
+  "default_noodle_mode": "supervised",
+  "skills": [
+    "spresso-browser-orchestrator",
+    "spresso-browser-phase-1-contracts",
+    "spresso-browser-phase-2-runtime",
+    "spresso-browser-phase-3-experience",
+    "spresso-browser-phase-4-security",
+    "spresso-browser-phase-5-purchase",
+    "spresso-browser-phase-6-verification"
+  ],
+  "phases": [
+    {
+      "phase": 1,
+      "skill": "spresso-browser-phase-1-contracts",
+      "depends_on": []
+    },
+    {
+      "phase": 2,
+      "skill": "spresso-browser-phase-2-runtime",
+      "depends_on": [
+        1
+      ]
+    },
+    {
+      "phase": 3,
+      "skill": "spresso-browser-phase-3-experience",
+      "depends_on": [
+        2
+      ]
+    },
+    {
+      "phase": 4,
+      "skill": "spresso-browser-phase-4-security",
+      "depends_on": [
+        3
+      ],
+      "auto_forbidden": true
+    },
+    {
+      "phase": 5,
+      "skill": "spresso-browser-phase-5-purchase",
+      "depends_on": [
+        4
+      ],
+      "auto_forbidden": true
+    },
+    {
+      "phase": 6,
+      "skill": "spresso-browser-phase-6-verification",
+      "depends_on": [
+        5
+      ]
+    }
+  ],
+  "deferred": [
+    "WebCMD/site memory",
+    "cross-task workflow caching",
+    "persistent Browserbase Contexts",
+    "automatic workflow repair"
+  ]
+}

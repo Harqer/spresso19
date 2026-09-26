@@ -8,17 +8,35 @@ import { requireFirebaseIdentity } from "../lib/identity";
 /**
  * Ephemeral-token exchange for the Gemini Live API WebSocket.
  *
- * The single Convex owner of this boundary (the legacy Firebase callable
- * `generateLiveApiToken` enforced App Check + auth; this action enforces the
- * Firebase identity). The API key never reaches the client — only a
- * single-use, short-lived token scoped by the server-owned constraints does.
+ * The API key stays on the server. The REST AuthToken API accepts
+ * `bidiGenerateContentSetup` and a comma-separated fieldMask. The mask locks
+ * the server-owned setup while leaving sessionResumption configurable for
+ * provider-issued reconnect handles.
  */
-
 const LiveTokenResponseSchema = z.object({ name: z.string().min(1) });
 
 const LIVE_TOKEN_URL = "https://generativelanguage.googleapis.com/v1beta/auth_tokens";
-const LIVE_MODEL = "models/gemini-3.1-flash-live-preview";
+const LIVE_MODEL = "models/gemini-3.8-live";
+const LIVE_ASSISTANT_INSTRUCTION =
+  "You are Spresso's concise, safety-conscious live shopping assistant. Help the user discover products using the camera and microphone.";
 const LIVE_TIMEOUT_MS = 15_000;
+const LIVE_TOKEN_FIELD_MASK =
+  "model,generationConfig,systemInstruction,tools,inputAudioTranscription,outputAudioTranscription";
+
+export function liveTokenRequestBody() {
+  return {
+    uses: 1,
+    bidiGenerateContentSetup: {
+      model: LIVE_MODEL,
+      generationConfig: { responseModalities: ["AUDIO"] },
+      tools: [],
+      inputAudioTranscription: {},
+      outputAudioTranscription: {},
+      systemInstruction: { parts: [{ text: LIVE_ASSISTANT_INSTRUCTION }] },
+    },
+    fieldMask: LIVE_TOKEN_FIELD_MASK,
+  };
+}
 
 export const generateLiveApiToken = action({
   args: {},
@@ -37,22 +55,7 @@ export const generateLiveApiToken = action({
         method: "POST",
         signal: controller.signal,
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-        body: JSON.stringify({
-          uses: 1,
-          liveConnectConstraints: {
-            model: LIVE_MODEL,
-            config: {
-              responseModalities: ["AUDIO"],
-              sessionResumption: {},
-              // Server-owned persona: the constraint config takes precedence
-              // over client setup, so the client cannot alter or omit the
-              // system instruction.
-              systemInstruction: {
-                parts: [{ text: "You are Spresso's concise, safety-conscious live cooking assistant. Help the user cook with the camera and microphone." }],
-              },
-            },
-          },
-        }),
+        body: JSON.stringify(liveTokenRequestBody()),
       });
       if (!response.ok) throw new Error(`Live token provider returned HTTP ${response.status}.`);
       const data = LiveTokenResponseSchema.parse(await response.json());
